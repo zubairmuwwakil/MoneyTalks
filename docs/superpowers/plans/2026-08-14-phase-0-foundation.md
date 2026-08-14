@@ -35,7 +35,7 @@ The repo already contains `README.md`, `.gitignore`, and `docs/` — `create-nex
 **Interfaces:**
 - Produces: a running Next.js app with `@/*` → `src/*` import alias; `npm run dev`, `npm run build`, `npm run lint` all work.
 
-- [ ] **Step 1: Scaffold in a temp dir and merge**
+- [x] **Step 1: Scaffold in a temp dir and merge**
 
 ```bash
 cd /Users/zub/Documents/Github_Projects/MoneyTalks
@@ -46,16 +46,16 @@ rm -rf scaffold-tmp
 npm install
 ```
 
-- [ ] **Step 2: Deduplicate `.gitignore`**
+- [x] **Step 2: Deduplicate `.gitignore`**
 
 Open `.gitignore`; keep the secret-blocking block (`.env*`, `seed/`, `*.seed.json`, `seed-data.json`, `docs/private/`) at the top, remove duplicate lines from the appended scaffold block (e.g., a second `.env*`, `node_modules/`, `.next/`). The final file must still contain every pattern from both sources exactly once.
 
-- [ ] **Step 3: Verify dev server**
+- [x] **Step 3: Verify dev server**
 
 Run: `npm run dev` — open http://localhost:3000, expect the Next.js starter page. Stop the server.
 Run: `npm run build` — expect a successful production build.
 
-- [ ] **Step 4: Replace starter page with a placeholder**
+- [x] **Step 4: Replace starter page with a placeholder**
 
 Replace the body of `src/app/page.tsx` entirely with:
 
@@ -80,7 +80,7 @@ export const metadata: Metadata = {
 
 Run: `npm run dev`, confirm the page renders "MoneyTalks". Stop the server.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
