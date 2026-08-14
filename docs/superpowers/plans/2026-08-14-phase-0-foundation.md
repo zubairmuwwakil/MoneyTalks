@@ -101,7 +101,7 @@ Establishes `src/engine/` (pure functions) and Vitest, using the app's first rea
 **Interfaces:**
 - Produces: `formatMinorUnits(amountMinor: number, currency: "CAD" | "USD" | "JMD", locale?: string): string` — throws `RangeError` on non-safe-integer input. Later phases build on this convention: all engine money math takes integer minor units.
 
-- [ ] **Step 1: Install and configure Vitest**
+- [x] **Step 1: Install and configure Vitest**
 
 ```bash
 npm install -D vitest
@@ -125,7 +125,7 @@ export default defineConfig({
 
 Add to `package.json` scripts: `"test": "vitest run"` and `"test:watch": "vitest"`.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Create `src/engine/money.test.ts`:
 
@@ -161,12 +161,12 @@ describe("formatMinorUnits", () => {
 });
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `npm test`
 Expected: FAIL — `Cannot find module './money'` (or equivalent).
 
-- [ ] **Step 4: Implement**
+- [x] **Step 4: Implement**
 
 Create `src/engine/money.ts`:
 
@@ -189,12 +189,12 @@ export function formatMinorUnits(
 }
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `npm test`
 Expected: 6 passing. If the exact-string assertions fail on symbol placement, the runtime's ICU differs — adjust the *expected strings* to the actual `en-CA` output (verify it is sensible), never the implementation.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add vitest.config.ts src/engine/money.ts src/engine/money.test.ts package.json package-lock.json
