@@ -214,7 +214,7 @@ git commit -m "feat: add engine money formatting with Vitest infrastructure"
 **Interfaces:**
 - Produces: `prisma` singleton (`import { prisma } from "@/lib/prisma"`); Auth.js-shaped models `User`, `Account`, `Session`, `VerificationToken`, `Authenticator`. Phase 1 adds financial models to this same schema (remember: `FinancialAccount`, never `Account`).
 
-- [ ] **Step 1: Install Prisma**
+- [x] **Step 1: Install Prisma**
 
 ```bash
 npm install prisma @prisma/client
@@ -223,7 +223,7 @@ npx prisma init --datasource-provider postgresql
 
 `prisma init` creates `prisma/schema.prisma` and appends `DATABASE_URL` to `.env` — delete the generated `.env` (we use `.env.local`; `.env*` is gitignored, but keep the tree clean).
 
-- [ ] **Step 2: Write the schema**
+- [x] **Step 2: Write the schema**
 
 Replace `prisma/schema.prisma` entirely with:
 
@@ -301,7 +301,7 @@ model Authenticator {
 }
 ```
 
-- [ ] **Step 3: Create the Prisma client singleton**
+- [x] **Step 3: Create the Prisma client singleton**
 
 Create `src/lib/prisma.ts`:
 
@@ -315,7 +315,7 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient();
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 ```
 
-- [ ] **Step 4: Create `.env.example`** (committed — placeholders only)
+- [x] **Step 4: Create `.env.example`** (committed — placeholders only)
 
 ```bash
 # Copy to .env.local and fill with real values. NEVER commit real values.
@@ -326,11 +326,11 @@ AUTH_EMAIL_FROM="MoneyTalks <onboarding@resend.dev>"
 ALLOWED_EMAILS="you@example.com"
 ```
 
-- [ ] **Step 5: OWNER CHECKPOINT — Neon database**
+- [x] **Step 5: OWNER CHECKPOINT — Neon database**
 
 Ask the owner to: create a free project at https://neon.tech named `moneytalks`, copy the pooled connection string, and place it in `.env.local` as `DATABASE_URL`. Do not proceed until `.env.local` exists.
 
-- [ ] **Step 6: Run the migration**
+- [x] **Step 6: Run the migration**
 
 ```bash
 npx dotenv -e .env.local -- npx prisma migrate dev --name auth-models
@@ -340,7 +340,7 @@ npx dotenv -e .env.local -- npx prisma migrate dev --name auth-models
 
 Expected: migration applied; `prisma/migrations/<timestamp>_auth-models/` created.
 
-- [ ] **Step 7: Verify schema against the live DB**
+- [x] **Step 7: Verify schema against the live DB**
 
 ```bash
 npx dotenv -e .env.local -- npx prisma migrate status
@@ -348,7 +348,7 @@ npx dotenv -e .env.local -- npx prisma migrate status
 
 Expected: `Database schema is up to date!`
 
-- [ ] **Step 8: Add postinstall generate + commit**
+- [x] **Step 8: Add postinstall generate + commit**
 
 Add to `package.json` scripts: `"postinstall": "prisma generate"`.
 

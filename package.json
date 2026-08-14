@@ -7,11 +7,14 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
+    "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "next": "15.5.23",
+    "prisma": "^6.19.3",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
@@ -21,6 +24,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.23",
     "tailwindcss": "^4",
