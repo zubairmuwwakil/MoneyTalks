@@ -1,0 +1,19 @@
+# --- Secrets & personal data: NEVER commit ---
+.env
+.env.*
+!.env.example
+seed/
+*.seed.json
+seed-data.json
+docs/private/
+
+# --- Dependencies / build ---
+node_modules/
+.next/
+out/
+dist/
+coverage/
+
+# --- OS / editor ---
+.DS_Store
+*.local
