@@ -13,6 +13,25 @@ describe("parseCsv", () => {
   it("skips blank lines", () => {
     expect(parseCsv("a,b\n\n1,2\n")).toHaveLength(2);
   });
+
+  it("enforces 10,000-row limit with trailing newline", () => {
+    const lines = Array.from({ length: 10_001 }, (_, i) => `row${i}`);
+    const csv = lines.join("\n") + "\n";
+    expect(() => parseCsv(csv)).toThrow(RangeError);
+  });
+
+  it("enforces 10,000-row limit without trailing newline", () => {
+    const lines = Array.from({ length: 10_001 }, (_, i) => `row${i}`);
+    const csv = lines.join("\n");
+    expect(() => parseCsv(csv)).toThrow(RangeError);
+  });
+
+  it("allows exactly 10,000 rows", () => {
+    const lines = Array.from({ length: 10_000 }, (_, i) => `row${i}`);
+    const csv = lines.join("\n");
+    const rows = parseCsv(csv);
+    expect(rows).toHaveLength(10_000);
+  });
 });
 
 describe("mapRows", () => {
@@ -53,5 +72,11 @@ describe("dedupeHash", () => {
     expect(a).toBe(dedupeHash("acct1", "2026-01-05", 123456, "FIXTURE GROCER"));
     expect(a).not.toBe(dedupeHash("acct1", "2026-01-05", 123457, "FIXTURE GROCER"));
     expect(a).not.toBe(dedupeHash("acct2", "2026-01-05", 123456, "FIXTURE GROCER"));
+  });
+
+  it("produces a 16-character hex output", () => {
+    const hash = dedupeHash("acct1", "2026-01-05", 123456, "FIXTURE GROCER");
+    expect(hash).toMatch(/^[0-9a-f]{16}$/);
+    expect(hash).toHaveLength(16);
   });
 });

@@ -28,7 +28,6 @@ export function parseCsv(text: string): string[][] {
       field = "";
       if (row.length > 1 || row[0] !== "") rows.push(row);
       row = [];
-      if (rows.length > 10_000) throw new RangeError("CSV exceeds 10,000 rows");
     } else {
       field += ch;
     }
@@ -37,6 +36,7 @@ export function parseCsv(text: string): string[][] {
     row.push(field);
     if (row.length > 1 || row[0] !== "") rows.push(row);
   }
+  if (rows.length > 10_000) throw new RangeError("CSV exceeds 10,000 rows");
   return rows;
 }
 
@@ -101,9 +101,12 @@ export function dedupeHash(
   description: string,
 ): string {
   const input = `${accountId}|${date}|${amountMinor}|${description}`;
-  let hash = 5381;
+  let hash1 = 5381;
+  let hash2 = 52711;
   for (let i = 0; i < input.length; i += 1) {
-    hash = ((hash << 5) + hash + input.charCodeAt(i)) >>> 0;
+    const ch = input.charCodeAt(i);
+    hash1 = ((hash1 << 5) + hash1 + ch) >>> 0;
+    hash2 = ((hash2 << 5) + hash2 + ch) >>> 0;
   }
-  return hash.toString(16);
+  return hash1.toString(16).padStart(8, "0") + hash2.toString(16).padStart(8, "0");
 }
