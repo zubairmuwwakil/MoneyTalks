@@ -1,0 +1,55 @@
+{
+  "accounts": [
+    {
+      "type": "RRSP",
+      "name": "Maple RRSP",
+      "institution": "Maple Invest",
+      "country": "CA",
+      "currency": "CAD",
+      "holdings": [
+        { "symbol": "XEQT.TO", "name": "Fictional All-Equity ETF", "domicileCountry": "CA", "quantity": 100, "lastPriceMinor": 3000, "priceAsOf": "2026-08-01" }
+      ],
+      "snapshots": [{ "balanceMinor": 300000, "asOf": "2026-08-01" }]
+    },
+    {
+      "type": "TFSA",
+      "name": "Maple TFSA",
+      "institution": "Maple Invest",
+      "country": "CA",
+      "currency": "CAD",
+      "snapshots": [{ "balanceMinor": 150000, "asOf": "2026-08-01" }]
+    },
+    {
+      "type": "RDSP",
+      "name": "Maple RDSP",
+      "institution": "Northern Trust Co (fictional)",
+      "country": "CA",
+      "currency": "CAD",
+      "snapshots": [{ "balanceMinor": 500000, "asOf": "2026-08-01" }]
+    },
+    {
+      "type": "ROTH_IRA",
+      "name": "Eagle Roth IRA",
+      "institution": "Eagle Brokerage (fictional)",
+      "country": "US",
+      "currency": "USD",
+      "isUSSitus": true,
+      "snapshots": [{ "balanceMinor": 200000, "asOf": "2026-08-01" }]
+    },
+    {
+      "type": "CRYPTO",
+      "name": "Comet Crypto",
+      "institution": "Comet Exchange (fictional)",
+      "country": "US",
+      "currency": "USD",
+      "holdings": [
+        { "symbol": "BTC", "name": "Bitcoin", "domicileCountry": "US", "quantity": 0.01, "lastPriceMinor": 10000000, "priceAsOf": "2026-08-01" }
+      ],
+      "snapshots": [{ "balanceMinor": 100000, "asOf": "2026-08-01" }]
+    }
+  ],
+  "fxRates": [
+    { "base": "USD", "quote": "CAD", "rate": 1.4, "asOf": "2026-08-01" },
+    { "base": "JMD", "quote": "CAD", "rate": 0.009, "asOf": "2026-08-01" }
+  ]
+}
