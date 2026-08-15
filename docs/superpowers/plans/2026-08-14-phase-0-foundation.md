@@ -933,7 +933,7 @@ git commit -m "feat: add app shell with nav, module placeholders, PWA manifest"
 - Consumes: the running app (Tasks 4/6): `/` redirect behavior, `/login` form, `/api/me`, `/api/health`.
 - Produces: `npm run e2e` — the regression gate later phases extend.
 
-- [ ] **Step 1: Install Playwright**
+- [x] **Step 1: Install Playwright**
 
 ```bash
 npm install -D @playwright/test
@@ -943,7 +943,7 @@ npx playwright install chromium
 Add to `package.json` scripts: `"e2e": "playwright test"`.
 Append to `.gitignore` (bottom section): `test-results/` and `playwright-report/`.
 
-- [ ] **Step 2: Configure with a managed dev server**
+- [x] **Step 2: Configure with a managed dev server**
 
 Create `playwright.config.ts`:
 
@@ -962,7 +962,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 3: Write the smoke tests**
+- [x] **Step 3: Write the smoke tests**
 
 Create `e2e/smoke.spec.ts`:
 
@@ -996,12 +996,12 @@ test("health endpoint is public", async ({ request }) => {
 });
 ```
 
-- [ ] **Step 4: Run and verify**
+- [x] **Step 4: Run and verify**
 
 Run: `npm run e2e`
 Expected: 4 passing. (Requires `.env.local` from Tasks 3–4 so the dev server boots with a database.)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add playwright.config.ts e2e/ package.json package-lock.json .gitignore
