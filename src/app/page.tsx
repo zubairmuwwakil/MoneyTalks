@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signOut } from "@/auth";
+import { refreshFxRates } from "@/app/actions/refresh";
 import { NetWorthSparkline } from "@/components/net-worth-sparkline";
 import { PasskeyRegisterButton } from "@/components/passkey-buttons";
 import { accountBalanceWithCurrency } from "@/engine/balance";
@@ -16,10 +17,14 @@ import { buildSnapshot } from "@/lib/snapshot";
 
 const CURRENCIES: Currency[] = ["CAD", "USD", "JMD"];
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ ccy?: string }> }) {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ ccy?: string; fxOk?: string; fxError?: string }>;
+}) {
   const user = await requireUser();
   const userId = await requireUserId();
-  const { ccy } = await searchParams;
+  const { ccy, fxOk, fxError } = await searchParams;
   const display: Currency = CURRENCIES.includes(ccy as Currency) ? (ccy as Currency) : "CAD";
 
   const [accounts, fxRates] = await Promise.all([
@@ -174,17 +179,33 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
           <h1 className="text-xl font-semibold">Dashboard</h1>
           <p className="text-sm text-muted-foreground">Signed in as {user.email}</p>
         </div>
-        <nav className="flex gap-1 rounded border p-1 text-xs">
-          {CURRENCIES.map((c) => (
-            <Link
-              key={c}
-              href={`/?ccy=${c}`}
-              className={`rounded px-2 py-1 ${c === display ? "bg-foreground text-background" : ""}`}
-            >
-              {c}
-            </Link>
-          ))}
-        </nav>
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-2">
+            <nav className="flex gap-1 rounded border p-1 text-xs">
+              {CURRENCIES.map((c) => (
+                <Link
+                  key={c}
+                  href={`/?ccy=${c}`}
+                  className={`rounded px-2 py-1 ${c === display ? "bg-foreground text-background" : ""}`}
+                >
+                  {c}
+                </Link>
+              ))}
+            </nav>
+            <form action={refreshFxRates}>
+              <input type="hidden" name="ccy" value={display} />
+              <button
+                type="submit"
+                className="rounded border px-2 py-1 text-xs"
+                title="USD/CAD from Bank of Canada Valet (JMD stays manual)"
+              >
+                ↻ FX
+              </button>
+            </form>
+          </div>
+          {fxOk ? <p className="text-xs text-green-700">{fxOk}</p> : null}
+          {fxError ? <p className="text-xs text-red-600">{fxError}</p> : null}
+        </div>
       </header>
 
       <section>
