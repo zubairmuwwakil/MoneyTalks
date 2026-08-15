@@ -70,29 +70,19 @@ export async function updateAccount(formData: FormData): Promise<ActionResult> {
   let accountId: string;
   try {
     accountId = recordId(formData, "accountId");
-    await prisma.$transaction(async (tx) => {
-      const account = await tx.financialAccount.findFirst({
-        where: { id: accountId, userId },
-        select: {
-          id: true,
-          currency: true,
-          _count: { select: { holdings: true, transactions: true, snapshots: true } },
-        },
-      });
-      if (!account) throw new Error("Account not found");
+    const account = await prisma.financialAccount.findFirst({
+      where: { id: accountId, userId },
+      select: { id: true, currency: true },
+    });
+    if (!account) throw new Error("Account not found");
+    const { currency, ...editableData } = parsed.data;
+    if (account.currency !== currency) {
+      throw new Error("Currency cannot be changed after account creation");
+    }
 
-      const hasChildMoney =
-        account._count.holdings > 0 ||
-        account._count.transactions > 0 ||
-        account._count.snapshots > 0;
-      if (account.currency !== parsed.data.currency && hasChildMoney) {
-        throw new Error("Currency cannot be changed while the account has holdings, transactions, or snapshots");
-      }
-
-      await tx.financialAccount.update({
-        where: { id: account.id },
-        data: parsed.data,
-      });
+    await prisma.financialAccount.update({
+      where: { id: account.id },
+      data: editableData,
     });
   } catch (e) {
     return fail(e);
@@ -156,7 +146,7 @@ export async function updateTransaction(formData: FormData): Promise<ActionResul
     const id = recordId(formData, "transactionId");
     const transaction = await prisma.transaction.findFirst({
       where: { id, account: { userId } },
-      select: { id: true, accountId: true, account: { select: { currency: true } } },
+      select: { id: true, accountId: true },
     });
     if (!transaction) throw new Error("Transaction not found");
     accountId = transaction.accountId;
@@ -164,7 +154,6 @@ export async function updateTransaction(formData: FormData): Promise<ActionResul
       where: { id: transaction.id },
       data: {
         ...parsed.data,
-        currency: transaction.account.currency,
         date: new Date(parsed.data.date),
       },
     });

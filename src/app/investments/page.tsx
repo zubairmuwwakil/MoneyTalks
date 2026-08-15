@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { accountBalance, latestSnapshot } from "@/engine/balance";
+import { accountBalanceWithCurrency } from "@/engine/balance";
 import { formatMinorUnits, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -38,11 +38,16 @@ export default async function InvestmentsPage() {
               currency: s.currency as Currency,
               asOf: s.asOf.toISOString(),
             }));
-            const balance = accountBalance(
-              a.transactions.map((t) => ({ type: t.type, amountMinor: t.amountMinor, date: t.date.toISOString() })),
+            const balance = accountBalanceWithCurrency(
+              a.transactions.map((t) => ({
+                type: t.type,
+                amountMinor: t.amountMinor,
+                date: t.date.toISOString(),
+                currency: t.currency,
+              })),
               snapshots,
+              a.currency,
             );
-            const balanceCurrency = latestSnapshot(snapshots)?.currency ?? (a.currency as Currency);
             return (
               <li key={a.id}>
                 <Link href={`/investments/${a.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
@@ -52,10 +57,14 @@ export default async function InvestmentsPage() {
                       {a.type} · {a.institution}
                     </span>
                   </span>
-                  <span className="text-sm tabular-nums">
-                    {formatMinorUnits(balance.balanceMinor, balanceCurrency)}{" "}
-                    <span className="text-xs text-muted-foreground">{balanceCurrency}</span>
-                  </span>
+                  {balance.ok ? (
+                    <span className="text-sm tabular-nums">
+                      {formatMinorUnits(balance.balanceMinor, balance.currency as Currency)}{" "}
+                      <span className="text-xs text-muted-foreground">{balance.currency}</span>
+                    </span>
+                  ) : (
+                    <span className="max-w-xs text-right text-sm text-red-600">{balance.error}</span>
+                  )}
                 </Link>
               </li>
             );

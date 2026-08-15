@@ -11,14 +11,13 @@ import {
   updateAccount,
   updateTransaction,
 } from "@/app/investments/actions";
-import { accountBalance, holdingValueMinor, latestSnapshot } from "@/engine/balance";
+import { accountBalanceWithCurrency, holdingValueMinor } from "@/engine/balance";
 import { formatMinorUnits, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
 const TX_TYPES = ["CONTRIBUTION", "WITHDRAWAL", "BUY", "SELL", "DIVIDEND", "INTEREST", "FEE"] as const;
 const ACCOUNT_TYPES = ["RRSP", "TFSA", "RDSP", "FHSA", "ROTH_IRA", "NON_REGISTERED", "CASH", "CHEQUING", "CRYPTO"] as const;
-const CURRENCIES = ["CAD", "USD", "JMD"] as const;
 
 function accountErrorPath(accountId: string, form: string, message: string) {
   return `/investments/${accountId}?errorForm=${form}&error=${encodeURIComponent(message)}`;
@@ -50,11 +49,16 @@ export default async function AccountDetailPage({
     currency: s.currency as Currency,
     asOf: s.asOf.toISOString(),
   }));
-  const balance = accountBalance(
-    account.transactions.map((t) => ({ type: t.type, amountMinor: t.amountMinor, date: t.date.toISOString() })),
+  const balance = accountBalanceWithCurrency(
+    account.transactions.map((t) => ({
+      type: t.type,
+      amountMinor: t.amountMinor,
+      date: t.date.toISOString(),
+      currency: t.currency,
+    })),
     snapshotInputs,
+    currency,
   );
-  const balanceCurrency = latestSnapshot(snapshotInputs)?.currency ?? currency;
   const holdingsValue = account.holdings.reduce(
     (sum, h) => sum + holdingValueMinor(Number(h.quantity), h.lastPriceMinor),
     0,
@@ -132,13 +136,16 @@ export default async function AccountDetailPage({
           {account.type} · {account.institution} · {account.currency}
         </p>
         <p className="mt-2 text-2xl tabular-nums">
-          {formatMinorUnits(balance.balanceMinor, balanceCurrency)}
-          <span className="ml-2 text-xs text-muted-foreground">
-            {balance.source === "snapshot"
-              ? `snapshot ${balance.asOf?.slice(0, 10)} · ${balanceCurrency}`
-              : "derived from transactions"}
-          </span>
+          {balance.ok ? formatMinorUnits(balance.balanceMinor, balance.currency as Currency) : "Balance unavailable"}
+          {balance.ok ? (
+            <span className="ml-2 text-xs text-muted-foreground">
+              {balance.source === "snapshot"
+                ? `snapshot ${balance.asOf?.slice(0, 10)} · ${balance.currency}`
+                : "derived from transactions"}
+            </span>
+          ) : null}
         </p>
+        {!balance.ok ? <p className="mt-1 text-sm text-red-600">{balance.error}</p> : null}
         {account.holdings.length > 0 ? (
           <p className="text-sm text-muted-foreground">
             Holdings market value: {formatMinorUnits(holdingsValue, currency)}
@@ -156,9 +163,7 @@ export default async function AccountDetailPage({
             {ACCOUNT_TYPES.map((type) => <option key={type}>{type}</option>)}
           </select>
           <input name="country" defaultValue={account.country} required pattern="[A-Z]{2}" aria-label="Country" className="rounded border px-2 py-1" />
-          <select name="currency" defaultValue={account.currency} required aria-label="Currency" className="rounded border px-2 py-1">
-            {CURRENCIES.map((code) => <option key={code}>{code}</option>)}
-          </select>
+          <input name="currency" value={account.currency} readOnly aria-label="Currency" className="rounded border bg-muted px-2 py-1" />
           <label className="flex items-center gap-2 rounded border px-2 py-1">
             <input type="checkbox" name="isUSSitus" value="true" defaultChecked={account.isUSSitus} /> US-situs
           </label>

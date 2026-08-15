@@ -2,7 +2,7 @@ import Link from "next/link";
 import { signOut } from "@/auth";
 import { NetWorthSparkline } from "@/components/net-worth-sparkline";
 import { PasskeyRegisterButton } from "@/components/passkey-buttons";
-import { accountBalance, latestSnapshot } from "@/engine/balance";
+import { accountBalanceWithCurrency } from "@/engine/balance";
 import { MissingFxRateError, type FxRateInput } from "@/engine/fx";
 import { formatMinorUnits, type Currency } from "@/engine/money";
 import { netWorth, netWorthSeries, type SnapshotRow } from "@/engine/networth";
@@ -33,33 +33,57 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
     asOf: r.asOf.toISOString(),
   }));
 
-  const rows = accounts.map((a) => {
+  const balanceRows = accounts.map((a) => {
     const snapshots = a.snapshots.map((s) => ({
       balanceMinor: s.balanceMinor,
       currency: s.currency as Currency,
       asOf: s.asOf.toISOString(),
     }));
-    const balance = accountBalance(
-      a.transactions.map((t) => ({ type: t.type, amountMinor: t.amountMinor, date: t.date.toISOString() })),
+    const balance = accountBalanceWithCurrency(
+      a.transactions.map((t) => ({
+        type: t.type,
+        amountMinor: t.amountMinor,
+        date: t.date.toISOString(),
+        currency: t.currency,
+      })),
       snapshots,
+      a.currency,
     );
+    if (!balance.ok) {
+      return {
+        ok: false as const,
+        id: a.id,
+        name: a.name,
+        type: a.type as string,
+        error: balance.error,
+      };
+    }
     return {
+      ok: true as const,
       id: a.id,
       name: a.name,
       type: a.type as string,
-      currency: latestSnapshot(snapshots)?.currency ?? (a.currency as Currency),
+      currency: balance.currency as Currency,
       balanceMinor: balance.balanceMinor,
     };
   });
+  const unavailableRows = balanceRows.filter((row) => !row.ok);
+  const rows = balanceRows.filter((row) => row.ok);
 
   let total: ReturnType<typeof netWorth> | null = null;
   let missingRate: string | null = null;
-  try {
-    total = netWorth(rows, display, rates);
-  } catch (e) {
-    if (e instanceof MissingFxRateError) missingRate = e.message;
-    else throw e;
+  if (unavailableRows.length === 0) {
+    try {
+      total = netWorth(rows, display, rates);
+    } catch (e) {
+      if (e instanceof MissingFxRateError) missingRate = e.message;
+      else throw e;
+    }
   }
+  const balanceWarning =
+    unavailableRows.length > 0
+      ? `Balance unavailable for ${unavailableRows.map((row) => row.name).join(", ")}. Add a balance snapshot before net worth can be computed.`
+      : null;
 
   const snapshotRows: SnapshotRow[] = accounts.flatMap((a) =>
     a.snapshots.map((s) => ({
@@ -107,7 +131,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
           <p className="text-3xl font-semibold tabular-nums">{formatMinorUnits(total.totalMinor, display)}</p>
         ) : (
           <p className="text-sm text-red-600">
-            {missingRate}. <Link href="/investments" className="underline">Add an FX rate via import</Link>.
+            {balanceWarning ?? missingRate}
+            {missingRate ? <> <Link href="/investments" className="underline">Add an FX rate via import</Link>.</> : null}
           </p>
         )}
         <NetWorthSparkline data={series} currency={display} />
@@ -143,6 +168,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
               <p className="mt-1 tabular-nums">
                 {formatMinorUnits(a.balanceMinor, a.currency)} {a.currency}
               </p>
+            </Link>
+          ))}
+          {unavailableRows.map((a) => (
+            <Link key={a.id} href={`/investments/${a.id}`} className="rounded border p-4 hover:bg-muted/50">
+              <p className="text-sm font-medium">{a.name}</p>
+              <p className="text-xs text-muted-foreground">{a.type}</p>
+              <p className="mt-1 text-sm text-red-600">{a.error}</p>
             </Link>
           ))}
           <p className="text-sm text-muted-foreground">

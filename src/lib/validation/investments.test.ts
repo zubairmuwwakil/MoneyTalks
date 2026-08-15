@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   accountInput,
   holdingInput,
+  IMPORT_LIMITS,
   importFile,
   snapshotInput,
   transactionInput,
@@ -114,5 +115,42 @@ describe("importFile", () => {
 
   it("rejects an fx rate with base === quote", () => {
     expect(importFile.safeParse({ accounts: [], fxRates: [{ base: "CAD", quote: "CAD", rate: 1, asOf: "2026-08-01" }] }).success).toBe(false);
+  });
+
+  it("rejects import files above the explicit account and row limits", () => {
+    const account = {
+      type: "TFSA",
+      name: "Maple TFSA",
+      institution: "Maple Invest",
+      country: "CA",
+      currency: "CAD",
+    };
+
+    expect(
+      importFile.safeParse({
+        accounts: Array.from({ length: IMPORT_LIMITS.accounts + 1 }, (_, index) => ({
+          ...account,
+          name: `Maple TFSA ${index}`,
+        })),
+      }).success,
+    ).toBe(false);
+
+    expect(
+      importFile.safeParse({
+        accounts: [
+          {
+            ...account,
+            holdings: Array.from({ length: IMPORT_LIMITS.totalRows + 1 }, (_, index) => ({
+              symbol: `T${index}`,
+              name: `Fictional Holding ${index}`,
+              domicileCountry: "CA",
+              quantity: 1,
+              lastPriceMinor: 100,
+              priceAsOf: "2026-08-01",
+            })),
+          },
+        ],
+      }).success,
+    ).toBe(false);
   });
 });

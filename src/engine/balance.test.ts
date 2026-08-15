@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   accountBalance,
+  accountBalanceWithCurrency,
   deriveBalanceMinor,
   holdingValueMinor,
   latestSnapshot,
@@ -81,6 +82,59 @@ describe("latestSnapshot", () => {
     ];
 
     expect(latestSnapshot(snapshots)).toEqual(snapshots[1]);
+  });
+});
+
+describe("accountBalanceWithCurrency", () => {
+  it("returns snapshot currency when a stored balance exists", () => {
+    expect(
+      accountBalanceWithCurrency(
+        [{ type: "CONTRIBUTION", amountMinor: 10_000, date: "2026-01-01", currency: "CAD" }],
+        [{ balanceMinor: 25_000, currency: "USD", asOf: "2026-02-01" }],
+        "CAD",
+      ),
+    ).toEqual({
+      ok: true,
+      balanceMinor: 25_000,
+      currency: "USD",
+      asOf: "2026-02-01",
+      source: "snapshot",
+    });
+  });
+
+  it("derives in account currency when every transaction matches it", () => {
+    expect(
+      accountBalanceWithCurrency(
+        [
+          { type: "CONTRIBUTION", amountMinor: 10_000, date: "2026-01-01", currency: "CAD" },
+          { type: "FEE", amountMinor: 500, date: "2026-01-02", currency: "CAD" },
+        ],
+        [],
+        "CAD",
+      ),
+    ).toEqual({
+      ok: true,
+      balanceMinor: 9_500,
+      currency: "CAD",
+      asOf: "2026-01-02",
+      source: "derived",
+    });
+  });
+
+  it("rejects mixed transaction currencies when no snapshot anchors the balance", () => {
+    expect(
+      accountBalanceWithCurrency(
+        [
+          { type: "CONTRIBUTION", amountMinor: 10_000, date: "2026-01-01", currency: "CAD" },
+          { type: "DIVIDEND", amountMinor: 500, date: "2026-01-02", currency: "USD" },
+        ],
+        [],
+        "CAD",
+      ),
+    ).toEqual({
+      ok: false,
+      error: "Cannot derive CAD balance from USD transaction without a balance snapshot",
+    });
   });
 });
 

@@ -93,9 +93,12 @@ test("edit account and delete holding, transaction, snapshot, and account", asyn
   await accountSection.getByRole("button", { name: "Save account" }).click();
   await expect(page.getByRole("heading", { name: "Maple TFSA Updated" })).toBeVisible();
 
-  await accountSection.locator('select[name="currency"]').selectOption("USD");
+  await expect(accountSection.locator('input[name="currency"]')).toHaveAttribute("readonly", "");
+  await accountSection.locator('input[name="currency"]').evaluate((input) => {
+    (input as HTMLInputElement).value = "USD";
+  });
   await accountSection.getByRole("button", { name: "Save account" }).click();
-  await expect(accountSection.getByRole("alert")).toContainText("Currency cannot be changed");
+  await expect(accountSection.getByRole("alert")).toContainText("Currency cannot be changed after account creation");
 
   const holdingSection = page.getByRole("heading", { name: "Holdings" }).locator("..");
   await holdingSection.locator('input[name="symbol"]').fill("TEST");

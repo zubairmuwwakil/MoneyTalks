@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+export const IMPORT_LIMITS = {
+  accounts: 100,
+  holdingsPerAccount: 1000,
+  snapshotsPerAccount: 5000,
+  fxRates: 10000,
+  totalRows: 10000,
+} as const;
+
 export const currencyCode = z.enum(["CAD", "USD", "JMD"]);
 const countryCode = z.string().regex(/^[A-Z]{2}$/, "ISO-3166 alpha-2, e.g. CA");
 const isoDate = z
@@ -58,15 +66,30 @@ export const fxRateInput = z
   })
   .refine((r) => r.base !== r.quote, { message: "base and quote must differ" });
 
-export const importFile = z.object({
-  accounts: z.array(
-    accountInput.extend({
-      holdings: z.array(holdingInput).optional(),
-      snapshots: z.array(snapshotInput).optional(),
-    }),
-  ),
-  fxRates: z.array(fxRateInput).optional(),
-});
+export const importFile = z
+  .object({
+    accounts: z
+      .array(
+        accountInput.extend({
+          holdings: z.array(holdingInput).max(IMPORT_LIMITS.holdingsPerAccount).optional(),
+          snapshots: z.array(snapshotInput).max(IMPORT_LIMITS.snapshotsPerAccount).optional(),
+        }),
+      )
+      .max(IMPORT_LIMITS.accounts),
+    fxRates: z.array(fxRateInput).max(IMPORT_LIMITS.fxRates).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const totalRows =
+      data.accounts.length +
+      data.accounts.reduce((sum, account) => sum + (account.holdings?.length ?? 0) + (account.snapshots?.length ?? 0), 0) +
+      (data.fxRates?.length ?? 0);
+    if (totalRows > IMPORT_LIMITS.totalRows) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Import contains ${totalRows} rows; maximum is ${IMPORT_LIMITS.totalRows}`,
+      });
+    }
+  });
 
 export type AccountInput = z.infer<typeof accountInput>;
 export type ImportFile = z.infer<typeof importFile>;

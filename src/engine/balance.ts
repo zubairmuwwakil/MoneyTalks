@@ -13,10 +13,31 @@ export interface TxInput {
   date: string; // ISO 8601
 }
 
+export interface CurrencyTxInput extends TxInput {
+  currency: string;
+}
+
 export interface SnapshotInput {
   balanceMinor: number;
   asOf: string; // ISO 8601
 }
+
+export interface CurrencySnapshotInput extends SnapshotInput {
+  currency: string;
+}
+
+export type AccountBalanceWithCurrency =
+  | {
+      ok: true;
+      balanceMinor: number;
+      currency: string;
+      asOf: string | null;
+      source: "snapshot" | "derived";
+    }
+  | {
+      ok: false;
+      error: string;
+    };
 
 const SIGN: Record<TxTypeName, number> = {
   CONTRIBUTION: 1,
@@ -62,6 +83,29 @@ export function accountBalance(
     asOf: latestTx?.date ?? null,
     source: "derived",
   };
+}
+
+export function accountBalanceWithCurrency(
+  transactions: CurrencyTxInput[],
+  snapshots: CurrencySnapshotInput[],
+  accountCurrency: string,
+): AccountBalanceWithCurrency {
+  const latest = latestSnapshot(snapshots);
+  if (latest) {
+    const balance = accountBalance([], [latest]);
+    return { ok: true, ...balance, currency: latest.currency };
+  }
+
+  const mismatched = transactions.find((tx) => tx.currency !== accountCurrency);
+  if (mismatched) {
+    return {
+      ok: false,
+      error: `Cannot derive ${accountCurrency} balance from ${mismatched.currency} transaction without a balance snapshot`,
+    };
+  }
+
+  const balance = accountBalance(transactions, []);
+  return { ok: true, ...balance, currency: accountCurrency };
 }
 
 export function holdingValueMinor(quantity: number, lastPriceMinor: number): number {
