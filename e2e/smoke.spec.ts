@@ -15,9 +15,11 @@ test("module pages are protected", async ({ page }) => {
   }
 });
 
-test("protected API returns 401 when unauthenticated", async ({ request }) => {
-  const res = await request.get("/api/me");
-  expect(res.status()).toBe(401);
+test("protected APIs return 401 when unauthenticated", async ({ request }) => {
+  for (const url of ["/api/me", "/api/accounts", "/api/accounts/some-id"]) {
+    const res = await request.get(url);
+    expect(res.status()).toBe(401);
+  }
 });
 
 test("health endpoint is public", async ({ request }) => {
