@@ -31,4 +31,23 @@ describe("convertMinor", () => {
   it("rejects non-integer amounts", () => {
     expect(() => convertMinor(10.5, "USD", "CAD", rates)).toThrow(RangeError);
   });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    "rejects invalid FX rate %s",
+    (rate) => {
+      expect(() =>
+        convertMinor(1000, "CAD", "USD", [
+          { base: "USD", quote: "CAD", rate, asOf: "2026-08-01" },
+        ]),
+      ).toThrow(RangeError);
+    },
+  );
+
+  it("rejects converted amounts outside safe integer range", () => {
+    expect(() =>
+      convertMinor(2, "USD", "CAD", [
+        { base: "USD", quote: "CAD", rate: Number.MAX_SAFE_INTEGER, asOf: "2026-08-01" },
+      ]),
+    ).toThrow(RangeError);
+  });
 });
