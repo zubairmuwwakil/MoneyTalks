@@ -374,7 +374,7 @@ git commit -m "feat: add Prisma with Neon Postgres and Auth.js schema"
 
 **Design note — why no middleware:** Prisma cannot run on the Edge runtime where Next.js middleware lives by default, and database sessions can't be validated without the database. Instead of the fragile split-config workaround, enforcement is explicit and server-side: pages call `requireUser()`, API routes check `auth()` and return 401. This is also what the spec's tests require.
 
-- [ ] **Step 1: Write the failing allowlist test**
+- [x] **Step 1: Write the failing allowlist test**
 
 Create `src/lib/allowlist.test.ts`:
 
@@ -412,12 +412,12 @@ describe("isAllowedEmail", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test`
 Expected: FAIL — cannot find module `./allowlist`.
 
-- [ ] **Step 3: Implement the allowlist**
+- [x] **Step 3: Implement the allowlist**
 
 Create `src/lib/allowlist.ts`:
 
@@ -435,12 +435,12 @@ export function isAllowedEmail(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test`
 Expected: all tests pass (money + allowlist).
 
-- [ ] **Step 5: Install Auth.js and configure**
+- [x] **Step 5: Install Auth.js and configure**
 
 ```bash
 npm install next-auth@beta @auth/prisma-adapter
@@ -479,7 +479,7 @@ import { handlers } from "@/auth";
 export const { GET, POST } = handlers;
 ```
 
-- [ ] **Step 6: Create the auth helper and protected/public API routes**
+- [x] **Step 6: Create the auth helper and protected/public API routes**
 
 Create `src/lib/require-user.ts`:
 
@@ -517,7 +517,7 @@ export async function GET() {
 }
 ```
 
-- [ ] **Step 7: Build the login page**
+- [x] **Step 7: Build the login page**
 
 Create `src/app/login/page.tsx`:
 
@@ -581,7 +581,7 @@ export default async function LoginPage({
 }
 ```
 
-- [ ] **Step 8: Protect the home page**
+- [x] **Step 8: Protect the home page**
 
 Replace `src/app/page.tsx` entirely with:
 
@@ -611,7 +611,7 @@ export default async function Home() {
 }
 ```
 
-- [ ] **Step 9: OWNER CHECKPOINT — Resend key + env values**
+- [x] **Step 9: OWNER CHECKPOINT — Resend key + env values**
 
 Ask the owner to: create a free account at https://resend.com, generate an API key, and fill `.env.local`:
 
@@ -620,16 +620,16 @@ Ask the owner to: create a free account at https://resend.com, generate an API k
 - `AUTH_SECRET` — output of `npx auth secret` (it writes `.env.local` itself if run in the repo)
 - `ALLOWED_EMAILS` — the owner's email (the same one used for the Resend account)
 
-- [ ] **Step 10: Verify the full loop manually**
+- [x] **Step 10: Verify the full loop manually**
 
 Run: `npm run dev`. In a browser: visit http://localhost:3000 → expect redirect to `/login`. Submit the owner's email → expect the "check your email" state → click the link in the received email → expect redirect to `/` showing "Signed in as …". Then visit http://localhost:3000/api/me in the same browser → expect the email JSON. Sign out → expect `/login`. Finally, submit a *different* email address → expect sign-in refusal (error state, no email delivered).
 
-- [ ] **Step 11: Run all tests, lint, build**
+- [x] **Step 11: Run all tests, lint, build**
 
 Run: `npm test && npm run lint && npm run build`
 Expected: all pass.
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add src/ package.json package-lock.json
