@@ -3,9 +3,11 @@ import { signOut } from "@/auth";
 import { NetWorthSparkline } from "@/components/net-worth-sparkline";
 import { PasskeyRegisterButton } from "@/components/passkey-buttons";
 import { accountBalanceWithCurrency } from "@/engine/balance";
+import { billOccurrences } from "@/engine/billforecast";
 import { MissingFxRateError, type FxRateInput } from "@/engine/fx";
 import { formatMinorUnits, type Currency } from "@/engine/money";
 import { netWorth, netWorthSeries, type SnapshotRow } from "@/engine/networth";
+import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
 import { ALL_RULES, applyDismissals, evaluateRules } from "@/engine/rules";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateProfile } from "@/lib/profile";
@@ -108,10 +110,31 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
     // Missing FX rate for a historical snapshot: the optional sparkline is unavailable.
   }
 
-  const [profile, dismissals] = await Promise.all([
+
+  const [profile, dismissals, bills] = await Promise.all([
     getOrCreateProfile(userId),
     prisma.alert.findMany({ where: { userId }, select: { ruleKey: true, entityRef: true } }),
+    prisma.bill.findMany({ where: { userId }, include: { payments: true } }),
   ]);
+  const in14 = new Date(todayDate.getTime() + 14 * 86_400_000).toISOString().slice(0, 10);
+  const upcoming = bills
+    .flatMap((b) =>
+      billOccurrences(
+        {
+          id: b.id, name: b.name, category: b.category, currency: b.currency,
+          autopay: b.autopay, variable: b.variable,
+          cadence: b.cadence as unknown as Cadence,
+          schedule: b.schedule as unknown as ScheduleEntry[],
+        },
+        today,
+        in14,
+      ).map((o) => ({
+        ...o,
+        paid: b.payments.some((p) => p.dueDate.toISOString().slice(0, 10) === o.date && p.paidAt),
+      })),
+    )
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+
   const snapshotForRules = await buildSnapshot(userId, today);
   const { alerts } = evaluateRules(profile, snapshotForRules, ALL_RULES);
   const { active } = applyDismissals(alerts, dismissals);
@@ -212,8 +235,24 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
             {topAlerts.length === 0 ? <li className="text-muted-foreground">All clear.</li> : null}
           </ul>
         </div>
-        <div className="rounded border border-dashed p-4 text-sm text-muted-foreground">
-          Upcoming payments - Phase 3
+        <div className="rounded border p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Next 14 days</p>
+            <Link href="/bills" className="text-xs underline">bills</Link>
+          </div>
+          <ul className="mt-2 space-y-1 text-sm tabular-nums">
+            {upcoming.map((o) => (
+              <li key={`${o.billId}:${o.date}`} className="flex justify-between">
+                <span>
+                  {o.date.slice(5)} {o.billName}
+                  {o.autopay ? <span className="ml-1 rounded bg-muted px-1 text-xs">auto</span> : null}
+                  {o.paid ? " ✓" : ""}
+                </span>
+                <span>{formatMinorUnits(o.amountMinor, o.currency as Currency)}</span>
+              </li>
+            ))}
+            {upcoming.length === 0 ? <li className="text-muted-foreground">Nothing due.</li> : null}
+          </ul>
         </div>
       </section>
 
