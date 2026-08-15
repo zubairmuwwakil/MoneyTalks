@@ -32,7 +32,7 @@ All Phase 0–2 Global Constraints apply verbatim (public repo — zero personal
 **Interfaces:**
 - Produces: `Bill` (cadence + schedule as validated JSON columns) and `Payment` (actuals only, unique per `billId + dueDate`).
 
-- [ ] **Step 1: Extend the schema**
+- [x] **Step 1: Extend the schema**
 
 Append to `prisma/schema.prisma`:
 
@@ -75,7 +75,7 @@ model Payment {
 }
 ```
 
-- [ ] **Step 2: Migrate, verify, commit**
+- [x] **Step 2: Migrate, verify, commit**
 
 ```bash
 npx dotenv -e .env.local -- npx prisma migrate dev --name bills-and-payments
@@ -101,7 +101,7 @@ The core date math. Every expectation below is a hand-verified calendar fact.
   - `amountOn(schedule: ScheduleEntry[], date: string): number | null` — latest-`from` entry whose range contains the date; null when none.
   - `occurrencesBetween(cadence: Cadence, from: string, to: string): string[]` — sorted `YYYY-MM-DD` dates; throws `RangeError` if the window exceeds 60 months or `from > to`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/engine/recurrence.test.ts`:
 
@@ -215,11 +215,11 @@ describe("bounds", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test` — expect FAIL (module not found).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/engine/recurrence.ts`:
 
@@ -330,11 +330,11 @@ export function occurrencesBetween(cadence: Cadence, from: string, to: string): 
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm test` — expect pass. If a calendar expectation fails, verify the date arithmetic against a real 2026/2027 calendar BEFORE changing either side — these are facts, not preferences.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/engine/recurrence.*
@@ -357,7 +357,7 @@ git commit -m "feat: add recurrence engine (effective-dated amounts, four cadenc
   - `interface MonthForecast { month: string; occurrences: Occurrence[]; totalMinor: number; cumulativeMinor: number; flags: string[] }`
   - `forecastMonths(bills: BillDef[], startMonth: string, monthsCount: number): MonthForecast[]` — `flags` contains `` `3× ${billName}` `` for any bill with ≥3 occurrences that month. Single-currency totals: bills are summed at face value; mixed currencies are the UI's concern (v1 displays per-bill currency; totals assume CAD-dominant reality — documented).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/engine/billforecast.test.ts`:
 
@@ -456,11 +456,11 @@ describe("forecastMonths", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test` — expect FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/engine/billforecast.ts`:
 
@@ -563,7 +563,7 @@ export function forecastMonths(
 }
 ```
 
-- [ ] **Step 4: Run tests, commit**
+- [x] **Step 4: Run tests, commit**
 
 Run: `npm test` — expect pass (hand-check any failure against the arithmetic in the test comments first).
 
@@ -587,7 +587,7 @@ git commit -m "feat: add bill forecast engine with triple-payment pileup flags"
   - Actions: `createBill`, `deleteBill`, `addScheduleEntry`, `removeScheduleEntry`, `markPaid` (upserts a `Payment` with `paidAt`, `expectedAmountMinor` from the engine, `actualAmountMinor` from the form or defaulting to expected), `unmarkPaid`.
   - `importFile` gains optional `bills[]`; import upserts by `(userId, name)`.
 
-- [ ] **Step 1: Write the failing validation test**
+- [x] **Step 1: Write the failing validation test**
 
 Create `src/lib/validation/bills.test.ts`:
 
@@ -643,7 +643,7 @@ describe("billImportEntry", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure, then implement the schemas**
+- [x] **Step 2: Run to verify failure, then implement the schemas**
 
 Run: `npm test` — FAIL. Then create `src/lib/validation/bills.ts`:
 
@@ -715,7 +715,7 @@ export const billFormInput = billCore.extend({
 
 Run: `npm test` — expect pass.
 
-- [ ] **Step 3: Implement the bill actions**
+- [x] **Step 3: Implement the bill actions**
 
 Create `src/app/bills/actions.ts`:
 
@@ -845,7 +845,7 @@ export async function unmarkPaid(formData: FormData): Promise<ActionResult> {
 }
 ```
 
-- [ ] **Step 4: Extend the import**
+- [x] **Step 4: Extend the import**
 
 In `src/lib/validation/investments.ts`, add to the `importFile` object (import `billImportEntry` from `./bills`):
 
@@ -869,7 +869,7 @@ In `src/app/investments/import/actions.ts`, add a `bills` counter and, after the
 
 and include `bills` in `ImportResult` and the success redirect string (`…, ${result.bills} bills`). In `docs/import-format.md`, document the `bills[]` array: fields of `billCore` plus `cadence` (one of the four shapes) and `schedule[]` (`from`, optional `to`, `amountMinor`, optional `note`), idempotent on `(name)`.
 
-- [ ] **Step 5: Verify + commit**
+- [x] **Step 5: Verify + commit**
 
 Run: `npm test && npm run lint && npm run build` — expect pass.
 
@@ -890,7 +890,7 @@ git commit -m "feat: add bill validation, actions, and import support"
 - Consumes: `billOccurrences`, `amountOn`, actions, `formatMinorUnits`.
 - Produces: `/bills` — bills grouped by category, each with next due date + resolved amount + autopay badge, links to month view/forecast/new; `/bills/new` — create form (cadence type select with conditional fields; first schedule entry inline; cadence/schedule serialized to the JSON form fields via a tiny client component).
 
-- [ ] **Step 1: Replace the list page**
+- [x] **Step 1: Replace the list page**
 
 Replace `src/app/bills/page.tsx` entirely with:
 
@@ -984,7 +984,7 @@ export default async function BillsPage() {
 }
 ```
 
-- [ ] **Step 2: Create the new-bill form**
+- [x] **Step 2: Create the new-bill form**
 
 Create `src/app/bills/new/page.tsx` — a client-assisted form: plain fields for `billCore`, a cadence section whose inputs are assembled into `cadenceJson`/`scheduleJson` hidden fields by a small client component:
 
@@ -1111,7 +1111,7 @@ export function BillFormFields() {
 }
 ```
 
-- [ ] **Step 3: Verify + commit**
+- [x] **Step 3: Verify + commit**
 
 Run: `npm run dev` — create a fictional monthly bill and a fictional biweekly bill (anchor a known Wednesday); both appear grouped with correct next-due dates. `npm test && npm run lint && npm run build`.
 
@@ -1131,7 +1131,7 @@ git commit -m "feat: add bills list and create form"
 - Consumes: actions from Task 4, `billOccurrences`, `formatMinorUnits`.
 - Produces: `/bills/[id]` — schedule-entry table with add/remove; next-12-months occurrence list, each row showing paid status with mark-paid (+ optional actual amount for variable bills) / un-mark; estimate-vs-actual delta for logged payments; prepayment/interest metadata fields display; delete bill.
 
-- [ ] **Step 1: Create the detail page**
+- [x] **Step 1: Create the detail page**
 
 Create `src/app/bills/[id]/page.tsx`:
 
@@ -1294,7 +1294,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
 }
 ```
 
-- [ ] **Step 2: Verify + commit**
+- [x] **Step 2: Verify + commit**
 
 Run: `npm run dev` — on a fictional bill: add a second schedule entry with a future `from`, see future occurrences switch amounts on that date; mark an occurrence paid (with an actual on a variable bill) and see the estimate-vs-actual delta; un-mark works. `npm test && npm run lint && npm run build`.
 
@@ -1314,7 +1314,7 @@ git commit -m "feat: add bill detail with schedule management and mark-as-paid"
 - Consumes: `forecastMonths`, `formatMinorUnits`.
 - Produces: `/bills/month?month=YYYY-MM` — every due date that month with a running total and pileup flags, prev/next links; `/bills/forecast` — 12-month table (total, cumulative, flags) + bar chart.
 
-- [ ] **Step 1: Month view**
+- [x] **Step 1: Month view**
 
 Create `src/app/bills/month/page.tsx`:
 
@@ -1398,7 +1398,7 @@ export default async function MonthViewPage({
 }
 ```
 
-- [ ] **Step 2: Forecast page + bars**
+- [x] **Step 2: Forecast page + bars**
 
 Create `src/components/forecast-bars.tsx`:
 
@@ -1474,7 +1474,7 @@ export default async function ForecastPage() {
 }
 ```
 
-- [ ] **Step 3: Verify + commit**
+- [x] **Step 3: Verify + commit**
 
 Run: `npm run dev` — with the fictional biweekly bill from Task 5, the forecast highlights its triple months and month view shows the running total. `npm test && npm run lint && npm run build`.
 
@@ -1494,7 +1494,7 @@ git commit -m "feat: add month view and 12-month forecast with pileup highlighti
 - Consumes: `billOccurrences`, payments, existing dashboard queries.
 - Produces: the "Upcoming payments — Phase 3" placeholder replaced by the next-14-days strip with autopay badges and paid checkmarks.
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 In `src/app/page.tsx`, add to the data loading:
 
@@ -1544,7 +1544,7 @@ In `src/app/page.tsx`, add to the data loading:
         </div>
 ```
 
-- [ ] **Step 2: Verify + commit**
+- [x] **Step 2: Verify + commit**
 
 Run: `npm run dev` — the strip lists the fictional bills due in the next 14 days. `npm test && npm run lint && npm run build`.
 
@@ -1567,7 +1567,7 @@ git commit -m "feat: add 14-day upcoming payments strip to dashboard"
   - `FinancialSnapshot.bills: BillView[]` (assembler populates; fixtures default `[]` so all Phase-2 tests pass unchanged)
   - `digitalNewsRule`, `studentLoanInterestRule`, `mortgagePrepaymentRule` — `ALL_RULES` grows 19 → 22.
 
-- [ ] **Step 1: Extend types and fixtures**
+- [x] **Step 1: Extend types and fixtures**
 
 In `src/engine/rules/types.ts`, add the `BillView` interface above `FinancialSnapshot` and add `bills: BillView[];` to `FinancialSnapshot`. In `src/engine/rules/fixtures.ts`, add `bills: []` to `makeSnapshot`'s defaults and:
 
@@ -1591,7 +1591,7 @@ export function makeBill(overrides: Partial<BillView> = {}): BillView {
 
 Run `npm test` — Phase-2 suites must still pass (compile error until `makeSnapshot` gains the default — fix, don't skip).
 
-- [ ] **Step 2: Write the failing rule tests**
+- [x] **Step 2: Write the failing rule tests**
 
 Create `src/engine/rules/bill-rules.test.ts`:
 
@@ -1680,7 +1680,7 @@ describe("ALL_RULES after Phase 3", () => {
 });
 ```
 
-- [ ] **Step 3: Run to verify failure, implement**
+- [x] **Step 3: Run to verify failure, implement**
 
 Run `npm test` — FAIL. Create `src/engine/rules/bill-rules.ts`:
 
@@ -1788,7 +1788,7 @@ export const mortgagePrepaymentRule: Rule = {
 
 Extend `src/lib/snapshot.ts` — load bills alongside accounts and map them into `bills: BillView[]` (payments with ISO strings, `interestRatePct: b.interestRatePct === null ? null : Number(b.interestRatePct)`). Register the three rules in `src/engine/rules/index.ts` and update the registry test's expected key list (Task 9 Step 2's `ALL_RULES` test is the source of truth; also update the Phase-2 registry test's `arrayContaining` if it asserts an exhaustive length).
 
-- [ ] **Step 4: Run all tests, commit**
+- [x] **Step 4: Run all tests, commit**
 
 Run: `npm test` — all suites pass (including untouched Phase-2 rule tests).
 
@@ -1806,7 +1806,7 @@ git commit -m "feat: add bill-dependent rules (digital news, student-loan intere
 **Files:**
 - Create: `e2e/fixtures/bills-sample.json`, `e2e/bills.spec.ts`
 
-- [ ] **Step 1: Fixture** — entirely fictional; the biweekly anchor is chosen so April and September 2026 are the triple months:
+- [x] **Step 1: Fixture** — entirely fictional; the biweekly anchor is chosen so April and September 2026 are the triple months:
 
 Create `e2e/fixtures/bills-sample.json`:
 
@@ -1855,7 +1855,7 @@ Create `e2e/fixtures/bills-sample.json`:
 }
 ```
 
-- [ ] **Step 2: E2E spec**
+- [x] **Step 2: E2E spec**
 
 Create `e2e/bills.spec.ts`:
 
