@@ -57,7 +57,7 @@ test("rules engine end to end", async ({ browser, baseURL }) => {
   await page.locator('input[name="quantity"]').fill("10");
   await page.locator('input[name="lastPriceMinor"]').fill("1000");
   await page.locator('input[name="priceAsOf"]').fill("2026-08-01");
-  await page.getByRole("button", { name: /Add \/ update holding/ }).click();
+  await submit(page, /Add \/ update holding/, "/investments/");
 
   await page.goto("/money-finder");
   await expect(page.getByText(/PFIC risk: FAKE.TO/)).toBeVisible();
