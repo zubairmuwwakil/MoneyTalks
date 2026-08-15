@@ -22,6 +22,8 @@ model User {
   authenticators Authenticator[]
   financialAccounts FinancialAccount[]
   fxRates          FxRate[]
+  profile          Profile?
+  alerts           Alert[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -167,4 +169,38 @@ model FxRate {
   asOf   DateTime
 
   @@unique([userId, base, quote, asOf])
+}
+
+// ---- Money Finder (Phase 2) ----
+
+model Profile {
+  userId                   String   @id
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  residency                String   @default("CA")
+  citizenships             String[] @default([])
+  filingStatus             String   @default("SINGLE_ABROAD") // SINGLE_ABROAD | MFJ_ABROAD | OTHER
+  marginalUSRatePct        Int      @default(24)
+  dtcEligible              Boolean  @default(false)
+  benefitPrograms          String[] @default([]) // e.g. ["OW"] or ["ODSP"]
+  rdspIncomeTier           String   @default("UNKNOWN") // LOW | HIGH | UNKNOWN
+  rdspCarryForwardYears    Int      @default(0)
+  rdspGrantsLifetimeMinor  Int      @default(0)
+  rdspContribLifetimeMinor Int      @default(0)
+  tfsaRoomMinor            Int      @default(0)
+  rrspRoomMinor            Int      @default(0)
+  fhsaRoomMinor            Int      @default(0)
+  nhtContributed           Boolean  @default(false)
+  incomeSources            Json     @default("[]") // [{name, amountMinor, cadence, kind}]
+  updatedAt                DateTime @updatedAt
+}
+
+model Alert {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ruleKey     String
+  entityRef   String   @default("") // "" = whole rule; else holdingId/accountId/txId
+  dismissedAt DateTime @default(now())
+
+  @@unique([userId, ruleKey, entityRef])
 }
