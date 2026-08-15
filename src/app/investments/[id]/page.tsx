@@ -1,4 +1,5 @@
 import { Save, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
   addHolding,
@@ -131,7 +132,12 @@ export default async function AccountDetailPage({
   return (
     <main className="space-y-8 py-8">
       <header>
-        <h1 className="text-xl font-semibold">{account.name}</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-xl font-semibold">{account.name}</h1>
+          <Link href={`/investments/${account.id}/csv`} className="text-sm underline">
+            Import CSV
+          </Link>
+        </div>
         <p className="text-sm text-muted-foreground">
           {account.type} · {account.institution} · {account.currency}
         </p>
