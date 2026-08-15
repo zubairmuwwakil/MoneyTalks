@@ -28,7 +28,7 @@ function recordId(formData: FormData, field: string): string {
 async function ownedAccount(userId: string, accountId: string) {
   const account = await prisma.financialAccount.findFirst({
     where: { id: accountId, userId },
-    select: { id: true, currency: true },
+    select: { id: true, currency: true, type: true },
   });
   if (!account) throw new Error("Account not found");
   return account;
@@ -120,7 +120,16 @@ export async function addTransaction(formData: FormData): Promise<ActionResult> 
   try {
     accountId = recordId(formData, "accountId");
     const account = await ownedAccount(userId, accountId);
-    await prisma.transaction.create({
+    const isRothContribution =
+      account.type === "ROTH_IRA" && parsed.data.type === "CONTRIBUTION";
+    if (isRothContribution && formData.get("confirmRoth") !== "true") {
+      return {
+        ok: false,
+        error:
+          "ROTH_CONFIRM_REQUIRED: contributions while Canadian-resident can permanently taint the treaty election. Tick the confirmation box to record it anyway.",
+      };
+    }
+    const created = await prisma.transaction.create({
       data: {
         ...parsed.data,
         accountId,
@@ -128,6 +137,12 @@ export async function addTransaction(formData: FormData): Promise<ActionResult> 
         date: new Date(parsed.data.date),
       },
     });
+    if (isRothContribution) {
+      // The override is logged, per the spec's blocking-flow requirement.
+      await prisma.alert.create({
+        data: { userId, ruleKey: "ROTH_OVERRIDE_LOG", entityRef: created.id },
+      });
+    }
   } catch (e) {
     return fail(e);
   }

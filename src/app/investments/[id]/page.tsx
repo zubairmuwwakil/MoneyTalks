@@ -224,6 +224,12 @@ export default async function AccountDetailPage({
           <input name="amountMinor" placeholder="Amount (cents)" required className="rounded border px-2 py-1" />
           <input name="date" type="date" required className="rounded border px-2 py-1" />
           <input name="description" placeholder="Description" className="rounded border px-2 py-1" />
+          {account.type === "ROTH_IRA" ? (
+            <label className="col-span-2 flex items-center gap-2 text-xs text-red-600 sm:col-span-4">
+              <input type="checkbox" name="confirmRoth" value="true" />
+              I understand a contribution while Canadian-resident may permanently taint the Roth treaty election.
+            </label>
+          ) : null}
           <button type="submit" className="col-span-2 rounded border px-2 py-1 sm:col-span-4">
             Add transaction
           </button>

@@ -6,8 +6,11 @@ import { accountBalanceWithCurrency } from "@/engine/balance";
 import { MissingFxRateError, type FxRateInput } from "@/engine/fx";
 import { formatMinorUnits, type Currency } from "@/engine/money";
 import { netWorth, netWorthSeries, type SnapshotRow } from "@/engine/networth";
+import { ALL_RULES, applyDismissals, evaluateRules } from "@/engine/rules";
 import { prisma } from "@/lib/prisma";
+import { getOrCreateProfile } from "@/lib/profile";
 import { requireUser, requireUserId } from "@/lib/require-user";
+import { buildSnapshot } from "@/lib/snapshot";
 
 const CURRENCIES: Currency[] = ["CAD", "USD", "JMD"];
 
@@ -105,6 +108,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
     // Missing FX rate for a historical snapshot: the optional sparkline is unavailable.
   }
 
+  const [profile, dismissals] = await Promise.all([
+    getOrCreateProfile(userId),
+    prisma.alert.findMany({ where: { userId }, select: { ruleKey: true, entityRef: true } }),
+  ]);
+  const snapshotForRules = await buildSnapshot(userId, today);
+  const { alerts } = evaluateRules(profile, snapshotForRules, ALL_RULES);
+  const { active } = applyDismissals(alerts, dismissals);
+  const topAlerts = active.slice(0, 3);
+
   return (
     <main className="space-y-8 py-8">
       <header className="flex items-start justify-between">
@@ -184,8 +196,21 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
       )}
 
       <section className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded border border-dashed p-4 text-sm text-muted-foreground">
-          Alerts &amp; opportunities - Phase 2
+        <div className="rounded border p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Alerts &amp; opportunities</p>
+            <Link href="/money-finder" className="text-xs underline">
+              all ({active.length})
+            </Link>
+          </div>
+          <ul className="mt-2 space-y-1 text-sm">
+            {topAlerts.map((a) => (
+              <li key={`${a.ruleKey}:${a.entityRef}`} className="truncate">
+                {a.severity === "critical" ? "🔴" : a.severity === "warning" ? "🟡" : "ℹ️"} {a.title}
+              </li>
+            ))}
+            {topAlerts.length === 0 ? <li className="text-muted-foreground">All clear.</li> : null}
+          </ul>
         </div>
         <div className="rounded border border-dashed p-4 text-sm text-muted-foreground">
           Upcoming payments - Phase 3
