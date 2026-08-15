@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-15
 
-**Status:** Approved narrative design; awaiting written-spec review
+**Status:** Approved
 
 **Primary audience:** Recruiters and hiring managers
 
@@ -79,7 +79,7 @@ The post must distinguish the current product from the product direction.
 - recurring bills, payment tracking, upcoming payments, month totals, and bill forecasts;
 - profile inputs including residency, citizenship, selected eligibility details, benefit programs, contribution room, and income sources;
 - the first deterministic Money Finder rules, including room and selected benefit, cross-border, and RDSP logic;
-- rule explanations, source links, failure isolation, and source-freshness warnings;
+- rule explanations, citations, failure isolation, and source-freshness warnings;
 
 ### Planned and labeled as next
 
@@ -114,7 +114,7 @@ Target length: approximately 220–300 words.
 5. **One contrast:** Use one compact, hypothetical example showing how eligibility, residency/citizenship, income, benefits, debt cost, or liquidity can change the analysis. Avoid a long list of personas or tax rules.
 6. **Working evidence:** Name the currently functioning investments, bills, profile, and first Money Finder rule flows.
 7. **Measured roadmap:** Introduce the next-$500 question as the product direction, not a finished feature.
-8. **Engineering credibility:** Mention deterministic/versioned rules, primary-source citations, explicit assumptions, and testing in one short passage.
+8. **Engineering credibility:** Mention deterministic rules, citation metadata, review dates, explicit assumptions, and testing in one short passage.
 9. **AI disclosure:** Briefly disclose substantial AI assistance while retaining ownership of product decisions, validation, and verification.
 10. **CTA:** Ask one substantive question: “What context do you wish financial software understood before giving you an answer?”
 11. **Link:** Include the public GitHub repository link.
