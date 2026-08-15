@@ -2,9 +2,21 @@ import { z } from "zod";
 
 export const currencyCode = z.enum(["CAD", "USD", "JMD"]);
 const countryCode = z.string().regex(/^[A-Z]{2}$/, "ISO-3166 alpha-2, e.g. CA");
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}/, "ISO 8601 date, e.g. 2026-08-01");
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "ISO 8601 date, e.g. 2026-08-01")
+  .refine((value) => {
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(0);
+    date.setUTCFullYear(year, month - 1, day);
+    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+  }, "Must be a valid calendar date");
 const minorUnits = z.coerce.number().int().safe();
 const positiveMinor = minorUnits.positive();
+const formBoolean = z
+  .union([z.boolean(), z.literal("true"), z.literal("false")])
+  .transform((value) => value === true || value === "true")
+  .default(false);
 
 export const accountInput = z.object({
   type: z.enum(["RRSP", "TFSA", "RDSP", "FHSA", "ROTH_IRA", "NON_REGISTERED", "CASH", "CHEQUING", "CRYPTO"]),
@@ -12,7 +24,7 @@ export const accountInput = z.object({
   institution: z.string().trim().min(1).max(80),
   country: countryCode,
   currency: currencyCode,
-  isUSSitus: z.coerce.boolean().default(false),
+  isUSSitus: formBoolean,
 });
 
 export const holdingInput = z.object({

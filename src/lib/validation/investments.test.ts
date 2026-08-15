@@ -17,6 +17,18 @@ describe("accountInput", () => {
     expect(accountInput.safeParse({ type: "SLUSH_FUND", name: "x", institution: "y", country: "CA", currency: "CAD" }).success).toBe(false);
     expect(accountInput.safeParse({ type: "TFSA", name: "x", institution: "y", country: "Canada", currency: "CAD" }).success).toBe(false);
   });
+
+  it("parses the explicit false FormData value as false", () => {
+    const parsed = accountInput.safeParse({
+      type: "TFSA",
+      name: "Test account",
+      institution: "Test institution",
+      country: "CA",
+      currency: "CAD",
+      isUSSitus: "false",
+    });
+    expect(parsed).toMatchObject({ success: true, data: { isUSSitus: false } });
+  });
 });
 
 describe("transactionInput", () => {
@@ -24,6 +36,11 @@ describe("transactionInput", () => {
     expect(transactionInput.safeParse({ type: "CONTRIBUTION", amountMinor: "5000", currency: "CAD", date: "2026-08-01" }).success).toBe(true);
     expect(transactionInput.safeParse({ type: "CONTRIBUTION", amountMinor: "-5000", currency: "CAD", date: "2026-08-01" }).success).toBe(false);
     expect(transactionInput.safeParse({ type: "CONTRIBUTION", amountMinor: "50.5", currency: "CAD", date: "2026-08-01" }).success).toBe(false);
+  });
+
+  it("rejects impossible and trailing calendar dates", () => {
+    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amountMinor: "5000", currency: "CAD", date: "2026-02-31" }).success).toBe(false);
+    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amountMinor: "5000", currency: "CAD", date: "2026-08-01junk" }).success).toBe(false);
   });
 });
 

@@ -30,7 +30,11 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const parsed = accountInput.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0]?.message);
-  await prisma.financialAccount.create({ data: { ...parsed.data, userId } });
+  try {
+    await prisma.financialAccount.create({ data: { ...parsed.data, userId } });
+  } catch (e) {
+    return fail(e);
+  }
   revalidatePath("/investments");
   revalidatePath("/");
   return { ok: true };
@@ -121,11 +125,15 @@ export async function addFxRate(formData: FormData): Promise<ActionResult> {
   const parsed = fxRateInput.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0]?.message);
   const { base, quote, rate, asOf } = parsed.data;
-  await prisma.fxRate.upsert({
-    where: { userId_base_quote_asOf: { userId, base, quote, asOf: new Date(asOf) } },
-    update: { rate },
-    create: { userId, base, quote, rate, asOf: new Date(asOf) },
-  });
+  try {
+    await prisma.fxRate.upsert({
+      where: { userId_base_quote_asOf: { userId, base, quote, asOf: new Date(asOf) } },
+      update: { rate },
+      create: { userId, base, quote, rate, asOf: new Date(asOf) },
+    });
+  } catch (e) {
+    return fail(e);
+  }
   revalidatePath("/investments");
   revalidatePath("/");
   return { ok: true };
