@@ -105,3 +105,31 @@ describe("bounds", () => {
     expect(() => occurrencesBetween(m, "2026-02-01", "2026-01-01")).toThrow(RangeError);
   });
 });
+
+describe("windows that begin before the anchor", () => {
+  // The anchor is "any one known payment date", past or future. A window that
+  // starts before it must still be filled: otherwise a bill anchored to next
+  // month reports nothing due for every month of its history.
+  it("biweekly steps backwards from a future anchor", () => {
+    const c: Cadence = { type: "BIWEEKLY", anchor: "2026-10-07" };
+    // Stepping back 14 at a time from October lands three times in July.
+    expect(occurrencesBetween(c, "2026-07-01", "2026-07-31")).toEqual([
+      "2026-07-01", "2026-07-15", "2026-07-29",
+    ]);
+    // Straddling the anchor, the grid stays continuous across it.
+    expect(occurrencesBetween(c, "2026-09-20", "2026-10-08")).toEqual(["2026-09-23", "2026-10-07"]);
+  });
+
+  it("quarterly steps backwards from a future anchor", () => {
+    const c: Cadence = { type: "QUARTERLY", anchor: "2027-01-20" };
+    expect(occurrencesBetween(c, "2026-10-01", "2026-10-31")).toEqual(["2026-10-20"]);
+    expect(occurrencesBetween(c, "2026-04-01", "2027-01-20")).toEqual([
+      "2026-04-20", "2026-07-20", "2026-10-20", "2027-01-20",
+    ]);
+  });
+
+  it("annual steps backwards from a future anchor", () => {
+    const c: Cadence = { type: "ANNUAL", anchor: "2029-11-08" };
+    expect(occurrencesBetween(c, "2026-01-01", "2026-12-31")).toEqual(["2026-11-08"]);
+  });
+});

@@ -1926,7 +1926,7 @@ git add e2e/ playwright.config.ts
 git commit -m "test: add bills E2E acceptance flow and serialize E2E workers"
 ```
 
-- [ ] **Step 3: OWNER CHECKPOINT — pre-push audit and push**
+- [x] **Step 3: OWNER CHECKPOINT — pre-push audit and push**
 
 Audit `git diff origin/main..HEAD` for personal tokens (fixtures contain only "Fixture …" names). Ask the owner, then `git push origin main`.
 

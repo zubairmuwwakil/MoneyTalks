@@ -60,7 +60,10 @@ export function occurrencesBetween(cadence: Cadence, from: string, to: string): 
   if (cadence.type === "BIWEEKLY") {
     const anchorMs = toMs(cadence.anchor);
     const fromMs = toMs(from);
-    const steps = anchorMs >= fromMs ? 0 : Math.ceil((fromMs - anchorMs) / (14 * DAY_MS));
+    // Signed: the anchor is any one known payment date, past or future. A future
+    // anchor must still generate the grid backwards through the window, or every
+    // month before it reads as "nothing due".
+    const steps = Math.ceil((fromMs - anchorMs) / (14 * DAY_MS));
     for (let ms = anchorMs + steps * 14 * DAY_MS; ms <= toMs(to); ms += 14 * DAY_MS) {
       if (ms >= fromMs) out.push(toIso(ms));
     }
@@ -85,20 +88,21 @@ export function occurrencesBetween(cadence: Cadence, from: string, to: string): 
     return out;
   }
 
-  // QUARTERLY / ANNUAL: month-stepping from the anchor with day clamping
+  // QUARTERLY / ANNUAL: month-stepping from the anchor with day clamping.
+  // Same rule as biweekly — step back to the window rather than starting at the
+  // anchor, so a window entirely before the anchor is not silently empty.
   const stepMonths = cadence.type === "QUARTERLY" ? 3 : 12;
   const anchor = parse(cadence.anchor);
-  let y = anchor.y;
-  let m = anchor.m;
+  const start = parse(from);
+  const monthsFromAnchor = (start.y - anchor.y) * 12 + (start.m - anchor.m);
+  // One step early, so an occurrence landing in the window's first month is kept.
+  const firstStep = Math.floor(monthsFromAnchor / stepMonths) - 1;
+  let index = anchor.y * 12 + (anchor.m - 1) + firstStep * stepMonths;
   for (let guard = 0; guard < 1000; guard += 1) {
-    const date = clampedDate(y, m, anchor.d);
+    const date = clampedDate(Math.floor(index / 12), (index % 12) + 1, anchor.d);
     if (date > to) break;
     if (date >= from) out.push(date);
-    m += stepMonths;
-    while (m > 12) {
-      m -= 12;
-      y += 1;
-    }
+    index += stepMonths;
   }
   return out;
 }
