@@ -2,9 +2,9 @@
 
 import { useRef, useState } from "react";
 import { formatMinorUnits, type Currency } from "@/engine/money";
+import { TX_TYPES } from "@/lib/validation/csv-import";
 import { previewCsv, type CsvPreviewResult } from "./actions";
 
-const TYPES = ["CONTRIBUTION", "WITHDRAWAL", "BUY", "SELL", "DIVIDEND", "INTEREST", "FEE"];
 const input = "mt-1 w-full rounded border px-2 py-1 text-sm";
 
 export function CsvImportForm({
@@ -54,12 +54,12 @@ export function CsvImportForm({
         </label>
         <label>Positive amounts are
           <select name="positiveType" className={input}>
-            {TYPES.map((t) => <option key={t}>{t}</option>)}
+            {TX_TYPES.map((t) => <option key={t}>{t}</option>)}
           </select>
         </label>
         <label>Negative amounts are
           <select name="negativeType" defaultValue="WITHDRAWAL" className={input}>
-            {TYPES.map((t) => <option key={t}>{t}</option>)}
+            {TX_TYPES.map((t) => <option key={t}>{t}</option>)}
           </select>
         </label>
       </div>
@@ -92,25 +92,33 @@ export function CsvImportForm({
               {preview.totalErrors === 1 ? "" : "s"}
             </p>
             {preview.rows && preview.rows.length > 0 ? (
-              <table className="w-full text-left text-xs">
-                <caption className="sr-only">First {preview.rows.length} mapped rows</caption>
-                <thead>
-                  <tr className="text-muted-foreground">
-                    <th className="pr-3 font-normal">Date</th>
-                    <th className="pr-3 font-normal">Description</th>
-                    <th className="font-normal">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.rows.map((r, i) => (
-                    <tr key={i}>
-                      <td className="pr-3">{r.date}</td>
-                      <td className="pr-3">{r.description}</td>
-                      <td className="tabular-nums">{formatMinorUnits(r.amountMinor, currency)}</td>
+              <>
+                <table className="w-full text-left text-xs">
+                  <caption className="sr-only">First {preview.rows.length} mapped rows</caption>
+                  <thead>
+                    <tr className="text-muted-foreground">
+                      <th className="pr-3 font-normal">Date</th>
+                      <th className="pr-3 font-normal">Description</th>
+                      <th className="pr-3 font-normal">Amount</th>
+                      <th className="font-normal">Type</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {preview.rows.map((r, i) => (
+                      <tr key={i}>
+                        <td className="pr-3">{r.date}</td>
+                        <td className="pr-3">{r.description}</td>
+                        <td className="pr-3 tabular-nums">{formatMinorUnits(r.amountMinor, currency)}</td>
+                        <td>{r.type}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-xs text-muted-foreground">
+                  MoneyTalks stores amounts unsigned and carries the direction in the transaction
+                  type — Amount and Type above are exactly what Import will save for each row.
+                </p>
+              </>
             ) : null}
             {preview.errorRows && preview.errorRows.length > 0 ? (
               <ul className="text-red-600">

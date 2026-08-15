@@ -19,7 +19,7 @@ export interface CsvImportResult {
 export interface CsvPreviewResult {
   ok: boolean;
   error?: string;
-  rows?: { date: string; description: string; amountMinor: number }[];
+  rows?: { date: string; description: string; amountMinor: number; type: CsvImportInput["positiveType"] }[];
   errorRows?: { rowIndex: number; error: string }[];
   totalMapped?: number;
   totalErrors?: number;
@@ -87,10 +87,29 @@ async function loadMappedRows(formData: FormData): Promise<LoadedCsv | LoadFailu
   return { ok: true, accountId, currency: account.currency, positiveType, negativeType, rows };
 }
 
+/**
+ * Resolves a mapped row to exactly what importCsv will store: an unsigned
+ * amountMinor plus the TxType that carries the direction. Shared by
+ * previewCsv and importCsv's insert loop so the two cannot drift — the
+ * preview must show what actually lands in the database, not the raw
+ * signed amount mapRows produces.
+ */
+function resolveStoredRow(
+  row: Extract<MappedRow, { date: string }>,
+  positiveType: CsvImportInput["positiveType"],
+  negativeType: CsvImportInput["negativeType"],
+): { amountMinor: number; type: CsvImportInput["positiveType"] } {
+  return {
+    amountMinor: Math.abs(row.amountMinor),
+    type: row.amountMinor >= 0 ? positiveType : negativeType,
+  };
+}
+
 /** Parses and maps the upload but writes nothing — lets the user check column/sign mapping before committing. */
 export async function previewCsv(formData: FormData): Promise<CsvPreviewResult> {
   const loaded = await loadMappedRows(formData);
   if (!loaded.ok) return { ok: false, error: loaded.error };
+  const { positiveType, negativeType } = loaded;
 
   const mapped = loaded.rows.filter((r): r is Extract<MappedRow, { date: string }> => !("error" in r));
   const errorRows = loaded.rows
@@ -99,7 +118,11 @@ export async function previewCsv(formData: FormData): Promise<CsvPreviewResult> 
 
   return {
     ok: true,
-    rows: mapped.slice(0, 10).map((r) => ({ date: r.date, description: r.description, amountMinor: r.amountMinor })),
+    rows: mapped.slice(0, 10).map((r) => ({
+      date: r.date,
+      description: r.description,
+      ...resolveStoredRow(r, positiveType, negativeType),
+    })),
     errorRows,
     totalMapped: mapped.length,
     totalErrors: errorRows.length,
@@ -135,10 +158,11 @@ export async function importCsv(formData: FormData): Promise<CsvImportResult> {
       continue;
     }
     existing.add(hash);
+    const { amountMinor, type } = resolveStoredRow(row, positiveType, negativeType);
     toInsert.push({
       accountId,
-      type: row.amountMinor >= 0 ? positiveType : negativeType,
-      amountMinor: Math.abs(row.amountMinor),
+      type,
+      amountMinor,
       currency,
       date: new Date(row.date),
       description: row.description || undefined,
