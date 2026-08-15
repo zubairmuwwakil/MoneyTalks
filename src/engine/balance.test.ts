@@ -25,6 +25,16 @@ describe("deriveBalanceMinor", () => {
   it("is zero with no transactions", () => {
     expect(deriveBalanceMinor([])).toBe(0);
   });
+
+  it("rejects an unsafe aggregate balance", () => {
+    expect(
+      () =>
+        deriveBalanceMinor([
+          { type: "CONTRIBUTION", amountMinor: Number.MAX_SAFE_INTEGER, date: "2026-01-01" },
+          { type: "CONTRIBUTION", amountMinor: 1, date: "2026-01-02" },
+        ]),
+    ).toThrow(RangeError);
+  });
 });
 
 describe("accountBalance", () => {
@@ -55,6 +65,10 @@ describe("accountBalance", () => {
       asOf: null,
       source: "derived",
     });
+  });
+
+  it("rejects a snapshot with a non-integer balance", () => {
+    expect(() => accountBalance([], [{ balanceMinor: 1.5, asOf: "2026-03-15" }])).toThrow(RangeError);
   });
 });
 
