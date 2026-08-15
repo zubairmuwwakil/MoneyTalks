@@ -61,8 +61,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
       asOf: s.asOf.toISOString(),
     })),
   );
-  const today = new Date().toISOString().slice(0, 10);
-  const from = new Date(Date.now() - 89 * 86_400_000).toISOString().slice(0, 10);
+  const todayDate = new Date();
+  const today = todayDate.toISOString().slice(0, 10);
+  const from = new Date(todayDate.getTime() - 89 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
   let series: Array<{ date: string; totalMinor: number }> = [];
   try {
     series = netWorthSeries(snapshotRows, display, rates, from, today);
