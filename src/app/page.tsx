@@ -111,14 +111,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
   }
 
 
-  const [profile, dismissals, bills] = await Promise.all([
+  const [profile, dismissals, bills, dueCards] = await Promise.all([
     getOrCreateProfile(userId),
     prisma.alert.findMany({ where: { userId }, select: { ruleKey: true, entityRef: true } }),
     prisma.bill.findMany({ where: { userId }, include: { payments: true } }),
+    prisma.creditCard.findMany({
+      where: { userId, dueDay: { not: null } },
+      select: { id: true, nickname: true, dueDay: true },
+    }),
   ]);
   const in14 = new Date(todayDate.getTime() + 14 * 86_400_000).toISOString().slice(0, 10);
-  const upcoming = bills
-    .flatMap((b) =>
+  const billEntries = bills.flatMap((b) =>
       billOccurrences(
         {
           id: b.id, name: b.name, category: b.category, currency: b.currency,
@@ -132,8 +135,32 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
         ...o,
         paid: b.payments.some((p) => p.dueDate.toISOString().slice(0, 10) === o.date && p.paidAt),
       })),
-    )
-    .sort((a, b) => (a.date < b.date ? -1 : 1));
+    );
+  const cardEntries = dueCards.flatMap((c) => {
+    const [yearNow, monthNow] = [Number(today.slice(0, 4)), Number(today.slice(5, 7))];
+    const candidates = [0, 1].map((offset) => {
+      const monthIndex = monthNow + offset;
+      const month = monthIndex > 12 ? 1 : monthIndex;
+      const year = monthIndex > 12 ? yearNow + 1 : yearNow;
+      return `${year}-${String(month).padStart(2, "0")}-${String(c.dueDay).padStart(2, "0")}`;
+    });
+    const next = candidates.find((d) => d >= today && d <= in14);
+    return next
+      ? [
+          {
+            billId: `card-${c.id}`,
+            billName: `💳 ${c.nickname} payment`,
+            date: next,
+            amountMinor: 0,
+            currency: "CAD",
+            autopay: false,
+            variable: false,
+            paid: false,
+          },
+        ]
+      : [];
+  });
+  const upcoming = [...billEntries, ...cardEntries].sort((a, b) => (a.date < b.date ? -1 : 1));
 
   const snapshotForRules = await buildSnapshot(userId, today);
   const { alerts } = evaluateRules(profile, snapshotForRules, ALL_RULES);
@@ -248,7 +275,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
                   {o.autopay ? <span className="ml-1 rounded bg-muted px-1 text-xs">auto</span> : null}
                   {o.paid ? " ✓" : ""}
                 </span>
-                <span>{formatMinorUnits(o.amountMinor, o.currency as Currency)}</span>
+                <span>{o.amountMinor === 0 ? "-" : formatMinorUnits(o.amountMinor, o.currency as Currency)}</span>
               </li>
             ))}
             {upcoming.length === 0 ? <li className="text-muted-foreground">Nothing due.</li> : null}
