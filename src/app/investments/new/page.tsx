@@ -5,8 +5,13 @@ import { requireUserId } from "@/lib/require-user";
 const TYPES = ["RRSP", "TFSA", "RDSP", "FHSA", "ROTH_IRA", "NON_REGISTERED", "CASH", "CHEQUING", "CRYPTO"] as const;
 const CURRENCIES = ["CAD", "USD", "JMD"] as const;
 
-export default async function NewAccountPage() {
+export default async function NewAccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   await requireUserId();
+  const { error } = await searchParams;
 
   async function submit(formData: FormData) {
     "use server";
@@ -18,6 +23,7 @@ export default async function NewAccountPage() {
   return (
     <main className="py-8">
       <h1 className="text-xl font-semibold">Add account</h1>
+      {error ? <p className="mt-2 text-sm text-red-600" role="alert">{error}</p> : null}
       <form action={submit} className="mt-6 max-w-md space-y-4">
         <label className="block text-sm">
           Name

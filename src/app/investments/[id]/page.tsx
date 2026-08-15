@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { addHolding, addSnapshot, addTransaction, deleteAccount } from "@/app/investments/actions";
 import { accountBalance, holdingValueMinor } from "@/engine/balance";
 import { formatMinorUnits, type Currency } from "@/engine/money";
@@ -7,14 +7,21 @@ import { requireUserId } from "@/lib/require-user";
 
 const TX_TYPES = ["CONTRIBUTION", "WITHDRAWAL", "BUY", "SELL", "DIVIDEND", "INTEREST", "FEE"] as const;
 
-export default async function AccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AccountDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string; errorForm?: string }>;
+}) {
   const userId = await requireUserId();
   const { id } = await params;
+  const { error, errorForm } = await searchParams;
   const account = await prisma.financialAccount.findFirst({
     where: { id, userId },
     include: {
       holdings: { orderBy: { symbol: "asc" } },
-      transactions: { orderBy: { date: "desc" }, take: 50 },
+      transactions: { orderBy: { date: "desc" } },
       snapshots: { orderBy: { asOf: "desc" }, take: 20 },
     },
   });
@@ -29,25 +36,38 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
     (sum, h) => sum + holdingValueMinor(Number(h.quantity), h.lastPriceMinor),
     0,
   );
+  const displayedTransactions = account.transactions.slice(0, 50);
+
+  function errorPath(form: string, message: string) {
+    return `/investments/${id}?errorForm=${form}&error=${encodeURIComponent(message)}`;
+  }
 
   async function submitHolding(formData: FormData) {
     "use server";
-    await addHolding(formData);
+    const result = await addHolding(formData);
+    if (!result.ok) redirect(errorPath("holding", result.error));
+    redirect(`/investments/${id}`);
   }
 
   async function submitTransaction(formData: FormData) {
     "use server";
-    await addTransaction(formData);
+    const result = await addTransaction(formData);
+    if (!result.ok) redirect(errorPath("transaction", result.error));
+    redirect(`/investments/${id}`);
   }
 
   async function submitSnapshot(formData: FormData) {
     "use server";
-    await addSnapshot(formData);
+    const result = await addSnapshot(formData);
+    if (!result.ok) redirect(errorPath("snapshot", result.error));
+    redirect(`/investments/${id}`);
   }
 
   async function submitDelete(formData: FormData) {
     "use server";
-    await deleteAccount(formData);
+    const result = await deleteAccount(formData);
+    if (!result.ok) redirect(errorPath("delete", result.error));
+    redirect("/investments");
   }
 
   return (
@@ -97,6 +117,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
             Add / update holding
           </button>
         </form>
+        {errorForm === "holding" && error ? <p className="mt-2 text-sm text-red-600" role="alert">{error}</p> : null}
       </section>
 
       <section>
@@ -117,7 +138,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
           </button>
         </form>
         <ul className="mt-3 divide-y rounded border">
-          {account.transactions.map((t) => (
+          {displayedTransactions.map((t) => (
             <li key={t.id} className="flex justify-between px-4 py-2 text-sm">
               <span>
                 {t.date.toISOString().slice(0, 10)} {t.type}
@@ -127,6 +148,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
             </li>
           ))}
         </ul>
+        {errorForm === "transaction" && error ? <p className="mt-2 text-sm text-red-600" role="alert">{error}</p> : null}
       </section>
 
       <section>
@@ -147,6 +169,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
             </li>
           ))}
         </ul>
+        {errorForm === "snapshot" && error ? <p className="mt-2 text-sm text-red-600" role="alert">{error}</p> : null}
       </section>
 
       <form action={submitDelete}>
@@ -154,6 +177,7 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
         <button type="submit" className="rounded border border-red-600 px-3 py-1 text-sm text-red-600">
           Delete account (and all its data)
         </button>
+        {errorForm === "delete" && error ? <p className="mt-2 text-sm text-red-600" role="alert">{error}</p> : null}
       </form>
     </main>
   );
