@@ -33,7 +33,7 @@ All Phase 0 Global Constraints apply verbatim (public repo — zero personal dat
 **Interfaces:**
 - Produces: Prisma models `FinancialAccount`, `Holding`, `Transaction`, `BalanceSnapshot`, `FxRate`; enums `AccountType`, `TxType`. All later tasks query these through the `prisma` singleton from `@/lib/prisma`.
 
-- [ ] **Step 1: Extend the schema**
+- [x] **Step 1: Extend the schema**
 
 Append to `prisma/schema.prisma` (and add the back-relation `financialAccounts FinancialAccount[]` plus `fxRates FxRate[]` to the existing `User` model):
 
@@ -135,7 +135,7 @@ model FxRate {
 }
 ```
 
-- [ ] **Step 2: Migrate and verify**
+- [x] **Step 2: Migrate and verify**
 
 ```bash
 npx dotenv -e .env.local -- npx prisma migrate dev --name financial-models
@@ -144,7 +144,7 @@ npx dotenv -e .env.local -- npx prisma migrate status
 
 Expected: migration applied; `Database schema is up to date!`. Then `npm run build` to confirm the generated client compiles with strict TS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add prisma/
@@ -165,7 +165,7 @@ git commit -m "feat: add financial domain models (accounts, holdings, transactio
   - `convertMinor(amountMinor: number, from: Currency, to: Currency, rates: FxRateInput[]): number`
   - `class MissingFxRateError extends Error` (UI catches it to prompt for a rate)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/engine/fx.test.ts`:
 
@@ -206,12 +206,12 @@ describe("convertMinor", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test`
 Expected: FAIL — cannot find module `./fx`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/engine/fx.ts`:
 
@@ -259,12 +259,12 @@ export function convertMinor(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/engine/fx.ts src/engine/fx.test.ts
@@ -289,7 +289,7 @@ git commit -m "feat: add FX conversion engine with inverse fallback"
 
 **Sign conventions (the spec's "balances derive from transactions"):** CONTRIBUTION, DIVIDEND, INTEREST add; WITHDRAWAL, FEE subtract; BUY and SELL are internal asset swaps within the account and contribute zero. **Snapshot precedence (per spec):** the latest snapshot wins outright over the derived number, even if a transaction is dated after it — v1 rule, documented.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/engine/balance.test.ts`:
 
@@ -371,12 +371,12 @@ describe("holdingValueMinor", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test`
 Expected: FAIL — cannot find module `./balance`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/engine/balance.ts`:
 
@@ -447,12 +447,12 @@ export function holdingValueMinor(quantity: number, lastPriceMinor: number): num
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/engine/balance.ts src/engine/balance.test.ts
@@ -474,7 +474,7 @@ git commit -m "feat: add balance engine (snapshot precedence, sign conventions, 
   - `interface SnapshotRow { accountId: string; balanceMinor: number; currency: Currency; asOf: string }`
   - `netWorthSeries(snapshots: SnapshotRow[], display: Currency, rates: FxRateInput[], fromDate: string, toDate: string): Array<{ date: string; totalMinor: number }>` — daily points, per-account forward-fill of the latest snapshot on or before each day; accounts with no snapshot yet contribute 0; dates are `YYYY-MM-DD`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/engine/networth.test.ts`:
 
@@ -531,12 +531,12 @@ describe("netWorthSeries", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test`
 Expected: FAIL — cannot find module `./networth`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/engine/networth.ts`:
 
@@ -626,12 +626,12 @@ export function netWorthSeries(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/engine/networth.ts src/engine/networth.test.ts
@@ -655,7 +655,7 @@ git commit -m "feat: add net worth aggregation and daily series engine"
   - Server actions: `createAccount`, `deleteAccount`, `addHolding`, `addTransaction`, `addSnapshot`, `addFxRate` — each takes `FormData`, returns `{ ok: true } | { ok: false; error: string }`.
   - `GET /api/accounts` (list with computed balances), `GET /api/accounts/[id]` (detail) — 401 unauthenticated.
 
-- [ ] **Step 1: Install zod and write the failing validation test**
+- [x] **Step 1: Install zod and write the failing validation test**
 
 ```bash
 npm install zod
@@ -720,12 +720,12 @@ describe("importFile", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test`
 Expected: FAIL — cannot find module `./investments`.
 
-- [ ] **Step 3: Implement the schemas**
+- [x] **Step 3: Implement the schemas**
 
 Create `src/lib/validation/investments.ts`:
 
@@ -793,12 +793,12 @@ export type AccountInput = z.infer<typeof accountInput>;
 export type ImportFile = z.infer<typeof importFile>;
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test`
 Expected: all pass.
 
-- [ ] **Step 5: Add the user-id helpers**
+- [x] **Step 5: Add the user-id helpers**
 
 In `src/lib/require-user.ts`, add (keeping `requireUser` as-is):
 
@@ -823,7 +823,7 @@ export async function getSessionUserId(): Promise<string | null> {
 
 (Add `import { auth } from "@/auth";` to the file's imports.)
 
-- [ ] **Step 6: Implement the server actions**
+- [x] **Step 6: Implement the server actions**
 
 Create `src/app/investments/actions.ts`:
 
@@ -962,7 +962,7 @@ export async function addFxRate(formData: FormData): Promise<ActionResult> {
 }
 ```
 
-- [ ] **Step 7: Implement the GET APIs**
+- [x] **Step 7: Implement the GET APIs**
 
 Create `src/app/api/accounts/route.ts`:
 
@@ -1031,7 +1031,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 ```
 
-- [ ] **Step 8: Verify build + tests, commit**
+- [x] **Step 8: Verify build + tests, commit**
 
 Run: `npm test && npm run lint && npm run build`
 Expected: pass.
@@ -1053,7 +1053,7 @@ git commit -m "feat: add investments validation, server actions, and account API
 - Consumes: actions from Task 5, `accountBalance`/`holdingValueMinor` from Task 3, `formatMinorUnits` from Phase 0, `requireUserId`.
 - Produces: `/investments` (list + link to add), `/investments/new` (create form), `/investments/[id]` (detail + add-holding/transaction/snapshot forms + delete).
 
-- [ ] **Step 1: Replace the placeholder list page**
+- [x] **Step 1: Replace the placeholder list page**
 
 Replace `src/app/investments/page.tsx` entirely with:
 
@@ -1121,7 +1121,7 @@ export default async function InvestmentsPage() {
 }
 ```
 
-- [ ] **Step 2: Create the add-account page**
+- [x] **Step 2: Create the add-account page**
 
 Create `src/app/investments/new/page.tsx`:
 
@@ -1189,7 +1189,7 @@ export default async function NewAccountPage() {
 }
 ```
 
-- [ ] **Step 3: Create the account detail page**
+- [x] **Step 3: Create the account detail page**
 
 Create `src/app/investments/[id]/page.tsx`:
 
@@ -1336,11 +1336,11 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
 }
 ```
 
-- [ ] **Step 4: Verify manually**
+- [x] **Step 4: Verify manually**
 
 Run: `npm run dev`. Signed in: create a fictional test account, add a holding, a transaction, and a snapshot; confirm the balance line shows `snapshot` source once a snapshot exists; delete the test account. Then: `npm test && npm run lint && npm run build` — expect pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/app/investments/
@@ -1359,7 +1359,7 @@ git commit -m "feat: add investments UI (account list, detail, CRUD forms)"
 - Consumes: `netWorth`, `netWorthSeries` (Task 4), `accountBalance` (Task 3), `convertMinor`/`MissingFxRateError` (Task 2), `formatMinorUnits`.
 - Produces: `/` shows total net worth in the `?ccy=` currency (default CAD), per-account converted balances, a 90-day sparkline, and placeholder sections for Phase 2 alerts / Phase 3 upcoming payments.
 
-- [ ] **Step 1: Install recharts and build the sparkline client component**
+- [x] **Step 1: Install recharts and build the sparkline client component**
 
 ```bash
 npm install recharts
@@ -1391,7 +1391,7 @@ export function NetWorthSparkline({ data }: { data: Array<{ date: string; totalM
 }
 ```
 
-- [ ] **Step 2: Rebuild the dashboard page**
+- [x] **Step 2: Rebuild the dashboard page**
 
 Replace `src/app/page.tsx` entirely with (keep the `PasskeyRegisterButton` and sign-out imports/forms from Phase 0):
 
@@ -1550,11 +1550,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
 }
 ```
 
-- [ ] **Step 3: Verify manually**
+- [x] **Step 3: Verify manually**
 
 Run: `npm run dev`. With a couple of fictional accounts + snapshots + a USD→CAD rate entered: totals render, the CAD/USD/JMD toggle changes converted values (JMD without a rate shows the missing-rate message rather than crashing), sparkline draws once ≥2 snapshot days exist. Then `npm test && npm run lint && npm run build` — expect pass.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/app/page.tsx src/components/net-worth-sparkline.tsx package.json package-lock.json
@@ -1572,7 +1572,7 @@ git commit -m "feat: add net worth dashboard with currency toggle and sparkline"
 - Consumes: `importFile` schema (Task 5), `requireUserId`, `prisma`.
 - Produces: `/investments/import` — upload a JSON file, get created/updated counts. Idempotent by natural keys: account `(userId, name, institution)`, holding `(accountId, symbol)`, snapshot `(accountId, asOf)`, fx `(userId, base, quote, asOf)`. Re-importing the same file changes nothing.
 
-- [ ] **Step 1: Create the import action**
+- [x] **Step 1: Create the import action**
 
 Create `src/app/investments/import/actions.ts`:
 
@@ -1665,7 +1665,7 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
 }
 ```
 
-- [ ] **Step 2: Create the import page**
+- [x] **Step 2: Create the import page**
 
 Create `src/app/investments/import/page.tsx`:
 
@@ -1714,7 +1714,7 @@ export default async function ImportPage({
 }
 ```
 
-- [ ] **Step 3: Write the fictional E2E fixture**
+- [x] **Step 3: Write the fictional E2E fixture**
 
 Create `e2e/fixtures/import-sample.json` — **entirely fictional data** (5 accounts to mirror the spec's acceptance criterion):
 
@@ -1776,7 +1776,7 @@ Create `e2e/fixtures/import-sample.json` — **entirely fictional data** (5 acco
 }
 ```
 
-- [ ] **Step 4: Write the import format doc**
+- [x] **Step 4: Write the import format doc**
 
 Create `docs/import-format.md`:
 
@@ -1806,7 +1806,7 @@ Privacy: this repo never contains real data. Keep your real import file outside
 the repo (it is also blocked by `.gitignore` patterns `seed/` and `*.seed.json`).
 ```
 
-- [ ] **Step 5: Verify manually + commit**
+- [x] **Step 5: Verify manually + commit**
 
 Run: `npm run dev`, sign in, import `e2e/fixtures/import-sample.json` → expect "Imported: 5 accounts, 2 holdings, 5 snapshots, 2 FX rates". Import it again → same counts, no duplicates on `/investments`. Then `npm test && npm run lint && npm run build` — pass.
 
@@ -1827,7 +1827,7 @@ git commit -m "feat: add idempotent authenticated JSON import with format doc"
 - Consumes: Prisma `Session`/`User` models (Phase 0), `e2e/fixtures/import-sample.json` (Task 8).
 - Produces: `createAuthedContext(browser, baseURL)` — seeds a `User` + `Session` row directly and injects the `authjs.session-token` cookie, bypassing email/passkey for tests only (server-side enforcement is untouched); `cleanupE2EUser()`.
 
-- [ ] **Step 1: Load env for the Playwright process**
+- [x] **Step 1: Load env for the Playwright process**
 
 ```bash
 npm install -D dotenv
@@ -1840,7 +1840,7 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 ```
 
-- [ ] **Step 2: Write the session helper**
+- [x] **Step 2: Write the session helper**
 
 Create `e2e/helpers/session.ts`:
 
@@ -1878,7 +1878,7 @@ export async function cleanupE2EUser(): Promise<void> {
 }
 ```
 
-- [ ] **Step 3: Write the acceptance spec**
+- [x] **Step 3: Write the acceptance spec**
 
 Create `e2e/investments.spec.ts`:
 
@@ -1938,7 +1938,7 @@ test("import fixture, see accounts with balances, toggle currency", async ({ bro
 });
 ```
 
-- [ ] **Step 4: Extend the 401 sweep**
+- [x] **Step 4: Extend the 401 sweep**
 
 In `e2e/smoke.spec.ts`, extend the protected-API test to cover the new endpoints:
 
@@ -1951,12 +1951,12 @@ test("investment APIs return 401 when unauthenticated", async ({ request }) => {
 });
 ```
 
-- [ ] **Step 5: Run the full E2E suite**
+- [x] **Step 5: Run the full E2E suite**
 
 Run: `npm run e2e`
 Expected: all specs pass (smoke + investments). If the exact-dollar assertions fail, recompute from the fixture by hand before touching anything — the fixture and the engine must agree; a mismatch is a bug in one of them, not in the test.
 
-- [ ] **Step 6: Full verification + commit**
+- [x] **Step 6: Full verification + commit**
 
 Run: `npm test && npm run lint && npm run build && npm run e2e`
 Expected: everything green.

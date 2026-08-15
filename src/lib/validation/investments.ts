@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const IMPORT_LIMITS = {
+  fileBytes: 5 * 1024 * 1024,
   accounts: 100,
   holdingsPerAccount: 1000,
   snapshotsPerAccount: 5000,

@@ -138,19 +138,25 @@ describe("importFile", () => {
     expect(
       importFile.safeParse({
         accounts: [
-          {
+          ...Array.from({ length: 11 }, (_, accountIndex) => ({
             ...account,
-            holdings: Array.from({ length: IMPORT_LIMITS.totalRows + 1 }, (_, index) => ({
-              symbol: `T${index}`,
-              name: `Fictional Holding ${index}`,
+            name: `Maple TFSA ${accountIndex}`,
+            holdings: Array.from({ length: IMPORT_LIMITS.holdingsPerAccount }, (_, holdingIndex) => ({
+              symbol: `T${accountIndex}-${holdingIndex}`,
+              name: `Fictional Holding ${accountIndex}-${holdingIndex}`,
               domicileCountry: "CA",
               quantity: 1,
               lastPriceMinor: 100,
               priceAsOf: "2026-08-01",
             })),
-          },
+          })),
         ],
       }).success,
     ).toBe(false);
+  });
+
+  it("sets an explicit raw upload byte limit before parsing", () => {
+    expect(IMPORT_LIMITS.fileBytes).toBeGreaterThan(0);
+    expect(IMPORT_LIMITS.fileBytes).toBeLessThanOrEqual(5 * 1024 * 1024);
   });
 });

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
-import { importFile } from "@/lib/validation/investments";
+import { IMPORT_LIMITS, importFile } from "@/lib/validation/investments";
 
 export interface ImportResult {
   ok: boolean;
@@ -18,6 +18,12 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
   const userId = await requireUserId();
   const file = formData.get("file");
   if (!(file instanceof File)) return { ok: false, error: "No file uploaded" };
+  if (file.size > IMPORT_LIMITS.fileBytes) {
+    return {
+      ok: false,
+      error: `Import file is too large; maximum is ${Math.floor(IMPORT_LIMITS.fileBytes / (1024 * 1024))} MB`,
+    };
+  }
 
   let raw: unknown;
   try {
