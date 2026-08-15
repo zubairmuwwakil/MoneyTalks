@@ -10,6 +10,7 @@ const links = [
   { href: "/bills", label: "Bills" },
   { href: "/cards", label: "Cards" },
   { href: "/money-finder", label: "Money Finder" },
+  { href: "/settings", label: "Settings" },
 ] as const;
 
 export function Nav() {
