@@ -102,10 +102,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
             {missingRate}. <Link href="/investments" className="underline">Add an FX rate via import</Link>.
           </p>
         )}
-        <NetWorthSparkline data={series} />
+        <NetWorthSparkline data={series} currency={display} />
       </section>
 
-      {total && total.perAccount.length > 0 ? (
+      {accounts.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No accounts yet - <Link href="/investments" className="underline">add or import them</Link>.
+        </p>
+      ) : total ? (
         <section className="grid gap-3 sm:grid-cols-2">
           {total.perAccount.map((a) => (
             <Link key={a.id} href={`/investments/${a.id}`} className="rounded border p-4 hover:bg-muted/50">
@@ -123,9 +127,20 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
           ))}
         </section>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          No accounts yet - <Link href="/investments" className="underline">add or import them</Link>.
-        </p>
+        <section className="grid gap-3 sm:grid-cols-2">
+          {rows.map((a) => (
+            <Link key={a.id} href={`/investments/${a.id}`} className="rounded border p-4 hover:bg-muted/50">
+              <p className="text-sm font-medium">{a.name}</p>
+              <p className="text-xs text-muted-foreground">{a.type}</p>
+              <p className="mt-1 tabular-nums">
+                {formatMinorUnits(a.balanceMinor, a.currency)} {a.currency}
+              </p>
+            </Link>
+          ))}
+          <p className="text-sm text-muted-foreground">
+            Account balances are shown in their native currencies until an FX rate is available.
+          </p>
+        </section>
       )}
 
       <section className="grid gap-3 sm:grid-cols-2">
