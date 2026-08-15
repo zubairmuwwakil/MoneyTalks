@@ -1021,7 +1021,7 @@ git commit -m "test: add Playwright smoke tests for auth boundaries"
 - Consumes: everything above.
 - Produces: the live site; production DB migrated; the Phase-0 "done" state — owner logs in from a phone.
 
-- [ ] **Step 1: Make the build run migrations**
+- [x] **Step 1: Make the build run migrations**
 
 In `package.json`, change the build script to:
 
@@ -1032,7 +1032,7 @@ In `package.json`, change the build script to:
 Local `npm run build` now needs `DATABASE_URL` — verify with:
 `npx dotenv -e .env.local -- npm run build` → expect success.
 
-- [ ] **Step 2: Update the README** (public-safe; this is the portfolio front door)
+- [x] **Step 2: Update the README** (public-safe; this is the portfolio front door)
 
 Replace `README.md` contents with:
 
@@ -1060,7 +1060,7 @@ opportunities (grants, credits, benefit thresholds).
 Tests: `npm test` (engines) · `npm run e2e` (smoke)
 ```
 
-- [ ] **Step 3: Commit, pre-push audit, push**
+- [x] **Step 3: Commit, pre-push audit, push**
 
 ```bash
 git add package.json README.md

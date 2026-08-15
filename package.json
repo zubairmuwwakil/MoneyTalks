@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "prisma migrate deploy && next build --turbopack",
     "e2e": "playwright test",
     "start": "next start",
     "lint": "eslint",
