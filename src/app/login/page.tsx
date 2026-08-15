@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
+import { PasskeySignInButton } from "@/components/passkey-buttons";
 
 export default async function LoginPage({
   searchParams,
@@ -19,34 +20,37 @@ export default async function LoginPage({
             Check your email — a sign-in link is on its way.
           </p>
         ) : (
-          <form
-            action={async (formData: FormData) => {
-              "use server";
-              await signIn("resend", {
-                email: formData.get("email"),
-                redirectTo: "/",
-              });
-            }}
-            className="space-y-3"
-          >
-            <label className="block text-sm" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              className="w-full rounded border px-3 py-2"
-            />
-            <button
-              type="submit"
-              className="w-full rounded bg-foreground px-3 py-2 text-background"
+          <div className="space-y-3">
+            <form
+              action={async (formData: FormData) => {
+                "use server";
+                await signIn("resend", {
+                  email: formData.get("email"),
+                  redirectTo: "/",
+                });
+              }}
+              className="space-y-3"
             >
-              Send sign-in link
-            </button>
-          </form>
+              <label className="block text-sm" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                autoComplete="email"
+                className="w-full rounded border px-3 py-2"
+              />
+              <button
+                type="submit"
+                className="w-full rounded bg-foreground px-3 py-2 text-background"
+              >
+                Send sign-in link
+              </button>
+            </form>
+            <PasskeySignInButton />
+          </div>
         )}
         {error ? (
           <p className="text-sm text-red-600">Sign-in failed. Try again.</p>

@@ -651,17 +651,17 @@ Magic link is the reliable path; this adds passkeys per the spec. Auth.js WebAut
 - Consumes: `auth` config from Task 4; `Authenticator` model from Task 3.
 - Produces: passkey registration (from the signed-in home page) and passkey sign-in (from the login page).
 
-- [ ] **Step 1: Install WebAuthn dependencies (versions pinned per Auth.js docs)**
+- [x] **Step 1: Install WebAuthn dependencies (versions pinned per Auth.js docs)**
 
 ```bash
 npm install @simplewebauthn/browser@9.0.1 @simplewebauthn/server@9.0.3
 ```
 
-- [ ] **Step 2: Enable the provider**
+- [x] **Step 2: Enable the provider**
 
 In `src/auth.ts`: add `import Passkey from "next-auth/providers/passkey";`, add `Passkey` to the `providers` array, and add `experimental: { enableWebAuthn: true },` at the top level of the NextAuth config object.
 
-- [ ] **Step 3: Create the client buttons**
+- [x] **Step 3: Create the client buttons**
 
 Create `src/components/passkey-buttons.tsx`:
 
@@ -695,16 +695,16 @@ export function PasskeyRegisterButton() {
 }
 ```
 
-- [ ] **Step 4: Wire into pages**
+- [x] **Step 4: Wire into pages**
 
 In `src/app/login/page.tsx`: import `PasskeySignInButton` and render it directly below the email form (inside the non-`sent` branch).
 In `src/app/page.tsx`: import `PasskeyRegisterButton` and render it below the signed-in email line.
 
-- [ ] **Step 5: Verify manually**
+- [x] **Step 5: Verify manually**
 
 Run: `npm run dev`. Sign in via magic link, click "Register a passkey on this device" → complete the browser prompt (Touch ID). Sign out. On `/login`, click "Sign in with a passkey" → expect a successful session without email. Note: passkeys are origin-bound — this localhost passkey is separate from the one the owner will register on the production domain in Task 8.
 
-- [ ] **Step 6: Run tests + build, commit**
+- [x] **Step 6: Run tests + build, commit**
 
 Run: `npm test && npm run build`
 Expected: pass.

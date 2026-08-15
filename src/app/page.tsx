@@ -1,4 +1,5 @@
 import { signOut } from "@/auth";
+import { PasskeyRegisterButton } from "@/components/passkey-buttons";
 import { requireUser } from "@/lib/require-user";
 
 export default async function Home() {
@@ -8,6 +9,7 @@ export default async function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center gap-4">
       <h1 className="text-2xl font-semibold">MoneyTalks</h1>
       <p className="text-sm">Signed in as {user.email}</p>
+      <PasskeyRegisterButton />
       <form
         action={async () => {
           "use server";
