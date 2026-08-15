@@ -3,6 +3,7 @@ import {
   accountBalance,
   deriveBalanceMinor,
   holdingValueMinor,
+  latestSnapshot,
   type SnapshotInput,
   type TxInput,
 } from "./balance";
@@ -72,6 +73,17 @@ describe("accountBalance", () => {
   });
 });
 
+describe("latestSnapshot", () => {
+  it("returns the complete latest row so stored currency is preserved", () => {
+    const snapshots = [
+      { balanceMinor: 90_000, currency: "CAD", asOf: "2026-02-20" },
+      { balanceMinor: 95_000, currency: "USD", asOf: "2026-03-15" },
+    ];
+
+    expect(latestSnapshot(snapshots)).toEqual(snapshots[1]);
+  });
+});
+
 describe("holdingValueMinor", () => {
   it("multiplies quantity by price and rounds", () => {
     expect(holdingValueMinor(10, 12345)).toBe(123450);
@@ -85,5 +97,9 @@ describe("holdingValueMinor", () => {
   it("rejects non-finite quantity and non-integer price", () => {
     expect(() => holdingValueMinor(NaN, 100)).toThrow(RangeError);
     expect(() => holdingValueMinor(1, 10.5)).toThrow(RangeError);
+  });
+
+  it("rejects a rounded holding value outside the safe integer range", () => {
+    expect(() => holdingValueMinor(Number.MAX_SAFE_INTEGER, 2)).toThrow(RangeError);
   });
 });

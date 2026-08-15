@@ -32,60 +32,86 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
     return { ok: false, error: `${issue.path.join(".")}: ${issue.message}` };
   }
 
-  let accounts = 0;
-  let holdings = 0;
-  let snapshots = 0;
-  let fxRates = 0;
+  let counts: Required<Pick<ImportResult, "accounts" | "holdings" | "snapshots" | "fxRates">>;
+  try {
+    counts = await prisma.$transaction(async (tx) => {
+      let accounts = 0;
+      let holdings = 0;
+      let snapshots = 0;
+      let fxRates = 0;
 
-  for (const entry of parsed.data.accounts) {
-    const { holdings: hs, snapshots: ss, ...accountData } = entry;
-    const account = await prisma.financialAccount.upsert({
-      where: {
-        userId_name_institution: {
+      for (const entry of parsed.data.accounts) {
+        const { holdings: hs, snapshots: ss, ...accountData } = entry;
+        const key = {
           userId,
           name: accountData.name,
           institution: accountData.institution,
-        },
-      },
-      update: accountData,
-      create: { ...accountData, userId },
+        };
+        const existing = await tx.financialAccount.findUnique({
+          where: { userId_name_institution: key },
+          select: {
+            currency: true,
+            _count: { select: { holdings: true, transactions: true, snapshots: true } },
+          },
+        });
+        const hasChildMoney =
+          existing !== null &&
+          (existing._count.holdings > 0 ||
+            existing._count.transactions > 0 ||
+            existing._count.snapshots > 0);
+        if (existing && existing.currency !== accountData.currency && hasChildMoney) {
+          throw new Error(
+            `Currency for ${accountData.name} cannot change from ${existing.currency} to ${accountData.currency} while the account has financial data`,
+          );
+        }
+
+        const account = await tx.financialAccount.upsert({
+          where: { userId_name_institution: key },
+          update: accountData,
+          create: { ...accountData, userId },
+        });
+        accounts += 1;
+
+        for (const h of hs ?? []) {
+          await tx.holding.upsert({
+            where: { accountId_symbol: { accountId: account.id, symbol: h.symbol } },
+            update: { ...h, priceAsOf: new Date(h.priceAsOf) },
+            create: { ...h, accountId: account.id, priceAsOf: new Date(h.priceAsOf) },
+          });
+          holdings += 1;
+        }
+
+        for (const s of ss ?? []) {
+          await tx.balanceSnapshot.upsert({
+            where: { accountId_asOf: { accountId: account.id, asOf: new Date(s.asOf) } },
+            update: { balanceMinor: s.balanceMinor },
+            create: {
+              accountId: account.id,
+              balanceMinor: s.balanceMinor,
+              currency: account.currency,
+              asOf: new Date(s.asOf),
+            },
+          });
+          snapshots += 1;
+        }
+      }
+
+      for (const r of parsed.data.fxRates ?? []) {
+        await tx.fxRate.upsert({
+          where: { userId_base_quote_asOf: { userId, base: r.base, quote: r.quote, asOf: new Date(r.asOf) } },
+          update: { rate: r.rate },
+          create: { userId, base: r.base, quote: r.quote, rate: r.rate, asOf: new Date(r.asOf) },
+        });
+        fxRates += 1;
+      }
+
+      return { accounts, holdings, snapshots, fxRates };
     });
-    accounts += 1;
-
-    for (const h of hs ?? []) {
-      await prisma.holding.upsert({
-        where: { accountId_symbol: { accountId: account.id, symbol: h.symbol } },
-        update: { ...h, priceAsOf: new Date(h.priceAsOf) },
-        create: { ...h, accountId: account.id, priceAsOf: new Date(h.priceAsOf) },
-      });
-      holdings += 1;
-    }
-
-    for (const s of ss ?? []) {
-      await prisma.balanceSnapshot.upsert({
-        where: { accountId_asOf: { accountId: account.id, asOf: new Date(s.asOf) } },
-        update: { balanceMinor: s.balanceMinor },
-        create: {
-          accountId: account.id,
-          balanceMinor: s.balanceMinor,
-          currency: account.currency,
-          asOf: new Date(s.asOf),
-        },
-      });
-      snapshots += 1;
-    }
-  }
-
-  for (const r of parsed.data.fxRates ?? []) {
-    await prisma.fxRate.upsert({
-      where: { userId_base_quote_asOf: { userId, base: r.base, quote: r.quote, asOf: new Date(r.asOf) } },
-      update: { rate: r.rate },
-      create: { userId, base: r.base, quote: r.quote, rate: r.rate, asOf: new Date(r.asOf) },
-    });
-    fxRates += 1;
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Import failed" };
   }
 
   revalidatePath("/investments");
   revalidatePath("/");
-  return { ok: true, accounts, holdings, snapshots, fxRates };
+  return { ok: true, ...counts };
 }

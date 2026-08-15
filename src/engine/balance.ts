@@ -41,12 +41,16 @@ export function deriveBalanceMinor(transactions: TxInput[]): number {
   }, 0);
 }
 
+export function latestSnapshot<T extends SnapshotInput>(snapshots: T[]): T | undefined {
+  return [...snapshots].sort((a, b) => (a.asOf < b.asOf ? 1 : a.asOf > b.asOf ? -1 : 0))[0];
+}
+
 export function accountBalance(
   transactions: TxInput[],
   snapshots: SnapshotInput[],
 ): { balanceMinor: number; asOf: string | null; source: "snapshot" | "derived" } {
-  if (snapshots.length > 0) {
-    const latest = [...snapshots].sort((a, b) => (a.asOf < b.asOf ? 1 : a.asOf > b.asOf ? -1 : 0))[0];
+  const latest = latestSnapshot(snapshots);
+  if (latest) {
     if (!Number.isSafeInteger(latest.balanceMinor)) {
       throw new RangeError(`balanceMinor must be a safe integer, got ${latest.balanceMinor}`);
     }
@@ -67,5 +71,9 @@ export function holdingValueMinor(quantity: number, lastPriceMinor: number): num
   if (!Number.isSafeInteger(lastPriceMinor)) {
     throw new RangeError(`lastPriceMinor must be a safe integer, got ${lastPriceMinor}`);
   }
-  return Math.round(quantity * lastPriceMinor);
+  const valueMinor = Math.round(quantity * lastPriceMinor);
+  if (!Number.isSafeInteger(valueMinor)) {
+    throw new RangeError(`holding value must be a safe integer, got ${valueMinor}`);
+  }
+  return valueMinor;
 }

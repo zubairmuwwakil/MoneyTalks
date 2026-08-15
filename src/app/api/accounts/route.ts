@@ -1,4 +1,5 @@
-import { accountBalance, type SnapshotInput, type TxInput } from "@/engine/balance";
+import { accountBalance, latestSnapshot, type SnapshotInput, type TxInput } from "@/engine/balance";
+import type { Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
 
@@ -14,13 +15,18 @@ export async function GET() {
 
   return Response.json(
     accounts.map((a) => {
+      const snapshots = a.snapshots.map(
+        (s): SnapshotInput & { currency: Currency } => ({
+          balanceMinor: s.balanceMinor,
+          currency: s.currency as Currency,
+          asOf: s.asOf.toISOString(),
+        }),
+      );
       const balance = accountBalance(
         a.transactions.map(
           (t): TxInput => ({ type: t.type, amountMinor: t.amountMinor, date: t.date.toISOString() }),
         ),
-        a.snapshots.map(
-          (s): SnapshotInput => ({ balanceMinor: s.balanceMinor, asOf: s.asOf.toISOString() }),
-        ),
+        snapshots,
       );
       return {
         id: a.id,
@@ -30,6 +36,7 @@ export async function GET() {
         country: a.country,
         currency: a.currency,
         balanceMinor: balance.balanceMinor,
+        balanceCurrency: latestSnapshot(snapshots)?.currency ?? a.currency,
         balanceSource: balance.source,
         balanceAsOf: balance.asOf,
       };

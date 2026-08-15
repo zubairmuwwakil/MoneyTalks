@@ -17,10 +17,18 @@ function fail(error: unknown): ActionResult {
   return { ok: false, error: error instanceof Error ? error.message : "Invalid input" };
 }
 
+function recordId(formData: FormData, field: string): string {
+  const value = formData.get(field);
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`Missing ${field}`);
+  }
+  return value;
+}
+
 async function ownedAccount(userId: string, accountId: string) {
   const account = await prisma.financialAccount.findFirst({
     where: { id: accountId, userId },
-    select: { id: true },
+    select: { id: true, currency: true },
   });
   if (!account) throw new Error("Account not found");
   return account;
@@ -42,13 +50,54 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
 
 export async function deleteAccount(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
-  const id = String(formData.get("id") ?? "");
   try {
+    const id = recordId(formData, "id");
     await ownedAccount(userId, id);
     await prisma.financialAccount.delete({ where: { id } });
   } catch (e) {
     return fail(e);
   }
+  revalidatePath("/investments");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function updateAccount(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const parsed = accountInput.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message);
+
+  let accountId: string;
+  try {
+    accountId = recordId(formData, "accountId");
+    await prisma.$transaction(async (tx) => {
+      const account = await tx.financialAccount.findFirst({
+        where: { id: accountId, userId },
+        select: {
+          id: true,
+          currency: true,
+          _count: { select: { holdings: true, transactions: true, snapshots: true } },
+        },
+      });
+      if (!account) throw new Error("Account not found");
+
+      const hasChildMoney =
+        account._count.holdings > 0 ||
+        account._count.transactions > 0 ||
+        account._count.snapshots > 0;
+      if (account.currency !== parsed.data.currency && hasChildMoney) {
+        throw new Error("Currency cannot be changed while the account has holdings, transactions, or snapshots");
+      }
+
+      await tx.financialAccount.update({
+        where: { id: account.id },
+        data: parsed.data,
+      });
+    });
+  } catch (e) {
+    return fail(e);
+  }
+  revalidatePath(`/investments/${accountId}`);
   revalidatePath("/investments");
   revalidatePath("/");
   return { ok: true };
@@ -75,18 +124,76 @@ export async function addHolding(formData: FormData): Promise<ActionResult> {
 
 export async function addTransaction(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
-  const accountId = String(formData.get("accountId") ?? "");
   const parsed = transactionInput.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0]?.message);
+  let accountId: string;
   try {
-    await ownedAccount(userId, accountId);
+    accountId = recordId(formData, "accountId");
+    const account = await ownedAccount(userId, accountId);
     await prisma.transaction.create({
-      data: { ...parsed.data, accountId, date: new Date(parsed.data.date) },
+      data: {
+        ...parsed.data,
+        accountId,
+        currency: account.currency,
+        date: new Date(parsed.data.date),
+      },
     });
   } catch (e) {
     return fail(e);
   }
   revalidatePath(`/investments/${accountId}`);
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function updateTransaction(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const parsed = transactionInput.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message);
+
+  let accountId: string;
+  try {
+    const id = recordId(formData, "transactionId");
+    const transaction = await prisma.transaction.findFirst({
+      where: { id, account: { userId } },
+      select: { id: true, accountId: true, account: { select: { currency: true } } },
+    });
+    if (!transaction) throw new Error("Transaction not found");
+    accountId = transaction.accountId;
+    await prisma.transaction.update({
+      where: { id: transaction.id },
+      data: {
+        ...parsed.data,
+        currency: transaction.account.currency,
+        date: new Date(parsed.data.date),
+      },
+    });
+  } catch (e) {
+    return fail(e);
+  }
+  revalidatePath(`/investments/${accountId}`);
+  revalidatePath("/investments");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function deleteTransaction(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  let accountId: string;
+  try {
+    const id = recordId(formData, "transactionId");
+    const transaction = await prisma.transaction.findFirst({
+      where: { id, account: { userId } },
+      select: { id: true, accountId: true },
+    });
+    if (!transaction) throw new Error("Transaction not found");
+    accountId = transaction.accountId;
+    await prisma.transaction.delete({ where: { id: transaction.id } });
+  } catch (e) {
+    return fail(e);
+  }
+  revalidatePath(`/investments/${accountId}`);
+  revalidatePath("/investments");
   revalidatePath("/");
   return { ok: true };
 }
@@ -116,6 +223,46 @@ export async function addSnapshot(formData: FormData): Promise<ActionResult> {
     return fail(e);
   }
   revalidatePath(`/investments/${accountId}`);
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function deleteHolding(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  let accountId: string;
+  try {
+    const id = recordId(formData, "holdingId");
+    const holding = await prisma.holding.findFirst({
+      where: { id, account: { userId } },
+      select: { id: true, accountId: true },
+    });
+    if (!holding) throw new Error("Holding not found");
+    accountId = holding.accountId;
+    await prisma.holding.delete({ where: { id: holding.id } });
+  } catch (e) {
+    return fail(e);
+  }
+  revalidatePath(`/investments/${accountId}`);
+  return { ok: true };
+}
+
+export async function deleteSnapshot(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  let accountId: string;
+  try {
+    const id = recordId(formData, "snapshotId");
+    const snapshot = await prisma.balanceSnapshot.findFirst({
+      where: { id, account: { userId } },
+      select: { id: true, accountId: true },
+    });
+    if (!snapshot) throw new Error("Snapshot not found");
+    accountId = snapshot.accountId;
+    await prisma.balanceSnapshot.delete({ where: { id: snapshot.id } });
+  } catch (e) {
+    return fail(e);
+  }
+  revalidatePath(`/investments/${accountId}`);
+  revalidatePath("/investments");
   revalidatePath("/");
   return { ok: true };
 }

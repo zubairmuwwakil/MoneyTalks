@@ -11,7 +11,7 @@ const isoDate = z
     date.setUTCFullYear(year, month - 1, day);
     return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
   }, "Must be a valid calendar date");
-const minorUnits = z.coerce.number().int().safe();
+const minorUnits = z.coerce.number().int().min(-2_147_483_648).max(2_147_483_647);
 const positiveMinor = minorUnits.positive();
 const formBoolean = z
   .union([z.boolean(), z.literal("true"), z.literal("false")])
@@ -40,7 +40,6 @@ export const holdingInput = z.object({
 export const transactionInput = z.object({
   type: z.enum(["CONTRIBUTION", "WITHDRAWAL", "BUY", "SELL", "DIVIDEND", "INTEREST", "FEE"]),
   amountMinor: positiveMinor,
-  currency: currencyCode,
   date: isoDate,
   description: z.string().trim().max(200).optional(),
 });

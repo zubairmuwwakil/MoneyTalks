@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { accountBalance } from "@/engine/balance";
+import { accountBalance, latestSnapshot } from "@/engine/balance";
 import { formatMinorUnits, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -33,10 +33,16 @@ export default async function InvestmentsPage() {
       ) : (
         <ul className="mt-6 divide-y rounded border">
           {accounts.map((a) => {
+            const snapshots = a.snapshots.map((s) => ({
+              balanceMinor: s.balanceMinor,
+              currency: s.currency as Currency,
+              asOf: s.asOf.toISOString(),
+            }));
             const balance = accountBalance(
               a.transactions.map((t) => ({ type: t.type, amountMinor: t.amountMinor, date: t.date.toISOString() })),
-              a.snapshots.map((s) => ({ balanceMinor: s.balanceMinor, asOf: s.asOf.toISOString() })),
+              snapshots,
             );
+            const balanceCurrency = latestSnapshot(snapshots)?.currency ?? (a.currency as Currency);
             return (
               <li key={a.id}>
                 <Link href={`/investments/${a.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
@@ -47,8 +53,8 @@ export default async function InvestmentsPage() {
                     </span>
                   </span>
                   <span className="text-sm tabular-nums">
-                    {formatMinorUnits(balance.balanceMinor, a.currency as Currency)}{" "}
-                    <span className="text-xs text-muted-foreground">{a.currency}</span>
+                    {formatMinorUnits(balance.balanceMinor, balanceCurrency)}{" "}
+                    <span className="text-xs text-muted-foreground">{balanceCurrency}</span>
                   </span>
                 </Link>
               </li>

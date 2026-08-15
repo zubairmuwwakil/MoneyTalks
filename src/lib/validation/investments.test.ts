@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { accountInput, importFile, transactionInput } from "./investments";
+import {
+  accountInput,
+  holdingInput,
+  importFile,
+  snapshotInput,
+  transactionInput,
+} from "./investments";
+
+const PRISMA_INT_MIN = -2_147_483_648;
+const PRISMA_INT_MAX = 2_147_483_647;
 
 describe("accountInput", () => {
   it("accepts a valid account", () => {
@@ -41,6 +50,44 @@ describe("transactionInput", () => {
   it("rejects impossible and trailing calendar dates", () => {
     expect(transactionInput.safeParse({ type: "CONTRIBUTION", amountMinor: "5000", currency: "CAD", date: "2026-02-31" }).success).toBe(false);
     expect(transactionInput.safeParse({ type: "CONTRIBUTION", amountMinor: "5000", currency: "CAD", date: "2026-08-01junk" }).success).toBe(false);
+  });
+
+  it("rejects amounts outside the signed Prisma Int range", () => {
+    const transaction = {
+      type: "CONTRIBUTION",
+      currency: "CAD",
+      date: "2026-08-01",
+    };
+
+    expect(transactionInput.safeParse({ ...transaction, amountMinor: PRISMA_INT_MAX }).success).toBe(true);
+    expect(transactionInput.safeParse({ ...transaction, amountMinor: PRISMA_INT_MAX + 1 }).success).toBe(false);
+  });
+});
+
+describe("holdingInput", () => {
+  const holding = {
+    symbol: "TEST",
+    name: "Fictional holding",
+    domicileCountry: "CA",
+    quantity: 1,
+    priceAsOf: "2026-08-01",
+  };
+
+  it("rejects price and book-cost amounts above the signed Prisma Int range", () => {
+    expect(holdingInput.safeParse({ ...holding, lastPriceMinor: PRISMA_INT_MAX }).success).toBe(true);
+    expect(holdingInput.safeParse({ ...holding, lastPriceMinor: PRISMA_INT_MAX + 1 }).success).toBe(false);
+    expect(
+      holdingInput.safeParse({ ...holding, lastPriceMinor: 1, bookCostMinor: PRISMA_INT_MAX + 1 }).success,
+    ).toBe(false);
+  });
+});
+
+describe("snapshotInput", () => {
+  it("accepts Int boundaries and rejects balances outside them", () => {
+    expect(snapshotInput.safeParse({ balanceMinor: PRISMA_INT_MIN, asOf: "2026-08-01" }).success).toBe(true);
+    expect(snapshotInput.safeParse({ balanceMinor: PRISMA_INT_MAX, asOf: "2026-08-01" }).success).toBe(true);
+    expect(snapshotInput.safeParse({ balanceMinor: PRISMA_INT_MIN - 1, asOf: "2026-08-01" }).success).toBe(false);
+    expect(snapshotInput.safeParse({ balanceMinor: PRISMA_INT_MAX + 1, asOf: "2026-08-01" }).success).toBe(false);
   });
 });
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { signOut } from "@/auth";
 import { NetWorthSparkline } from "@/components/net-worth-sparkline";
 import { PasskeyRegisterButton } from "@/components/passkey-buttons";
-import { accountBalance } from "@/engine/balance";
+import { accountBalance, latestSnapshot } from "@/engine/balance";
 import { MissingFxRateError, type FxRateInput } from "@/engine/fx";
 import { formatMinorUnits, type Currency } from "@/engine/money";
 import { netWorth, netWorthSeries, type SnapshotRow } from "@/engine/networth";
@@ -33,16 +33,24 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
     asOf: r.asOf.toISOString(),
   }));
 
-  const rows = accounts.map((a) => ({
-    id: a.id,
-    name: a.name,
-    type: a.type as string,
-    currency: a.currency as Currency,
-    balanceMinor: accountBalance(
+  const rows = accounts.map((a) => {
+    const snapshots = a.snapshots.map((s) => ({
+      balanceMinor: s.balanceMinor,
+      currency: s.currency as Currency,
+      asOf: s.asOf.toISOString(),
+    }));
+    const balance = accountBalance(
       a.transactions.map((t) => ({ type: t.type, amountMinor: t.amountMinor, date: t.date.toISOString() })),
-      a.snapshots.map((s) => ({ balanceMinor: s.balanceMinor, asOf: s.asOf.toISOString() })),
-    ).balanceMinor,
-  }));
+      snapshots,
+    );
+    return {
+      id: a.id,
+      name: a.name,
+      type: a.type as string,
+      currency: latestSnapshot(snapshots)?.currency ?? (a.currency as Currency),
+      balanceMinor: balance.balanceMinor,
+    };
+  });
 
   let total: ReturnType<typeof netWorth> | null = null;
   let missingRate: string | null = null;
@@ -57,7 +65,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
     a.snapshots.map((s) => ({
       accountId: a.id,
       balanceMinor: s.balanceMinor,
-      currency: a.currency as Currency,
+      currency: s.currency as Currency,
       asOf: s.asOf.toISOString(),
     })),
   );
