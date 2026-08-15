@@ -1,4 +1,4 @@
-import type { AccountView, FinancialSnapshot, HoldingView, ProfileView, TxView } from "./types";
+import type { AccountView, BillView, FinancialSnapshot, HoldingView, ProfileView, TxView } from "./types";
 
 let seq = 0;
 const nextId = (prefix: string) => `${prefix}-${++seq}`;
@@ -67,6 +67,20 @@ export function makeAccount(overrides: Partial<AccountView> = {}): AccountView {
   };
 }
 
+export function makeBill(overrides: Partial<BillView> = {}): BillView {
+  return {
+    id: nextId("bill"),
+    name: "Fixture Bill",
+    category: "other",
+    notes: null,
+    currency: "CAD",
+    prepaymentMonthDay: null,
+    interestRatePct: null,
+    payments: [],
+    ...overrides,
+  };
+}
+
 export function makeSnapshot(
   accounts: AccountView[],
   overrides: Partial<FinancialSnapshot> = {},
@@ -75,6 +89,7 @@ export function makeSnapshot(
     today: "2026-08-14",
     accounts,
     fxRates: [{ base: "USD", quote: "CAD", rate: 1.4, asOf: "2026-08-01" }],
+    bills: [],
     ...overrides,
   };
 }

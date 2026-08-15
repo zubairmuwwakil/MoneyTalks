@@ -4,6 +4,7 @@ import { pficRule, rothFreezeRule, t1135Rule, tfsaDragRule, tfsaWithholdingRule 
 import { fhsaRoomRule, rdspLifetimeRule, rrspRoomRule, staleDataRule, tfsaRoomRule } from "./rooms";
 import { cdsbRule, cdsgRule } from "./rdsp";
 import { cwbRule, dtcRule, employmentAmountRule, incomeSupportRule, nhtRule } from "./ca-benefits";
+import { digitalNewsRule, mortgagePrepaymentRule, studentLoanInterestRule } from "./bill-rules";
 
 export const ALL_RULES: Rule[] = [
   fbarRule,
@@ -25,6 +26,9 @@ export const ALL_RULES: Rule[] = [
   employmentAmountRule,
   incomeSupportRule,
   nhtRule,
+  digitalNewsRule,
+  studentLoanInterestRule,
+  mortgagePrepaymentRule,
 ];
 
 export { evaluateRules, applyDismissals } from "./registry";

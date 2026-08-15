@@ -80,10 +80,27 @@ export interface ProfileView {
   incomeSources: IncomeSource[];
 }
 
+export interface BillView {
+  id: string;
+  name: string;
+  category: string;
+  notes: string | null;
+  currency: string;
+  prepaymentMonthDay: string | null; // "MM-DD"
+  interestRatePct: number | null;
+  payments: Array<{
+    dueDate: string;
+    expectedAmountMinor: number;
+    actualAmountMinor: number | null;
+    paidAt: string | null;
+  }>;
+}
+
 export interface FinancialSnapshot {
   today: string; // ISO date — rules never call Date.now()
   accounts: AccountView[];
   fxRates: FxRateInput[];
+  bills: BillView[];
 }
 
 export interface Rule {

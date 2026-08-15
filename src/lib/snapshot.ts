@@ -1,17 +1,18 @@
 import { accountBalance } from "@/engine/balance";
 import type { FxRateInput } from "@/engine/fx";
 import type { Currency } from "@/engine/money";
-import type { AccountView, FinancialSnapshot } from "@/engine/rules/types";
+import type { AccountView, BillView, FinancialSnapshot } from "@/engine/rules/types";
 import { prisma } from "@/lib/prisma";
 
 export async function buildSnapshot(userId: string, today: string): Promise<FinancialSnapshot> {
-  const [accounts, fxRates] = await Promise.all([
+  const [accounts, fxRates, bills] = await Promise.all([
     prisma.financialAccount.findMany({
       where: { userId },
       include: { holdings: true, transactions: true, snapshots: true },
       orderBy: { name: "asc" },
     }),
     prisma.fxRate.findMany({ where: { userId } }),
+    prisma.bill.findMany({ where: { userId }, include: { payments: true }, orderBy: { name: "asc" } }),
   ]);
 
   const accountViews: AccountView[] = accounts.map((a) => {
@@ -59,5 +60,21 @@ export async function buildSnapshot(userId: string, today: string): Promise<Fina
     asOf: r.asOf.toISOString(),
   }));
 
-  return { today, accounts: accountViews, fxRates: rates };
+  const billViews: BillView[] = bills.map((b) => ({
+    id: b.id,
+    name: b.name,
+    category: b.category,
+    notes: b.notes,
+    currency: b.currency,
+    prepaymentMonthDay: b.prepaymentMonthDay,
+    interestRatePct: b.interestRatePct === null ? null : Number(b.interestRatePct),
+    payments: b.payments.map((p) => ({
+      dueDate: p.dueDate.toISOString().slice(0, 10),
+      expectedAmountMinor: p.expectedAmountMinor,
+      actualAmountMinor: p.actualAmountMinor,
+      paidAt: p.paidAt === null ? null : p.paidAt.toISOString(),
+    })),
+  }));
+
+  return { today, accounts: accountViews, fxRates: rates, bills: billViews };
 }

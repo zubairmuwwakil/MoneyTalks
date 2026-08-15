@@ -88,7 +88,7 @@ describe("nhtRule", () => {
 });
 
 describe("ALL_RULES", () => {
-  it("registers all 19 Phase-2 rule objects with unique keys", () => {
+  it("keeps all 19 Phase-2 rule objects registered with unique keys", () => {
     const keys = ALL_RULES.map((r) => r.key);
     expect(new Set(keys).size).toBe(keys.length);
     expect(keys).toEqual(
@@ -98,6 +98,7 @@ describe("ALL_RULES", () => {
         "RDSP_CDSG", "RDSP_CDSB", "DTC", "CWB", "CANADA_EMPLOYMENT_AMOUNT", "INCOME_SUPPORT", "NHT",
       ]),
     );
-    expect(keys).toHaveLength(19);
+    // The registry total is asserted in bill-rules.test.ts, which owns the
+    // current count (22 after Phase 3). This test only guards the Phase-2 set.
   });
 });
