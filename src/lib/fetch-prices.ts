@@ -33,24 +33,49 @@ export function parseCoinGecko(json: unknown, id: string, vs: string): number | 
 }
 
 /**
- * Thin network wrapper around CoinGecko's simple/price endpoint. Not unit
- * tested directly — the parser above carries the coverage. Every failure
- * path (unknown symbol, non-200, timeout, network error, malformed JSON)
- * returns null; nothing here ever throws, so a caller can treat this
- * exactly like "no price available."
+ * Thin network wrapper around CoinGecko's simple/price endpoint, batched:
+ * one request covers every recognized symbol rather than one request per
+ * holding. This matters on Vercel Hobby, where serverless functions are
+ * capped at 10 seconds — a sequential per-holding loop with a 5s timeout
+ * each can exceed that with just two unresolvable coins, killing the
+ * function mid-loop after some holdings have been written but before the
+ * redirect runs. A single batched request keeps the whole call under one
+ * 5s timeout regardless of how many holdings the account has.
+ *
+ * Ids only ever come from the fixed `COINGECKO_IDS` map, never from raw
+ * holding-symbol text, so the URL can't be built from unvalidated input.
+ * A symbol not in the map is dropped before any request is built and
+ * simply has no entry in the result — the caller treats a missing entry
+ * as a failure, exactly like the single-symbol version did. Not unit
+ * tested directly — `parseCoinGecko` above carries the coverage. Every
+ * failure path (no recognized symbols, non-200, timeout, network error,
+ * malformed JSON) returns `{}` rather than throwing.
  */
-export async function fetchCryptoPriceMinor(symbol: string, currency: string): Promise<number | null> {
-  const id = COINGECKO_IDS[symbol.toUpperCase()];
-  if (!id) return null;
+export async function fetchCryptoPricesMinor(
+  symbols: string[],
+  currency: string,
+): Promise<Record<string, number>> {
   const vs = currency.toLowerCase();
+  const recognized = Array.from(new Set(symbols.map((s) => s.toUpperCase()))).filter(
+    (s) => COINGECKO_IDS[s] !== undefined,
+  );
+  if (recognized.length === 0) return {};
+  const ids = Array.from(new Set(recognized.map((s) => COINGECKO_IDS[s])));
+
   try {
     const res = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=${vs}`,
+      `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(",")}&vs_currencies=${vs}`,
       { signal: AbortSignal.timeout(5000), cache: "no-store" },
     );
-    if (!res.ok) return null;
-    return parseCoinGecko(await res.json(), id, vs);
+    if (!res.ok) return {};
+    const json = await res.json();
+    const result: Record<string, number> = {};
+    for (const symbol of recognized) {
+      const price = parseCoinGecko(json, COINGECKO_IDS[symbol], vs);
+      if (price !== null) result[symbol] = price;
+    }
+    return result;
   } catch {
-    return null;
+    return {};
   }
 }

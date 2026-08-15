@@ -3,9 +3,11 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { fetchUsdCadRate } from "@/lib/fetch-fx";
-import { fetchCryptoPriceMinor } from "@/lib/fetch-prices";
+import { fetchCryptoPricesMinor } from "@/lib/fetch-prices";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
+
+type StatusParam = "fxOk" | "fxError" | "pricesOk" | "pricesError";
 
 /**
  * Redirects to `path` carrying the outcome in a `param` query string so a
@@ -13,9 +15,11 @@ import { requireUserId } from "@/lib/require-user";
  * success — the owner needs to be able to tell "it worked" from "the
  * request failed" when verifying this against a live external API. `path`
  * may already carry its own query string (e.g. the dashboard's `?ccy=`
- * toggle), in which case the status param is appended with `&`.
+ * toggle), in which case the status param is appended with `&`. `param` is
+ * restricted to the known status keys so a typo'd param name is a compile
+ * error instead of a status line that silently never renders.
  */
-function redirectWithStatus(path: string, param: string, message: string): never {
+function redirectWithStatus(path: string, param: StatusParam, message: string): never {
   const sep = path.includes("?") ? "&" : "?";
   redirect(`${path}${sep}${param}=${encodeURIComponent(message)}`);
 }
@@ -50,6 +54,14 @@ export async function refreshFxRates(formData: FormData): Promise<void> {
  * (Stooq's CSV endpoint now 404s; see src/lib/fetch-prices.ts), so
  * non-crypto accounts get an explanatory status instead of a silent no-op.
  * Manual entry always works regardless of account type.
+ *
+ * Fetches prices for every holding in a single batched CoinGecko request
+ * (see fetchCryptoPricesMinor) rather than one request per holding: this
+ * app deploys to Vercel Hobby, where serverless functions are capped at
+ * 10 seconds, and a sequential per-holding loop with a 5s timeout each
+ * could exceed that with just two unresolvable coins — killing the
+ * function mid-loop after some holdings were written but before the
+ * redirect ran.
  */
 export async function refreshPrices(formData: FormData): Promise<void> {
   const userId = await requireUserId();
@@ -70,11 +82,16 @@ export async function refreshPrices(formData: FormData): Promise<void> {
     );
   }
 
+  const prices = await fetchCryptoPricesMinor(
+    account.holdings.map((h) => h.symbol),
+    account.currency,
+  );
+
   let updated = 0;
   let failed = 0;
   for (const holding of account.holdings) {
-    const price = await fetchCryptoPriceMinor(holding.symbol, account.currency);
-    if (price === null) {
+    const price = prices[holding.symbol.toUpperCase()];
+    if (price === undefined) {
       failed += 1;
       continue;
     }
