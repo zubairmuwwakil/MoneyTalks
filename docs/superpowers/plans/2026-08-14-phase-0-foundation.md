@@ -726,7 +726,7 @@ git commit -m "feat: add experimental passkey login"
 - Consumes: `requireUser` from Task 4.
 - Produces: the five-route shell every later phase fills in: `/` (Dashboard), `/investments`, `/bills`, `/cards`, `/money-finder`.
 
-- [ ] **Step 1: Initialize shadcn/ui**
+- [x] **Step 1: Initialize shadcn/ui**
 
 ```bash
 npx shadcn@latest init --yes -b neutral
@@ -735,7 +735,7 @@ npx shadcn@latest add button
 
 If `init` prompts anyway, accept defaults (New York style is fine). This creates `components.json`, `src/lib/utils.ts`, and `src/components/ui/button.tsx`.
 
-- [ ] **Step 2: Build the nav**
+- [x] **Step 2: Build the nav**
 
 Create `src/components/nav.tsx`:
 
@@ -785,11 +785,11 @@ export function Nav() {
 }
 ```
 
-- [ ] **Step 3: Mount the nav in the layout**
+- [x] **Step 3: Mount the nav in the layout**
 
 In `src/app/layout.tsx`, render `<Nav />` as the first child of `<body>`, and wrap `{children}` in `<div className="mx-auto max-w-4xl px-4 pb-20 sm:pb-4">{children}</div>`. The nav renders on every page including `/login` — acceptable for Phase 0 (all targets redirect to `/login` when signed out).
 
-- [ ] **Step 4: Create the four module placeholder pages**
+- [x] **Step 4: Create the four module placeholder pages**
 
 Create `src/app/investments/page.tsx`:
 
@@ -855,7 +855,7 @@ export default async function MoneyFinderPage() {
 }
 ```
 
-- [ ] **Step 5: Restyle the dashboard placeholder**
+- [x] **Step 5: Restyle the dashboard placeholder**
 
 Replace the `return` in `src/app/page.tsx` with the same page pattern (keep `requireUser` and the sign-out form from Task 4, plus `PasskeyRegisterButton` from Task 5):
 
@@ -884,7 +884,7 @@ Replace the `return` in `src/app/page.tsx` with the same page pattern (keep `req
   );
 ```
 
-- [ ] **Step 6: Add the PWA manifest**
+- [x] **Step 6: Add the PWA manifest**
 
 Create `src/app/manifest.ts`:
 
@@ -907,11 +907,11 @@ export default function manifest(): MetadataRoute.Manifest {
 
 (Icons and the service worker are Phase 5 — "Add to Home Screen" works from the browser menu without them.)
 
-- [ ] **Step 7: Verify manually**
+- [x] **Step 7: Verify manually**
 
 Run: `npm run dev`. Signed in: all five nav links work, active link is highlighted, nav is a bottom bar on a narrow window and a top bar on a wide one. http://localhost:3000/manifest.webmanifest returns the manifest JSON.
 
-- [ ] **Step 8: Run tests + build, commit**
+- [x] **Step 8: Run tests + build, commit**
 
 Run: `npm test && npm run lint && npm run build`
 Expected: pass.
