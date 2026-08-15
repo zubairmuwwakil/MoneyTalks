@@ -113,6 +113,7 @@ model FinancialAccount {
   snapshots    BalanceSnapshot[]
 
   @@index([userId])
+  @@unique([userId, name, institution])
 }
 
 model Holding {

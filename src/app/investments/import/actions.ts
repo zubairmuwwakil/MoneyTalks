@@ -39,12 +39,17 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
 
   for (const entry of parsed.data.accounts) {
     const { holdings: hs, snapshots: ss, ...accountData } = entry;
-    const existing = await prisma.financialAccount.findFirst({
-      where: { userId, name: accountData.name, institution: accountData.institution },
+    const account = await prisma.financialAccount.upsert({
+      where: {
+        userId_name_institution: {
+          userId,
+          name: accountData.name,
+          institution: accountData.institution,
+        },
+      },
+      update: accountData,
+      create: { ...accountData, userId },
     });
-    const account = existing
-      ? await prisma.financialAccount.update({ where: { id: existing.id }, data: accountData })
-      : await prisma.financialAccount.create({ data: { ...accountData, userId } });
     accounts += 1;
 
     for (const h of hs ?? []) {

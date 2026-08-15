@@ -11,13 +11,14 @@ See `e2e/fixtures/import-sample.json` for a complete fictional example.
   `currency`, optional `isUSSitus` (boolean), optional `holdings[]`, optional
   `snapshots[]`.
 - `holdings[]` — `symbol`, `name`, `domicileCountry`, `quantity` (fractional ok),
-  optional `bookCostMinor`, `lastPriceMinor`, `priceAsOf`.
+  `lastPriceMinor`, `priceAsOf`; optional `bookCostMinor`.
 - `snapshots[]` — `balanceMinor`, `asOf`.
 - `fxRates[]` — optional. `base`, `quote`, `rate`, `asOf`.
 
-Idempotency: accounts match on `(name, institution)`, holdings on
+Idempotency: accounts match on `(user, name, institution)`, holdings on
 `(account, symbol)`, snapshots on `(account, asOf)`, FX rates on
-`(base, quote, asOf)`. Re-importing updates in place; it never duplicates.
+`(user, base, quote, asOf)`. Account and FX matching are scoped to the signed-in
+user. Re-importing updates in place; it never duplicates.
 
 Privacy: this repo never contains real data. Keep your real import file outside
 the repo (it is also blocked by `.gitignore` patterns `seed/` and `*.seed.json`).
