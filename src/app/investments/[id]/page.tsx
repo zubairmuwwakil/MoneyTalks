@@ -1,0 +1,160 @@
+import { notFound } from "next/navigation";
+import { addHolding, addSnapshot, addTransaction, deleteAccount } from "@/app/investments/actions";
+import { accountBalance, holdingValueMinor } from "@/engine/balance";
+import { formatMinorUnits, type Currency } from "@/engine/money";
+import { prisma } from "@/lib/prisma";
+import { requireUserId } from "@/lib/require-user";
+
+const TX_TYPES = ["CONTRIBUTION", "WITHDRAWAL", "BUY", "SELL", "DIVIDEND", "INTEREST", "FEE"] as const;
+
+export default async function AccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const userId = await requireUserId();
+  const { id } = await params;
+  const account = await prisma.financialAccount.findFirst({
+    where: { id, userId },
+    include: {
+      holdings: { orderBy: { symbol: "asc" } },
+      transactions: { orderBy: { date: "desc" }, take: 50 },
+      snapshots: { orderBy: { asOf: "desc" }, take: 20 },
+    },
+  });
+  if (!account) notFound();
+
+  const currency = account.currency as Currency;
+  const balance = accountBalance(
+    account.transactions.map((t) => ({ type: t.type, amountMinor: t.amountMinor, date: t.date.toISOString() })),
+    account.snapshots.map((s) => ({ balanceMinor: s.balanceMinor, asOf: s.asOf.toISOString() })),
+  );
+  const holdingsValue = account.holdings.reduce(
+    (sum, h) => sum + holdingValueMinor(Number(h.quantity), h.lastPriceMinor),
+    0,
+  );
+
+  async function submitHolding(formData: FormData) {
+    "use server";
+    await addHolding(formData);
+  }
+
+  async function submitTransaction(formData: FormData) {
+    "use server";
+    await addTransaction(formData);
+  }
+
+  async function submitSnapshot(formData: FormData) {
+    "use server";
+    await addSnapshot(formData);
+  }
+
+  async function submitDelete(formData: FormData) {
+    "use server";
+    await deleteAccount(formData);
+  }
+
+  return (
+    <main className="space-y-8 py-8">
+      <header>
+        <h1 className="text-xl font-semibold">{account.name}</h1>
+        <p className="text-sm text-muted-foreground">
+          {account.type} · {account.institution} · {account.currency}
+        </p>
+        <p className="mt-2 text-2xl tabular-nums">
+          {formatMinorUnits(balance.balanceMinor, currency)}
+          <span className="ml-2 text-xs text-muted-foreground">
+            {balance.source === "snapshot" ? `snapshot ${balance.asOf?.slice(0, 10)}` : "derived from transactions"}
+          </span>
+        </p>
+        {account.holdings.length > 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Holdings market value: {formatMinorUnits(holdingsValue, currency)}
+          </p>
+        ) : null}
+      </header>
+
+      <section>
+        <h2 className="font-medium">Holdings</h2>
+        <ul className="mt-2 divide-y rounded border">
+          {account.holdings.map((h) => (
+            <li key={h.id} className="flex justify-between px-4 py-2 text-sm">
+              <span>
+                {h.symbol} <span className="text-muted-foreground">{h.name} · {h.domicileCountry}</span>
+              </span>
+              <span className="tabular-nums">
+                {Number(h.quantity)} × {formatMinorUnits(h.lastPriceMinor, currency)} ={" "}
+                {formatMinorUnits(holdingValueMinor(Number(h.quantity), h.lastPriceMinor), currency)}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <form action={submitHolding} className="mt-3 grid max-w-2xl grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+          <input type="hidden" name="accountId" value={account.id} />
+          <input name="symbol" placeholder="Symbol" required className="rounded border px-2 py-1" />
+          <input name="name" placeholder="Name" required className="rounded border px-2 py-1" />
+          <input name="domicileCountry" placeholder="Domicile (CA)" required pattern="[A-Z]{2}" className="rounded border px-2 py-1" />
+          <input name="quantity" placeholder="Quantity" required className="rounded border px-2 py-1" />
+          <input name="lastPriceMinor" placeholder="Price (cents)" required className="rounded border px-2 py-1" />
+          <input name="priceAsOf" type="date" required className="rounded border px-2 py-1" />
+          <button type="submit" className="col-span-2 rounded border px-2 py-1 sm:col-span-3">
+            Add / update holding
+          </button>
+        </form>
+      </section>
+
+      <section>
+        <h2 className="font-medium">Log a transaction</h2>
+        <form action={submitTransaction} className="mt-3 grid max-w-2xl grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+          <input type="hidden" name="accountId" value={account.id} />
+          <input type="hidden" name="currency" value={account.currency} />
+          <select name="type" className="rounded border px-2 py-1">
+            {TX_TYPES.map((t) => (
+              <option key={t}>{t}</option>
+            ))}
+          </select>
+          <input name="amountMinor" placeholder="Amount (cents)" required className="rounded border px-2 py-1" />
+          <input name="date" type="date" required className="rounded border px-2 py-1" />
+          <input name="description" placeholder="Description" className="rounded border px-2 py-1" />
+          <button type="submit" className="col-span-2 rounded border px-2 py-1 sm:col-span-4">
+            Add transaction
+          </button>
+        </form>
+        <ul className="mt-3 divide-y rounded border">
+          {account.transactions.map((t) => (
+            <li key={t.id} className="flex justify-between px-4 py-2 text-sm">
+              <span>
+                {t.date.toISOString().slice(0, 10)} {t.type}
+                {t.description ? <span className="text-muted-foreground"> · {t.description}</span> : null}
+              </span>
+              <span className="tabular-nums">{formatMinorUnits(t.amountMinor, currency)}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h2 className="font-medium">Balance snapshots</h2>
+        <form action={submitSnapshot} className="mt-3 flex max-w-md gap-2 text-sm">
+          <input type="hidden" name="accountId" value={account.id} />
+          <input name="balanceMinor" placeholder="Balance (cents)" required className="flex-1 rounded border px-2 py-1" />
+          <input name="asOf" type="date" required className="rounded border px-2 py-1" />
+          <button type="submit" className="rounded border px-2 py-1">
+            Snapshot
+          </button>
+        </form>
+        <ul className="mt-3 divide-y rounded border">
+          {account.snapshots.map((s) => (
+            <li key={s.id} className="flex justify-between px-4 py-2 text-sm">
+              <span>{s.asOf.toISOString().slice(0, 10)}</span>
+              <span className="tabular-nums">{formatMinorUnits(s.balanceMinor, currency)}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <form action={submitDelete}>
+        <input type="hidden" name="id" value={account.id} />
+        <button type="submit" className="rounded border border-red-600 px-3 py-1 text-sm text-red-600">
+          Delete account (and all its data)
+        </button>
+      </form>
+    </main>
+  );
+}
