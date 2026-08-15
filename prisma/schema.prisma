@@ -20,6 +20,8 @@ model User {
   accounts       Account[]
   sessions       Session[]
   authenticators Authenticator[]
+  financialAccounts FinancialAccount[]
+  fxRates          FxRate[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -68,4 +70,100 @@ model Authenticator {
   user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, credentialID])
+}
+
+// ---- Financial domain (Phase 1) ----
+
+enum AccountType {
+  RRSP
+  TFSA
+  RDSP
+  FHSA
+  ROTH_IRA
+  NON_REGISTERED
+  CASH
+  CHEQUING
+  CRYPTO
+}
+
+enum TxType {
+  CONTRIBUTION
+  WITHDRAWAL
+  BUY
+  SELL
+  DIVIDEND
+  INTEREST
+  FEE
+}
+
+model FinancialAccount {
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         AccountType
+  name         String
+  institution  String
+  country      String // ISO-3166 alpha-2
+  currency     String // ISO-4217: CAD | USD | JMD
+  isUSSitus    Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  holdings     Holding[]
+  transactions Transaction[]
+  snapshots    BalanceSnapshot[]
+
+  @@index([userId])
+}
+
+model Holding {
+  id              String           @id @default(cuid())
+  accountId       String
+  account         FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  symbol          String
+  name            String
+  domicileCountry String // ISO-3166 alpha-2 — drives the PFIC scan in Phase 2
+  quantity        Decimal
+  bookCostMinor   Int?
+  lastPriceMinor  Int
+  priceAsOf       DateTime
+
+  @@unique([accountId, symbol])
+}
+
+model Transaction {
+  id          String           @id @default(cuid())
+  accountId   String
+  account     FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type        TxType
+  amountMinor Int // always positive; TxType determines the sign in derivation
+  currency    String
+  date        DateTime
+  description String?
+  dedupeHash  String?
+
+  @@index([accountId, date])
+}
+
+model BalanceSnapshot {
+  id           String           @id @default(cuid())
+  accountId    String
+  account      FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  balanceMinor Int
+  currency     String
+  asOf         DateTime
+
+  @@unique([accountId, asOf])
+  @@index([accountId, asOf])
+}
+
+model FxRate {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  base   String // ISO-4217
+  quote  String // ISO-4217
+  rate   Decimal
+  asOf   DateTime
+
+  @@unique([userId, base, quote, asOf])
 }
