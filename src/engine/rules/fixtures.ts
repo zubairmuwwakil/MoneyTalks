@@ -18,6 +18,7 @@ export function makeProfile(overrides: Partial<ProfileView> = {}): ProfileView {
     tfsaRoomMinor: 0,
     rrspRoomMinor: 0,
     fhsaRoomMinor: 0,
+    cushionMinor: 0,
     nhtContributed: false,
     incomeSources: [],
     ...overrides,

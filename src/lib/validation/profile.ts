@@ -1,9 +1,29 @@
 import { z } from "zod";
+import { parseDollarsToMinor } from "@/engine/money";
 
 // Profile amount columns are Prisma `Int` (32-bit), same as every other money column
 // in the schema — bound the inputs to that range so an oversized entry is a field
 // error rather than a Postgres write failure.
-const minorUnits = z.coerce.number().int().min(0).max(2_147_483_647);
+//
+// The form boundary takes DOLLARS ("1,234.56") and stores CENTS, matching every other
+// money field in the app (integer minor units in storage and in engines). `minFloor`
+// lets a field require a strictly-positive amount (income sources) while every other
+// field allows zero.
+function dollarsToMinor(minFloor: 0 | 1 = 0) {
+  return z
+    .string()
+    .transform((raw, ctx) => {
+      const minor = parseDollarsToMinor(raw);
+      if (minor === null) {
+        ctx.addIssue({ code: "custom", message: "Must be a dollar amount, e.g. 1234.56" });
+        return z.NEVER;
+      }
+      return minor;
+    })
+    .pipe(z.number().int().min(minFloor).max(2_147_483_647));
+}
+
+const dollarsMinor = dollarsToMinor(0);
 
 // An unchecked checkbox submits nothing at all, so the default carries the "false" case.
 const formBoolean = z
@@ -13,7 +33,7 @@ const formBoolean = z
 
 export const incomeSourceInput = z.object({
   name: z.string().trim().min(1).max(60),
-  amountMinor: minorUnits.positive(),
+  amountMinor: dollarsToMinor(1),
   cadence: z.enum(["MONTHLY", "BIWEEKLY", "ANNUAL"]),
   kind: z.enum(["EMPLOYMENT", "SELF_EMPLOYMENT", "BENEFIT", "RENTAL", "OTHER"]),
 });
@@ -31,10 +51,11 @@ export const profileInput = z.object({
   ),
   rdspIncomeTier: z.enum(["LOW", "HIGH", "UNKNOWN"]),
   rdspCarryForwardYears: z.coerce.number().int().min(0).max(20),
-  rdspGrantsLifetimeMinor: minorUnits,
-  rdspContribLifetimeMinor: minorUnits,
-  tfsaRoomMinor: minorUnits,
-  rrspRoomMinor: minorUnits,
-  fhsaRoomMinor: minorUnits,
+  rdspGrantsLifetimeMinor: dollarsMinor,
+  rdspContribLifetimeMinor: dollarsMinor,
+  tfsaRoomMinor: dollarsMinor,
+  rrspRoomMinor: dollarsMinor,
+  fhsaRoomMinor: dollarsMinor,
+  cushionMinor: dollarsMinor,
   nhtContributed: formBoolean,
 });

@@ -76,6 +76,7 @@ export interface ProfileView {
   tfsaRoomMinor: number;
   rrspRoomMinor: number;
   fhsaRoomMinor: number;
+  cushionMinor: number;
   nhtContributed: boolean;
   incomeSources: IncomeSource[];
 }

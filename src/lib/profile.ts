@@ -26,6 +26,7 @@ export async function getOrCreateProfile(userId: string): Promise<ProfileView> {
     tfsaRoomMinor: row.tfsaRoomMinor,
     rrspRoomMinor: row.rrspRoomMinor,
     fhsaRoomMinor: row.fhsaRoomMinor,
+    cushionMinor: row.cushionMinor,
     nhtContributed: row.nhtContributed,
     incomeSources: (row.incomeSources as IncomeSource[] | null) ?? [],
   };

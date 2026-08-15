@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { IncomeSource } from "@/engine/rules/types";
-import { formatMinorUnits } from "@/engine/money";
+import { formatMinorUnits, minorToDollarInput } from "@/engine/money";
 import { getOrCreateProfile } from "@/lib/profile";
 import { requireUserId } from "@/lib/require-user";
 import { addIncomeSource, removeIncomeSource, updateProfile } from "./actions";
@@ -78,25 +78,33 @@ export default async function SettingsPage({
           <label className={label}>RDSP carry-forward years (unused, last 10)
             <input name="rdspCarryForwardYears" type="number" defaultValue={profile.rdspCarryForwardYears} className={input} />
           </label>
-          <label className={label}>RDSP lifetime grants received (cents)
-            <input name="rdspGrantsLifetimeMinor" type="number" defaultValue={profile.rdspGrantsLifetimeMinor} className={input} />
+          <label className={label}>RDSP lifetime grants received ($)
+            <input name="rdspGrantsLifetimeMinor" type="number" step="0.01" min="0" defaultValue={minorToDollarInput(profile.rdspGrantsLifetimeMinor)} className={input} />
           </label>
-          <label className={label}>RDSP lifetime contributions (cents)
-            <input name="rdspContribLifetimeMinor" type="number" defaultValue={profile.rdspContribLifetimeMinor} className={input} />
+          <label className={label}>RDSP lifetime contributions ($)
+            <input name="rdspContribLifetimeMinor" type="number" step="0.01" min="0" defaultValue={minorToDollarInput(profile.rdspContribLifetimeMinor)} className={input} />
           </label>
-          <label className={label}>TFSA room (cents, from CRA)
-            <input name="tfsaRoomMinor" type="number" defaultValue={profile.tfsaRoomMinor} className={input} />
+          <label className={label}>TFSA room ($, from CRA)
+            <input name="tfsaRoomMinor" type="number" step="0.01" min="0" defaultValue={minorToDollarInput(profile.tfsaRoomMinor)} className={input} />
           </label>
-          <label className={label}>RRSP room (cents, from CRA)
-            <input name="rrspRoomMinor" type="number" defaultValue={profile.rrspRoomMinor} className={input} />
+          <label className={label}>RRSP room ($, from CRA)
+            <input name="rrspRoomMinor" type="number" step="0.01" min="0" defaultValue={minorToDollarInput(profile.rrspRoomMinor)} className={input} />
           </label>
-          <label className={label}>FHSA room (cents, from CRA)
-            <input name="fhsaRoomMinor" type="number" defaultValue={profile.fhsaRoomMinor} className={input} />
+          <label className={label}>FHSA room ($, from CRA)
+            <input name="fhsaRoomMinor" type="number" step="0.01" min="0" defaultValue={minorToDollarInput(profile.fhsaRoomMinor)} className={input} />
+          </label>
+          <label className={label}>
+            Cash cushion ($)
+            <input name="cushionMinor" type="number" step="0.01" min="0" defaultValue={minorToDollarInput(profile.cushionMinor)} className={input} />
           </label>
           <label className={label}>Benefit programs (OW, ODSP)
             <input name="benefitPrograms" defaultValue={profile.benefitPrograms.join(", ")} className={input} />
           </label>
         </div>
+        <p className="text-xs text-foreground/60">
+          Cash cushion is the balance you want your cash + chequing accounts to stay above.
+          Set it above $0 to enable a future warning when a projected month dips under it.
+        </p>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="dtcEligible" value="true" defaultChecked={profile.dtcEligible} />
           Disability Tax Credit eligible
@@ -129,7 +137,7 @@ export default async function SettingsPage({
         </ul>
         <form action={submitAddIncome} className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
           <input name="name" placeholder="Name" required className="rounded border px-2 py-1" />
-          <input name="amountMinor" placeholder="Amount (cents)" required className="rounded border px-2 py-1" />
+          <input name="amountMinor" placeholder="Amount ($)" required className="rounded border px-2 py-1" />
           <select name="cadence" className="rounded border px-2 py-1">
             <option>MONTHLY</option><option>BIWEEKLY</option><option>ANNUAL</option>
           </select>

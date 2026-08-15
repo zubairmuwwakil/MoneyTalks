@@ -191,6 +191,7 @@ model Profile {
   tfsaRoomMinor            Int      @default(0)
   rrspRoomMinor            Int      @default(0)
   fhsaRoomMinor            Int      @default(0)
+  cushionMinor             Int      @default(0)
   nhtContributed           Boolean  @default(false)
   incomeSources            Json     @default("[]") // [{name, amountMinor, cadence, kind}]
   updatedAt                DateTime @updatedAt

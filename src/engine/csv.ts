@@ -1,3 +1,5 @@
+import { parseDollarsToMinor } from "./money";
+
 export function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -59,24 +61,6 @@ function parseDate(raw: string, format: "YMD" | "MDY" | "DMY"): string | null {
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
-function parseAmountMinor(raw: string): number | null {
-  let s = raw.trim().replace(/[$,\s]/g, "");
-  let negative = false;
-  if (s.startsWith("(") && s.endsWith(")")) {
-    negative = true;
-    s = s.slice(1, -1);
-  }
-  if (s.startsWith("-")) {
-    negative = true;
-    s = s.slice(1);
-  }
-  if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
-  const [dollars, cents = ""] = s.split(".");
-  const minor = Number(dollars) * 100 + Number(cents.padEnd(2, "0"));
-  if (!Number.isSafeInteger(minor)) return null;
-  return negative ? -minor : minor;
-}
-
 export type MappedRow =
   | { date: string; amountMinor: number; description: string }
   | { error: string; rowIndex: number };
@@ -85,7 +69,7 @@ export function mapRows(rows: string[][], mapping: ColumnMapping): MappedRow[] {
   const body = mapping.hasHeader ? rows.slice(1) : rows;
   return body.map((cells, rowIndex) => {
     const date = parseDate(cells[mapping.dateCol] ?? "", mapping.dateFormat);
-    const amount = parseAmountMinor(cells[mapping.amountCol] ?? "");
+    const amount = parseDollarsToMinor(cells[mapping.amountCol] ?? "");
     const description = (cells[mapping.descriptionCol] ?? "").trim();
     if (date === null || amount === null) {
       return { error: `row ${rowIndex}: bad ${date === null ? "date" : "amount"}`, rowIndex };
