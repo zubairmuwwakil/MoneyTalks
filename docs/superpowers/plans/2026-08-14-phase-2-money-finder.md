@@ -31,7 +31,7 @@ All Phase 0/1 Global Constraints apply verbatim (public repo — zero personal d
 **Interfaces:**
 - Produces: `Profile` (1:1 with User — the rules engine's inputs) and `Alert` (dismissal/override log only; computed alerts are never stored).
 
-- [ ] **Step 1: Extend the schema**
+- [x] **Step 1: Extend the schema**
 
 Append to `prisma/schema.prisma`:
 
@@ -71,7 +71,7 @@ model Alert {
 }
 ```
 
-- [ ] **Step 2: Migrate, verify, commit**
+- [x] **Step 2: Migrate, verify, commit**
 
 ```bash
 npx dotenv -e .env.local -- npx prisma migrate dev --name profile-and-alerts
@@ -98,7 +98,7 @@ git commit -m "feat: add Profile and Alert dismissal models"
   - `applyDismissals(alerts: RuleAlert[], dismissals: Array<{ ruleKey: string; entityRef: string }>): { active: RuleAlert[]; dismissed: RuleAlert[] }`
   - Test fixtures: `makeProfile(overrides?)`, `makeAccount(overrides?)`, `makeHolding(overrides?)`, `makeTx(overrides?)`, `makeSnapshot(accounts, overrides?)` — fictional defaults, used by every rule test.
 
-- [ ] **Step 1: Write the types**
+- [x] **Step 1: Write the types**
 
 Create `src/engine/rules/types.ts`:
 
@@ -227,7 +227,7 @@ export function txsThisYear(account: AccountView, today: string, type?: TxTypeNa
 }
 ```
 
-- [ ] **Step 2: Write the thresholds file**
+- [x] **Step 2: Write the thresholds file**
 
 Create `src/engine/rules/thresholds.ts`. **Every value below must be web-verified in Step 3 before committing** — they were compiled 2026-08-14 and several change annually:
 
@@ -305,11 +305,11 @@ export const THRESHOLDS = {
 } as const;
 ```
 
-- [ ] **Step 3: MANDATORY — web-verify every threshold**
+- [x] **Step 3: MANDATORY — web-verify every threshold**
 
 For each entry in `thresholds.ts`: check the cited source (canada.ca for CDSG/CDSB/FHSA/CWB/DTC/CEA figures; irs.gov for FBAR/8938/PFIC; ontario.ca for OW/ODSP; nht.gov.jm for NHT). Correct any value that has drifted, update the comment with the verified year, and set each rule's `lastReviewed` (Tasks 5–9) to the verification date. Record a one-line note per corrected value in the commit message body.
 
-- [ ] **Step 4: Write the failing registry test**
+- [x] **Step 4: Write the failing registry test**
 
 Create `src/engine/rules/fixtures.ts`:
 
@@ -478,12 +478,12 @@ describe("applyDismissals", () => {
 });
 ```
 
-- [ ] **Step 5: Run test to verify it fails**
+- [x] **Step 5: Run test to verify it fails**
 
 Run: `npm test`
 Expected: FAIL — cannot find module `./registry`.
 
-- [ ] **Step 6: Implement the registry**
+- [x] **Step 6: Implement the registry**
 
 Create `src/engine/rules/registry.ts`:
 
@@ -546,7 +546,7 @@ export function applyDismissals(
 }
 ```
 
-- [ ] **Step 7: Run tests, commit**
+- [x] **Step 7: Run tests, commit**
 
 Run: `npm test` — expect all pass.
 
@@ -567,7 +567,7 @@ git commit -m "feat: add rules engine core (types, verified thresholds, registry
 - Consumes: `prisma`, `requireUserId`.
 - Produces: `getOrCreateProfile(userId): Promise<ProfileView>` (maps the Prisma row to the engine type, creating defaults on first call) — the UI and snapshot assembler both use this; `updateProfile` / `addIncomeSource` / `removeIncomeSource` server actions.
 
-- [ ] **Step 1: Validation schema**
+- [x] **Step 1: Validation schema**
 
 Create `src/lib/validation/profile.ts`:
 
@@ -603,7 +603,7 @@ export const profileInput = z.object({
 });
 ```
 
-- [ ] **Step 2: Profile lib**
+- [x] **Step 2: Profile lib**
 
 Create `src/lib/profile.ts`:
 
@@ -642,7 +642,7 @@ export async function getOrCreateProfile(userId: string): Promise<ProfileView> {
 }
 ```
 
-- [ ] **Step 3: Actions**
+- [x] **Step 3: Actions**
 
 Create `src/app/settings/actions.ts`:
 
@@ -703,7 +703,7 @@ export async function removeIncomeSource(formData: FormData): Promise<ActionResu
 }
 ```
 
-- [ ] **Step 4: Settings page**
+- [x] **Step 4: Settings page**
 
 Create `src/app/settings/page.tsx`:
 
@@ -817,11 +817,11 @@ export default async function SettingsPage() {
 }
 ```
 
-- [ ] **Step 5: Add Settings to the nav**
+- [x] **Step 5: Add Settings to the nav**
 
 In `src/components/nav.tsx`, append `{ href: "/settings", label: "Settings" }` to the `links` array.
 
-- [ ] **Step 6: Verify + commit**
+- [x] **Step 6: Verify + commit**
 
 Run: `npm run dev` — edit and save each profile field, add and remove an income source, values persist across reloads. Then `npm test && npm run lint && npm run build`.
 
@@ -841,7 +841,7 @@ git commit -m "feat: add settings page with profile and income sources"
 - Consumes: `prisma`, `accountBalance` (`@/engine/balance`).
 - Produces: `buildSnapshot(userId: string, today: string): Promise<FinancialSnapshot>` — the single bridge between the database and the pure rules engine.
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 Create `src/lib/snapshot.ts`:
 
@@ -911,7 +911,7 @@ export async function buildSnapshot(userId: string, today: string): Promise<Fina
 }
 ```
 
-- [ ] **Step 2: Verify + commit**
+- [x] **Step 2: Verify + commit**
 
 Run: `npm run build` (type-checks the bridge against both Prisma and engine types).
 
@@ -931,7 +931,7 @@ git commit -m "feat: add financial snapshot assembler for the rules engine"
 - Consumes: `netWorthSeries` (`../networth`), `convertMinor` (`../fx`), `THRESHOLDS`, types, fixtures.
 - Produces: `fbarRule: Rule`, `form8938Rule: Rule`, and the shared helper `maxForeignAggregateUsd(snapshot): { maxMinor: number; currentMinor: number }` (also used by tests). The FBAR rule ALWAYS returns exactly one alert (SAFE = info, TRIGGERED = warning) so the status is permanently visible per the spec.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/engine/rules/us-reporting.test.ts`:
 
@@ -1007,11 +1007,11 @@ describe("form8938Rule", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test` — expect FAIL (module not found).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/engine/rules/us-reporting.ts`:
 
@@ -1113,7 +1113,7 @@ export const form8938Rule: Rule = {
 };
 ```
 
-- [ ] **Step 4: Run tests (verify the math by hand first if anything fails), commit**
+- [x] **Step 4: Run tests (verify the math by hand first if anything fails), commit**
 
 Run: `npm test` — expect pass.
 
@@ -1133,7 +1133,7 @@ git commit -m "feat: add FBAR and Form 8938 rules with yearly max aggregation"
 - Consumes: types, fixtures, `THRESHOLDS`, `convertMinor`, `formatMinorUnits`, `txsThisYear`.
 - Produces: `pficRule`, `rothFreezeRule`, `tfsaDragRule`, `tfsaWithholdingRule`, `t1135Rule` (all `Rule`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/engine/rules/cross-border.test.ts`:
 
@@ -1250,11 +1250,11 @@ describe("t1135Rule", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test` — expect FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/engine/rules/cross-border.ts`:
 
@@ -1418,7 +1418,7 @@ export const t1135Rule: Rule = {
 };
 ```
 
-- [ ] **Step 4: Run tests, commit**
+- [x] **Step 4: Run tests, commit**
 
 Run: `npm test` — expect pass.
 
@@ -1438,7 +1438,7 @@ git commit -m "feat: add PFIC, Roth freeze, TFSA reality, and T1135 rules"
 - Consumes: types, fixtures, `THRESHOLDS`, `formatMinorUnits`, `txsThisYear`.
 - Produces: `tfsaRoomRule`, `rrspRoomRule`, `fhsaRoomRule`, `rdspLifetimeRule`, `staleDataRule` (all `Rule`). Room semantics: profile room figures are **as of Jan 1 of the current year** (CRA numbers); the rule subtracts this year's logged CONTRIBUTIONs to accounts of the matching type.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/engine/rules/rooms.test.ts`:
 
@@ -1526,11 +1526,11 @@ describe("staleDataRule", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test` — expect FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/engine/rules/rooms.ts`:
 
@@ -1703,7 +1703,7 @@ export const staleDataRule: Rule = {
 };
 ```
 
-- [ ] **Step 4: Run tests, commit**
+- [x] **Step 4: Run tests, commit**
 
 Run: `npm test` — expect pass.
 
@@ -1727,7 +1727,7 @@ The highest-dollar rule in the app. The CDSG math must satisfy the spec's accept
 
 **CDSG model** (documented simplification): entitlement bands scale by `1 + rdspCarryForwardYears` (carry-forward pays at the highest rates first); the grant payable in one year is capped at `ANNUAL_MAX_WITH_CARRYFORWARD` ($10,500) and by lifetime room (`$70,000 − grants received`); contributions are capped by lifetime contribution room. `UNKNOWN` tier is treated as HIGH with an action telling the user to set their tier (understating is the safe direction).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/engine/rules/rdsp.test.ts`:
 
@@ -1822,11 +1822,11 @@ describe("cdsbRule", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test` — expect FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/engine/rules/rdsp.ts`:
 
@@ -1971,7 +1971,7 @@ export const cdsbRule: Rule = {
 };
 ```
 
-- [ ] **Step 4: Run tests, commit**
+- [x] **Step 4: Run tests, commit**
 
 Run: `npm test` — expect pass. Hand-check the acceptance case: bands ×2 = $1,000@300% + $2,000@200% → contribution $3,000, grant $3,000+$4,000 = $7,000, match 233%. Matches the spec's acceptance criterion.
 
@@ -1991,7 +1991,7 @@ git commit -m "feat: add RDSP CDSG optimizer and CDSB bond rules"
 - Consumes: types, fixtures, `THRESHOLDS`, `convertMinor`, `formatMinorUnits`, `annualizeMinor`, `monthlyMinor`.
 - Produces: `dtcRule`, `cwbRule`, `employmentAmountRule`, `incomeSupportRule`, `nhtRule`; and `ALL_RULES: Rule[]` in `index.ts` registering every rule from Tasks 5–9 — 19 rule objects implementing the spec's 17 non-deferred launch items (FBAR/8938 are separate objects; the spec's single room-guard item is four objects; the spec's two TFSA items are two objects).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/engine/rules/ca-benefits.test.ts`:
 
@@ -2099,11 +2099,11 @@ describe("ALL_RULES", () => {
 
 (The assertion lists all 19 rule keys and checks uniqueness — it is the source of truth for the registry's contents.)
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test` — expect FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/engine/rules/ca-benefits.ts`:
 
@@ -2322,7 +2322,7 @@ export const ALL_RULES: Rule[] = [
 export { evaluateRules, applyDismissals } from "./registry";
 ```
 
-- [ ] **Step 4: Run tests, commit**
+- [x] **Step 4: Run tests, commit**
 
 Run: `npm test` — expect pass (all engine suites).
 
@@ -2343,7 +2343,7 @@ git commit -m "feat: add Canadian credits, income-support, NHT rules and rule in
 - Consumes: `ALL_RULES`, `evaluateRules`, `applyDismissals`, `buildSnapshot`, `getOrCreateProfile`.
 - Produces: `/money-finder` (active alerts grouped Compliance/Opportunities, dismiss buttons, `?dismissed=1` view with restore); dashboard panel showing the top 3 active alerts; `addTransaction` requiring `confirmRoth=true` for Roth contributions and logging overrides as `ROTH_OVERRIDE_LOG` Alert rows.
 
-- [ ] **Step 1: Dismissal actions**
+- [x] **Step 1: Dismissal actions**
 
 Create `src/app/money-finder/actions.ts`:
 
@@ -2378,7 +2378,7 @@ export async function restoreAlert(formData: FormData): Promise<void> {
 }
 ```
 
-- [ ] **Step 2: Alert card component**
+- [x] **Step 2: Alert card component**
 
 Create `src/components/alert-card.tsx`:
 
@@ -2421,7 +2421,7 @@ export function AlertCard({ alert, mode }: { alert: RuleAlert; mode: "active" | 
 }
 ```
 
-- [ ] **Step 3: Money Finder page**
+- [x] **Step 3: Money Finder page**
 
 Replace `src/app/money-finder/page.tsx` entirely with:
 
@@ -2515,7 +2515,7 @@ export default async function MoneyFinderPage({
 }
 ```
 
-- [ ] **Step 4: Dashboard panel**
+- [x] **Step 4: Dashboard panel**
 
 In `src/app/page.tsx`, replace the "Alerts &amp; opportunities — Phase 2" placeholder `div` with a real panel. Add to the page's data loading (after the existing queries):
 
@@ -2551,7 +2551,7 @@ In `src/app/page.tsx`, replace the "Alerts &amp; opportunities — Phase 2" plac
         </div>
 ```
 
-- [ ] **Step 5: Roth action guard**
+- [x] **Step 5: Roth action guard**
 
 In `src/app/investments/actions.ts`, inside `addTransaction` after the account-ownership check, add:
 
@@ -2594,7 +2594,7 @@ and after a confirmed Roth contribution is created, log the override:
           ) : null}
 ```
 
-- [ ] **Step 6: Verify + commit**
+- [x] **Step 6: Verify + commit**
 
 Run: `npm run dev` — with fictional data: Money Finder renders both sections; dismissing an alert removes it and it appears under Dismissed; restoring brings it back; the dashboard panel shows the top 3; logging a CONTRIBUTION on a fictional ROTH_IRA account without the checkbox is refused with the explanation, with the checkbox it succeeds. Then `npm test && npm run lint && npm run build`.
 
@@ -2612,7 +2612,7 @@ git commit -m "feat: add Money Finder page, dismissals, dashboard alerts, Roth g
 **Files:**
 - Create: `e2e/money-finder.spec.ts`
 
-- [ ] **Step 1: Write the E2E spec**
+- [x] **Step 1: Write the E2E spec**
 
 Create `e2e/money-finder.spec.ts`:
 
@@ -2683,7 +2683,7 @@ test("rules engine end to end", async ({ browser, baseURL }) => {
 });
 ```
 
-- [ ] **Step 2: Run the full suite**
+- [x] **Step 2: Run the full suite**
 
 Run: `npm test && npm run lint && npm run build && npm run e2e`
 Expected: everything green. If the CDSG dollar assertion fails, recompute by hand from `thresholds.ts` (bands × years) before touching code — the fixture, thresholds, and engine must agree.
