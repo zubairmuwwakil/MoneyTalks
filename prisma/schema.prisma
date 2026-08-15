@@ -24,6 +24,7 @@ model User {
   fxRates          FxRate[]
   profile          Profile?
   alerts           Alert[]
+  bills            Bill[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -203,4 +204,41 @@ model Alert {
   dismissedAt DateTime @default(now())
 
   @@unique([userId, ruleKey, entityRef])
+}
+
+// ---- Bills (Phase 3) ----
+
+model Bill {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String
+  category           String // housing | utilities | subscriptions | transport | debt | other
+  payee              String?
+  sourceAccountId    String? // informational link to a FinancialAccount
+  currency           String    @default("CAD")
+  autopay            Boolean   @default(false)
+  variable           Boolean   @default(false)
+  notes              String?
+  cadence            Json // {type: BIWEEKLY|MONTHLY|QUARTERLY|ANNUAL, ...} — validated by zod
+  schedule           Json // [{from, to?, amountMinor, note?}] — validated by zod
+  prepaymentMonthDay String? // "03-15" — enables the mortgage-prepayment reminder rule
+  interestRatePct    Decimal? // enables the rough interest-saved estimate
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  payments           Payment[]
+
+  @@unique([userId, name])
+}
+
+model Payment {
+  id                  String    @id @default(cuid())
+  billId              String
+  bill                Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
+  dueDate             DateTime
+  expectedAmountMinor Int
+  actualAmountMinor   Int?
+  paidAt              DateTime?
+
+  @@unique([billId, dueDate])
 }
