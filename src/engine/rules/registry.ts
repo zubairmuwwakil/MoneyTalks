@@ -46,11 +46,13 @@ export function applyDismissals(
   alerts: RuleAlert[],
   dismissals: Array<{ ruleKey: string; entityRef: string }>,
 ): { active: RuleAlert[]; dismissed: RuleAlert[] } {
-  const keys = new Set(dismissals.map((d) => `${d.ruleKey} ${d.entityRef}`));
+  // NUL joins the two parts: it cannot occur in a rule key or an entity ref, so
+  // "A" + "B C" can never collide with "A B" + "C".
+  const keys = new Set(dismissals.map((d) => `${d.ruleKey}\u0000${d.entityRef}`));
   const active: RuleAlert[] = [];
   const dismissed: RuleAlert[] = [];
   for (const alert of alerts) {
-    (keys.has(`${alert.ruleKey} ${alert.entityRef}`) ? dismissed : active).push(alert);
+    (keys.has(`${alert.ruleKey}\u0000${alert.entityRef}`) ? dismissed : active).push(alert);
   }
   return { active, dismissed };
 }
