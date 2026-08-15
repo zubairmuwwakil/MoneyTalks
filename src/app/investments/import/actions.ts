@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { IMPORT_LIMITS, importFile } from "@/lib/validation/investments";
@@ -12,6 +13,12 @@ export interface ImportResult {
   holdings?: number;
   snapshots?: number;
   fxRates?: number;
+  bills?: number;
+}
+
+/** Json columns are validated by zod on the way in, not by the type system. */
+function asJson(value: unknown): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue;
 }
 
 export async function importJson(formData: FormData): Promise<ImportResult> {
@@ -38,7 +45,7 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
     return { ok: false, error: `${issue.path.join(".")}: ${issue.message}` };
   }
 
-  let counts: Required<Pick<ImportResult, "accounts" | "holdings" | "snapshots" | "fxRates">>;
+  let counts: Required<Pick<ImportResult, "accounts" | "holdings" | "snapshots" | "fxRates" | "bills">>;
   try {
     counts = await prisma.$transaction(
       async (tx) => {
@@ -46,6 +53,7 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
         let holdings = 0;
         let snapshots = 0;
         let fxRates = 0;
+        let bills = 0;
 
         for (const entry of parsed.data.accounts) {
           const { holdings: hs, snapshots: ss, ...accountData } = entry;
@@ -105,7 +113,17 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
           fxRates += 1;
         }
 
-        return { accounts, holdings, snapshots, fxRates };
+        for (const b of parsed.data.bills ?? []) {
+          const { cadence, schedule, ...core } = b;
+          await tx.bill.upsert({
+            where: { userId_name: { userId, name: core.name } },
+            update: { ...core, cadence: asJson(cadence), schedule: asJson(schedule) },
+            create: { ...core, userId, cadence: asJson(cadence), schedule: asJson(schedule) },
+          });
+          bills += 1;
+        }
+
+        return { accounts, holdings, snapshots, fxRates, bills };
       },
       { maxWait: 10_000, timeout: 60_000 },
     );
@@ -114,6 +132,7 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
   }
 
   revalidatePath("/investments");
+  revalidatePath("/bills");
   revalidatePath("/");
   return { ok: true, ...counts };
 }

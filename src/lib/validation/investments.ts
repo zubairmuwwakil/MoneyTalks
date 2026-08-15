@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { billImportEntry } from "./bills";
+import { countryCode, currencyCode, formBoolean, isoDate, minorUnits } from "./primitives";
 
 export const IMPORT_LIMITS = {
   fileBytes: 5 * 1024 * 1024,
@@ -6,26 +8,11 @@ export const IMPORT_LIMITS = {
   holdingsPerAccount: 1000,
   snapshotsPerAccount: 5000,
   fxRates: 10000,
+  bills: 500,
   totalRows: 10000,
 } as const;
 
-export const currencyCode = z.enum(["CAD", "USD", "JMD"]);
-const countryCode = z.string().regex(/^[A-Z]{2}$/, "ISO-3166 alpha-2, e.g. CA");
-const isoDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "ISO 8601 date, e.g. 2026-08-01")
-  .refine((value) => {
-    const [year, month, day] = value.split("-").map(Number);
-    const date = new Date(0);
-    date.setUTCFullYear(year, month - 1, day);
-    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
-  }, "Must be a valid calendar date");
-const minorUnits = z.coerce.number().int().min(-2_147_483_648).max(2_147_483_647);
 const positiveMinor = minorUnits.positive();
-const formBoolean = z
-  .union([z.boolean(), z.literal("true"), z.literal("false")])
-  .transform((value) => value === true || value === "true")
-  .default(false);
 
 export const accountInput = z.object({
   type: z.enum(["RRSP", "TFSA", "RDSP", "FHSA", "ROTH_IRA", "NON_REGISTERED", "CASH", "CHEQUING", "CRYPTO"]),
@@ -78,12 +65,14 @@ export const importFile = z
       )
       .max(IMPORT_LIMITS.accounts),
     fxRates: z.array(fxRateInput).max(IMPORT_LIMITS.fxRates).optional(),
+    bills: z.array(billImportEntry).max(IMPORT_LIMITS.bills).optional(),
   })
   .superRefine((data, ctx) => {
     const totalRows =
       data.accounts.length +
       data.accounts.reduce((sum, account) => sum + (account.holdings?.length ?? 0) + (account.snapshots?.length ?? 0), 0) +
-      (data.fxRates?.length ?? 0);
+      (data.fxRates?.length ?? 0) +
+      (data.bills?.length ?? 0);
     if (totalRows > IMPORT_LIMITS.totalRows) {
       ctx.addIssue({
         code: "custom",

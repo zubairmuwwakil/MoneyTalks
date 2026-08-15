@@ -15,7 +15,7 @@ export default async function ImportPage({
     const result = await importJson(formData);
     if (result.ok) {
       redirect(
-        `/investments/import?done=${result.accounts} accounts, ${result.holdings} holdings, ${result.snapshots} snapshots, ${result.fxRates} FX rates`,
+        `/investments/import?done=${result.accounts} accounts, ${result.holdings} holdings, ${result.snapshots} snapshots, ${result.fxRates} FX rates, ${result.bills} bills`,
       );
     }
     redirect(`/investments/import?error=${encodeURIComponent(result.error ?? "Import failed")}`);
