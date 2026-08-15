@@ -40,3 +40,34 @@ export function matchMerchant(query: string): MerchantFact[] {
   if (q.length === 0) return [];
   return MERCHANTS.filter((m) => m.name.toLowerCase().includes(q));
 }
+
+/** Lowercases a merchant name and strips a trailing parenthetical, e.g. "Costco (in-store)" -> "costco". */
+function normalizeMerchantName(name: string): string {
+  return name.toLowerCase().replace(/\s*\([^)]*\)\s*$/, "").trim();
+}
+
+/**
+ * Finds the merchant fact whose (normalized) name appears inside a
+ * statement description line, e.g. "NO FRILLS #123" -> the "No Frills"
+ * fact. This is the inverse direction of `matchMerchant`, which matches
+ * merchant names containing a search query — a statement line contains the
+ * brand name plus store-specific noise (store numbers, order ids), so the
+ * containment direction must flip. Requires at least 4 characters to guard
+ * against short names matching incidental substrings. When multiple facts
+ * match, the longest normalized name wins (e.g. "COSTCO.CA ORDER 88"
+ * resolves to "Costco.ca (online)", not "Costco (in-store)").
+ */
+export function matchMerchantInDescription(description: string): MerchantFact | null {
+  const d = description.toLowerCase();
+  let best: MerchantFact | null = null;
+  let bestLen = 0;
+  for (const m of MERCHANTS) {
+    const normalized = normalizeMerchantName(m.name);
+    if (normalized.length < 4) continue;
+    if (d.includes(normalized) && normalized.length > bestLen) {
+      best = m;
+      bestLen = normalized.length;
+    }
+  }
+  return best;
+}

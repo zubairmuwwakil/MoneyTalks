@@ -31,6 +31,9 @@ export default async function CardsPage() {
           <Link href="/cards/cheatsheet" className="rounded border px-3 py-1 hover:bg-muted/50">
             Cheat sheet
           </Link>
+          <Link href="/cards/analyzer" className="rounded border px-3 py-1 hover:bg-muted/50">
+            Analyzer
+          </Link>
           <Link href="/cards/manage" className="rounded border px-3 py-1 hover:bg-muted/50">
             Manage
           </Link>
