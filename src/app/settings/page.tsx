@@ -12,6 +12,12 @@ function settingsErrorPath(form: string, message: string) {
   return `/settings?errorForm=${form}&error=${encodeURIComponent(message)}`;
 }
 
+function formatMinorForDollarInput(amountMinor: number) {
+  const dollars = Math.trunc(amountMinor / 100);
+  const cents = amountMinor % 100;
+  return cents === 0 ? String(dollars) : `${dollars}.${String(cents).padStart(2, "0")}`;
+}
+
 export default async function SettingsPage({
   searchParams,
 }: {
@@ -78,20 +84,20 @@ export default async function SettingsPage({
           <label className={label}>RDSP carry-forward years (unused, last 10)
             <input name="rdspCarryForwardYears" type="number" defaultValue={profile.rdspCarryForwardYears} className={input} />
           </label>
-          <label className={label}>RDSP lifetime grants received (cents)
-            <input name="rdspGrantsLifetimeMinor" type="number" defaultValue={profile.rdspGrantsLifetimeMinor} className={input} />
+          <label className={label}>RDSP lifetime grants received (dollars)
+            <input name="rdspGrantsLifetime" type="number" min="0" step="0.01" defaultValue={formatMinorForDollarInput(profile.rdspGrantsLifetimeMinor)} className={input} />
           </label>
-          <label className={label}>RDSP lifetime contributions (cents)
-            <input name="rdspContribLifetimeMinor" type="number" defaultValue={profile.rdspContribLifetimeMinor} className={input} />
+          <label className={label}>RDSP lifetime contributions (dollars)
+            <input name="rdspContribLifetime" type="number" min="0" step="0.01" defaultValue={formatMinorForDollarInput(profile.rdspContribLifetimeMinor)} className={input} />
           </label>
-          <label className={label}>TFSA room (cents, from CRA)
-            <input name="tfsaRoomMinor" type="number" defaultValue={profile.tfsaRoomMinor} className={input} />
+          <label className={label}>TFSA room (dollars, from CRA)
+            <input name="tfsaRoom" type="number" min="0" step="0.01" defaultValue={formatMinorForDollarInput(profile.tfsaRoomMinor)} className={input} />
           </label>
-          <label className={label}>RRSP room (cents, from CRA)
-            <input name="rrspRoomMinor" type="number" defaultValue={profile.rrspRoomMinor} className={input} />
+          <label className={label}>RRSP room (dollars, from CRA)
+            <input name="rrspRoom" type="number" min="0" step="0.01" defaultValue={formatMinorForDollarInput(profile.rrspRoomMinor)} className={input} />
           </label>
-          <label className={label}>FHSA room (cents, from CRA)
-            <input name="fhsaRoomMinor" type="number" defaultValue={profile.fhsaRoomMinor} className={input} />
+          <label className={label}>FHSA room (dollars, from CRA)
+            <input name="fhsaRoom" type="number" min="0" step="0.01" defaultValue={formatMinorForDollarInput(profile.fhsaRoomMinor)} className={input} />
           </label>
           <label className={label}>Benefit programs (OW, ODSP)
             <input name="benefitPrograms" defaultValue={profile.benefitPrograms.join(", ")} className={input} />
@@ -129,7 +135,7 @@ export default async function SettingsPage({
         </ul>
         <form action={submitAddIncome} className="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
           <input name="name" placeholder="Name" required className="rounded border px-2 py-1" />
-          <input name="amountMinor" placeholder="Amount (cents)" required className="rounded border px-2 py-1" />
+          <input name="amount" type="number" min="0" step="0.01" placeholder="Amount (dollars)" required className="rounded border px-2 py-1" />
           <select name="cadence" className="rounded border px-2 py-1">
             <option>MONTHLY</option><option>BIWEEKLY</option><option>ANNUAL</option>
           </select>
