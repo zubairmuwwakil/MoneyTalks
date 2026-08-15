@@ -36,11 +36,26 @@ See `e2e/fixtures/import-sample.json` for a complete fictional example.
     a rate increase is a new entry rather than an edit. Ranges are inclusive on
     both ends; omit `to` for the open-ended current amount. If two entries
     overlap, the later `from` wins.
+- `cards[]` — optional. This section documents the format with invented examples
+  only; real card facts belong in a private import file, not the repo. Fields:
+  `nickname`, `issuer`, `network` (`VISA` | `MASTERCARD` | `AMEX`), optional
+  `lastFour`, `country` (default `CA`), `currency` (default `CAD`),
+  `limitMinor`, `statementDay` (1-28), `dueDay` (1-28), `aprPct`, and
+  `annualFeeMinor` (default `0`). `rewards` has:
+  - `pointValueCents` — cents of value per point; set this from the redemption
+    style you actually use in the private import.
+  - `fxFeePct` — foreign transaction fee percentage.
+  - `baseMultiplier` — fallback earn multiplier.
+  - `categoryRates[]` — `{ "category": "groceries", "multiplier": 3 }`, with
+    optional `capMinor` and `capWindow` (`MONTH` | `YEAR`) set together.
+  - `credits[]` — `{ "id": "fixture-credit", "label": "Fixture credit",
+    "valueMinor": 1000, "period": "YEAR" }`.
 
 Idempotency: accounts match on `(user, name, institution)`, holdings on
 `(account, symbol)`, snapshots on `(account, asOf)`, FX rates on
-`(user, base, quote, asOf)`, bills on `(user, name)`. Account, FX, and bill matching are scoped to the signed-in
-user. Re-importing updates in place; it never duplicates.
+`(user, base, quote, asOf)`, bills on `(user, name)`, and cards on
+`(user, nickname)`. Account, FX, bill, and card matching are scoped to the
+signed-in user. Re-importing updates in place; it never duplicates.
 
 Privacy: this repo never contains real data. Keep your real import file outside
 the repo (it is also blocked by `.gitignore` patterns `seed/` and `*.seed.json`).

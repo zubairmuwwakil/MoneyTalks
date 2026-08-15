@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { billImportEntry } from "./bills";
+import { cardImportEntry } from "./cards";
 import { countryCode, currencyCode, formBoolean, isoDate, minorUnits } from "./primitives";
 
 export const IMPORT_LIMITS = {
@@ -9,6 +10,7 @@ export const IMPORT_LIMITS = {
   snapshotsPerAccount: 5000,
   fxRates: 10000,
   bills: 500,
+  cards: 100,
   totalRows: 10000,
 } as const;
 
@@ -66,13 +68,15 @@ export const importFile = z
       .max(IMPORT_LIMITS.accounts),
     fxRates: z.array(fxRateInput).max(IMPORT_LIMITS.fxRates).optional(),
     bills: z.array(billImportEntry).max(IMPORT_LIMITS.bills).optional(),
+    cards: z.array(cardImportEntry).max(IMPORT_LIMITS.cards).optional(),
   })
   .superRefine((data, ctx) => {
     const totalRows =
       data.accounts.length +
       data.accounts.reduce((sum, account) => sum + (account.holdings?.length ?? 0) + (account.snapshots?.length ?? 0), 0) +
       (data.fxRates?.length ?? 0) +
-      (data.bills?.length ?? 0);
+      (data.bills?.length ?? 0) +
+      (data.cards?.length ?? 0);
     if (totalRows > IMPORT_LIMITS.totalRows) {
       ctx.addIssue({
         code: "custom",

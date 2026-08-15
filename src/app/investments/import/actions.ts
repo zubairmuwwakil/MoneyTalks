@@ -14,6 +14,7 @@ export interface ImportResult {
   snapshots?: number;
   fxRates?: number;
   bills?: number;
+  cards?: number;
 }
 
 /** Json columns are validated by zod on the way in, not by the type system. */
@@ -45,7 +46,7 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
     return { ok: false, error: `${issue.path.join(".")}: ${issue.message}` };
   }
 
-  let counts: Required<Pick<ImportResult, "accounts" | "holdings" | "snapshots" | "fxRates" | "bills">>;
+  let counts: Required<Pick<ImportResult, "accounts" | "holdings" | "snapshots" | "fxRates" | "bills" | "cards">>;
   try {
     counts = await prisma.$transaction(
       async (tx) => {
@@ -54,6 +55,7 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
         let snapshots = 0;
         let fxRates = 0;
         let bills = 0;
+        let cards = 0;
 
         for (const entry of parsed.data.accounts) {
           const { holdings: hs, snapshots: ss, ...accountData } = entry;
@@ -123,7 +125,17 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
           bills += 1;
         }
 
-        return { accounts, holdings, snapshots, fxRates, bills };
+        for (const c of parsed.data.cards ?? []) {
+          const { rewards, ...core } = c;
+          await tx.creditCard.upsert({
+            where: { userId_nickname: { userId, nickname: core.nickname } },
+            update: { ...core, rewards: asJson(rewards) },
+            create: { ...core, userId, rewards: asJson(rewards) },
+          });
+          cards += 1;
+        }
+
+        return { accounts, holdings, snapshots, fxRates, bills, cards };
       },
       { maxWait: 10_000, timeout: 60_000 },
     );
@@ -133,6 +145,7 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
 
   revalidatePath("/investments");
   revalidatePath("/bills");
+  revalidatePath("/cards");
   revalidatePath("/");
   return { ok: true, ...counts };
 }
