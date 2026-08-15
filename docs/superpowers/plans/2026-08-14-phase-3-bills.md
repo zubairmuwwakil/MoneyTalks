@@ -1930,11 +1930,11 @@ git commit -m "test: add bills E2E acceptance flow and serialize E2E workers"
 
 Audit `git diff origin/main..HEAD` for personal tokens (fixtures contain only "Fixture …" names). Ask the owner, then `git push origin main`.
 
-- [ ] **Step 4: OWNER CHECKPOINT — real bills import**
+- [x] **Step 4: OWNER CHECKPOINT — real bills import**
 
 The owner's real bills live in a seed file kept outside the repo (dollar amounts, vault-placeholder identifiers). Offer to convert it locally into `docs/private/bills-import.json` (cents, import format, identifiers dropped entirely — the app never needs them), collecting the still-missing inputs from `docs/private/owner-context.md`: **the mortgage biweekly anchor date** (any one known payment Wednesday — the forecast is wrong without it), the prepayment window month-day and mortgage rate if the owner wants the reminder rule. The owner then imports on production and verifies: the bill list matches reality, the next triple-mortgage month shows flagged with the right total, and the 14-day strip is accurate.
 
-- [ ] **Step 5: Mark Phase 3 done**
+- [x] **Step 5: Mark Phase 3 done**
 
 All checkboxes checked; spec Phase 3 row satisfied (recurrence engine, bill CRUD, month view, 12-month forecast with pileup flags, mark-as-paid) plus the three deferred rules. Remaining for Phase 4: Cards. Phase 5 picks up CSV import, tax-season checklist, FX auto-fetch, danger-month detector.
 
