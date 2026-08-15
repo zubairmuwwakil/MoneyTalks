@@ -25,6 +25,7 @@ model User {
   profile          Profile?
   alerts           Alert[]
   bills            Bill[]
+  creditCards      CreditCard[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -241,4 +242,38 @@ model Payment {
   paidAt              DateTime?
 
   @@unique([billId, dueDate])
+}
+
+// ---- Cards (Phase 4) ----
+
+model CreditCard {
+  id             String     @id @default(cuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nickname       String
+  issuer         String
+  network        String // VISA | MASTERCARD | AMEX
+  lastFour       String?
+  country        String     @default("CA")
+  currency       String     @default("CAD")
+  limitMinor     Int?
+  statementDay   Int?
+  dueDay         Int?
+  aprPct         Decimal?
+  annualFeeMinor Int        @default(0)
+  rewards        Json // validated rewards structure — see src/lib/validation/cards.ts
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  state          CardState?
+
+  @@unique([userId, nickname])
+}
+
+model CardState {
+  cardId               String     @id
+  card                 CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  capsUsage            Json       @default("[]") // [{category, periodKey, usedMinor}]
+  creditsRedeemed      Json       @default("[]") // [{creditId, periodKey}]
+  rewardsEstimateMinor Int        @default(0) // owner's estimate of rewards earned this year
+  updatedAt            DateTime   @updatedAt
 }
