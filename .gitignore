@@ -26,6 +26,7 @@ coverage/
 .DS_Store
 *.local
 *.pem
+.worktrees/
 
 # --- Debug logs ---
 npm-debug.log*
