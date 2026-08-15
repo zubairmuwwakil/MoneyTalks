@@ -12,6 +12,7 @@ import {
   updateAccount,
   updateTransaction,
 } from "@/app/investments/actions";
+import { refreshPrices } from "@/app/actions/refresh";
 import { accountBalanceWithCurrency, holdingValueMinor } from "@/engine/balance";
 import { formatMinorUnits, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
@@ -29,11 +30,11 @@ export default async function AccountDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; errorForm?: string }>;
+  searchParams: Promise<{ error?: string; errorForm?: string; pricesOk?: string; pricesError?: string }>;
 }) {
   const userId = await requireUserId();
   const { id } = await params;
-  const { error, errorForm } = await searchParams;
+  const { error, errorForm, pricesOk, pricesError } = await searchParams;
   const account = await prisma.financialAccount.findFirst({
     where: { id, userId },
     include: {
@@ -181,7 +182,23 @@ export default async function AccountDetailPage({
       </section>
 
       <section>
-        <h2 className="font-medium">Holdings</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-medium">Holdings</h2>
+          {account.type === "CRYPTO" ? (
+            <form action={refreshPrices}>
+              <input type="hidden" name="accountId" value={account.id} />
+              <button
+                type="submit"
+                className="rounded border px-2 py-1 text-xs"
+                title="Best-effort: fetches live prices from CoinGecko. Manual entry always works."
+              >
+                ↻ prices
+              </button>
+            </form>
+          ) : null}
+        </div>
+        {pricesOk ? <p className="mt-1 text-xs text-green-700">{pricesOk}</p> : null}
+        {pricesError ? <p className="mt-1 text-xs text-red-600">{pricesError}</p> : null}
         <ul className="mt-2 divide-y rounded border">
           {account.holdings.map((h) => (
             <li key={h.id} className="flex items-center justify-between gap-3 px-4 py-2 text-sm">
