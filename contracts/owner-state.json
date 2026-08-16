@@ -1,0 +1,46 @@
+{
+  "ownerStateVersion": "2026-08-15.1",
+  "_note": "Layer 2 of the three-layer model: owner/account state, never product facts. Fields set to null are collected at onboarding — the engine must refuse to score a rule whose ownerCondition is unresolved rather than guess.",
+  "ownedCardIds": [
+    "amex-platinum",
+    "amex-cobalt",
+    "amex-bonvoy",
+    "mbna-rewards-we",
+    "scotia-momentum-vi-plus",
+    "tangerine-moneyback-world",
+    "rogers-red-we",
+    "triangle-we",
+    "wealthsimple-vip",
+    "cryptocom-royal-indigo"
+  ],
+  "defaultCardId": "wealthsimple-vip",
+  "switchThreshold": {
+    "minAdvantagePercentagePoints": 0.5,
+    "minAdvantageCad": 0.25,
+    "semantics": "both",
+    "_note": "Recommend leaving the default card only when net advantage clears BOTH floors. Dossier §4 said 'or'; 'both' implemented as the safer reading (an 'or' lets a 0.1pp edge trigger a switch on any large purchase) — flagged for Zubair's veto. Acceptance constraints always override (e.g., Mastercard-only Costco)."
+  },
+  "carry": {
+    "drawerCards": ["triangle-we"],
+    "_note": "Drawer ≠ disabled: recommend only for known use-cases (CT-family, qualifying grocery, CT/Petro fuel). Surface a 'drawer card' warning when it wins."
+  },
+  "cardStates": {
+    "amex-cobalt": { "capProgress": { "cobalt-eats-monthly": 0 } },
+    "mbna-rewards-we": { "capProgress": { "mbna-restaurants-annual": 0, "mbna-grocery-annual": 0, "mbna-digital-annual": 0, "mbna-memberships-annual": 0, "mbna-utilities-annual": 0 } },
+    "scotia-momentum-vi-plus": { "scotiaAccountYearAnchorMonth": 4, "scotiaAccountOpenedYear": 2025, "capProgress": { "momentum-4pct-accountYear": 12500, "momentum-2pct-accountYear": 0 }, "_note": "RESOLVED 2026-08-15: account opened April 2025; current account year runs April 2026 → March 2027. Verified from the Momentum Visa Infinite + terms page: 'The annual spend limit resets every 12 months from the statement period of the month of your Account opening date.' Zubair's December→November understanding comes from the NON-PLUS Momentum Visa Infinite e-kit, where December-statement language governs when cash back is AWARDED, not when the + card's spend limits reset. ⚠ $12,500 progress is therefore SUSPECT — if estimated from December it includes spend that already reset; true figure counts only April 2026 onward. Recheck from statements." },
+    "tangerine-moneyback-world": { "selectedCategories": ["grocery", "dining", "gasStation", "entertainment", "furniture", "hotelMotel", "drugStore", "recurring", "homeImprovement", "transit", "eGames", "fitness", "foreignCurrency"], "treatAsAllSelected": true, "thirdCategoryUnlocked": null, "nextChangeEffectiveDate": null, "_note": "Zubair's decision 2026-08-15: score Tangerine as 2% across ALL eligible categories; the app suggests which 3 to actually select (category advisor, future feature). Guardrails: 2% can only tie the WS default so this rarely surfaces; if Tangerine IS recommended, explanation must warn 'hypothetical selection'; any Tangerine reconciliation mismatch is classified as an owner-state miss, not a catalogue miss." },
+    "rogers-red-we": { "rogersEligibleServiceLinked": false, "rogersAccountAnniversaryMonth": 8, "rogersAccountOpenedYear": 2026, "capProgress": { "rogers-enhanced-accountYear": 0 }, "_note": "RESOLVED 2026-08-15: card opened August 2026, so $61k account year runs Aug 2026 → Jul 2027 with zero progress. No Rogers/Fido/Shaw/Comwave service linked → base 1.5% (linking one would raise it to 2% and make this card competitive with the Wealthsimple default — worth revisiting if Zubair has an eligible service)." },
+    "triangle-we": { "capProgress": { "triangle-grocery-annual": 0 } },
+    "wealthsimple-vip": { "feeWaiverActive": null },
+    "cryptocom-royal-indigo": { "cryptoLevelUpProActive": false, "croHandling": null, "capProgress": { "crypto-monthly-usd": 0 }, "_note": "Level Up Pro NOT active (confirmed 2026-08-15) → card excluded from all recommendations per dossier decision #3." }
+  },
+  "valuationsCad": {
+    "amexMembershipRewards": { "centsPerPoint": 1.0, "floorCentsPerPoint": 1.0, "aspirationalCentsPerPoint": 2.2, "basis": "RANKED AT THE CASH FLOOR (statement credit) because Zubair has never transferred MR — confirmed 2026-08-15. A valuation is a forecast of redemption behaviour, and statements can confirm points earned but never dollars realized, so the 30-checkout experiment cannot validate it. aspirationalCentsPerPoint 2.2 is the published Canadian benchmark (Prince of Travel, updated 2026-07-29, reflecting 1:1 Aeroplan plus 7 other transfer partners); it is used ONLY as the plausibility ceiling for disclosing upside breakevens, never for ranking. Raise centsPerPoint once redemption logging (v1.5) produces a realized rate." },
+    "marriottBonvoy": { "centsPerPoint": 0.8, "low": 0.6, "high": 1.0, "basis": "hotel award nights actually used" },
+    "mbnaRewards": { "centsPerPoint": 1.0, "floorCentsPerPoint": 0.833333, "basis": "travel redemption; cash floor" },
+    "ctMoney": { "cadPerUnit": 1.0, "optionalUsabilityFactor": 0.95, "usabilityFactorApplied": true },
+    "cro": { "model": "reward-currency", "faceValueFactorIfAutoSold": 1.0, "defaultHeldRiskFactor": 0.8 },
+    "cashBack": { "cadPerDollar": 1.0 },
+    "rogersEligibleServiceRedemption": { "redemptionFactor": 1.5, "appliedAtCheckout": false }
+  }
+}

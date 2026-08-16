@@ -1,0 +1,165 @@
+import { Catalogue, OwnerState, PurchaseContext } from './models';
+import { CandidateScore, Scorer } from './Scorer';
+
+export type ValuationDirection = 'below' | 'above';
+
+export interface Recommendation {
+  winner: CandidateScore;
+  runnerUp: CandidateScore | null;
+  switchedFromDefault: boolean;
+  advantageOverDefaultCad: number | null;
+  defaultNotAccepted: boolean;
+  suppressedBetterCard: CandidateScore | null;
+  valuationSensitive: boolean;
+  valuationDirection: ValuationDirection | null;
+  alternateWinnerCardId: string | null;
+  breakevenCentsPerPoint: number | null;
+  declaredCentsPerPoint: number | null;
+  allCandidates: CandidateScore[];
+}
+
+export class RecommendationEngine {
+  constructor(private catalogue: Catalogue, private ownerState: OwnerState) {}
+
+  recommend(purchase: PurchaseContext, asOf: string): Recommendation {
+    const scores = this.catalogue.cards
+      .map(card => Scorer.score(card, purchase, this.ownerState, asOf))
+      .filter(score => !score.excluded);
+    
+    if (scores.length === 0) {
+      throw new Error('no scorable card — catalogue misconfigured');
+    }
+
+    const declared = this.rank(scores, purchase, s => s.netValueCad);
+    const floor = this.rank(scores, purchase, s => s.floorNetValueCad);
+    const aspirational = this.rank(scores, purchase, s => s.aspirationalNetValueCad);
+
+    let sensitive = false;
+    let direction: ValuationDirection | null = null;
+    let alternateId: string | null = null;
+    let breakeven: number | null = null;
+    let declaredCents: number | null = null;
+
+    if (declared.winner.cardId !== floor.winner.cardId &&
+        Math.abs(declared.winner.floorNetValueCad - declared.winner.netValueCad) > 0.0001 &&
+        declared.winner.rewardUnits > 0) {
+      sensitive = true;
+      direction = 'below';
+      alternateId = floor.winner.cardId;
+      breakeven = this.breakevenCents(declared.winner, floor.winner, declared.ranked, purchase);
+      declaredCents = this.centsPerUnit(declared.winner);
+    } else if (
+        aspirational.winner.cardId !== declared.winner.cardId &&
+        aspirational.winner.rewardUnits > 0 &&
+        Math.abs(aspirational.winner.aspirationalNetValueCad - aspirational.winner.netValueCad) > 0.0001
+    ) {
+      const challenger = declared.ranked.find(c => c.cardId === aspirational.winner.cardId);
+      if (challenger) {
+        const flip = this.breakevenCents(challenger, declared.winner, declared.ranked, purchase);
+        const benchmarkCents = ((challenger.aspirationalNetValueCad + challenger.fxCostCad) * 100) / challenger.rewardUnits;
+        if (flip <= benchmarkCents + 0.0001) {
+          sensitive = true;
+          direction = 'above';
+          alternateId = challenger.cardId;
+          breakeven = flip;
+          declaredCents = this.centsPerUnit(challenger);
+        }
+      }
+    }
+
+    return {
+      winner: declared.winner,
+      runnerUp: declared.runnerUp,
+      switchedFromDefault: declared.switched,
+      advantageOverDefaultCad: declared.advantage,
+      defaultNotAccepted: declared.defaultNotAccepted,
+      suppressedBetterCard: declared.suppressed,
+      valuationSensitive: sensitive,
+      valuationDirection: direction,
+      alternateWinnerCardId: alternateId,
+      breakevenCentsPerPoint: breakeven,
+      declaredCentsPerPoint: declaredCents,
+      allCandidates: declared.ranked
+    };
+  }
+
+  private centsPerUnit(score: CandidateScore): number {
+    return score.rewardUnits > 0 ? (score.grossRewardCad / score.rewardUnits) * 100 : 0;
+  }
+
+  private breakevenCents(pointsCard: CandidateScore, incumbent: CandidateScore, ranked: CandidateScore[], purchase: PurchaseContext): number {
+    const t = this.ownerState.switchThreshold;
+    const ppFloorCad = (t.minAdvantagePercentagePoints * purchase.amountCad) / 100;
+    const requiredAdvantage = t.semantics === 'either'
+      ? Math.min(t.minAdvantageCad, ppFloorCad)
+      : Math.max(t.minAdvantageCad, ppFloorCad);
+    const defaultId = this.ownerState.defaultCardId;
+
+    let needed = incumbent.netValueCad + (incumbent.cardId === defaultId ? requiredAdvantage : 0);
+    if (incumbent.cardId !== defaultId && pointsCard.cardId !== defaultId) {
+      const defaultScore = ranked.find(s => s.cardId === defaultId);
+      if (defaultScore) {
+        needed = Math.max(needed, defaultScore.netValueCad + requiredAdvantage);
+      }
+    }
+    return ((needed + pointsCard.fxCostCad) * 100) / pointsCard.rewardUnits;
+  }
+
+  private rank(scores: CandidateScore[], purchase: PurchaseContext, value: (s: CandidateScore) => number) {
+    const defaultId = this.ownerState.defaultCardId;
+    const ranked = [...scores].sort((a, b) => {
+      const valA = value(a);
+      const valB = value(b);
+      if (valA !== valB) return valB - valA;
+      if (a.cardId === defaultId) return -1;
+      if (b.cardId === defaultId) return 1;
+      return a.cardId < b.cardId ? -1 : a.cardId > b.cardId ? 1 : 0;
+    });
+
+    const best = ranked[0];
+    const runnerUp = ranked.length > 1 ? ranked[1] : null;
+
+    const defaultScore = ranked.find(s => s.cardId === defaultId);
+    if (!defaultScore) {
+      return {
+        winner: best,
+        runnerUp,
+        switched: true,
+        advantage: null,
+        defaultNotAccepted: true,
+        suppressed: null,
+        ranked
+      };
+    }
+
+    const advantage = value(best) - value(defaultScore);
+    const advantagePP = purchase.amountCad > 0 ? (advantage / purchase.amountCad) * 100 : 0;
+    const t = this.ownerState.switchThreshold;
+    const cadOk = advantage >= t.minAdvantageCad;
+    const ppOk = advantagePP >= t.minAdvantagePercentagePoints;
+    const clearsThreshold = t.semantics === 'either' ? (cadOk || ppOk) : (cadOk && ppOk);
+
+    if (best.cardId !== defaultId && clearsThreshold) {
+      return {
+        winner: best,
+        runnerUp,
+        switched: true,
+        advantage,
+        defaultNotAccepted: false,
+        suppressed: null,
+        ranked
+      };
+    }
+
+    const suppressed = (best.cardId !== defaultId && advantage > 0) ? best : null;
+    return {
+      winner: defaultScore,
+      runnerUp: ranked.find(s => s.cardId !== defaultId) || null,
+      switched: false,
+      advantage: 0,
+      defaultNotAccepted: false,
+      suppressed,
+      ranked
+    };
+  }
+}
