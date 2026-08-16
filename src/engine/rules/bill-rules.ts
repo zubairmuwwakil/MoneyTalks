@@ -117,6 +117,11 @@ const CUSHION_ACCOUNT_TYPES = new Set(["CASH", "CHEQUING"]);
  * Adds `months` calendar months to an ISO date, day-clamped to the target month's
  * length — the same clamping rule as recurrence.ts's internal clampedDate.
  */
+function addDaysIso(date: string, days: number): string {
+  const [y, m, d] = date.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
 function addMonthsIso(date: string, months: number): string {
   const [y, m, d] = date.slice(0, 10).split("-").map(Number);
   const total = y * 12 + (m - 1) + months;
@@ -130,6 +135,9 @@ function addMonthsIso(date: string, months: number): string {
 export interface CashCushionProjection {
   series: Array<{ date: string; balanceMinor: number }>;
   excludedAccountNames: string[];
+  /** CASH/CHEQUING accounts that actually contributed to the start balance. Zero means
+   *  the projection has no real footing and must not be presented as one. */
+  contributingAccounts: number;
 }
 
 /**
@@ -153,14 +161,18 @@ export function projectCashCushion(
   monthsAhead = 12,
 ): CashCushionProjection {
   const from = snapshot.today;
-  const to = addMonthsIso(from, monthsAhead);
+  // One day short of the anniversary: a window ending ON it would add a lone extra day
+  // in a 13th calendar bucket, which dangerMonths would report as a whole "month".
+  const to = addDaysIso(addMonthsIso(from, monthsAhead), -1);
 
   const excludedAccountNames: string[] = [];
   let startMinor = 0;
+  let contributingAccounts = 0;
   for (const account of snapshot.accounts) {
     if (!CUSHION_ACCOUNT_TYPES.has(account.type)) continue;
     try {
       startMinor += convertMinor(account.balanceMinor, account.currency, "CAD", snapshot.fxRates);
+      contributingAccounts += 1;
     } catch (e) {
       if (!(e instanceof MissingFxRateError)) throw e;
       excludedAccountNames.push(account.name);
@@ -186,7 +198,7 @@ export function projectCashCushion(
   );
 
   const series = projectDailyBalance(startMinor, [...incomeCashEvents, ...billCashEvents], from, to);
-  return { series, excludedAccountNames };
+  return { series, excludedAccountNames, contributingAccounts };
 }
 
 export const dangerMonthRule: Rule = {
@@ -197,7 +209,30 @@ export const dangerMonthRule: Rule = {
   lastReviewed: "2026-08-15",
   evaluate(profile, snapshot) {
     if (profile.cushionMinor <= 0) return []; // silent until the owner sets a cushion
-    const { series, excludedAccountNames } = projectCashCushion(profile, snapshot);
+    const { series, excludedAccountNames, contributingAccounts } = projectCashCushion(profile, snapshot);
+    // With no usable CASH/CHEQUING account the start balance would be a fabricated 0,
+    // and every month would "dip below the cushion" — a maximal false alarm built on
+    // nothing. Say what is missing instead of inventing a projection.
+    if (contributingAccounts === 0) {
+      return [
+        {
+          ruleKey: "DANGER_MONTH",
+          severity: "info",
+          kind: "compliance",
+          entityRef: "",
+          title: "Cash cushion set, but no cash account to project from",
+          message:
+            excludedAccountNames.length > 0
+              ? `Your cushion is ${formatMinorUnits(profile.cushionMinor, "CAD")}, but every cash account was excluded for want of an FX rate: ${excludedAccountNames.join(", ")}.`
+              : `Your cushion is ${formatMinorUnits(profile.cushionMinor, "CAD")}, but no CASH or CHEQUING account is tracked, so there is no balance to roll forward.`,
+          action:
+            excludedAccountNames.length > 0
+              ? "Add an FX rate for those accounts' currency, then the danger-month projection can run."
+              : "Add your day-to-day chequing or cash account under Investments, then the danger-month projection can run.",
+          citation: "Internal cash-flow projection policy",
+        },
+      ];
+    }
     const danger = dangerMonths(series, profile.cushionMinor);
     if (danger.length === 0) return [];
 
@@ -217,7 +252,7 @@ export const dangerMonthRule: Rule = {
         severity: "warning",
         kind: "compliance",
         entityRef: "",
-        title: `Cash cushion at risk in ${danger.length} of the next 12 months`,
+        title: `Cash cushion dips below target in ${danger.length} month(s) over the next 12 months`,
         message: `Below your ${formatMinorUnits(profile.cushionMinor, "CAD")} cushion${exclusionNote}: ${list}${more}.`,
         action:
           "Raise the cushion in Settings, or plan cash flow around these dips. Income timing is a v1 approximation (MONTHLY on the 1st, BIWEEKLY every 14 days from today, ANNUAL on Jan 1) — pay-date precision is future work.",

@@ -99,6 +99,8 @@ describe("dangerMonthRule", () => {
   //   income: MONTHLY $1,000.00 on the 1st of every month
   //   bill: ANNUAL $4,200.00 (420_000 minor), anchored 2026-03-10 — one occurrence in
   //     the 12-month window (the next, 2027-03-10, falls just outside it)
+  //   window: 2026-01-01 .. 2026-12-31 inclusive — one day short of the anniversary, so
+  //     it spans exactly 12 calendar buckets rather than 12 months plus a lone extra day
   //
   //   Running balance at each event date:
   //     2026-01-01   200_000 + 100_000       = 300_000   (Jan min)
@@ -126,10 +128,21 @@ describe("dangerMonthRule", () => {
     expect(alerts).toHaveLength(1);
     expect(alerts[0].severity).toBe("warning");
     expect(alerts[0].kind).toBe("compliance");
-    expect(alerts[0].title).toContain("1 of the next 12 months");
+    expect(alerts[0].title).toContain("1 month(s) over the next 12 months");
     expect(alerts[0].message).toContain("2026-03: $800.00 on 2026-03-10");
     expect(alerts[0].action).toMatch(/cushion/i);
     expect(alerts[0].action).toMatch(/BIWEEKLY every 14 days/i);
+  });
+
+  it("does not fabricate a projection when no cash account backs it", () => {
+    // A cushion with no CASH/CHEQUING account would otherwise roll forward from a
+    // start balance of 0 and flag every month — a maximal false alarm built on nothing.
+    const snapshot = makeSnapshot([], { today: "2026-01-01", bills: [annualBill] });
+    const alerts = dangerMonthRule.evaluate(cushionProfile, snapshot);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].severity).toBe("info");
+    expect(alerts[0].title).toContain("no cash account");
+    expect(alerts[0].message).not.toMatch(/dips|below your/i);
   });
 
   it("is silent when no cushion is configured (cushionMinor: 0)", () => {
