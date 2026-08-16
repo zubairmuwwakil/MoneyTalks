@@ -20,12 +20,18 @@ const CURRENCIES: Currency[] = ["CAD", "USD", "JMD"];
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ ccy?: string; fxOk?: string; fxError?: string }>;
+  searchParams: Promise<{ ccy?: string; display?: string; fxOk?: string; fxError?: string }>;
 }) {
   const user = await requireUser();
   const userId = await requireUserId();
-  const { ccy, fxOk, fxError } = await searchParams;
-  const display: Currency = CURRENCIES.includes(ccy as Currency) ? (ccy as Currency) : "CAD";
+  const { ccy, display: displayParam, fxOk, fxError } = await searchParams;
+  const ccyParam = ccy?.toUpperCase();
+  const displayCurrencyParam = displayParam?.toUpperCase();
+  const allMode = ccyParam === "ALL";
+  const requestedDisplay = allMode ? displayCurrencyParam : ccyParam;
+  const display: Currency = CURRENCIES.includes(requestedDisplay as Currency)
+    ? (requestedDisplay as Currency)
+    : "CAD";
 
   const [accounts, fxRates] = await Promise.all([
     prisma.financialAccount.findMany({
@@ -181,19 +187,26 @@ export default async function Home({
         </div>
         <div className="flex flex-col items-end gap-1">
           <div className="flex items-center gap-2">
-            <nav className="flex gap-1 rounded border p-1 text-xs">
+            <nav aria-label="Net worth currency mode" className="flex gap-1 rounded border p-1 text-xs">
+              <Link
+                href={`/?ccy=ALL&display=${display}`}
+                className={`rounded px-2 py-1 ${allMode ? "bg-foreground text-background" : ""}`}
+              >
+                All
+              </Link>
               {CURRENCIES.map((c) => (
                 <Link
                   key={c}
                   href={`/?ccy=${c}`}
-                  className={`rounded px-2 py-1 ${c === display ? "bg-foreground text-background" : ""}`}
+                  className={`rounded px-2 py-1 ${!allMode && c === display ? "bg-foreground text-background" : ""}`}
                 >
                   {c}
                 </Link>
               ))}
             </nav>
             <form action={refreshFxRates}>
-              <input type="hidden" name="ccy" value={display} />
+              <input type="hidden" name="ccy" value={allMode ? "ALL" : display} />
+              {allMode ? <input type="hidden" name="display" value={display} /> : null}
               <button
                 type="submit"
                 className="rounded border px-2 py-1 text-xs"
@@ -203,13 +216,31 @@ export default async function Home({
               </button>
             </form>
           </div>
+          {allMode ? (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">Display as</span>
+              <nav aria-label="All-currency display currency" className="flex gap-1 rounded border p-1">
+                {CURRENCIES.map((c) => (
+                  <Link
+                    key={c}
+                    href={`/?ccy=ALL&display=${c}`}
+                    className={`rounded px-2 py-1 ${c === display ? "bg-foreground text-background" : ""}`}
+                  >
+                    {c}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+          ) : null}
           {fxOk ? <p className="text-xs text-green-700">{fxOk}</p> : null}
           {fxError ? <p className="text-xs text-red-600">{fxError}</p> : null}
         </div>
       </header>
 
       <section>
-        <h2 className="text-sm text-muted-foreground">Net worth ({display})</h2>
+        <h2 className="text-sm text-muted-foreground">
+          {allMode ? `Net worth (all currencies, ${display})` : `Net worth (${display})`}
+        </h2>
         {total ? (
           <p className="text-3xl font-semibold tabular-nums">{formatMinorUnits(total.totalMinor, display)}</p>
         ) : (

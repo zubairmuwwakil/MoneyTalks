@@ -39,6 +39,15 @@ test("import fixture, see accounts with balances, toggle currency", async ({ bro
   await page.goto("/?ccy=USD");
   await expect(page.getByText(/9,785\.7/)).toBeVisible();
 
+  // All mode lets the user choose the display currency for the aggregate total.
+  await page.getByRole("navigation", { name: "Net worth currency mode" }).getByRole("link", { name: "All" }).click();
+  await expect(page.getByText("Net worth (all currencies, USD)")).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "All-currency display currency" })
+    .getByRole("link", { name: "USD" })
+    .click();
+  await expect(page.getByText(/9,785\.7/)).toBeVisible();
+
   // Idempotency: re-import, still exactly 5 account rows
   await page.goto("/investments/import");
   await page
