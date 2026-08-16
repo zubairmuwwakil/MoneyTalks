@@ -1,0 +1,31 @@
+{
+  "returnItems": [
+    {
+      "store": "Amazon",
+      "purchaseDate": "2023-01-01T00:00:00.000Z",
+      "amountCents": 1500,
+      "currency": "CAD",
+      "returnBy": "2023-01-31T00:00:00.000Z",
+      "status": "DELIVERED",
+      "shipmentEvents": [
+        { "statusCode": "DELIVERED", "statusText": "Delivered", "occurredAt": "2023-01-15T12:00:00.000Z" }
+      ],
+      "refundCase": {
+        "expectedAt": "2023-01-20T00:00:00.000Z",
+        "refundType": "ORIGINAL"
+      }
+    }
+  ],
+  "valueEvents": [
+    {
+      "type": "REFUND_RECEIVED",
+      "amountCents": 1500,
+      "currency": "CAD",
+      "occurredAt": "2023-01-20T12:00:00.000Z",
+      "isEstimated": false
+    }
+  ],
+  "purchases": [
+    { "id": "should-be-ignored", "merchant": "Amazon", "totalCents": 1500 }
+  ]
+}
