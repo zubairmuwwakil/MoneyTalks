@@ -39,4 +39,17 @@
 
 ## Deferred, deliberately (cheap to decide later, in order of likely arrival)
 
-Monorepo mechanics and timing · consumer brand name · MoneyTalks→Clerk migration date · TS twin of the card engine · shipment-tracking honesty labels · pricing/packaging.
+Monorepo mechanics and timing · consumer brand name · TS twin of the card engine · pricing/packaging. *(Clerk migration and honesty labels shipped in Phase 2.)*
+
+---
+
+# Amendment A — Ambient copilot revision (ratified 2026-08-16)
+
+The wedge's delivery mechanism changes from "open app → pick card" to an ambient loop: recommend before purchase without opening the app, capture the purchase passively, verify the choice, and feed the result back. Amends decisions 6 and 7; adds A1–A6.
+
+- **A1 (amends 7 — network posture).** PickMe's "zero network calls" guarantee is retired, deliberately. Replacement posture, in order: *recommendations computed on-device · no bank credentials ever (no Plaid/Flinks — reaffirmed) · email parsed only by the user's own account's pipeline · nothing sold.* App Store privacy labels and `docs/compliance/` must be rewritten to match before any public release (Phase 4 item). On-device recommendation must keep working with no connectivity.
+- **A2 (amends 6 — wedge mechanism).** v1 ambient = **geofence-triggered local notifications** (no server dependency): CLMonitor regions over the nearest ~20 merchants, re-registered on significant location change. Push-to-start Live Activities are v2, via the now-existing backend. v1 merchant scope is the owner's top-visited set (dogfood-first — ratified).
+- **A3 (new — the firing rule).** Ambient notifications fire only when ALL hold: merchant confidence high (truth graph) ∧ recommended card ≠ user's default ∧ advantage clears the switch threshold ∧ merchant not muted. Silence is the default state; post-purchase ✓/⚠ feedback carries retention, not pre-purchase pings.
+- **A4 (new — capture paths).** Apple Pay: iOS Shortcuts "Transaction" automation → App Intent → local store → spine sync (accepted platform risk: per-card setup, Apple may change it; FinanceKit remains closed for Canada). Online: the absorbed email ingestion. Physical swipe/insert gap is measured, not promised away: statement-CSV reconciliation is the coverage instrument.
+- **A5 (new — UI split).** iOS stays a single-responsibility control centre (wallet, valuations, feedback log, one value-recovered figure + a small monthly summary). Deep analytics/visualization lives on the web hub only. No dashboard duplication in Swift.
+- **A6 (new — honesty invariant).** The feedback loop inherits the measurement discipline unchanged: estimates labeled, misses attributed honestly (including "we recommended wrong"), eligibility-gated metrics, `nil` over flattery. Roadmap note (not v1): card-*acquisition* recommendations via PortfolioAnalyzer's counterfactual run in reverse (add-a-card marginal value) — the question affiliate sites can't answer honestly.
