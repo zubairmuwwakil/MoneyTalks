@@ -33,9 +33,9 @@ export async function buildDigestForUser(userId: string, now: Date, tz = "Americ
   const overdue = notifs.filter((n: Notif) => n.type === "REFUND_OVERDUE").length;
 
   const sections = {
-    returns: returns.map((n: Notif) => ({ title: n.title, date: n.body ?? iso(n.eventDate), link: "/dashboard/calendar" })),
-    bills: bills.map((n: Notif) => ({ title: n.title, date: n.body ?? iso(n.eventDate), link: "/dashboard/calendar" })),
-    subs: subs.map((n: Notif) => ({ title: n.title, date: n.body ?? iso(n.eventDate), link: "/dashboard/calendar" })),
+    returns: returns.map((n: Notif) => ({ title: n.title, date: n.body ?? iso(n.eventDate), link: "/returns" })),
+    bills: bills.map((n: Notif) => ({ title: n.title, date: n.body ?? iso(n.eventDate), link: "/bills/month" })),
+    subs: subs.map((n: Notif) => ({ title: n.title, date: n.body ?? iso(n.eventDate), link: "/subscriptions" })),
   };
 
   const counts = {

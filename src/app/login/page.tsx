@@ -21,7 +21,7 @@ export default async function LoginPage() {
         </div>
 
         <div className="flex justify-center">
-          <SignIn fallbackRedirectUrl="/" signUpUrl="/login" signInUrl="/login" />
+          <SignIn routing="hash" fallbackRedirectUrl="/" signUpUrl="/login" signInUrl="/login" />
         </div>
       </div>
     </main>

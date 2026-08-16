@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import {
   Coins,
   DollarSign,
@@ -383,6 +384,29 @@ export default async function SettingsPage({
               </p>
             ) : null}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-sm font-semibold">Purchase intelligence &amp; privacy</CardTitle>
+          <CardDescription>
+            Control email scanning, review detected purchases, and manage notifications or your exported data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Link href="/settings/automation" className="inline-flex h-9 items-center rounded-lg bg-foreground px-3 text-xs font-semibold text-background hover:bg-foreground/90">
+            Email &amp; automation
+          </Link>
+          <Link href="/settings/automation/review" className="inline-flex h-9 items-center rounded-lg border border-input px-3 text-xs font-semibold hover:bg-muted">
+            Inbox review
+          </Link>
+          <Link href="/notifications" className="inline-flex h-9 items-center rounded-lg border border-input px-3 text-xs font-semibold hover:bg-muted">
+            Notifications
+          </Link>
+          <Link href="/settings/privacy" className="inline-flex h-9 items-center rounded-lg border border-input px-3 text-xs font-semibold hover:bg-muted">
+            Privacy &amp; export
+          </Link>
         </CardContent>
       </Card>
     </main>

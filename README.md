@@ -5,7 +5,7 @@ rules engine that surfaces cross-border compliance triggers and money
 opportunities (grants, credits, benefit thresholds).
 
 - **Stack:** Next.js (App Router) · TypeScript · Tailwind + shadcn/ui ·
-  Prisma + Postgres (Neon) · Auth.js (passkeys + magic link) · Vercel
+  Prisma + Postgres (Neon) · Clerk · Vercel
 - **Design spec:** [`docs/superpowers/specs/2026-08-14-moneytalks-design.md`](docs/superpowers/specs/2026-08-14-moneytalks-design.md)
 - **Privacy by construction:** the repo contains zero personal data — all
   personal records enter at runtime through an authenticated import path,
@@ -58,3 +58,11 @@ not financial advice.
 
 Tests: `npm test` (engines, ~230 unit tests) · `npm run lint` · `npm run build` ·
 `npm run e2e` (Playwright, full flows against a test database)
+
+### Scheduled notification jobs
+
+`vercel.json` schedules `/api/cron/digest` every 15 minutes and
+`/api/cron/notify` hourly. Set `CRON_SECRET` in Vercel: Vercel Cron sends it as
+`Authorization: Bearer <CRON_SECRET>` and `cronAuth` also accepts
+`x-cron-secret` for other schedulers. The cron routes are deliberately exempt
+from Clerk, but fail closed when the secret is absent or incorrect.

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const isPublicRoute = createRouteMatcher(["/", "/login(.*)", "/api/health"]);
+// Cron handlers authenticate their bearer token with cronAuth; Clerk sessions
+// are intentionally unavailable to Vercel Cron.
+const isPublicRoute = createRouteMatcher(["/", "/login(.*)", "/api/health", "/api/cron(.*)"]);
 const isApiRoute = createRouteMatcher(["/api(.*)"]);
 
 export const proxy = clerkMiddleware(async (auth, req) => {

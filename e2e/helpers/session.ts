@@ -1,9 +1,9 @@
 import type { Browser, BrowserContext } from "@playwright/test";
 import { clerk } from "@clerk/testing/playwright";
 import { createClerkClient } from "@clerk/backend";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../src/lib/prisma";
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 // Clerk treats any local part before "+clerk_test@example.com" as a test

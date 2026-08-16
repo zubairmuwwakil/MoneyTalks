@@ -45,3 +45,6 @@ next-env.d.ts
 test-results/
 playwright-report/
 output/
+
+# --- Local receipt storage (temporary until Blob storage lands in δ) ---
+uploads/
