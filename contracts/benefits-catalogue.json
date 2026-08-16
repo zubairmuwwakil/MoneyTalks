@@ -1,0 +1,1149 @@
+{
+  "benefitsCatalogueVersion": "0.2.0",
+  "_provenance": "Issuer-document sourcing pass completed 2026-08-16. Nine cards were re-derived from issuer-published Certificates of Insurance / Guides to Coverage and are marked issuerPage; unverified stub values were not carried forward. Crypto.com Royal Indigo remains stub because the exact prepaid-card agreement was found but no Certificate of Insurance or explicit certificate-level no-insurance statement was located. issuerPage is not a substitute for Zubair's own cardholder-document verification.",
+  "triggers": {
+    "bigTicketThresholdCad": 150,
+    "consumableCategories": [
+      "dining",
+      "grocery",
+      "foodDelivery",
+      "gasStation",
+      "transit",
+      "drugStore",
+      "entertainment",
+      "fitness"
+    ]
+  },
+  "cards": [
+    {
+      "cardId": "amex-platinum",
+      "certificate": {
+        "underwriter": "Belair Insurance Company Inc.",
+        "sourceUrl": "https://www.americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/The-Platinum-Card-COI-EN.pdf",
+        "certificateDate": "2025-07",
+        "lastVerifiedAt": "2026-08-16",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "platinum-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 120,
+            "maxPerOccurrenceCad": 1000
+          },
+          "conditions": [
+            "At least part of the purchase price must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Certificate provides 120 days of Purchase Protection; the old 90-day stub was not retained."
+        },
+        {
+          "benefitId": "platinum-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Eligible original manufacturer warranty must be five years or less."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Buyer’s Assurance extends an eligible original warranty by up to one additional year."
+        },
+        {
+          "benefitId": "platinum-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "The eligible ticket fare must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Maximum is per occurrence for reasonable necessary expenses covered by the delay benefit."
+        },
+        {
+          "benefitId": "platinum-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 6,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "The eligible ticket fare must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Coverage is for emergency purchases when checked baggage is delayed."
+        },
+        {
+          "benefitId": "platinum-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 1000
+          },
+          "conditions": [
+            "The eligible ticket fare must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Certificate includes lower sublimits for some property classes, including jewellery and golf equipment."
+        },
+        {
+          "benefitId": "platinum-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxCad": 2500
+          },
+          "conditions": [
+            "Loss must result from a covered cause under the Trip Cancellation certificate."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "$2,500 maximum per insured person; $5,000 combined maximum per trip."
+        },
+        {
+          "benefitId": "platinum-trip-interruption",
+          "family": "travelDisruption",
+          "kind": "tripInterruption",
+          "coverage": {
+            "maxCad": 2500
+          },
+          "conditions": [
+            "Loss must result from a covered cause after departure under the Trip Interruption certificate."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "$2,500 maximum per insured person; $6,000 combined maximum per trip."
+        },
+        {
+          "benefitId": "platinum-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 85000
+          },
+          "conditions": [
+            "Charge the full rental cost to the Card.",
+            "Decline the rental agency collision/loss damage waiver."
+          ],
+          "exclusions": [
+            "Vehicles above the certificate's $85,000 MSRP threshold are not eligible."
+          ],
+          "certificateQuote": null,
+          "notes": "Maximum rental period is 48 consecutive days."
+        },
+        {
+          "benefitId": "platinum-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 5000000,
+            "maxTripLengthDays": 15,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "Insured person must be a Canadian resident covered by a government health insurance plan."
+          ],
+          "exclusions": [
+            "Coverage is limited to insured persons age 64 or under on departure."
+          ],
+          "certificateQuote": null,
+          "notes": "Up to $5,000,000 per insured person per trip; first 15 consecutive days are covered."
+        }
+      ]
+    },
+    {
+      "cardId": "amex-cobalt",
+      "certificate": {
+        "underwriter": "Belair Insurance Company Inc.",
+        "sourceUrl": "https://americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/Cobalt-Card-COI-EN.pdf",
+        "certificateDate": "2025-07",
+        "lastVerifiedAt": "2026-08-16",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "cobalt-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 1000
+          },
+          "conditions": [
+            "At least part of the purchase price must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "cobalt-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Eligible original manufacturer warranty must be five years or less."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "cobalt-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1000,
+            "deductibleCad": null
+          },
+          "conditions": [
+            "The device/payment arrangement must meet the certificate's Card-charging requirements."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Maximum $1,000. Deductible is 10% of the depreciated value, so no fixed deductibleCad is encoded; depreciation is 2% per completed month."
+        },
+        {
+          "benefitId": "cobalt-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "The eligible ticket fare must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "cobalt-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 6,
+            "maxCad": 500
+          },
+          "conditions": [
+            "The eligible ticket fare must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "cobalt-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 500
+          },
+          "conditions": [
+            "The eligible ticket fare must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "cobalt-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 85000
+          },
+          "conditions": [
+            "Charge the full rental cost to the Card.",
+            "Decline the rental agency collision/loss damage waiver."
+          ],
+          "exclusions": [
+            "Vehicles above the certificate's $85,000 MSRP threshold are not eligible."
+          ],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "cobalt-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 5000000,
+            "maxTripLengthDays": 15,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "Insured person must be a Canadian resident covered by a government health insurance plan."
+          ],
+          "exclusions": [
+            "Coverage is limited to insured persons age 64 or under on departure."
+          ],
+          "certificateQuote": null,
+          "notes": "Up to $5,000,000 per insured person per trip; first 15 consecutive days are covered."
+        }
+      ]
+    },
+    {
+      "cardId": "amex-bonvoy",
+      "certificate": {
+        "underwriter": "Belair Insurance Company Inc.",
+        "sourceUrl": "https://americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/Marriott-Bonvoy-Card-COI-EN.pdf",
+        "certificateDate": "2025-07",
+        "lastVerifiedAt": "2026-08-16",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "bonvoy-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 1000
+          },
+          "conditions": [
+            "At least part of the purchase price must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "bonvoy-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Eligible original manufacturer warranty must be five years or less."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "bonvoy-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "The eligible ticket fare must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "bonvoy-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 6,
+            "maxCad": 500
+          },
+          "conditions": [
+            "The eligible ticket fare must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "bonvoy-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 500
+          },
+          "conditions": [
+            "The eligible ticket fare must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "This modeled benefit was absent from the original stub but is present in the current certificate."
+        },
+        {
+          "benefitId": "bonvoy-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 85000
+          },
+          "conditions": [
+            "Charge the full rental cost to the Card.",
+            "Decline the rental agency collision/loss damage waiver."
+          ],
+          "exclusions": [
+            "Vehicles above the certificate's $85,000 MSRP threshold are not eligible."
+          ],
+          "certificateQuote": null,
+          "notes": null
+        }
+      ]
+    },
+    {
+      "cardId": "mbna-rewards-we",
+      "certificate": {
+        "underwriter": "TD Home and Auto Insurance Company; TD Life Insurance Company; American Bankers Insurance Company of Florida (ABIC)",
+        "sourceUrl": "https://www.mbna.ca/content/dam/mbna/document/pdf/credit-cards/mbna-rewards-world-elite-guide-to-coverage-en.pdf",
+        "certificateDate": null,
+        "lastVerifiedAt": "2026-08-16",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "mbna-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "The full purchase cost must be charged to the Account."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company. The guide has category sublimits and a cumulative account limit, not a generic per-occurrence or annual maximum suitable for the typed fields."
+        },
+        {
+          "benefitId": "mbna-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": null
+          },
+          "conditions": [
+            "The full purchase cost must be charged to the Account."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company. Original warranties longer than five years may still qualify if registered as required, so maxOriginalWarrantyYears is intentionally null."
+        },
+        {
+          "benefitId": "mbna-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1000,
+            "deductibleCad": null
+          },
+          "conditions": [
+            "At least 75% of the device purchase price, or the qualifying plan payments, must meet the guide's Account-charging rules."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by American Bankers Insurance Company of Florida (ABIC). Deductible is tiered by device cost ($25/$50/$75/$100), so deductibleCad is intentionally null; depreciation is 2% per completed month."
+        },
+        {
+          "benefitId": "mbna-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "The covered-trip ticket must satisfy the guide's Account-payment requirement."
+          ],
+          "exclusions": [
+            "Delay on the return to the insured person's home location is excluded."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company. Combined delayed/lost baggage maximum is $1,000 per insured person per covered trip."
+        },
+        {
+          "benefitId": "mbna-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 1000
+          },
+          "conditions": [
+            "The covered-trip ticket must satisfy the guide's Account-payment requirement."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company. Combined delayed/lost baggage maximum is $1,000 per insured person per covered trip."
+        },
+        {
+          "benefitId": "mbna-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "A covered trip generally requires at least 75% of the fare to be charged to the Account or paid with qualifying rewards."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company."
+        },
+        {
+          "benefitId": "mbna-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 31,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Charge the full rental cost to the Account.",
+            "Decline the rental agency collision/loss damage waiver."
+          ],
+          "exclusions": [
+            "Vehicles with market value of $65,000 or more are excluded."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company. The $65,000 typed value is the certificate threshold; the exclusion is strict at $65,000."
+        },
+        {
+          "benefitId": "mbna-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 2000000,
+            "maxTripLengthDays": 21,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "Coverage applies during the first 21 days of an eligible trip."
+          ],
+          "exclusions": [
+            "Coverage is limited to insured persons under age 65."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Life Insurance Company; maximum $2,000,000."
+        }
+      ]
+    },
+    {
+      "cardId": "scotia-momentum-vi-plus",
+      "certificate": {
+        "underwriter": "First North American Insurance Company (FNAIC); The Manufacturers Life Insurance Company (Manulife)",
+        "sourceUrl": "https://www.scotiabank.com/content/dam/scotiabank/canada/common/documents/pdf/Momentum-Infinite-plus-COI-EN.pdf",
+        "certificateDate": "2021-07",
+        "lastVerifiedAt": "2026-08-16",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "scotia-purchase-security",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "The full purchase price must be charged to the Account."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC. The certificate uses a cumulative lifetime shopping-benefit limit rather than a generic per-occurrence/annual maximum, so those typed fields are null."
+        },
+        {
+          "benefitId": "scotia-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": null
+          },
+          "conditions": [
+            "The full purchase price must be charged to the Account."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC. Warranties of five years or more may be eligible if registered as required, so maxOriginalWarrantyYears is intentionally null."
+        },
+        {
+          "benefitId": "scotia-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1000,
+            "deductibleCad": null
+          },
+          "conditions": [
+            "The device/payment arrangement must meet the certificate's Account-charging requirements."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC. Deductible is tiered ($25/$50/$75/$100) and depreciation is 2% per completed month, so deductibleCad is intentionally null."
+        },
+        {
+          "benefitId": "scotia-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "At least 75% of the common-carrier ticket cost must meet the certificate's Account-payment requirement."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC."
+        },
+        {
+          "benefitId": "scotia-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "At least 75% of the common-carrier ticket cost must meet the certificate's Account-payment requirement."
+          ],
+          "exclusions": [
+            "Baggage delay on the return to the insured person's home location is excluded."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC."
+        },
+        {
+          "benefitId": "scotia-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 500
+          },
+          "conditions": [
+            "At least 75% of the common-carrier ticket cost must meet the certificate's Account-payment requirement."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC; maximum is per trip for all insured persons combined."
+        },
+        {
+          "benefitId": "scotia-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxCad": 1500
+          },
+          "conditions": [
+            "Eligible trip expenses must satisfy the certificate's Account-payment requirement."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by Manulife and/or FNAIC depending on the covered cause. $1,500 maximum per insured person; $10,000 aggregate per trip."
+        },
+        {
+          "benefitId": "scotia-trip-interruption",
+          "family": "travelDisruption",
+          "kind": "tripInterruption",
+          "coverage": {
+            "maxCad": 2000
+          },
+          "conditions": [
+            "Eligible trip expenses must satisfy the certificate's Account-payment requirement."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by Manulife and/or FNAIC depending on the covered cause. $2,000 maximum per insured person; $10,000 aggregate per trip. The old $1,500 stub was corrected."
+        },
+        {
+          "benefitId": "scotia-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Charge the full rental cost to the Account.",
+            "Decline the rental agency collision/loss damage waiver."
+          ],
+          "exclusions": [
+            "Vehicles above the certificate's $65,000 MSRP threshold are excluded."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC."
+        },
+        {
+          "benefitId": "scotia-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 1000000,
+            "maxTripLengthDays": 15,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "Coverage applies during the first 15 consecutive days of an eligible trip."
+          ],
+          "exclusions": [
+            "Coverage is limited to insured persons under age 65."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by Manulife. The old 25-day stub was corrected to 15 days."
+        }
+      ]
+    },
+    {
+      "cardId": "tangerine-moneyback-world",
+      "certificate": {
+        "underwriter": "American Bankers Insurance Company of Florida (ABIC)",
+        "sourceUrl": "https://www.tangerine.ca/content/dam/tangerine/en/pdfs/credit-card-cardholder-agreement/5_Tangerine_World_Mastercard_Certificate_of_Insurance_FINAL.pdf",
+        "certificateDate": "2025-10",
+        "lastVerifiedAt": "2026-08-16",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "tangerine-purchase-assurance",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "The full purchase cost must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "The certificate has a cumulative Purchase Assurance/Extended Warranty account limit, not a generic per-occurrence or annual maximum suitable for these typed fields."
+        },
+        {
+          "benefitId": "tangerine-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": null
+          },
+          "conditions": [
+            "The full purchase cost must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Original warranties of five years or more may qualify if registered within the required period, so maxOriginalWarrantyYears is intentionally null."
+        },
+        {
+          "benefitId": "tangerine-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1000,
+            "deductibleCad": null
+          },
+          "conditions": [
+            "The device/payment arrangement must satisfy the certificate's Card-charging requirements."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Deductible is tiered ($25/$50/$75/$100) and depreciation is 2% per completed month, so deductibleCad is intentionally null."
+        },
+        {
+          "benefitId": "tangerine-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 31,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Charge the full rental cost to the Card.",
+            "Decline the rental agency collision/loss damage waiver."
+          ],
+          "exclusions": [
+            "Vehicles with actual cash value above $65,000 are excluded."
+          ],
+          "certificateQuote": null,
+          "notes": "This modeled benefit was absent from the original stub but is present in the current certificate."
+        }
+      ]
+    },
+    {
+      "cardId": "rogers-red-we",
+      "certificate": {
+        "underwriter": "CUMIS General Insurance Company",
+        "sourceUrl": "https://www.rogersbank.com/legaldocs/en/Rogers_Bank_World_Elite_Mastercard_Certificate_of_Insurance.pdf",
+        "certificateDate": "2024-04",
+        "lastVerifiedAt": "2026-08-16",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "rogers-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "The full purchase price must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "The certificate uses a cumulative Purchase Protection/Extended Warranty account limit rather than a generic per-occurrence/annual maximum."
+        },
+        {
+          "benefitId": "rogers-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": null
+          },
+          "conditions": [
+            "The full purchase price must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Original warranties longer than five years may qualify if registered as required, so maxOriginalWarrantyYears is intentionally null."
+        },
+        {
+          "benefitId": "rogers-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxCad": 1000
+          },
+          "conditions": [
+            "The full cost of the eligible trip must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "$1,000 maximum per insured person; $5,000 aggregate per trip."
+        },
+        {
+          "benefitId": "rogers-trip-interruption",
+          "family": "travelDisruption",
+          "kind": "tripInterruption",
+          "coverage": {
+            "maxCad": 1000
+          },
+          "conditions": [
+            "The full cost of the eligible trip must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "$1,000 maximum per insured person; $5,000 aggregate per trip."
+        },
+        {
+          "benefitId": "rogers-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 31,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Charge the full rental cost, including applicable taxes and fees, to the Card.",
+            "Decline the rental agency collision/loss damage waiver."
+          ],
+          "exclusions": [
+            "Vehicles above the certificate's $65,000 MSRP threshold are excluded."
+          ],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "rogers-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 1000000,
+            "maxTripLengthDays": null,
+            "ageLimit": 76
+          },
+          "conditions": [
+            "Trip-length eligibility varies by age under the certificate."
+          ],
+          "exclusions": [
+            "Coverage ends when the insured person reaches age 76."
+          ],
+          "certificateQuote": null,
+          "notes": "Maximum $1,000,000. Age 64 or younger: first 10 days; ages 65–75: first 3 days. maxTripLengthDays is null because a single value would misrepresent the tiered rule."
+        }
+      ]
+    },
+    {
+      "cardId": "triangle-we",
+      "certificate": {
+        "underwriter": "American Bankers Insurance Company of Florida (ABIC)",
+        "sourceUrl": "https://media-triangle.canadiantire.ca/banners/promo-content/2022/01/5728-omz-elite-cert-ins-booklet-en.pdf",
+        "certificateDate": "2018-04",
+        "lastVerifiedAt": "2026-08-16",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "triangle-purchase-security",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": 10000
+          },
+          "conditions": [
+            "The full purchase cost must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "$10,000 is the certificate's per-account calendar-year limit; no generic per-occurrence maximum is encoded."
+        },
+        {
+          "benefitId": "triangle-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": null
+          },
+          "conditions": [
+            "The full purchase cost must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Original warranties longer than five years may qualify if registered as required, so maxOriginalWarrantyYears is intentionally null."
+        },
+        {
+          "benefitId": "triangle-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 31,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Charge the full rental cost to the Card.",
+            "Decline the rental agency collision/loss damage waiver."
+          ],
+          "exclusions": [
+            "Vehicles above the certificate's $65,000 MSRP threshold are excluded."
+          ],
+          "certificateQuote": null,
+          "notes": "Current Triangle World Elite product page still links this April 2018 certificate."
+        }
+      ]
+    },
+    {
+      "cardId": "wealthsimple-vip",
+      "certificate": {
+        "underwriter": "Chubb Insurance Company of Canada",
+        "sourceUrl": "https://www.wealthsimple.com/en-ca/credit-card/certificate-of-insurance-chubb-vip",
+        "certificateDate": "2026-06",
+        "lastVerifiedAt": "2026-08-16",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "wsvip-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 1000
+          },
+          "conditions": [
+            "The eligible purchase must satisfy the certificate's Card-payment requirement."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "The previous stub was replaced from the exact Wealthsimple Visa Infinite Privilege certificate."
+        },
+        {
+          "benefitId": "wsvip-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "The eligible purchase must satisfy the certificate's Card-payment requirement."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "wsvip-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1000,
+            "deductibleCad": 50
+          },
+          "conditions": [
+            "The monthly cellular-service bill must be charged to the Card before the covered incident as required by the certificate."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Maximum two covered claims in a 12-month period."
+        },
+        {
+          "benefitId": "wsvip-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 3,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "The full airline ticket cost must satisfy the certificate's Card-payment requirement."
+          ],
+          "exclusions": [
+            "This coverage is not available to Quebec residents."
+          ],
+          "certificateQuote": null,
+          "notes": "Threshold is 3 hours for the covered delay circumstances in the certificate."
+        },
+        {
+          "benefitId": "wsvip-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 6,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "The full airline ticket cost must satisfy the certificate's Card-payment requirement."
+          ],
+          "exclusions": [
+            "This coverage is not available to Quebec residents."
+          ],
+          "certificateQuote": null,
+          "notes": "Covered emergency purchases must meet the certificate's timing rules after the baggage delay."
+        },
+        {
+          "benefitId": "wsvip-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 1000
+          },
+          "conditions": [
+            "The full airline ticket cost must satisfy the certificate's Card-payment requirement."
+          ],
+          "exclusions": [
+            "This coverage is not available to Quebec residents."
+          ],
+          "certificateQuote": null,
+          "notes": "The certificate also imposes a combined delayed/lost baggage liability limit."
+        },
+        {
+          "benefitId": "wsvip-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxCad": 1500
+          },
+          "conditions": [
+            "The eligible trip cost must satisfy the certificate's Card-payment requirement."
+          ],
+          "exclusions": [
+            "This coverage is not available to Quebec residents."
+          ],
+          "certificateQuote": null,
+          "notes": "$1,500 maximum per insured person; $5,000 aggregate per trip."
+        },
+        {
+          "benefitId": "wsvip-trip-interruption",
+          "family": "travelDisruption",
+          "kind": "tripInterruption",
+          "coverage": {
+            "maxCad": 1500
+          },
+          "conditions": [
+            "The eligible trip cost must satisfy the certificate's Card-payment requirement."
+          ],
+          "exclusions": [
+            "This coverage is not available to Quebec residents."
+          ],
+          "certificateQuote": null,
+          "notes": "$1,500 maximum per insured person; $5,000 aggregate per trip."
+        },
+        {
+          "benefitId": "wsvip-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 31,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Charge the eligible rental cost to the Card.",
+            "Decline the rental agency collision/loss damage waiver."
+          ],
+          "exclusions": [
+            "Vehicles above the certificate's $65,000 value threshold are excluded."
+          ],
+          "certificateQuote": null,
+          "notes": null
+        },
+        {
+          "benefitId": "wsvip-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 2000000,
+            "maxTripLengthDays": 14,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "Coverage applies during the first 14 consecutive days of an eligible trip."
+          ],
+          "exclusions": [
+            "Coverage is limited to insured persons under age 65.",
+            "This coverage is not available to Quebec residents."
+          ],
+          "certificateQuote": null,
+          "notes": "Maximum $2,000,000 per insured person."
+        }
+      ]
+    },
+    {
+      "cardId": "cryptocom-royal-indigo",
+      "certificate": {
+        "underwriter": null,
+        "sourceUrl": null,
+        "certificateDate": null,
+        "lastVerifiedAt": null,
+        "verificationStatus": "stub"
+      },
+      "benefits": []
+    }
+  ]
+}

@@ -1,0 +1,284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pickme.local/contracts/card-catalogue.schema.json",
+  "title": "PickMe card catalogue",
+  "description": "Documents the shape of card-catalogue.json exactly as decoded by Engine/Sources/CardCopilotEngine/Models/CatalogueModels.swift — it does not redesign the shape (spec §4). Two distinct 'unused' markers appear below: \"x-status\": \"declared-not-computed\" means the field IS a Swift struct property but no scoring/matching logic (RuleMatcher, Scorer, CapMath, PortfolioAnalyzer) ever reads it; \"x-status\": \"documentation-only\" means the field has NO corresponding Swift property at all, so JSONDecoder silently drops it on load — it is pure human-facing metadata. Three behaviors are engine-defined rather than data-defined: ownerConditions ids, program.programId (which the Scorer's valuation dispatch switches on), and the pseudo-categories/categoryParents RuleMatcher special-cases. This schema enumerates their current legal values; adding a new one is an engine code change, not a catalogue edit.",
+  "type": "object",
+  "required": ["catalogueVersion", "currency", "cards"],
+  "additionalProperties": false,
+  "properties": {
+    "catalogueVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "MAJOR.MINOR. Load-bearing: SeedLoader.validate(catalogueVersion:) parses MAJOR and throws SeedLoaderError.unsupportedCatalogueVersion if it isn't a MAJOR this build recognizes (currently only 1). Bump MAJOR on any breaking shape change, MINOR on additive/compatible ones; every edit gets a CHANGELOG.md entry (spec §3)."
+    },
+    "currency": {
+      "type": "string",
+      "const": "CAD",
+      "description": "Catalogue-wide reporting currency. Not per-card; individual purchases can still be USD (see PurchaseContext.currency in engine-fixtures.schema.json)."
+    },
+    "_provenance": {
+      "type": "string",
+      "x-status": "documentation-only",
+      "description": "Free-text sourcing note. No Catalogue.provenance property exists in Swift."
+    },
+    "cards": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/cardProduct" }
+    }
+  },
+  "$defs": {
+    "cardProduct": {
+      "type": "object",
+      "description": "Mirrors CardProduct — every listed property below is non-optional in Swift and therefore required here.",
+      "required": [
+        "cardId", "officialName", "issuer", "network", "kind", "fee", "program",
+        "fxRules", "earnRules", "caps", "perTransactionRewardVisibility", "lastVerifiedAt"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": { "description": "Free-text annotation (e.g. _note). Not decoded by the engine." }
+      },
+      "properties": {
+        "cardId": { "type": "string", "description": "Stable identifier; also CardProduct.id." },
+        "officialName": { "type": "string" },
+        "issuer": { "type": "string" },
+        "network": { "enum": ["amex", "visa", "mastercard"], "description": "Network enum. A purchase's acceptedNetworks must contain this or Scorer excludes the card outright (Warning.networkNotAccepted)." },
+        "kind": { "enum": ["credit", "charge", "prepaid"] },
+        "fee": { "$ref": "#/$defs/fee" },
+        "program": { "$ref": "#/$defs/program" },
+        "fxRules": { "type": "array", "items": { "$ref": "#/$defs/fxRule" }, "description": "RuleMatcher.activeFxRule picks the first entry whose effectiveFrom/effectiveTo window covers asOf; later entries let an announced future rate coexist with the current one." },
+        "earnRules": { "type": "array", "items": { "$ref": "#/$defs/earnRule" } },
+        "caps": { "type": "array", "items": { "$ref": "#/$defs/cap" } },
+        "perTransactionRewardVisibility": {
+          "type": "string",
+          "examples": ["issuerConfirmed", "ownerObserved", "unknown"],
+          "description": "Free String in Swift, not an enum — these three are the catalogue's current convention, not a type-level constraint."
+        },
+        "lastVerifiedAt": { "type": "string", "format": "date" },
+        "sources": {
+          "type": "array", "items": { "type": "string", "format": "uri" },
+          "x-status": "documentation-only",
+          "description": "Issuer source URLs. CardProduct has no `sources` property."
+        },
+        "stacking": {
+          "type": "string", "x-status": "documentation-only",
+          "description": "Free-text stacking note (e.g. MBNA's five independent $50k caps). Not decoded."
+        },
+        "categoryMccReference": {
+          "type": "object", "x-status": "documentation-only",
+          "description": "Human MCC-to-category lookup table (Tangerine). Not decoded; RuleMatcher never reads it."
+        },
+        "redemption": {
+          "type": "object", "x-status": "documentation-only",
+          "description": "Human-readable redemption mechanics. Not decoded."
+        },
+        "redemptionFactors": {
+          "type": "array", "x-status": "documentation-only",
+          "description": "Documented redemption boost factors (e.g. Rogers' 1.5x service redemption). Not decoded and not scored in v1 — see the factor's own _note."
+        }
+      }
+    },
+    "fee": {
+      "type": "object",
+      "description": "Every field optional in Swift's Fee struct.",
+      "additionalProperties": false,
+      "patternProperties": { "^_": {} },
+      "properties": {
+        "annualCad": { "type": "number" },
+        "monthlyCad": { "type": "number" },
+        "billing": { "type": "string", "examples": ["monthly"] },
+        "waiver": { "type": "string" }
+      }
+    },
+    "program": {
+      "type": "object",
+      "required": ["programId", "unit"],
+      "additionalProperties": false,
+      "patternProperties": { "^_": {} },
+      "properties": {
+        "programId": {
+          "enum": ["amexMembershipRewards", "marriottBonvoy", "mbnaRewards", "ctMoney", "cro", "cashback"],
+          "description": "Engine-defined valuation dispatch key — Scorer.valueCad switches on this string against OwnerState.valuationsCad. A new programId requires an engine code change, not just a catalogue edit."
+        },
+        "unit": { "type": "string", "examples": ["point", "cad", "ctDollar", "cro"] }
+      }
+    },
+    "fxRule": {
+      "type": "object",
+      "required": ["status", "rate"],
+      "additionalProperties": false,
+      "patternProperties": { "^_": {} },
+      "properties": {
+        "status": {
+          "enum": ["current", "announced"],
+          "x-status": "declared-not-computed",
+          "description": "Decoded onto FxRule.status but RuleMatcher.activeFxRule selects purely by effectiveFrom/effectiveTo window, never by this field."
+        },
+        "effectiveFrom": { "type": ["string", "null"], "format": "date" },
+        "effectiveTo": { "type": ["string", "null"], "format": "date" },
+        "announcedAt": {
+          "type": "string", "format": "date",
+          "x-status": "documentation-only",
+          "description": "FxRule has no `announcedAt` property — dropped silently on decode."
+        },
+        "rate": { "type": "number", "description": "FX spread as a fraction (0.025 = 2.5%)." },
+        "freeAllowanceCadPerCalendarMonth": {
+          "type": "number",
+          "description": "When present, Scorer only appends Warning.fxAllowanceAssumed — it does not net the allowance out of fxCost."
+        },
+        "postAllowanceRate": {
+          "type": "number",
+          "x-status": "declared-not-computed",
+          "description": "Decoded onto FxRule.postAllowanceRate but Scorer never applies it; fxCost is either 0 (allowance present) or amountCad * rate (no allowance), regardless of this value."
+        },
+        "sourceType": {
+          "enum": ["issuerConfirmed", "ownerObserved", "inferred"],
+          "x-status": "documentation-only",
+          "description": "Unlike EarnRule.sourceType, FxRule has NO sourceType property in Swift at all — this key is present in every JSON record but silently dropped on decode."
+        },
+        "lastVerifiedAt": {
+          "type": "string", "format": "date",
+          "x-status": "documentation-only",
+          "description": "FxRule has no `lastVerifiedAt` property — dropped silently on decode (contrast CardProduct.lastVerifiedAt and EarnRule.lastVerifiedAt, which are both real)."
+        },
+        "sources": {
+          "type": "array", "items": { "type": "string" },
+          "x-status": "documentation-only"
+        }
+      }
+    },
+    "earnRule": {
+      "type": "object",
+      "required": ["ruleId", "status", "sourceType", "lastVerifiedAt", "earn", "predicate", "capId"],
+      "additionalProperties": false,
+      "patternProperties": { "^_": {} },
+      "properties": {
+        "ruleId": { "type": "string" },
+        "status": {
+          "enum": ["current", "announced"],
+          "x-status": "declared-not-computed",
+          "description": "Decoded onto EarnRule.status but RuleMatcher.isLive only checks effectiveFrom/effectiveTo/scoredInV1 — this field never gates anything."
+        },
+        "effectiveFrom": { "type": ["string", "null"], "format": "date" },
+        "effectiveTo": { "type": ["string", "null"], "format": "date" },
+        "sourceType": { "$ref": "#/$defs/sourceType" },
+        "lastVerifiedAt": { "type": "string", "format": "date" },
+        "earn": { "$ref": "#/$defs/earn" },
+        "predicate": { "$ref": "#/$defs/predicate" },
+        "capId": { "type": ["string", "null"] },
+        "ownerConditions": {
+          "type": "array",
+          "items": {
+            "enum": ["rogersEligibleServiceLinked", "cryptoLevelUpProActive", "tangerineCategorySelected"]
+          },
+          "description": "Engine-defined gate ids — RuleMatcher.conditionsResolveTrue switches on these exact strings and treats any unknown id as unresolved (fails closed). A new id requires an engine code change."
+        },
+        "scoredInV1": {
+          "type": "boolean",
+          "description": "false excludes the rule from RuleMatcher.isLive regardless of dates. Absent means true."
+        }
+      }
+    },
+    "sourceType": {
+      "enum": ["issuerConfirmed", "ownerObserved", "inferred"],
+      "x-status": "declared-not-computed",
+      "description": "Decoded onto EarnRule.sourceType (a real Swift property, unlike FxRule's copy of this same key) but never read by any matching or scoring logic."
+    },
+    "earn": {
+      "type": "object",
+      "required": ["type"],
+      "description": "Union on `type`, matching the Earn enum's custom Codable implementation.",
+      "oneOf": [
+        {
+          "properties": {
+            "type": { "const": "points" },
+            "pointsPerCad": { "type": "number" }
+          },
+          "required": ["pointsPerCad"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "cashback" },
+            "rate": { "type": "number" },
+            "rewardCurrency": { "type": ["string", "null"] }
+          },
+          "required": ["rate"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "type": { "const": "centsPerLitre" },
+            "premiumCentsPerLitre": {
+              "type": "number", "x-status": "documentation-only",
+              "description": "Earn.centsPerLitre carries no associated value in Swift; the custom decoder reads only `type` for this case and ignores every other key."
+            },
+            "otherCentsPerLitre": { "type": "number", "x-status": "documentation-only" }
+          },
+          "additionalProperties": false,
+          "description": "Informational only — Scorer.rawEarn maps this case to -1, and any rule using it (see triangle-fuel-cpl) also sets scoredInV1: false. Needs litres to value, which the catalogue doesn't carry."
+        }
+      ]
+    },
+    "predicate": {
+      "type": "object",
+      "description": "Every field optional in Swift's Predicate struct. An empty object {} matches any purchase (base rule).",
+      "additionalProperties": false,
+      "patternProperties": { "^_": {} },
+      "properties": {
+        "categories": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Purchase-category strings, PLUS two engine-defined pseudo-categories RuleMatcher.matches special-cases: \"recurring\" (checks PurchaseContext.recurringIndicator, ignoring the purchase's actual category) and \"ownerSelectedTangerineCategory\" (checks CardState.selectedCategories). Also subject to RuleMatcher.categoryParents expansion — currently only \"marriottDirect\" implies [\"lodging\", \"travel\"], so a predicate listing the parent still matches the more specific purchase category."
+        },
+        "mccInclude": {
+          "type": "array", "items": { "type": "integer" },
+          "description": "When present alongside `categories` and the purchase has a known MCC, the MCC must also be in this list. A nil/unknown purchase MCC falls back to matching on category alone (the permissive-fallback path)."
+        },
+        "mccExclude": { "type": "array", "items": { "type": "integer" } },
+        "merchantInclude": { "type": "array", "items": { "type": "string" } },
+        "merchantExclude": { "type": "array", "items": { "type": "string" }, "description": "Checked before mccInclude/categories — a brand exclusion wins even if the MCC would otherwise qualify (see Costco vs Triangle grocery)." },
+        "country": { "type": "string" },
+        "currency": { "type": "string" },
+        "channels": { "type": "array", "items": { "type": "string" }, "examples": [["amexTravel"]] },
+        "recurringViaNetworkIndicator": {
+          "type": "boolean",
+          "x-status": "declared-not-computed",
+          "description": "Decoded onto Predicate.recurringViaNetworkIndicator but RuleMatcher.matches never reads it — the actual recurring gate is the \"recurring\" pseudo-category checking PurchaseContext.recurringIndicator directly."
+        }
+      }
+    },
+    "cap": {
+      "type": "object",
+      "required": ["capId", "measure", "limit", "period", "resetTimeZone", "proration"],
+      "additionalProperties": false,
+      "patternProperties": { "^_": {} },
+      "properties": {
+        "capId": { "type": "string" },
+        "measure": { "enum": ["spendCad", "spendUsdEquivalent"] },
+        "limit": { "type": "number" },
+        "period": {
+          "enum": ["calendarMonth", "calendarYear", "accountYear"],
+          "description": "Read by PortfolioAnalyzer for monthly-cap reporting — the only one of period/anchor/resetTimeZone the engine actually consumes."
+        },
+        "anchor": {
+          "type": "string",
+          "x-status": "declared-not-computed",
+          "description": "Decoded onto Cap.anchor (a self-documenting pointer string like \"ownerState.scotiaAccountYearAnchorMonth\") but nothing resolves or reads it — cap usage comes entirely from the externally-tracked OwnerState.CardState.capProgress, not from period math the engine performs itself."
+        },
+        "resetTimeZone": {
+          "type": "string",
+          "x-status": "declared-not-computed",
+          "description": "Decoded onto Cap.resetTimeZone but the engine never computes a period rollover, so this is never read."
+        },
+        "postCapEarn": { "$ref": "#/$defs/earn" },
+        "proration": {
+          "type": "boolean",
+          "x-status": "declared-not-computed",
+          "description": "Decoded onto Cap.proration but CapMath.split always splits a straddling purchase proportionally, unconditionally — this flag is never branched on."
+        }
+      }
+    }
+  }
+}

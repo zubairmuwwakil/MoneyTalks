@@ -1,0 +1,499 @@
+{
+  "catalogueVersion": "1.0",
+  "currency": "CAD",
+  "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md — all rules verified 2026-08-15 against issuer pages cited there.",
+  "cards": [
+    {
+      "cardId": "amex-platinum",
+      "officialName": "The Platinum Card from American Express",
+      "issuer": "American Express Canada",
+      "network": "amex",
+      "kind": "charge",
+      "fee": { "annualCad": 799 },
+      "program": { "programId": "amexMembershipRewards", "unit": "point" },
+      "fxRules": [
+        { "status": "current", "effectiveFrom": null, "effectiveTo": null, "rate": 0.025, "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15" }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "platinum-base",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 1 },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "platinum-dining-ca-2x",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 2 },
+          "predicate": { "categories": ["dining", "foodDelivery"], "country": "CA" },
+          "capId": null,
+          "_note": "Qualifying restaurants, QSR, coffee shops, drinking establishments, qualifying food delivery. Grocery never becomes dining. Processor coding controls."
+        },
+        {
+          "ruleId": "platinum-travel-2x",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 2 },
+          "predicate": { "categories": ["travel", "lodging"] },
+          "capId": null,
+          "_note": "Air, water, rail, road passenger transport, lodging, tour operators. Local commuter transportation is NOT in this bucket."
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "ownerObserved",
+      "sources": ["https://www.americanexpress.com/en-ca/charge-cards/the-platinum-card/"],
+      "lastVerifiedAt": "2026-08-15"
+    },
+    {
+      "cardId": "amex-cobalt",
+      "officialName": "American Express Cobalt Card",
+      "issuer": "American Express Canada",
+      "network": "amex",
+      "kind": "credit",
+      "fee": { "annualCad": 191.88, "billing": "monthly", "monthlyCad": 15.99 },
+      "program": { "programId": "amexMembershipRewards", "unit": "point", "_note": "Full Membership Rewards, not MR Select." },
+      "fxRules": [
+        { "status": "current", "effectiveFrom": null, "effectiveTo": null, "rate": 0.025, "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15" }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "cobalt-base",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 1 },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "cobalt-eats-5x",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 5 },
+          "predicate": { "categories": ["dining", "grocery", "foodDelivery"], "country": "CA" },
+          "capId": "cobalt-eats-monthly",
+          "_note": "Eligible eats & drinks in Canada: restaurants, QSR, coffee shops, drinking establishments, STANDALONE grocery stores, qualifying food/grocery delivery. Processor/aggregator coding can drop to 1x."
+        },
+        {
+          "ruleId": "cobalt-streaming-3x",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 3 },
+          "predicate": { "categories": ["streaming"], "country": "CA" },
+          "capId": null,
+          "_note": "Participating services on Amex's current streaming list only. Bundles or charges via telco/third-party platform may not qualify."
+        },
+        {
+          "ruleId": "cobalt-gas-transit-2x",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 2 },
+          "predicate": { "categories": ["gasStation", "transit"], "country": "CA" },
+          "capId": null,
+          "_note": "Standalone gas stations + local commuter transportation (subway, streetcar, taxi, limo, rideshare). NOT a generic travel category."
+        },
+        {
+          "ruleId": "cobalt-amex-travel-bonus",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 2 },
+          "predicate": { "channels": ["amexTravel"], "categories": ["lodging", "carRental"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "Channel-specific: +1 bonus point on eligible prepaid hotel/car via Amex Travel (2 total). Not scored in v1 physical-checkout flow."
+        }
+      ],
+      "caps": [
+        {
+          "capId": "cobalt-eats-monthly",
+          "measure": "spendCad",
+          "limit": 2500,
+          "period": "calendarMonth",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": { "type": "points", "pointsPerCad": 1 },
+          "proration": true,
+          "_note": "Posted net purchases drive the cap; later returns do not restore 5x room within the month."
+        }
+      ],
+      "perTransactionRewardVisibility": "ownerObserved",
+      "sources": ["https://www.americanexpress.com/en-ca/credit-cards/cobalt-card/"],
+      "lastVerifiedAt": "2026-08-15"
+    },
+    {
+      "cardId": "amex-bonvoy",
+      "officialName": "Marriott Bonvoy American Express Card",
+      "issuer": "American Express Canada",
+      "network": "amex",
+      "kind": "credit",
+      "fee": { "annualCad": 120 },
+      "program": { "programId": "marriottBonvoy", "unit": "point" },
+      "fxRules": [
+        { "status": "current", "effectiveFrom": null, "effectiveTo": null, "rate": 0.025, "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15" }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "bonvoy-base",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 2 },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "bonvoy-marriott-5x",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 5 },
+          "predicate": { "categories": ["marriottDirect"] },
+          "capId": null,
+          "_note": "Charged DIRECTLY by participating Marriott properties / standalone Marriott retail / Marriott-branded online stores. Hotel-adjacent merchants, third-party bookings, separately-coded restaurants earn 2x."
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "ownerObserved",
+      "sources": ["https://www.americanexpress.com/en-ca/credit-cards/marriott-bonvoy-card/"],
+      "lastVerifiedAt": "2026-08-15"
+    },
+    {
+      "cardId": "mbna-rewards-we",
+      "officialName": "MBNA Rewards World Elite Mastercard",
+      "issuer": "MBNA",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": { "annualCad": 120 },
+      "program": { "programId": "mbnaRewards", "unit": "point" },
+      "fxRules": [
+        { "status": "current", "effectiveFrom": null, "effectiveTo": null, "rate": 0.025, "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15" }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "mbna-base",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 1 },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "mbna-restaurants-5x",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 5 },
+          "predicate": { "categories": ["dining"], "mccInclude": [5812, 5814] },
+          "capId": "mbna-restaurants-annual"
+        },
+        {
+          "ruleId": "mbna-grocery-5x",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 5 },
+          "predicate": { "categories": ["grocery"], "mccInclude": [5411, 5462, 5499] },
+          "capId": "mbna-grocery-annual"
+        },
+        {
+          "ruleId": "mbna-digital-media-5x",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 5 },
+          "predicate": { "categories": ["digitalMedia", "streaming"], "mccInclude": [5968, 5815, 5816] },
+          "capId": "mbna-digital-annual"
+        },
+        {
+          "ruleId": "mbna-memberships-5x",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 5 },
+          "predicate": { "categories": ["memberships"], "mccInclude": [7997, 8699] },
+          "capId": "mbna-memberships-annual"
+        },
+        {
+          "ruleId": "mbna-utilities-5x",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "points", "pointsPerCad": 5 },
+          "predicate": { "categories": ["householdUtilities"], "mccInclude": [4814, 4899, 4900] },
+          "capId": "mbna-utilities-annual"
+        }
+      ],
+      "caps": [
+        { "capId": "mbna-restaurants-annual", "measure": "spendCad", "limit": 50000, "period": "calendarYear", "resetTimeZone": "America/Toronto", "postCapEarn": { "type": "points", "pointsPerCad": 1 }, "proration": true },
+        { "capId": "mbna-grocery-annual", "measure": "spendCad", "limit": 50000, "period": "calendarYear", "resetTimeZone": "America/Toronto", "postCapEarn": { "type": "points", "pointsPerCad": 1 }, "proration": true },
+        { "capId": "mbna-digital-annual", "measure": "spendCad", "limit": 50000, "period": "calendarYear", "resetTimeZone": "America/Toronto", "postCapEarn": { "type": "points", "pointsPerCad": 1 }, "proration": true },
+        { "capId": "mbna-memberships-annual", "measure": "spendCad", "limit": 50000, "period": "calendarYear", "resetTimeZone": "America/Toronto", "postCapEarn": { "type": "points", "pointsPerCad": 1 }, "proration": true },
+        { "capId": "mbna-utilities-annual", "measure": "spendCad", "limit": 50000, "period": "calendarYear", "resetTimeZone": "America/Toronto", "postCapEarn": { "type": "points", "pointsPerCad": 1 }, "proration": true }
+      ],
+      "stacking": "exclusive-best",
+      "perTransactionRewardVisibility": "unknown",
+      "sources": ["https://www.mbna.ca/en/credit-cards/rewards/mbna-rewards-world-elite-mastercard"],
+      "lastVerifiedAt": "2026-08-15",
+      "_note": "FIVE SEPARATE $50k calendar-year spend caps, one per category — not one shared cap. Birthday bonus (10% of trailing-12-month points, max 15,000) intentionally excluded from checkout scoring."
+    },
+    {
+      "cardId": "scotia-momentum-vi-plus",
+      "officialName": "Scotia Momentum Visa Infinite + Card",
+      "issuer": "Scotiabank",
+      "network": "visa",
+      "kind": "credit",
+      "fee": { "annualCad": 120 },
+      "program": { "programId": "cashback", "unit": "cad" },
+      "fxRules": [
+        { "status": "current", "effectiveFrom": null, "effectiveTo": null, "rate": 0.025, "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15" }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "momentum-base",
+          "status": "current", "effectiveFrom": "2026-02-01", "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.01 },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "momentum-grocery-recurring-4pct",
+          "status": "current", "effectiveFrom": "2026-02-01", "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.04 },
+          "predicate": {
+            "categories": ["grocery", "recurring"],
+            "mccInclude": [5411],
+            "merchantExclude": ["costco"],
+            "recurringViaNetworkIndicator": true
+          },
+          "capId": "momentum-4pct-accountYear",
+          "_note": "Grocery = terminal submitted as MCC 5411. Costco is NOT grocery for this rule. Walmart: never hard-code either way — only a location/terminal actually submitting 5411 qualifies (learned per-terminal). Recurring = network recurring-payment indicator, not merchant frequency."
+        },
+        {
+          "ruleId": "momentum-gas-ev-transit-2pct",
+          "status": "current", "effectiveFrom": "2026-02-01", "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.02 },
+          "predicate": {
+            "categories": ["gasStation", "evCharging", "transit", "foodDelivery"],
+            "mccInclude": [5541, 5542, 5552, 4111, 4112, 4121, 4131, 4789],
+            "_foodDeliveryNote": "selected food-delivery services per issuer list"
+          },
+          "capId": "momentum-2pct-accountYear"
+        }
+      ],
+      "caps": [
+        { "capId": "momentum-4pct-accountYear", "measure": "spendCad", "limit": 25000, "period": "accountYear", "anchor": "ownerState.scotiaAccountYearAnchorMonth", "resetTimeZone": "America/Toronto", "postCapEarn": { "type": "cashback", "rate": 0.01 }, "proration": true },
+        { "capId": "momentum-2pct-accountYear", "measure": "spendCad", "limit": 25000, "period": "accountYear", "anchor": "ownerState.scotiaAccountYearAnchorMonth", "resetTimeZone": "America/Toronto", "postCapEarn": { "type": "cashback", "rate": 0.01 }, "proration": true }
+      ],
+      "redemption": { "minimumCad": 25, "_note": "Statement credit or eligible Scotia deposit account; 1:1 CAD." },
+      "perTransactionRewardVisibility": "unknown",
+      "sources": ["https://www.scotiabank.com/ca/en/personal/credit-cards/visa/momentum-infinite-card/welcome-kit/terms-conditions-momentum-infinite.html"],
+      "lastVerifiedAt": "2026-08-15"
+    },
+    {
+      "cardId": "tangerine-moneyback-world",
+      "officialName": "Tangerine Money-Back World Mastercard",
+      "issuer": "Tangerine",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": { "annualCad": 0 },
+      "program": { "programId": "cashback", "unit": "cad" },
+      "fxRules": [
+        { "status": "current", "effectiveFrom": null, "effectiveTo": null, "rate": 0.025, "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15" }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "tangerine-base",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.005 },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "tangerine-selected-2pct",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.02 },
+          "predicate": { "categories": ["ownerSelectedTangerineCategory"] },
+          "ownerConditions": ["tangerineCategorySelected"],
+          "capId": null,
+          "_note": "2% unlimited in 2 selected categories (3 when rewards deposit to Tangerine Savings). One 2% rate per transaction, no stacking. 90-day change timing on selections."
+        }
+      ],
+      "categoryMccReference": {
+        "drugStore": [5912, 5122],
+        "eatingPlaces": [5812, 5813, 5814],
+        "gas": [5541, 5542],
+        "grocery": [5411, 5462],
+        "_others": "entertainment, furniture, homeImprovement, hotelMotel, transitParking, recurringBills, fitness, eGames, foreignCurrency — full MCC set on issuer page",
+        "_foreignCurrencyGotcha": "Foreign Currency 2% still pays 2.5% FX → net ≈ −0.5% vs converted CAD. Not a no-FX substitute."
+      },
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "sources": ["https://www.tangerine.ca/en/personal/spend/credit-cards/merchant-category-codes"],
+      "lastVerifiedAt": "2026-08-15"
+    },
+    {
+      "cardId": "rogers-red-we",
+      "officialName": "Rogers Red World Elite Mastercard",
+      "issuer": "Rogers Bank",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": { "annualCad": 0 },
+      "program": { "programId": "cashback", "unit": "cad" },
+      "fxRules": [
+        { "status": "current", "effectiveFrom": null, "effectiveTo": null, "rate": 0.025, "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15" }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "rogers-base-1_5",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.015 },
+          "predicate": {},
+          "capId": "rogers-enhanced-accountYear"
+        },
+        {
+          "ruleId": "rogers-base-2-with-service",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.02 },
+          "predicate": {},
+          "ownerConditions": ["rogersEligibleServiceLinked"],
+          "capId": "rogers-enhanced-accountYear"
+        },
+        {
+          "ruleId": "rogers-usd-3pct",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.03 },
+          "predicate": { "currency": "USD" },
+          "capId": "rogers-enhanced-accountYear",
+          "_note": "Calculated after CAD conversion; 2.5% FX still applies → net ≈ +0.5% before spread. Wealthsimple 2%/no-FX usually beats this; Rogers matters where Mastercard is required (Costco)."
+        }
+      ],
+      "caps": [
+        { "capId": "rogers-enhanced-accountYear", "measure": "spendCad", "limit": 61000, "period": "accountYear", "anchor": "ownerState.rogersAccountAnniversaryMonth", "resetTimeZone": "America/Toronto", "postCapEarn": { "type": "cashback", "rate": 0.015 }, "proration": true, "_note": "Enhanced structure applies to first $61,000 eligible net purchases per account year." }
+      ],
+      "redemptionFactors": [
+        { "factorId": "rogers-service-redemption-1_5x", "factor": 1.5, "condition": "eligibleServiceRedemption", "minimumRedemptionCad": 10, "recentPurchaseWindowDays": 90, "defaultAppliedAtCheckout": false, "_note": "1.5x value boost when redeemed against eligible Rogers/Fido/Shaw/Comwave/Sportsnet+ transactions. Model as redemption factor, NOT an earn category; apply in scoring only when the owner opts in." }
+      ],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "sources": ["https://www.rogersbank.com/en/rogers_red_worldelite_mastercard_details"],
+      "lastVerifiedAt": "2026-08-15"
+    },
+    {
+      "cardId": "triangle-we",
+      "officialName": "Triangle World Elite Mastercard",
+      "issuer": "Canadian Tire Financial Services",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": { "annualCad": 0 },
+      "program": { "programId": "ctMoney", "unit": "ctDollar" },
+      "fxRules": [
+        { "status": "current", "effectiveFrom": null, "effectiveTo": null, "rate": 0.025, "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15" }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "triangle-base",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.01, "rewardCurrency": "CT" },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "triangle-ct-family-4pct",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.04, "rewardCurrency": "CT" },
+          "predicate": { "categories": ["ctFamily"] },
+          "capId": null,
+          "_note": "Pre-tax qualifying amount at participating banners: Canadian Tire, Sport Chek, Mark's/L'Équipeur, Party City, Atmosphere, Pro Hockey Life, Sports Rousseau, Hockey Experts, participating Sports Experts. Gift cards and certain products excluded."
+        },
+        {
+          "ruleId": "triangle-grocery-3pct",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.03, "rewardCurrency": "CT" },
+          "predicate": { "categories": ["grocery"], "mccInclude": [5411], "merchantExclude": ["walmart", "walmart-superstore", "costco"] },
+          "capId": "triangle-grocery-annual",
+          "_note": "Walmart, Walmart Superstore, and Costco expressly excluded even if grocery-like."
+        },
+        {
+          "ruleId": "triangle-fuel-cpl",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "centsPerLitre", "premiumCentsPerLitre": 7, "otherCentsPerLitre": 5 },
+          "predicate": { "categories": ["gasStation"], "merchantInclude": ["gas-plus", "petro-canada"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "Cents-per-litre at participating Gas+/Essence+/Petro-Canada; needs litres to value — shown as informational note in v1, not scored."
+        }
+      ],
+      "caps": [
+        { "capId": "triangle-grocery-annual", "measure": "spendCad", "limit": 12000, "period": "calendarYear", "resetTimeZone": "America/Toronto", "postCapEarn": { "type": "cashback", "rate": 0.01, "rewardCurrency": "CT" }, "proration": true }
+      ],
+      "perTransactionRewardVisibility": "unknown",
+      "sources": ["https://triangle.canadiantire.ca/en/credit-cards/triangle-world-elite-mastercard.html"],
+      "lastVerifiedAt": "2026-08-15",
+      "_note": "CT Money is closed-loop: CT$1 = C$1 only at participating Canadian Tire-family stores. Valuation applies optional usability factor from owner state."
+    },
+    {
+      "cardId": "wealthsimple-vip",
+      "officialName": "Wealthsimple Visa Infinite Privilege Credit Card",
+      "issuer": "Wealthsimple",
+      "network": "visa",
+      "kind": "credit",
+      "fee": { "annualCad": 240, "billing": "monthly", "monthlyCad": 20, "waiver": "≥$100k qualifying Wealthsimple assets or $4,000/month direct deposit" },
+      "program": { "programId": "cashback", "unit": "cad" },
+      "fxRules": [
+        { "status": "current", "effectiveFrom": null, "effectiveTo": null, "rate": 0.0, "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15" }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "wealthsimple-2pct",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.02 },
+          "predicate": {},
+          "capId": null,
+          "_note": "2% unlimited, no accelerated categories, no cap. Cash-like exclusions apply; ordinary foreign-currency retail purchases DO earn."
+        }
+      ],
+      "caps": [],
+      "redemption": { "_note": "Manual redemption to most eligible Wealthsimple accounts (RESP/RRIF/spousal RRIF excluded); not applied directly to card balance; 1:1 CAD." },
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "sources": ["https://www.wealthsimple.com/en-ca/credit-card"],
+      "lastVerifiedAt": "2026-08-15"
+    },
+    {
+      "cardId": "cryptocom-royal-indigo",
+      "officialName": "Crypto.com Prepaid Visa Card (Royal Indigo)",
+      "issuer": "Digital Commerce Bank (Crypto.com program)",
+      "network": "visa",
+      "kind": "prepaid",
+      "fee": { "annualCad": 0, "_note": "Ranking must use Level Up Pro economics, not card fee: C$39.99/mo, C$399.90/yr, or qualifying C$6,500 12-month CRO lockup." },
+      "program": { "programId": "cro", "unit": "cro" },
+      "fxRules": [
+        { "status": "current", "effectiveFrom": null, "effectiveTo": "2026-08-31", "rate": 0.0, "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15" },
+        { "status": "announced", "effectiveFrom": "2026-09-01", "effectiveTo": null, "announcedAt": "2026-08-15", "rate": 0.0, "freeAllowanceCadPerCalendarMonth": 1400, "postAllowanceRate": 0.02, "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15", "sources": ["https://help.crypto.com/en/articles/5966447-crypto-com-prepaid-visa-card-fees-and-limits-canada"] }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "crypto-pro-3pct",
+          "status": "current", "effectiveFrom": null, "effectiveTo": null,
+          "sourceType": "issuerConfirmed", "lastVerifiedAt": "2026-08-15",
+          "earn": { "type": "cashback", "rate": 0.03, "rewardCurrency": "CRO" },
+          "predicate": { "mccExclude": [4829, 4900, 5734, 5947, 6012, 6051, 6211, 6300, 6513, 6532, 6540, 7372, 8999, 9222, 9311, 9399] },
+          "ownerConditions": ["cryptoLevelUpProActive"],
+          "capId": "crypto-monthly-usd",
+          "_note": "3% in CRO only while Level Up Pro is active. Card art does not establish the rate. No active plan → no rewards → engine excludes card entirely."
+        }
+      ],
+      "caps": [
+        { "capId": "crypto-monthly-usd", "measure": "spendUsdEquivalent", "limit": 2500, "period": "calendarMonth", "resetTimeZone": "UTC", "postCapEarn": { "type": "cashback", "rate": 0.0 }, "proration": true, "_note": "US$2,500-equivalent eligible spend per calendar month, resets 00:00 UTC day 1. Marketing page's '$75' cap label has a currency ambiguity — spend cap + source currency stored explicitly; flagged for issuer review." }
+      ],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "sources": ["https://help.crypto.com/en/articles/2742447-crypto-com-prepaid-card-rewards-benefits"],
+      "lastVerifiedAt": "2026-08-15"
+    }
+  ]
+}

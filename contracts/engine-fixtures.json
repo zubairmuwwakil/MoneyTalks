@@ -1,0 +1,144 @@
+{
+  "fixturesVersion": "1.0",
+  "_note": "Executable spec for RecommendationEngine. Amounts CAD unless stated. Expected values are exact engine outputs (unrounded beyond 4dp); UI rounds to cents at display. Valuations: MR pinned to 1.8¢ by pinnedValuations below (owner-state.json now ranks at the 1.0¢ floor), MBNA 1.0¢, Bonvoy 0.8¢, cash 1:1, CT ×0.95, CRO ×1.0 auto-sold / ×0.8 held. Default card wealthsimple-vip; threshold both(0.5pp, $0.25). Base owner state per owner-state.json: rogersEligibleServiceLinked=false, cryptoLevelUpProActive=false, Tangerine treatAsAllSelected (2% hypothetical everywhere — can only tie WS, never clears threshold), Scotia 4% cap progress $12,500. Ties rank the default card first.",
+  "pinnedValuations": {
+    "amexMembershipRewards": 1.8,
+    "_why": "These 12 cases document ENGINE BEHAVIOUR and are pinned to an above-floor MR value so they exercise points-vs-cash ranking. They deliberately do NOT track owner-state.json, whose live setting is the 1.0¢ cash floor — otherwise every valuation change would re-baseline the whole spec and the temptation would be to accept engine output rather than re-derive the arithmetic."
+  },
+  "cases": [
+    {
+      "caseId": "grocery-standalone-100",
+      "description": "Standalone grocery (Loblaws), $100, MCC 5411, all networks accepted",
+      "purchase": { "amountCad": 100, "currency": "CAD", "category": "grocery", "mcc": 5411, "merchantBrand": "loblaws", "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"] },
+      "expected": {
+        "winner": "amex-cobalt", "winnerValueCad": 9.00, "winnerRule": "cobalt-eats-5x",
+        "runnerUp": "mbna-rewards-we", "runnerUpValueCad": 5.00,
+        "switchFromDefault": true, "advantageOverDefaultCad": 7.00,
+        "notes": "500 MR × 1.8¢ = $9.00. Momentum $4.00, WS $2.00, Triangle 3%CT×0.95 = $2.85 (drawer)."
+      }
+    },
+    {
+      "caseId": "costco-mastercard-only-200",
+      "description": "Costco warehouse, $200, MCC 5300 (NOT 5411), Mastercard only",
+      "purchase": { "amountCad": 200, "currency": "CAD", "category": "wholesaleClub", "mcc": 5300, "merchantBrand": "costco", "recurringIndicator": false, "acceptedNetworks": ["mastercard"] },
+      "expected": {
+        "winner": "rogers-red-we", "winnerValueCad": 3.00, "winnerRule": "rogers-base-1_5",
+        "runnerUp": "mbna-rewards-we", "runnerUpValueCad": 2.00,
+        "switchFromDefault": true, "defaultNotAccepted": true,
+        "notes": "Default WS (Visa) gated out by acceptance. MBNA grocery 5x does NOT fire (5300 ∉ {5411,5462,5499}); Triangle grocery excluded by merchantExclude AND MCC. Rogers 1.5% = $3.00 (service not linked). With rogersEligibleServiceLinked=true, winner value becomes $4.00."
+      }
+    },
+    {
+      "caseId": "restaurant-50",
+      "description": "Restaurant, $50, MCC 5812, all networks",
+      "purchase": { "amountCad": 50, "currency": "CAD", "category": "dining", "mcc": 5812, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"] },
+      "expected": {
+        "winner": "amex-cobalt", "winnerValueCad": 4.50, "winnerRule": "cobalt-eats-5x",
+        "runnerUp": "mbna-rewards-we", "runnerUpValueCad": 2.50,
+        "switchFromDefault": true, "advantageOverDefaultCad": 3.50,
+        "notes": "250 MR × 1.8¢. Platinum dining 2x = $1.80 — three Amex cards ranked correctly against each other."
+      }
+    },
+    {
+      "caseId": "cobalt-cap-proration-100",
+      "description": "Grocery $100 with cobalt-eats-monthly progress $2,450 — purchase straddles the cap",
+      "purchase": { "amountCad": 100, "currency": "CAD", "category": "grocery", "mcc": 5411, "merchantBrand": "loblaws", "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"] },
+      "ownerStateOverrides": { "cardStates": { "amex-cobalt": { "capProgress": { "cobalt-eats-monthly": 2450 } } } },
+      "expected": {
+        "winner": "amex-cobalt", "winnerValueCad": 5.40, "winnerRule": "cobalt-eats-5x",
+        "runnerUp": "mbna-rewards-we", "runnerUpValueCad": 5.00,
+        "switchFromDefault": true,
+        "notes": "Prorated: $50 in-cap × 5 + $50 over-cap × 1 = 300 MR × 1.8¢ = $5.40. Cobalt still edges MBNA by $0.40."
+      }
+    },
+    {
+      "caseId": "cobalt-cap-exhausted-100",
+      "description": "Grocery $100 with Cobalt monthly cap fully consumed — winner must flip",
+      "purchase": { "amountCad": 100, "currency": "CAD", "category": "grocery", "mcc": 5411, "merchantBrand": "loblaws", "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"] },
+      "ownerStateOverrides": { "cardStates": { "amex-cobalt": { "capProgress": { "cobalt-eats-monthly": 2500 } } } },
+      "expected": {
+        "winner": "mbna-rewards-we", "winnerValueCad": 5.00, "winnerRule": "mbna-grocery-5x",
+        "runnerUp": "scotia-momentum-vi-plus", "runnerUpValueCad": 4.00,
+        "switchFromDefault": true,
+        "notes": "Cobalt post-cap 1x = $1.80. THE killer feature: the silent winner-flip a human can't track."
+      }
+    },
+    {
+      "caseId": "netflix-recurring-15_49",
+      "description": "Netflix subscription $15.49, MCC 5968, network recurring indicator set, online",
+      "purchase": { "amountCad": 15.49, "currency": "CAD", "category": "streaming", "mcc": 5968, "merchantBrand": "netflix", "recurringIndicator": true, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "expected": {
+        "winner": "amex-cobalt", "winnerValueCad": 0.8365, "winnerRule": "cobalt-streaming-3x",
+        "runnerUp": "mbna-rewards-we", "runnerUpValueCad": 0.7745,
+        "switchFromDefault": true,
+        "notes": "Cobalt 3x: 46.47 MR × 1.8¢ = $0.8365. MBNA digital-media 5x (5968) $0.7745. Momentum recurring 4% = $0.6196. Advantage over WS $0.5267 → 3.4pp — clears both thresholds."
+      }
+    },
+    {
+      "caseId": "usd-online-165cad-crypto-inactive",
+      "description": "US$ online purchase ≈ C$165, all networks, Level Up Pro inactive",
+      "purchase": { "amountCad": 165, "currency": "USD", "category": "other", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "expected": {
+        "winner": "wealthsimple-vip", "winnerValueCad": 3.30, "winnerRule": "wealthsimple-2pct",
+        "runnerUp": "rogers-red-we", "runnerUpValueCad": 0.825,
+        "switchFromDefault": false,
+        "notes": "WS 2% no FX. Rogers USD 3% − 2.5% FX = $0.825 net. Cobalt nets NEGATIVE: $2.97 − $4.125 FX = −$1.155. Crypto excluded (Pro inactive)."
+      }
+    },
+    {
+      "caseId": "usd-online-165cad-crypto-pro-autosell",
+      "description": "Same USD purchase with Level Up Pro active and CRO auto-sold",
+      "purchase": { "amountCad": 165, "currency": "USD", "category": "other", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "ownerStateOverrides": { "cardStates": { "cryptocom-royal-indigo": { "cryptoLevelUpProActive": true, "croHandling": "autoSell" } } },
+      "expected": {
+        "winner": "cryptocom-royal-indigo", "winnerValueCad": 4.95, "winnerRule": "crypto-pro-3pct",
+        "runnerUp": "wealthsimple-vip", "runnerUpValueCad": 3.30,
+        "switchFromDefault": true, "advantageOverDefaultCad": 1.65,
+        "notes": "3% × $165 × 1.0 (auto-sold), 0% FX (pre-2026-09-01 rule), under US$2,500 monthly cap. With croHandling=hold: $4.95 × 0.8 = $3.96 — still wins but narrower."
+      }
+    },
+    {
+      "caseId": "marriott-direct-300",
+      "description": "Marriott property direct charge, $300, all networks",
+      "purchase": { "amountCad": 300, "currency": "CAD", "category": "marriottDirect", "mcc": 3509, "merchantBrand": "marriott", "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"] },
+      "expected": {
+        "winner": "amex-bonvoy", "winnerValueCad": 12.00, "winnerRule": "bonvoy-marriott-5x",
+        "runnerUp": "amex-platinum", "runnerUpValueCad": 10.80,
+        "switchFromDefault": true,
+        "notes": "1500 Bonvoy × 0.8¢ = $12.00 vs Platinum travel 2x: 600 MR × 1.8¢ = $10.80. Close race is intentional — tests valuation sensitivity (Bonvoy at 0.6¢ low flips the winner to Platinum)."
+      }
+    },
+    {
+      "caseId": "canadian-tire-150-drawer",
+      "description": "Canadian Tire store, $150 pre-tax, all networks — drawer card should still win with warning",
+      "purchase": { "amountCad": 150, "currency": "CAD", "category": "ctFamily", "mcc": 5200, "merchantBrand": "canadian-tire", "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"] },
+      "expected": {
+        "winner": "triangle-we", "winnerValueCad": 5.70, "winnerRule": "triangle-ct-family-4pct",
+        "runnerUp": "wealthsimple-vip", "runnerUpValueCad": 3.00,
+        "switchFromDefault": true, "warnings": ["drawerCard"],
+        "notes": "4% × $150 = 6.00 CT × 0.95 usability = $5.70. Drawer status must surface as a warning ('bring the Triangle'), not suppress the win — per dossier §4."
+      }
+    },
+    {
+      "caseId": "pharmacy-30-hold-default",
+      "description": "Pharmacy $30, MCC 5912, Tangerine categories unset — nothing beats the default",
+      "purchase": { "amountCad": 30, "currency": "CAD", "category": "drugStore", "mcc": 5912, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"] },
+      "expected": {
+        "winner": "wealthsimple-vip", "winnerValueCad": 0.60, "winnerRule": "wealthsimple-2pct",
+        "switchFromDefault": false,
+        "notes": "Best challenger is Cobalt 1x = $0.54 (1.8%) < 2%. Tangerine (treat-as-all-selected) hypothetically ties at 2% = $0.60; ties rank the default first, so WS still wins. Recommendation reads 'stay on your default.'"
+      }
+    },
+    {
+      "caseId": "taxi-12-threshold-suppression",
+      "description": "Taxi $12, MCC 4121 — Cobalt technically wins but fails the $0.25 floor",
+      "purchase": { "amountCad": 12, "currency": "CAD", "category": "transit", "mcc": 4121, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"] },
+      "expected": {
+        "winner": "wealthsimple-vip", "winnerValueCad": 0.24, "winnerRule": "wealthsimple-2pct",
+        "suppressedBetterCard": "amex-cobalt", "suppressedValueCad": 0.432,
+        "switchFromDefault": false,
+        "notes": "Cobalt 2x transit: 24 MR × 1.8¢ = $0.432; advantage $0.192 = 1.6pp ≥ 0.5pp BUT < $0.25 → 'both' semantics holds the default. This case distinguishes both-vs-either — under 'either' the winner would be Cobalt. Explanation should still show Cobalt as 'marginally better, not worth the wallet dig.'"
+      }
+    }
+  ]
+}
