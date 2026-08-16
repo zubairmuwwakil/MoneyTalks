@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nav } from "@/components/nav";
+import { SwRegister } from "@/components/sw-register";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <SwRegister />
         <Nav />
         <div className="mx-auto max-w-4xl px-4 pb-20 sm:pb-4">
           {children}
