@@ -73,8 +73,8 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
             {purchase.attachments.map((doc) => (
               <div key={doc.id} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
                 <div className="truncate">{doc.storageKey}</div>
-                <a href={doc.storageKey} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                  View
+                <a href={`/api/documents/${doc.id}`} className="text-blue-600 hover:underline">
+                  Download
                 </a>
               </div>
             ))}

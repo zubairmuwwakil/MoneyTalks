@@ -3,6 +3,7 @@ import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { scheduleRefundChecks, scheduleRefundOverdueOnce, scheduleReturnDeadlineSoon } from "@/lib/domain/notifications/eventNotificationScheduler";
 import { setRefundReceived } from "@/lib/domain/shipping/tracking";
+import { canTransition } from "@/engine/returns/transitions";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const item = await prisma.returnItem.findFirst({ where: { id, userId } });
   if (!item) return new NextResponse("Not found", { status: 404 });
+  if (!canTransition(item.status, "REFUNDED")) {
+    return NextResponse.json(
+      { error: `Cannot transition return from ${item.status} to REFUNDED. Return statuses can only move forward, and REFUNDED is terminal.` },
+      { status: 409 },
+    );
+  }
 
   const updated = await prisma.returnItem.update({
     where: { id },

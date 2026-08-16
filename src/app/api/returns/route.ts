@@ -5,6 +5,7 @@ import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { scheduleReturnDeadlineSoon, scheduleReturnDelivered } from "@/lib/domain/notifications/eventNotificationScheduler";
 import { refreshShipmentTimeline, syncRefundExpectation } from "@/lib/domain/shipping/tracking";
+import { canTransition, type ReturnStatus } from "@/engine/returns/transitions";
 
 function addDaysUTC(base: Date, days: number) {
   const d = new Date(base);
@@ -83,9 +84,12 @@ export async function POST(req: NextRequest) {
     return allowed.has(upper) ? upper : "ORIGINAL";
   })();
 
-  let status: "NOT_STARTED" | "PACKED" | "DROPPED_OFF" | "DELIVERED" | "REFUNDED" = "NOT_STARTED";
+  let status: ReturnStatus = "NOT_STARTED";
   if (delivered) status = "DELIVERED";
   else if (tracking) status = "PACKED";
+  if (!canTransition("NOT_STARTED", status)) {
+    return NextResponse.json({ error: `Cannot initialize return at ${status}` }, { status: 400 });
+  }
 
   const created = await prisma.returnItem.create({
     data: {

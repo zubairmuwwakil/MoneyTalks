@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { refreshShipmentTimeline, syncRefundExpectation } from "@/lib/domain/shipping/tracking";
+import { canTransition, type ReturnStatus } from "@/engine/returns/transitions";
 
 export const runtime = "nodejs";
 
@@ -42,8 +43,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     refundExpectedAt = addDaysUTC(deliveredAt, sla);
   }
 
+  const current = await prisma.returnItem.findFirst({ where: { id, userId } });
+  if (!current) return new NextResponse("Not found", { status: 404 });
+  const nextStatus: ReturnStatus = deliveredAt ? "DELIVERED" : "PACKED";
+  if (!canTransition(current.status as ReturnStatus, nextStatus)) {
+    return NextResponse.json(
+      { error: `Cannot transition return from ${current.status} to ${nextStatus}. Return statuses can only move forward, and REFUNDED is terminal.` },
+      { status: 409 },
+    );
+  }
+
   const updated = await prisma.returnItem.update({
-    where: { id, userId },
+    where: { id },
     data: {
       trackingNumber: trackingRaw,
       carrier,
@@ -51,7 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       deliveredAt,
       refundExpectedAt,
       refundType,
-      status: deliveredAt ? "DELIVERED" : "PACKED",
+      status: nextStatus,
     },
   });
 

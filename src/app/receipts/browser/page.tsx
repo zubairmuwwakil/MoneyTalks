@@ -92,9 +92,7 @@ export default async function ReceiptBrowserPage() {
                         <p className="text-xs text-slate-500">{(doc.sizeBytes / 1024).toFixed(1)} KB</p>
                       </div>
                       <a
-                        href={doc.storagePath}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={`/api/documents/${doc.id}`}
                         className="text-xs font-medium text-blue-600 hover:underline"
                       >
                         View

@@ -325,7 +325,7 @@ export async function scheduleRefundOverdueOnce(args: {
 
   const expectedISO = isoDateOnly(expected);
   const title = `Refund overdue: ${args.store}`;
-  const body = `Expected by ${expectedISO}. Follow up to recover your refund.`;
+  const body = `Estimated refund date: ${expectedISO}. Follow up to recover your refund.`;
   const eventKey = `refund_overdue:${args.returnId}:${expectedISO}`;
 
   await upsertNotification({

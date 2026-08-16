@@ -9,6 +9,7 @@ export interface TransactionRecord {
   type: "payment" | "refund" | "pending";
   notes?: string | null;
   status: string;
+  estimated?: boolean;
 }
 
 
@@ -74,6 +75,7 @@ export async function getReturnTransactionHistory(userId: string, returnId: stri
       type: "pending" as const,
       notes: se.location,
       status: se.statusCode,
+      estimated: true,
     });
   }
 
@@ -87,6 +89,7 @@ export async function getReturnTransactionHistory(userId: string, returnId: stri
       currency: ret.currency,
       type: ret.refundedDate ? ("payment" as const) : ("pending" as const),
       status: "PENDING",
+      estimated: true,
     });
   }
 

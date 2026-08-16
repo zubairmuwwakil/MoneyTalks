@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { parsePurchaseFromRawGmailMessage } from "@/lib/domain/receipts/gmailPurchaseParser";
-import { saveReceiptAttachment } from "@/lib/domain/receipts/receiptAttachmentStorage";
+import { storeReceiptAttachment } from "@/lib/domain/receipts/receiptAttachmentStorage";
 import { getAuthedImap } from "@/lib/services/imapClient";
 import crypto from "crypto";
 
@@ -86,7 +86,6 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const days = Number(body?.days ?? 90);
   const max = Number(body?.max ?? 200);
-  const reprocess = Boolean(body?.reprocess ?? false);
 
   const authedImap = await getAuthedImap(userId);
   if (!authedImap) return NextResponse.json({ error: "IMAP not connected; add credentials at /api/imap/credentials" }, { status: 400 });
@@ -122,7 +121,7 @@ export async function POST(req: NextRequest) {
       const decoded = msg.raw.toString("utf8");
       let trackingHits: TrackingHit[] = [];
 
-      if (!tx || reprocess) {
+      if (!tx) {
         trackingHits = detectTrackingNumbers(decoded);
 
         let parserError: string | null = null;
@@ -180,22 +179,24 @@ export async function POST(req: NextRequest) {
         const attachments = (purchase as unknown as { attachments?: { filename: string; mimetype?: string; content: Buffer }[] }).attachments;
         if (attachments && attachments.length > 0) {
           for (const attachment of attachments) {
-            try {
-              if (attachment.mimetype && (attachment.mimetype.startsWith("image/") || attachment.mimetype === "application/pdf")) {
-                const storagePath = await saveReceiptAttachment(userId, tx.id, attachment.filename, attachment.content);
-                await prisma.receiptDocument.create({
-                  data: {
-                    userId,
-                    emailTransactionId: tx.id,
-                    filename: attachment.filename,
-                    contentType: attachment.mimetype,
-                    storagePath,
-                    sizeBytes: attachment.content.length,
-                  },
-                });
-              }
-            } catch (error) {
-              console.error(`Failed to save attachment ${attachment.filename}:`, error);
+            if (attachment.mimetype && (attachment.mimetype.startsWith("image/") || attachment.mimetype === "application/pdf")) {
+              const storagePath = await storeReceiptAttachment({
+                userId,
+                scopeId: tx.id,
+                filename: attachment.filename,
+                content: attachment.content,
+                contentType: attachment.mimetype,
+              });
+              await prisma.receiptDocument.create({
+                data: {
+                  userId,
+                  emailTransactionId: tx.id,
+                  filename: attachment.filename,
+                  contentType: attachment.mimetype,
+                  storagePath,
+                  sizeBytes: attachment.content.length,
+                },
+              });
             }
           }
         }

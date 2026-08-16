@@ -40,7 +40,6 @@ export async function POST(
     purchaseDate,
     returnWindowDays: windowDays,
     returnBy,
-    status: "NOT_STARTED",
     dropoffDate: null,
     refundedDate: null,
     trackingNumber: null,

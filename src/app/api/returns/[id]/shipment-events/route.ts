@@ -17,5 +17,5 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     orderBy: { occurredAt: "asc" },
   });
 
-  return NextResponse.json({ events });
+  return NextResponse.json({ events, estimated: true });
 }

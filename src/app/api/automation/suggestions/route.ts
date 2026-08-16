@@ -3,6 +3,7 @@ import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { scheduleBillDueSoon, scheduleReturnDeadlineSoon, scheduleReturnDelivered, scheduleSubscriptionRenewalSoon } from "@/lib/domain/notifications/eventNotificationScheduler";
 import { refreshShipmentTimeline, syncRefundExpectation } from "@/lib/domain/shipping/tracking";
+import { canTransition, type ReturnStatus } from "@/engine/returns/transitions";
 
 export const runtime = "nodejs";
 
@@ -151,6 +152,11 @@ export async function POST(req: NextRequest) {
       refundExpectedAt = addDaysUTC(deliveredAt, refundSlaDays);
     }
 
+    const initialStatus: ReturnStatus = deliveredAt ? "DELIVERED" : trackingNumber ? "PACKED" : "NOT_STARTED";
+    if (!canTransition("NOT_STARTED", initialStatus)) {
+      return NextResponse.json({ error: `Cannot initialize return at ${initialStatus}` }, { status: 400 });
+    }
+
     const createdReturn = await prisma.returnItem.create({
       data: {
         userId,
@@ -161,7 +167,7 @@ export async function POST(req: NextRequest) {
         purchaseDate,
         returnWindowDays: windowDays,
         returnBy,
-        status: deliveredAt ? "DELIVERED" : trackingNumber ? "PACKED" : "NOT_STARTED",
+        status: initialStatus,
         dropoffDate: null,
         refundedDate: null,
         trackingNumber,

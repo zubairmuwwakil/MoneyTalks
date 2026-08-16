@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { scheduleReturnDelivered } from "@/lib/domain/notifications/eventNotificationScheduler";
+import { canTransition, type ReturnStatus } from "@/engine/returns/transitions";
 
 type ShipmentStage = { code: string; label: string };
 
@@ -96,6 +97,10 @@ export async function refreshShipmentTimeline(params: {
   let cursor = ret.shipmentEvents.at(-1)?.occurredAt ?? anchor;
   const updates: Record<string, unknown> = {};
   const eventsAdded: Awaited<ReturnType<typeof prisma.shipmentEvent.create>>[] = [];
+  const setForwardStatus = (nextStatus: ReturnStatus) => {
+    const from = (updates.status as ReturnStatus | undefined) ?? (ret.status as ReturnStatus);
+    if (canTransition(from, nextStatus)) updates.status = nextStatus;
+  };
 
   for (let idx = existingMaxIdx + 1; idx <= targetIdx; idx++) {
     const stage = STAGES[idx];
@@ -117,18 +122,18 @@ export async function refreshShipmentTimeline(params: {
     eventsAdded.push(ev);
     cursor = occurredAt;
 
-    if (stage.code === "LABEL_CREATED" && ret.status === "NOT_STARTED" && !updates.status) {
-      updates.status = "PACKED";
+    if (stage.code === "LABEL_CREATED") {
+      setForwardStatus("PACKED");
     }
 
     if (stage.code === "IN_TRANSIT" || stage.code === "OUT_FOR_DELIVERY") {
       if (!ret.dropoffDate && updates.dropoffDate === undefined) updates.dropoffDate = occurredAt;
-      if (ret.status === "NOT_STARTED" && !updates.status) updates.status = "DROPPED_OFF";
+      setForwardStatus("DROPPED_OFF");
     }
 
     if (stage.code === "DELIVERED") {
       updates.deliveredAt = ret.deliveredAt ?? occurredAt;
-      if (ret.status !== "REFUNDED") updates.status = "DELIVERED";
+      setForwardStatus("DELIVERED");
       const expected =
         ret.refundExpectedAt ??
         (updates.deliveredAt

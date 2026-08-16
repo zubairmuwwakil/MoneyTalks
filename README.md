@@ -66,3 +66,11 @@ Tests: `npm test` (engines, ~230 unit tests) · `npm run lint` · `npm run build
 `Authorization: Bearer <CRON_SECRET>` and `cronAuth` also accepts
 `x-cron-secret` for other schedulers. The cron routes are deliberately exempt
 from Clerk, but fail closed when the secret is absent or incorrect.
+
+### Receipt storage
+
+Receipt attachments use a private Vercel Blob store. Connect one to the project
+and set `BLOB_READ_WRITE_TOKEN` (use `vercel env pull` for local development).
+Files are served only through an authenticated download route. When the token is
+absent locally, the app emits a visible warning and stores files in the OS tmp
+directory; that fallback is non-durable and must not be used in deployment.

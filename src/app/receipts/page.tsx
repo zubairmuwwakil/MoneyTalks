@@ -92,6 +92,7 @@ export default async function ReceiptsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${chip.cls}`}>{chip.text}</span>
+                    <a href={`/api/documents/${u.id}`} className="text-xs font-semibold text-cyan-100 hover:underline">Download</a>
                     {u.status === "FAILED" && u.error ? (
                       <span className="truncate text-xs text-rose-200">Error: {u.error}</span>
                     ) : null}

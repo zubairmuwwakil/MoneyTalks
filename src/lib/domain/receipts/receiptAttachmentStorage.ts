@@ -1,52 +1,95 @@
+import { get, put } from "@vercel/blob";
+import { createHash, randomUUID } from "crypto";
 import { promises as fs } from "fs";
+import os from "os";
 import path from "path";
 
-/**
- * Save email attachment to local filesystem
- * Files stored at: public/receipts/[userId]/[emailTransactionId]/[filename]
- * Returns storagePath URL: /receipts/[userId]/[emailTransactionId]/[filename]
- */
-export async function saveReceiptAttachment(
-  userId: string,
-  emailTransactionId: string,
-  filename: string,
-  content: Buffer
-): Promise<string> {
-  // Create directory structure: public/receipts/userId/transactionId/
-  const receiptDir = path.join(process.cwd(), "public", "receipts", userId, emailTransactionId);
-  
-  try {
-    await fs.mkdir(receiptDir, { recursive: true });
-  } catch (error) {
-    console.error("Failed to create receipt directory:", error);
-    throw error;
-  }
+const LOCAL_SCHEME = "local-tmp://";
+const LOCAL_HOST = "moneytalks-receipts";
+const LOCAL_ROOT = path.join(os.tmpdir(), LOCAL_HOST);
 
-  // Sanitize filename to prevent path traversal
-  const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filepath = path.join(receiptDir, sanitizedFilename);
+function safeFilename(filename: string) {
+  return filename.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
+}
 
-  try {
-    await fs.writeFile(filepath, content);
-  } catch (error) {
-    console.error("Failed to write receipt file:", error);
-    throw error;
-  }
-
-  // Return relative URL path
-  return `/receipts/${userId}/${emailTransactionId}/${sanitizedFilename}`;
+function safeSegment(value: string) {
+  return createHash("sha256").update(value).digest("hex").slice(0, 24);
 }
 
 /**
- * Delete all receipts for a transaction
+ * Stores private receipt content in Vercel Blob. A deliberately visible tmp
+ * fallback keeps local development usable when no Blob store is configured.
  */
-export async function deleteReceiptAttachments(userId: string, emailTransactionId: string): Promise<void> {
-  const receiptDir = path.join(process.cwd(), "public", "receipts", userId, emailTransactionId);
+export async function storeReceiptAttachment(params: {
+  userId: string;
+  scopeId: string;
+  filename: string;
+  content: Buffer;
+  contentType: string;
+}): Promise<string> {
+  const filename = safeFilename(params.filename);
+  const pathname = `receipts/${safeSegment(params.userId)}/${safeSegment(params.scopeId)}/${randomUUID()}-${filename}`;
 
-  try {
-    await fs.rm(receiptDir, { recursive: true, force: true });
-  } catch (error) {
-    console.error("Failed to delete receipt attachments:", error);
-    // Don't throw, just log - this is cleanup
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(pathname, params.content, {
+      access: "private",
+      addRandomSuffix: false,
+      contentType: params.contentType,
+    });
+    return blob.url;
   }
+
+  if (process.env.NODE_ENV !== "development") {
+    throw new Error("BLOB_READ_WRITE_TOKEN is required for receipt storage outside local development.");
+  }
+
+  const localPath = path.join(LOCAL_ROOT, ...pathname.split("/"));
+  await fs.mkdir(path.dirname(localPath), { recursive: true });
+  await fs.writeFile(localPath, params.content);
+  console.warn(`[local tmp fallback] BLOB_READ_WRITE_TOKEN is unset; receipt stored at ${LOCAL_SCHEME}${LOCAL_HOST}/${pathname}`);
+  return `${LOCAL_SCHEME}${LOCAL_HOST}/${pathname}`;
+}
+
+type StoredAttachment = {
+  stream: ReadableStream<Uint8Array>;
+  contentType: string;
+};
+
+function localPathFor(storagePath: string) {
+  const url = new URL(storagePath);
+  if (url.protocol !== "local-tmp:" || url.hostname !== LOCAL_HOST) return null;
+  const segments = url.pathname.split("/").filter(Boolean);
+  if (segments.length === 0 || segments.some(segment => segment === "." || segment === "..")) return null;
+  return path.join(LOCAL_ROOT, ...segments);
+}
+
+/** Reads content only after the caller has established ownership. */
+export async function readReceiptAttachment(storagePath: string): Promise<StoredAttachment | null> {
+  if (storagePath.startsWith(LOCAL_SCHEME)) {
+    const localPath = localPathFor(storagePath);
+    if (!localPath) return null;
+    try {
+      const content = await fs.readFile(/* turbopackIgnore: true */ localPath);
+      return {
+        stream: new ReadableStream({
+          start(controller) {
+            controller.enqueue(content);
+            controller.close();
+          },
+        }),
+        contentType: "application/octet-stream",
+      };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw error;
+    }
+  }
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error("BLOB_READ_WRITE_TOKEN is required to read Vercel Blob attachments.");
+  }
+
+  const blob = await get(storagePath, { access: "private" });
+  if (!blob || blob.statusCode !== 200 || !blob.stream) return null;
+  return { stream: blob.stream, contentType: blob.blob.contentType };
 }

@@ -5,6 +5,7 @@ import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { scheduleRefundChecks, scheduleRefundOverdueOnce, scheduleReturnDeadlineSoon, scheduleReturnDelivered } from "@/lib/domain/notifications/eventNotificationScheduler";
 import { refreshShipmentTimeline, setRefundReceived, syncRefundExpectation } from "@/lib/domain/shipping/tracking";
+import { canTransition, type ReturnStatus } from "@/engine/returns/transitions";
 // avoid importing prisma enums directly; use string unions matching schema
 
 function addDaysUTC(base: Date, days: number) {
@@ -32,7 +33,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     purchaseDate?: Date;
     returnWindowDays?: number;
     returnBy?: Date;
-    status?: "NOT_STARTED" | "PACKED" | "DROPPED_OFF" | "DELIVERED" | "REFUNDED";
+    status?: ReturnStatus;
     dropoffDate?: Date | null;
     refundedDate?: Date | null;
     trackingNumber?: string | null;
@@ -73,7 +74,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!["NOT_STARTED", "PACKED", "DROPPED_OFF", "DELIVERED", "REFUNDED"].includes(body.status)) {
       return NextResponse.json({ error: "status invalid" }, { status: 400 });
     }
-    data.status = body.status as "NOT_STARTED" | "PACKED" | "DROPPED_OFF" | "DELIVERED" | "REFUNDED";
+    data.status = body.status as ReturnStatus;
   }
 
   if (typeof body.dropoffDate === "string" || body.dropoffDate === null) {
@@ -124,6 +125,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   if (data.deliveredAt && !data.status && current.status !== "REFUNDED") {
     data.status = "DELIVERED";
+  }
+
+  if (data.status && !canTransition(current.status as ReturnStatus, data.status)) {
+    return NextResponse.json(
+      { error: `Cannot transition return from ${current.status} to ${data.status}. Return statuses can only move forward, and REFUNDED is terminal.` },
+      { status: 409 },
+    );
   }
 
   const updated = await prisma.returnItem.update({

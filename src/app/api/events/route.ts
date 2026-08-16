@@ -27,6 +27,7 @@ export interface CalendarEvent {
   purchaseDate?: string;
   returnBy?: string;
   trackingNumber?: string | null;
+  estimated?: boolean;
 }
 
 export const runtime = "nodejs";
@@ -196,12 +197,12 @@ export async function GET(req: NextRequest) {
 
       for (const [checkDate, label] of [
         [check7, "Refund check (7d)"],
-        [checkSla, "Refund expected"],
+        [checkSla, "Estimated refund expected"],
       ] as const) {
         if (checkDate >= start && checkDate < end) {
           events.push({
             id: `ref_${r.id}_${label}_${toISODateOnlyUTC(checkDate)}`,
-            type: label === "Refund expected" ? "REFUND_EXPECTED" : "REFUND_CHECK",
+            type: label === "Estimated refund expected" ? "REFUND_EXPECTED" : "REFUND_CHECK",
             date: toISODateOnlyUTC(checkDate),
             title: `${label}: ${r.store}`,
             amountCents: r.amountCents ?? undefined,
@@ -210,6 +211,7 @@ export async function GET(req: NextRequest) {
             purchaseDate: toISODateOnlyUTC(r.purchaseDate),
             returnBy: toISODateOnlyUTC(r.returnBy),
             trackingNumber: r.trackingNumber ?? null,
+            estimated: true,
           });
         }
       }

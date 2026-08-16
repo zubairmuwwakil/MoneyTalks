@@ -41,6 +41,7 @@ export default async function ReturnTransactionHistory({
                 <p className="font-medium text-white">{tx.title}</p>
                 <p className="text-xs text-slate-400">
                   {tx.date.toLocaleDateString("en-CA")}
+                  {tx.estimated ? <span className="ml-2 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-100">Estimated</span> : null}
                 </p>
               </div>
             </div>

@@ -4,15 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { parseReceiptUpload } from "@/lib/domain/receipts/uploadedReceiptParser";
-import path from "path";
-import fs from "fs/promises";
+import { storeReceiptAttachment } from "@/lib/domain/receipts/receiptAttachmentStorage";
 import crypto from "crypto";
 
 export const runtime = "nodejs";
-
-async function ensureDir(p: string) {
-  await fs.mkdir(p, { recursive: true });
-}
 
 export async function POST(req: NextRequest) {
   const userId = await getSessionUserId();
@@ -31,15 +26,19 @@ export async function POST(req: NextRequest) {
   const filename = file.name || "receipt";
   const contentType = file.type || "application/octet-stream";
 
-  // store locally for dev
-  const uploadsDir = path.join(process.cwd(), "uploads");
-  await ensureDir(uploadsDir);
-
-  const ext = path.extname(filename) || (contentType.includes("pdf") ? ".pdf" : "");
-  const key = crypto.randomBytes(16).toString("hex") + ext;
-  const storagePath = path.join(uploadsDir, key);
-
-  await fs.writeFile(storagePath, bytes);
+  let storagePath: string;
+  try {
+    storagePath = await storeReceiptAttachment({
+      userId,
+      scopeId: `upload-${crypto.randomUUID()}`,
+      filename,
+      content: bytes,
+      contentType,
+    });
+  } catch (error) {
+    console.error("Receipt upload storage failed", error);
+    return NextResponse.json({ error: "Receipt storage failed. Check BLOB_READ_WRITE_TOKEN or the local tmp fallback." }, { status: 503 });
+  }
 
   // parse & extract
   let parsed;

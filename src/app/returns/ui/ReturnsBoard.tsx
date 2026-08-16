@@ -225,7 +225,7 @@ export default function ReturnsBoard({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Returns board</p>
-            <p className="text-sm text-slate-200">Label → In transit → Delivered → Refund expected.</p>
+            <p className="text-sm text-slate-200">Estimated: label → in transit → delivered → refund expected.</p>
           </div>
           {headerButtons}
         </div>
@@ -275,7 +275,7 @@ export default function ReturnsBoard({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.24em] text-slate-300">{meta.label}</p>
-                    <p className="text-xs text-slate-200">{meta.label === "Refund overdue" ? "Follow up on missing refunds" : "Latest carrier + SLA"}</p>
+                    <p className="text-xs text-slate-200">{meta.label === "Refund overdue" ? "Follow up on missing refunds" : "Estimated shipment + SLA"}</p>
                   </div>
                   <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-semibold text-white">{itemsForStage.length}</span>
                 </div>
@@ -311,7 +311,7 @@ export default function ReturnsBoard({
                           </div>
                           {expected && (
                             <div className={`mt-2 rounded-xl px-3 py-2 text-xs ${stage === "refund_overdue" ? "bg-rose-500/10 text-rose-100" : "bg-emerald-500/10 text-emerald-50"}`}>
-                              Refund expected by {formatDate(item.refundExpectedAt)}{" "}
+                              Estimated refund by {formatDate(item.refundExpectedAt)}{" "}
                               {refundDue != null ? (
                                 <span className="ml-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold">
                                   {refundDue < 0 ? `${Math.abs(refundDue)}d overdue` : `${refundDue}d`}

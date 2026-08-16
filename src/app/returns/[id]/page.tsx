@@ -70,7 +70,7 @@ export default async function ReturnDetailPage({
         </div>
         <div className={`rounded-xl border p-4 ${isRefunded ? "border-emerald-300/30 bg-emerald-500/10" : "border-white/10 bg-white/5"}`}>
           <p className={`text-xs font-semibold ${isRefunded ? "text-emerald-100" : "text-slate-400"}`}>
-            {isRefunded ? "Refunded Amount" : "Expected Refund"}
+            {isRefunded ? "Refunded Amount" : "Estimated Refund"}
           </p>
           <p className={`mt-2 text-2xl font-bold ${isRefunded ? "text-white" : "text-slate-100"}`}>
             {formatMoney(ret.refundAmountCents ?? ret.amountCents ?? 0, ret.currency)}
@@ -93,7 +93,7 @@ export default async function ReturnDetailPage({
         </div>
         <div className={`rounded-xl border p-4 ${isExpectedRefund ? "border-amber-300/30 bg-amber-500/10" : "border-white/10 bg-white/5"}`}>
           <p className={`text-xs font-semibold ${isExpectedRefund ? "text-amber-100" : "text-slate-400"}`}>
-            Time to Refund
+            Estimated Time to Refund
           </p>
           {ret.refundExpectedAt && (
             <p className={`mt-2 text-2xl font-bold ${isExpectedRefund ? "text-white" : "text-slate-100"}`}>
@@ -133,7 +133,7 @@ export default async function ReturnDetailPage({
           )}
           {ret.refundExpectedAt && (
             <div>
-              <p className="text-xs font-semibold text-slate-400">Expected Refund By</p>
+              <p className="text-xs font-semibold text-slate-400">Estimated Refund By</p>
               <p className="mt-1 text-slate-100">{ret.refundExpectedAt.toLocaleDateString("en-CA")}</p>
             </div>
           )}
@@ -160,7 +160,10 @@ export default async function ReturnDetailPage({
 
       {/* Transaction History */}
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/30">
-        <h2 className="mb-4 text-lg font-semibold text-white">Timeline</h2>
+        <div className="mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-white">Timeline</h2>
+          <span className="rounded-full bg-amber-500/15 px-2 py-1 text-[10px] font-semibold text-amber-100">Estimated shipment progress</span>
+        </div>
         <ReturnTransactionHistory userId={userId} returnId={ret.id} />
       </div>
     </div>
