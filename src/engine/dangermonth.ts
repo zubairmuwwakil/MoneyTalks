@@ -9,6 +9,13 @@ export interface CashEvent {
 
 const DAY_MS = 86_400_000;
 
+// 60 months, expressed as a day count since this engine walks day-by-day rather than
+// month-by-month: 60 × 30.5 average days/month = 1830. recurrence.ts bounds the same
+// "60 months" idea via monthsBetween(from, to) > 60 (a calendar-month count, not a day
+// count) — the two engines measure differently but agree on what the limit means: a
+// bounded window guard against unbounded loops, not a precise calendar computation.
+const MAX_WINDOW_DAYS = 1830;
+
 function toMs(date: string): number {
   const [y, m, d] = date.slice(0, 10).split("-").map(Number);
   return Date.UTC(y, m - 1, d);
@@ -27,7 +34,7 @@ export function projectDailyBalance(
   const fromMs = toMs(from);
   const toLimit = toMs(to);
   if (fromMs > toLimit) throw new RangeError("inverted window");
-  if ((toLimit - fromMs) / DAY_MS > 1830) throw new RangeError("window exceeds 60 months");
+  if ((toLimit - fromMs) / DAY_MS > MAX_WINDOW_DAYS) throw new RangeError("window exceeds 60 months");
 
   const byDate = new Map<string, number>();
   for (const event of events) {

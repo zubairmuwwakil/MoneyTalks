@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { makeBill, makeProfile, makeSnapshot } from "./fixtures";
-import { digitalNewsRule, mortgagePrepaymentRule, studentLoanInterestRule } from "./bill-rules";
+import { makeAccount, makeBill, makeProfile, makeSnapshot } from "./fixtures";
+import { dangerMonthRule, digitalNewsRule, mortgagePrepaymentRule, studentLoanInterestRule } from "./bill-rules";
 import { ALL_RULES } from "./index";
 
 const profile = makeProfile();
@@ -92,13 +92,80 @@ describe("mortgagePrepaymentRule", () => {
   });
 });
 
+describe("dangerMonthRule", () => {
+  // Scenario, hand-derived (see task-6b-report.md for the full derivation):
+  //   today = 2026-01-01, cushionMinor = $1,000.00 (100_000 minor)
+  //   start balance: one CAD CASH account at $2,000.00 (200_000 minor)
+  //   income: MONTHLY $1,000.00 on the 1st of every month
+  //   bill: ANNUAL $4,200.00 (420_000 minor), anchored 2026-03-10 — one occurrence in
+  //     the 12-month window (the next, 2027-03-10, falls just outside it)
+  //
+  //   Running balance at each event date:
+  //     2026-01-01   200_000 + 100_000       = 300_000   (Jan min)
+  //     2026-02-01   300_000 + 100_000       = 400_000   (Feb min)
+  //     2026-03-01   400_000 + 100_000       = 500_000
+  //     2026-03-10   500_000 - 420_000(bill) =  80_000   (Mar min — DANGER, < 100_000)
+  //     2026-04-01    80_000 + 100_000       = 180_000   (Apr min — not danger)
+  //   From April on it is pure +100_000/month income growth, so the balance never
+  //   dips again. Exactly one danger month: 2026-03, minBalanceMinor 80_000,
+  //   minDate 2026-03-10.
+  const cushionProfile = makeProfile({
+    cushionMinor: 100_000,
+    incomeSources: [{ name: "Fixture Salary", amountMinor: 100_000, cadence: "MONTHLY", kind: "EMPLOYMENT" }],
+  });
+  const cashAccount = makeAccount({ type: "CASH", currency: "CAD", balanceMinor: 200_000 });
+  const annualBill = makeBill({
+    name: "Fixture Annual Insurance",
+    cadence: { type: "ANNUAL", anchor: "2026-03-10" },
+    schedule: [{ from: "2020-01-01", amountMinor: 420_000 }],
+  });
+
+  it("flags the hand-derived dip month with its minimum balance and date", () => {
+    const snapshot = makeSnapshot([cashAccount], { today: "2026-01-01", bills: [annualBill] });
+    const alerts = dangerMonthRule.evaluate(cushionProfile, snapshot);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].severity).toBe("warning");
+    expect(alerts[0].kind).toBe("compliance");
+    expect(alerts[0].title).toContain("1 of the next 12 months");
+    expect(alerts[0].message).toContain("2026-03: $800.00 on 2026-03-10");
+    expect(alerts[0].action).toMatch(/cushion/i);
+    expect(alerts[0].action).toMatch(/BIWEEKLY every 14 days/i);
+  });
+
+  it("is silent when no cushion is configured (cushionMinor: 0)", () => {
+    const noCushionProfile = makeProfile({ cushionMinor: 0, incomeSources: cushionProfile.incomeSources });
+    const snapshot = makeSnapshot([cashAccount], { today: "2026-01-01", bills: [annualBill] });
+    expect(dangerMonthRule.evaluate(noCushionProfile, snapshot)).toHaveLength(0);
+  });
+
+  it("skips a CASH/CHEQUING account with no FX rate to CAD instead of throwing, and names it in the alert", () => {
+    const noRateAccount = makeAccount({
+      name: "Fixture JA Chequing",
+      type: "CHEQUING",
+      currency: "JMD",
+      balanceMinor: 5_000_000, // would change the outcome if counted — it must not be
+    });
+    const snapshot = makeSnapshot([cashAccount, noRateAccount], {
+      today: "2026-01-01",
+      bills: [annualBill],
+      fxRates: [{ base: "USD", quote: "CAD", rate: 1.4, asOf: "2026-01-01" }], // no JMD rate either direction
+    });
+    expect(() => dangerMonthRule.evaluate(cushionProfile, snapshot)).not.toThrow();
+    const alerts = dangerMonthRule.evaluate(cushionProfile, snapshot);
+    expect(alerts).toHaveLength(1);
+    // Same dip as the base scenario — the JMD account was excluded, not counted.
+    expect(alerts[0].message).toContain("2026-03: $800.00 on 2026-03-10");
+    expect(alerts[0].message).toContain("Fixture JA Chequing was excluded, no FX rate");
+  });
+});
+
 describe("ALL_RULES after Phase 3", () => {
-  it("has 22 uniquely-keyed rules including the bill rules", () => {
+  it("has 23 uniquely-keyed rules including the bill rules", () => {
     const keys = ALL_RULES.map((r) => r.key);
     expect(new Set(keys).size).toBe(keys.length);
     expect(keys).toEqual(
-      expect.arrayContaining(["DIGITAL_NEWS", "STUDENT_LOAN_INTEREST", "MORTGAGE_PREPAYMENT"]),
+      expect.arrayContaining(["DIGITAL_NEWS", "STUDENT_LOAN_INTEREST", "MORTGAGE_PREPAYMENT", "DANGER_MONTH"]),
     );
-    expect(keys).toHaveLength(22);
+    expect(keys).toHaveLength(23);
   });
 });

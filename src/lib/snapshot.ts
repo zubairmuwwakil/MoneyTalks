@@ -1,6 +1,7 @@
 import { accountBalance } from "@/engine/balance";
 import type { FxRateInput } from "@/engine/fx";
 import type { Currency } from "@/engine/money";
+import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
 import type { AccountView, BillView, FinancialSnapshot } from "@/engine/rules/types";
 import { prisma } from "@/lib/prisma";
 
@@ -68,6 +69,10 @@ export async function buildSnapshot(userId: string, today: string): Promise<Fina
     currency: b.currency,
     prepaymentMonthDay: b.prepaymentMonthDay,
     interestRatePct: b.interestRatePct === null ? null : Number(b.interestRatePct),
+    // Same cast pattern as src/app/bills/forecast/page.tsx and friends — the JSON
+    // columns are validated by zod on write, never re-validated on read.
+    cadence: b.cadence as unknown as Cadence,
+    schedule: b.schedule as unknown as ScheduleEntry[],
     payments: b.payments.map((p) => ({
       dueDate: p.dueDate.toISOString().slice(0, 10),
       expectedAmountMinor: p.expectedAmountMinor,

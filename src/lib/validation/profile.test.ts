@@ -51,9 +51,14 @@ describe("profileInput dollars-entry fields", () => {
     if (!parsed.success) expect(parsed.error.issues[0].path).toEqual(["tfsaRoomMinor"]);
   });
 
-  it("rejects a value over the 32-bit bound as a field error", () => {
+  it("rejects a value over the 32-bit bound as a field error, with a dollars-terms message", () => {
     const parsed = profileInput.safeParse({ ...validProfile, tfsaRoomMinor: "21474836.48" });
     expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      // Regression: the default Zod message quotes the CENTS ceiling ("<=2147483647")
+      // next to a "($)" label, reading as dollars — must be phrased in dollars instead.
+      expect(parsed.error.issues[0].message).toBe("Must be $21,474,836.47 or less");
+    }
   });
 
   it("rejects a negative dollars amount", () => {

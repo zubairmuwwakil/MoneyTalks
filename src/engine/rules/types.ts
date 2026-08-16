@@ -1,6 +1,7 @@
 import type { TxTypeName } from "../balance";
 import type { FxRateInput } from "../fx";
 import type { Currency } from "../money";
+import type { Cadence, ScheduleEntry } from "../recurrence";
 
 export type Severity = "info" | "warning" | "critical";
 export type RuleKind = "compliance" | "opportunity";
@@ -95,6 +96,11 @@ export interface BillView {
     actualAmountMinor: number | null;
     paidAt: string | null;
   }>;
+  // Bill amount modeled as an effective-dated timeline (same shape as BillDef in
+  // billforecast.ts), so danger-month projection can generate FUTURE occurrences —
+  // `payments` above is a record of the past only.
+  cadence: Cadence;
+  schedule: ScheduleEntry[];
 }
 
 export interface FinancialSnapshot {

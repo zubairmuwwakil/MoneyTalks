@@ -1,4 +1,5 @@
 import type { AccountView, BillView, FinancialSnapshot, HoldingView, ProfileView, TxView } from "./types";
+import type { Cadence, ScheduleEntry } from "../recurrence";
 
 let seq = 0;
 const nextId = (prefix: string) => `${prefix}-${++seq}`;
@@ -78,6 +79,11 @@ export function makeBill(overrides: Partial<BillView> = {}): BillView {
     prepaymentMonthDay: null,
     interestRatePct: null,
     payments: [],
+    // Defaults are inert for every pre-existing bill-rule test: MONTHLY cadence with
+    // an empty schedule yields zero occurrences (amountOn returns null with nothing
+    // to match), so danger-month projection sees no bill events unless a test opts in.
+    cadence: { type: "MONTHLY", dayOfMonth: 1 } satisfies Cadence,
+    schedule: [] as ScheduleEntry[],
     ...overrides,
   };
 }

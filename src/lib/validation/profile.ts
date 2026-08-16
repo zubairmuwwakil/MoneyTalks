@@ -10,6 +10,11 @@ import { parseDollarsToMinor } from "@/engine/money";
 // lets a field require a strictly-positive amount (income sources) while every other
 // field allows zero.
 function dollarsToMinor(minFloor: 0 | 1 = 0) {
+  // Bounds are checked in CENTS (post-transform), but the user typed DOLLARS — so the
+  // messages must be phrased in dollars too, or a Zod default ("expected number to be
+  // <=2147483647") reads as dollars next to a "($)" label and misleads by 100x.
+  const floorMessage = minFloor === 0 ? "Must be $0.00 or more" : "Must be more than $0.00";
+  const ceilingMessage = "Must be $21,474,836.47 or less";
   return z
     .string()
     .transform((raw, ctx) => {
@@ -20,7 +25,7 @@ function dollarsToMinor(minFloor: 0 | 1 = 0) {
       }
       return minor;
     })
-    .pipe(z.number().int().min(minFloor).max(2_147_483_647));
+    .pipe(z.number().int().min(minFloor, floorMessage).max(2_147_483_647, ceilingMessage));
 }
 
 const dollarsMinor = dollarsToMinor(0);

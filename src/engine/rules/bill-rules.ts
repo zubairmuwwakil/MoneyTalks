@@ -1,6 +1,9 @@
+import { billOccurrences } from "../billforecast";
+import { dangerMonths, incomeEvents, projectDailyBalance, type CashEvent } from "../dangermonth";
+import { convertMinor, MissingFxRateError } from "../fx";
 import { formatMinorUnits } from "../money";
 import type { Currency } from "../money";
-import type { Rule } from "./types";
+import type { FinancialSnapshot, ProfileView, Rule } from "./types";
 import { currentYear } from "./types";
 
 // Word-bounded so "Compost" does not read as "Post".
@@ -105,5 +108,121 @@ export const mortgagePrepaymentRule: Rule = {
           },
         ];
       });
+  },
+};
+
+const CUSHION_ACCOUNT_TYPES = new Set(["CASH", "CHEQUING"]);
+
+/**
+ * Adds `months` calendar months to an ISO date, day-clamped to the target month's
+ * length — the same clamping rule as recurrence.ts's internal clampedDate.
+ */
+function addMonthsIso(date: string, months: number): string {
+  const [y, m, d] = date.slice(0, 10).split("-").map(Number);
+  const total = y * 12 + (m - 1) + months;
+  const ny = Math.floor(total / 12);
+  const nm = (total % 12) + 1;
+  const lastDay = new Date(Date.UTC(ny, nm, 0)).getUTCDate();
+  const nd = Math.min(d, lastDay);
+  return `${ny}-${String(nm).padStart(2, "0")}-${String(nd).padStart(2, "0")}`;
+}
+
+export interface CashCushionProjection {
+  series: Array<{ date: string; balanceMinor: number }>;
+  excludedAccountNames: string[];
+}
+
+/**
+ * Projects the daily CAD cash balance across CASH/CHEQUING accounts over the next
+ * `monthsAhead` months (default 12): start balance is those accounts' CAD-converted
+ * balances, events are income (see incomeEvents — MONTHLY on the 1st, BIWEEKLY every
+ * 14 days from `snapshot.today`, ANNUAL on Jan 1; a documented v1 approximation) minus
+ * every bill occurrence in the same window, negated. Bill amounts are summed at face
+ * value in whatever currency they carry — the same documented caveat as
+ * forecastMonths in billforecast.ts, not re-derived here.
+ *
+ * A CASH/CHEQUING account whose currency has no FX rate to CAD is SKIPPED, not
+ * thrown: one stray foreign-currency account should degrade this feature to a
+ * partial answer, not blank it entirely via the rule-error path in registry.ts.
+ * Exported so the forecast page can render the same projection as a "Min balance"
+ * column without duplicating this logic.
+ */
+export function projectCashCushion(
+  profile: ProfileView,
+  snapshot: FinancialSnapshot,
+  monthsAhead = 12,
+): CashCushionProjection {
+  const from = snapshot.today;
+  const to = addMonthsIso(from, monthsAhead);
+
+  const excludedAccountNames: string[] = [];
+  let startMinor = 0;
+  for (const account of snapshot.accounts) {
+    if (!CUSHION_ACCOUNT_TYPES.has(account.type)) continue;
+    try {
+      startMinor += convertMinor(account.balanceMinor, account.currency, "CAD", snapshot.fxRates);
+    } catch (e) {
+      if (!(e instanceof MissingFxRateError)) throw e;
+      excludedAccountNames.push(account.name);
+    }
+  }
+
+  const incomeCashEvents = incomeEvents(profile.incomeSources, from, to);
+  const billCashEvents: CashEvent[] = snapshot.bills.flatMap((bill) =>
+    billOccurrences(
+      {
+        id: bill.id,
+        name: bill.name,
+        category: bill.category,
+        currency: bill.currency,
+        autopay: false,
+        variable: false,
+        cadence: bill.cadence,
+        schedule: bill.schedule,
+      },
+      from,
+      to,
+    ).map((o) => ({ date: o.date, amountMinor: -o.amountMinor, label: o.billName })),
+  );
+
+  const series = projectDailyBalance(startMinor, [...incomeCashEvents, ...billCashEvents], from, to);
+  return { series, excludedAccountNames };
+}
+
+export const dangerMonthRule: Rule = {
+  key: "DANGER_MONTH",
+  jurisdiction: "CROSS",
+  kind: "compliance",
+  citation: "Internal cash-flow projection policy — cushion configured in Settings",
+  lastReviewed: "2026-08-15",
+  evaluate(profile, snapshot) {
+    if (profile.cushionMinor <= 0) return []; // silent until the owner sets a cushion
+    const { series, excludedAccountNames } = projectCashCushion(profile, snapshot);
+    const danger = dangerMonths(series, profile.cushionMinor);
+    if (danger.length === 0) return [];
+
+    const top3 = danger.slice(0, 3);
+    const list = top3
+      .map((m) => `${m.month}: ${formatMinorUnits(m.minBalanceMinor, "CAD")} on ${m.minDate}`)
+      .join("; ");
+    const more = danger.length > 3 ? ` (+${danger.length - 3} more month(s))` : "";
+    const exclusionNote =
+      excludedAccountNames.length > 0
+        ? ` (projected from your CAD accounts; ${excludedAccountNames.join(", ")} was excluded, no FX rate)`
+        : "";
+
+    return [
+      {
+        ruleKey: "DANGER_MONTH",
+        severity: "warning",
+        kind: "compliance",
+        entityRef: "",
+        title: `Cash cushion at risk in ${danger.length} of the next 12 months`,
+        message: `Below your ${formatMinorUnits(profile.cushionMinor, "CAD")} cushion${exclusionNote}: ${list}${more}.`,
+        action:
+          "Raise the cushion in Settings, or plan cash flow around these dips. Income timing is a v1 approximation (MONTHLY on the 1st, BIWEEKLY every 14 days from today, ANNUAL on Jan 1) — pay-date precision is future work.",
+        citation: "Internal cash-flow projection policy",
+      },
+    ];
   },
 };
