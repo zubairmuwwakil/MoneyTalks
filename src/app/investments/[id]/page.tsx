@@ -1,4 +1,14 @@
-import { Save, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Coins,
+  FileSpreadsheet,
+  Plus,
+  RefreshCw,
+  Save,
+  Trash2,
+  TrendingUp,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
@@ -13,6 +23,9 @@ import {
   updateTransaction,
 } from "@/app/investments/actions";
 import { refreshPrices } from "@/app/actions/refresh";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { accountBalanceWithCurrency, holdingValueMinor } from "@/engine/balance";
 import { formatMinorUnits, minorToDollarInput, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
@@ -24,6 +37,9 @@ const ACCOUNT_TYPES = ["RRSP", "TFSA", "RDSP", "FHSA", "ROTH_IRA", "NON_REGISTER
 function accountErrorPath(accountId: string, form: string, message: string) {
   return `/investments/${accountId}?errorForm=${form}&error=${encodeURIComponent(message)}`;
 }
+
+const inputStyle =
+  "flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 export default async function AccountDetailPage({
   params,
@@ -131,208 +147,449 @@ export default async function AccountDetailPage({
   }
 
   return (
-    <main className="space-y-8 py-8">
-      <header>
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold">{account.name}</h1>
-          <Link href={`/investments/${account.id}/csv`} className="text-sm underline">
-            Import CSV
-          </Link>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {account.type} · {account.institution} · {account.currency}
-        </p>
-        <p className="mt-2 text-2xl tabular-nums">
-          {balance.ok ? formatMinorUnits(balance.balanceMinor, balance.currency as Currency) : "Balance unavailable"}
-          {balance.ok ? (
-            <span className="ml-2 text-xs text-muted-foreground">
-              {balance.source === "snapshot"
-                ? `snapshot ${balance.asOf?.slice(0, 10)} · ${balance.currency}`
-                : "derived from transactions"}
-            </span>
-          ) : null}
-        </p>
-        {!balance.ok ? <p className="mt-1 text-sm text-red-600">{balance.error}</p> : null}
-        {account.holdings.length > 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Holdings market value: {formatMinorUnits(holdingsValue, currency)}
-          </p>
-        ) : null}
-      </header>
+    <main className="space-y-8 py-6 sm:py-8">
+      {/* Back link & Top Header */}
+      <div>
+        <Link
+          href="/investments"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground mb-3 transition-colors"
+        >
+          <ArrowLeft className="size-3.5" />
+          <span>Back to Investments</span>
+        </Link>
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">{account.name}</h1>
+              <Badge variant="secondary" className="text-xs">
+                {account.type}
+              </Badge>
+              {account.isUSSitus ? <Badge variant="warning">US-Situs</Badge> : null}
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {account.institution} · {account.country} · {account.currency}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/investments/${account.id}/csv`} className="flex items-center gap-1.5">
+                <FileSpreadsheet className="size-3.5" />
+                <span>Import CSV</span>
+              </Link>
+            </Button>
+          </div>
+        </header>
+      </div>
 
-      <section>
-        <h2 className="font-medium">Account details</h2>
-        <form action={submitAccount} className="mt-3 grid max-w-2xl grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+      {/* Balance Summary Hero */}
+      <Card className="bg-gradient-to-b from-card to-muted/20">
+        <CardContent className="p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Current Balance
+              </p>
+              <p className="mt-1 text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
+                {balance.ok ? formatMinorUnits(balance.balanceMinor, balance.currency as Currency) : "Balance unavailable"}
+              </p>
+              {balance.ok ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Source:{" "}
+                  <span className="font-medium text-foreground">
+                    {balance.source === "snapshot"
+                      ? `Balance snapshot as of ${balance.asOf?.slice(0, 10)} · ${balance.currency}`
+                      : "Derived calculation from transactions"}
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-1 text-sm font-medium text-red-600">{balance.error}</p>
+              )}
+            </div>
+
+            {account.holdings.length > 0 ? (
+              <div className="sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-border/60">
+                <p className="text-xs text-muted-foreground">Holdings Market Value</p>
+                <p className="text-lg font-semibold tabular-nums text-foreground">
+                  {formatMinorUnits(holdingsValue, currency)}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Account Details Form Section */}
+      <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+        <h2 className="text-base font-semibold tracking-tight">Account details</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Update account configuration, country domicile, or US-situs classification.
+        </p>
+        <form action={submitAccount} className="mt-4 grid max-w-2xl grid-cols-2 gap-3 text-sm sm:grid-cols-3">
           <input type="hidden" name="accountId" value={account.id} />
-          <input name="name" defaultValue={account.name} required aria-label="Account name" className="rounded border px-2 py-1" />
-          <input name="institution" defaultValue={account.institution} required aria-label="Institution" className="rounded border px-2 py-1" />
-          <select name="type" defaultValue={account.type} required aria-label="Account type" className="rounded border px-2 py-1">
-            {ACCOUNT_TYPES.map((type) => <option key={type}>{type}</option>)}
-          </select>
-          <input name="country" defaultValue={account.country} required pattern="[A-Z]{2}" aria-label="Country" className="rounded border px-2 py-1" />
-          <input name="currency" value={account.currency} readOnly aria-label="Currency" className="rounded border bg-muted px-2 py-1" />
-          <label className="flex items-center gap-2 rounded border px-2 py-1">
-            <input type="checkbox" name="isUSSitus" value="true" defaultChecked={account.isUSSitus} /> US-situs
-          </label>
-          <button type="submit" className="col-span-2 inline-flex items-center justify-center gap-2 rounded border px-2 py-1 sm:col-span-3">
-            <Save className="size-4" aria-hidden="true" /> Save account
+          <div>
+            <label className="text-xs text-muted-foreground font-medium mb-1 block">Account name</label>
+            <input
+              name="name"
+              defaultValue={account.name}
+              required
+              aria-label="Account name"
+              className={inputStyle}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground font-medium mb-1 block">Institution</label>
+            <input
+              name="institution"
+              defaultValue={account.institution}
+              required
+              aria-label="Institution"
+              className={inputStyle}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground font-medium mb-1 block">Account type</label>
+            <select
+              name="type"
+              defaultValue={account.type}
+              required
+              aria-label="Account type"
+              className={inputStyle}
+            >
+              {ACCOUNT_TYPES.map((type) => (
+                <option key={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground font-medium mb-1 block">Country (2-letter)</label>
+            <input
+              name="country"
+              defaultValue={account.country}
+              required
+              pattern="[A-Z]{2}"
+              aria-label="Country"
+              className={inputStyle}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground font-medium mb-1 block">Currency</label>
+            <input
+              name="currency"
+              value={account.currency}
+              readOnly
+              aria-label="Currency"
+              className={`${inputStyle} bg-muted/60 text-muted-foreground cursor-not-allowed`}
+            />
+          </div>
+          <div className="flex flex-col justify-end">
+            <label className="flex h-9 items-center gap-2 rounded-lg border border-input px-3 text-xs font-medium cursor-pointer">
+              <input
+                type="checkbox"
+                name="isUSSitus"
+                value="true"
+                defaultChecked={account.isUSSitus}
+                className="rounded text-foreground"
+              />{" "}
+              US-situs
+            </label>
+          </div>
+          <button
+            type="submit"
+            className="col-span-2 inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-xs transition-colors hover:bg-foreground/90 sm:col-span-3 cursor-pointer"
+          >
+            <Save className="size-3.5" aria-hidden="true" /> Save account
           </button>
         </form>
-        {errorForm === "account" && error ? <p className="mt-2 text-sm text-red-600" role="alert">{error}</p> : null}
+        {errorForm === "account" && error ? (
+          <p className="mt-3 text-xs font-medium text-red-600" role="alert">
+            {error}
+          </p>
+        ) : null}
       </section>
 
-      {/* The refresh control is positioned rather than wrapped in a flex row so that
-          the Holdings heading stays a DIRECT child of this section — an existing E2E
-          scopes the add-holding form by the heading's parent element. */}
-      <section className="relative">
-        <h2 className="font-medium">Holdings</h2>
+      {/* Holdings Section — Header must be DIRECT child for E2E selector compatibility */}
+      <section className="relative rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+        <h2 className="text-base font-semibold tracking-tight">Holdings</h2>
         {account.type === "CRYPTO" ? (
-          <form action={refreshPrices} className="absolute right-0 top-0">
+          <form action={refreshPrices} className="absolute right-5 top-5">
             <input type="hidden" name="accountId" value={account.id} />
             <button
               type="submit"
-              className="rounded border px-2 py-1 text-xs"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border/80 bg-background px-2.5 text-xs font-medium text-muted-foreground shadow-2xs hover:bg-muted hover:text-foreground cursor-pointer"
               title="Best-effort: fetches live prices from CoinGecko. Manual entry always works."
             >
-              ↻ prices
+              <RefreshCw className="size-3" />
+              <span>↻ prices</span>
             </button>
           </form>
         ) : null}
-        {pricesOk ? <p className="mt-1 text-xs text-green-700">{pricesOk}</p> : null}
-        {pricesError ? <p className="mt-1 text-xs text-red-600">{pricesError}</p> : null}
-        <ul className="mt-2 divide-y rounded border">
+        {pricesOk ? <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">✓ {pricesOk}</p> : null}
+        {pricesError ? <p className="mt-2 text-xs font-medium text-red-600">{pricesError}</p> : null}
+
+        <ul className="mt-4 divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
           {account.holdings.map((h) => (
-            <li key={h.id} className="flex items-center justify-between gap-3 px-4 py-2 text-sm">
-              <span>
-                {h.symbol} <span className="text-muted-foreground">{h.name} · {h.domicileCountry}</span>
-              </span>
-              <span className="flex items-center gap-3">
-                <span className="tabular-nums">
+            <li key={h.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="font-mono text-xs font-semibold">
+                    {h.symbol}
+                  </Badge>
+                  <span className="font-medium text-foreground">{h.name}</span>
+                </div>
+                <p className="mt-0.5 text-xs text-muted-foreground">Domicile: {h.domicileCountry}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold tabular-nums text-foreground">
                   {Number(h.quantity)} × {formatMinorUnits(h.lastPriceMinor, currency)} ={" "}
                   {formatMinorUnits(holdingValueMinor(Number(h.quantity), h.lastPriceMinor), currency)}
                 </span>
                 <form action={submitDeleteHolding}>
                   <input type="hidden" name="holdingId" value={h.id} />
-                  <button type="submit" aria-label={`Delete ${h.symbol} holding`} title="Delete holding" className="text-red-600">
+                  <button
+                    type="submit"
+                    aria-label={`Delete ${h.symbol} holding`}
+                    title="Delete holding"
+                    className="p-1.5 text-muted-foreground transition-colors hover:text-red-600 cursor-pointer"
+                  >
                     <Trash2 className="size-4" aria-hidden="true" />
                   </button>
                 </form>
-              </span>
+              </div>
             </li>
           ))}
+          {account.holdings.length === 0 ? (
+            <li className="px-4 py-6 text-center text-xs text-muted-foreground">
+              No holdings added yet. Use the form below to track positions.
+            </li>
+          ) : null}
         </ul>
-        <form action={submitHolding} className="mt-3 grid max-w-2xl grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-          <input type="hidden" name="accountId" value={account.id} />
-          <input name="symbol" placeholder="Symbol" required className="rounded border px-2 py-1" />
-          <input name="name" placeholder="Name" required className="rounded border px-2 py-1" />
-          <input name="domicileCountry" placeholder="Domicile (CA)" required pattern="[A-Z]{2}" className="rounded border px-2 py-1" />
-          <input name="quantity" placeholder="Quantity" required className="rounded border px-2 py-1" />
-          <input name="lastPrice" placeholder="Price ($)" required className="rounded border px-2 py-1" />
-          <input name="priceAsOf" type="date" required className="rounded border px-2 py-1" />
-          <button type="submit" className="col-span-2 rounded border px-2 py-1 sm:col-span-3">
-            Add / update holding
-          </button>
-        </form>
-        {errorForm === "holding" && error ? <p className="mt-2 text-sm text-red-600" role="alert">{error}</p> : null}
+
+        {/* Add Holding Form */}
+        <div className="mt-4 border-t border-border/60 pt-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            Add or update position
+          </p>
+          <form action={submitHolding} className="grid max-w-2xl grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+            <input type="hidden" name="accountId" value={account.id} />
+            <input name="symbol" placeholder="Symbol (e.g. XEQT.TO)" required className={inputStyle} />
+            <input name="name" placeholder="Full name (e.g. iShares Core Equity)" required className={inputStyle} />
+            <input name="domicileCountry" placeholder="Domicile (CA)" required pattern="[A-Z]{2}" className={inputStyle} />
+            <input name="quantity" placeholder="Quantity (e.g. 10)" required className={inputStyle} />
+            <input name="lastPrice" placeholder="Price ($)" required className={inputStyle} />
+            <input name="priceAsOf" type="date" required className={inputStyle} />
+            <button
+              type="submit"
+              className="col-span-2 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-muted/60 px-4 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted sm:col-span-3 cursor-pointer"
+            >
+              <Plus className="size-3.5" />
+              <span>Add / update holding</span>
+            </button>
+          </form>
+          {errorForm === "holding" && error ? (
+            <p className="mt-2 text-xs font-medium text-red-600" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
       </section>
 
-      <section>
-        <h2 className="font-medium">Log a transaction</h2>
-        <form action={submitTransaction} className="mt-3 grid max-w-2xl grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+      {/* Transaction Logging Section */}
+      <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+        <h2 className="text-base font-semibold tracking-tight">Log a transaction</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Record contributions, withdrawals, dividends, buys, sells, or fees.
+        </p>
+        <form action={submitTransaction} className="mt-4 grid max-w-2xl grid-cols-2 gap-2 text-sm sm:grid-cols-4">
           <input type="hidden" name="accountId" value={account.id} />
-          <select name="type" className="rounded border px-2 py-1">
+          <select name="type" className={inputStyle}>
             {TX_TYPES.map((t) => (
               <option key={t}>{t}</option>
             ))}
           </select>
-          <input name="amount" placeholder="Amount ($)" required className="rounded border px-2 py-1" />
-          <input name="date" type="date" required className="rounded border px-2 py-1" />
-          <input name="description" placeholder="Description" className="rounded border px-2 py-1" />
+          <input name="amount" placeholder="Amount ($)" required className={inputStyle} />
+          <input name="date" type="date" required className={inputStyle} />
+          <input name="description" placeholder="Description (optional)" className={inputStyle} />
           {account.type === "ROTH_IRA" ? (
-            <label className="col-span-2 flex items-center gap-2 text-xs text-red-600 sm:col-span-4">
+            <label className="col-span-2 flex items-center gap-2 text-xs text-red-600 sm:col-span-4 font-medium">
               <input type="checkbox" name="confirmRoth" value="true" />
               I understand a contribution while Canadian-resident may permanently taint the Roth treaty election.
             </label>
           ) : null}
-          <button type="submit" className="col-span-2 rounded border px-2 py-1 sm:col-span-4">
-            Add transaction
+          <button
+            type="submit"
+            className="col-span-2 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-xs hover:bg-foreground/90 sm:col-span-4 cursor-pointer"
+          >
+            <Plus className="size-3.5" />
+            <span>Add transaction</span>
           </button>
         </form>
-        <ul className="mt-3 divide-y rounded border">
+
+        <ul className="mt-4 divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
           {displayedTransactions.map((t) => (
-            <li key={t.id} className="px-4 py-2 text-sm">
+            <li key={t.id} className="p-3.5 text-sm transition-colors hover:bg-muted/30">
               <div className="flex items-center justify-between gap-3">
-                <span>
-                  {t.date.toISOString().slice(0, 10)} {t.type}
-                  {t.description ? <span className="text-muted-foreground"> · {t.description}</span> : null}
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="tabular-nums">{formatMinorUnits(t.amountMinor, t.currency as Currency)}</span>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-[10px] font-semibold">
+                    {t.type}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">{t.date.toISOString().slice(0, 10)}</span>
+                  {t.description ? <span className="text-xs text-foreground/80 truncate">· {t.description}</span> : null}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold tabular-nums">
+                    {formatMinorUnits(t.amountMinor, t.currency as Currency)}
+                  </span>
                   <form action={submitDeleteTransaction}>
                     <input type="hidden" name="transactionId" value={t.id} />
-                    <button type="submit" aria-label={`Delete ${t.type.toLowerCase()} transaction`} title="Delete transaction" className="text-red-600">
-                      <Trash2 className="size-4" aria-hidden="true" />
+                    <button
+                      type="submit"
+                      aria-label={`Delete ${t.type.toLowerCase()} transaction`}
+                      title="Delete transaction"
+                      className="p-1 text-muted-foreground transition-colors hover:text-red-600 cursor-pointer"
+                    >
+                      <Trash2 className="size-3.5" aria-hidden="true" />
                     </button>
                   </form>
-                </span>
+                </div>
               </div>
-              <details className="mt-2">
-                <summary className="cursor-pointer text-xs text-muted-foreground">Edit transaction</summary>
-                <form action={submitUpdateTransaction} className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <details className="mt-2 text-xs">
+                <summary className="cursor-pointer font-medium text-muted-foreground hover:text-foreground">
+                  Edit transaction
+                </summary>
+                <form action={submitUpdateTransaction} className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 rounded-lg bg-muted/40 p-3 border border-border/60">
                   <input type="hidden" name="transactionId" value={t.id} />
-                  <select name="type" defaultValue={t.type} aria-label="Transaction type" className="rounded border px-2 py-1">
-                    {TX_TYPES.map((type) => <option key={type}>{type}</option>)}
-                  </select>
-                  <input name="amount" defaultValue={minorToDollarInput(t.amountMinor)} required aria-label="Amount in dollars" className="rounded border px-2 py-1" />
-                  <input name="date" type="date" defaultValue={t.date.toISOString().slice(0, 10)} required aria-label="Transaction date" className="rounded border px-2 py-1" />
-                  <input name="description" defaultValue={t.description ?? ""} aria-label="Description" className="rounded border px-2 py-1" />
-                  <button type="submit" className="col-span-2 inline-flex items-center justify-center gap-2 rounded border px-2 py-1 sm:col-span-4">
-                    <Save className="size-4" aria-hidden="true" /> Save transaction
+                  <div>
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">Type</label>
+                    <select name="type" defaultValue={t.type} aria-label="Transaction type" className={inputStyle}>
+                      {TX_TYPES.map((type) => (
+                        <option key={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">Amount ($)</label>
+                    <input
+                      name="amount"
+                      defaultValue={minorToDollarInput(t.amountMinor)}
+                      required
+                      aria-label="Amount in dollars"
+                      className={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">Date</label>
+                    <input
+                      name="date"
+                      type="date"
+                      defaultValue={t.date.toISOString().slice(0, 10)}
+                      required
+                      aria-label="Transaction date"
+                      className={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">Description</label>
+                    <input
+                      name="description"
+                      defaultValue={t.description ?? ""}
+                      aria-label="Description"
+                      className={inputStyle}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="col-span-2 inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-foreground px-3 text-xs font-semibold text-background shadow-xs sm:col-span-4 cursor-pointer"
+                  >
+                    <Save className="size-3" aria-hidden="true" /> Save transaction
                   </button>
                 </form>
               </details>
             </li>
           ))}
+          {displayedTransactions.length === 0 ? (
+            <li className="px-4 py-6 text-center text-xs text-muted-foreground">
+              No transactions recorded yet.
+            </li>
+          ) : null}
         </ul>
-        {errorForm === "transaction" && error ? <p className="mt-2 text-sm text-red-600" role="alert">{error}</p> : null}
+        {errorForm === "transaction" && error ? (
+          <p className="mt-2 text-xs font-medium text-red-600" role="alert">
+            {error}
+          </p>
+        ) : null}
       </section>
 
-      <section>
-        <h2 className="font-medium">Balance snapshots</h2>
-        <form action={submitSnapshot} className="mt-3 flex max-w-md gap-2 text-sm">
+      {/* Balance Snapshots Section */}
+      <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+        <h2 className="text-base font-semibold tracking-tight">Balance snapshots</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Take a point-in-time snapshot of your balance from your statement or banking app.
+        </p>
+        <form action={submitSnapshot} className="mt-4 flex flex-wrap max-w-md gap-2 text-sm">
           <input type="hidden" name="accountId" value={account.id} />
-          <input name="balance" placeholder="Balance ($)" required className="flex-1 rounded border px-2 py-1" />
-          <input name="asOf" type="date" required className="rounded border px-2 py-1" />
-          <button type="submit" className="rounded border px-2 py-1">
-            Snapshot
+          <input name="balance" placeholder="Balance ($)" required className={`flex-1 min-w-[140px] ${inputStyle}`} />
+          <input name="asOf" type="date" required className={`w-36 ${inputStyle}`} />
+          <button
+            type="submit"
+            className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-border/80 bg-muted/60 px-3.5 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted cursor-pointer"
+          >
+            <span>Snapshot</span>
           </button>
         </form>
-        <ul className="mt-3 divide-y rounded border">
+
+        <ul className="mt-4 divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
           {account.snapshots.map((s) => (
-            <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-2 text-sm">
-              <span>{s.asOf.toISOString().slice(0, 10)}</span>
-              <span className="flex items-center gap-3">
-                <span className="tabular-nums">{formatMinorUnits(s.balanceMinor, s.currency as Currency)}</span>
+            <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+              <span className="text-xs font-medium text-foreground">{s.asOf.toISOString().slice(0, 10)}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold tabular-nums text-foreground">
+                  {formatMinorUnits(s.balanceMinor, s.currency as Currency)}
+                </span>
                 <form action={submitDeleteSnapshot}>
                   <input type="hidden" name="snapshotId" value={s.id} />
-                  <button type="submit" aria-label={`Delete ${s.asOf.toISOString().slice(0, 10)} snapshot`} title="Delete snapshot" className="text-red-600">
-                    <Trash2 className="size-4" aria-hidden="true" />
+                  <button
+                    type="submit"
+                    aria-label={`Delete ${s.asOf.toISOString().slice(0, 10)} snapshot`}
+                    title="Delete snapshot"
+                    className="p-1 text-muted-foreground transition-colors hover:text-red-600 cursor-pointer"
+                  >
+                    <Trash2 className="size-3.5" aria-hidden="true" />
                   </button>
                 </form>
-              </span>
+              </div>
             </li>
           ))}
+          {account.snapshots.length === 0 ? (
+            <li className="px-4 py-6 text-center text-xs text-muted-foreground">
+              No snapshots logged. Add one above to anchor net worth calculations.
+            </li>
+          ) : null}
         </ul>
-        {errorForm === "snapshot" && error ? <p className="mt-2 text-sm text-red-600" role="alert">{error}</p> : null}
+        {errorForm === "snapshot" && error ? (
+          <p className="mt-2 text-xs font-medium text-red-600" role="alert">
+            {error}
+          </p>
+        ) : null}
       </section>
 
-      <form action={submitDelete}>
-        <input type="hidden" name="id" value={account.id} />
-        <button type="submit" className="rounded border border-red-600 px-3 py-1 text-sm text-red-600">
-          Delete account (and all its data)
-        </button>
-        {errorForm === "delete" && error ? <p className="mt-2 text-sm text-red-600" role="alert">{error}</p> : null}
-      </form>
+      {/* Destructive Delete Zone */}
+      <div className="border-t border-border/60 pt-6">
+        <form action={submitDelete}>
+          <input type="hidden" name="id" value={account.id} />
+          <button
+            type="submit"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 px-4 text-xs font-semibold text-destructive shadow-2xs hover:bg-destructive/15 transition-colors cursor-pointer"
+          >
+            <Trash2 className="size-3.5" />
+            <span>Delete account (and all its data)</span>
+          </button>
+          {errorForm === "delete" && error ? (
+            <p className="mt-2 text-xs font-medium text-red-600" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </form>
+      </div>
     </main>
   );
 }

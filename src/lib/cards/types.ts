@@ -118,16 +118,6 @@ export function activeCategoryRate(rewards: CardRewards, category: SpendCategory
   );
 }
 
-export function activeMerchantRate(rewards: CardRewards, merchantName?: string | null): MerchantRate | undefined {
-  if (!merchantName) return undefined;
-  const normalizedMerchant = normalizeMerchantName(merchantName);
-  return rewards.merchantRates?.find(
-    (rate) =>
-      rate.merchant.split(",").some((name) => normalizeMerchantName(name) === normalizedMerchant) &&
-      conditionIsEnabled(rewards, rate.requiresConditionId),
-  );
-}
-
 export function activeBaseRateOverride(rewards: CardRewards): BaseRateOverride | undefined {
   return (rewards.baseRateOverrides ?? [])
     .filter((rate) => conditionIsEnabled(rewards, rate.requiresConditionId))
@@ -179,16 +169,4 @@ export function capForBaseRateOverride(rewards: CardRewards, rate: BaseRateOverr
     categories,
     allSpend: categories.length === SPEND_CATEGORIES.length,
   };
-}
-
-export function effectiveAnnualFeeMinor(card: CardDef): number {
-  const reduction = (card.rewards.conditions ?? []).reduce(
-    (sum, condition) => sum + (condition.enabled ? (condition.annualFeeReductionMinor ?? 0) : 0),
-    0,
-  );
-  return Math.max(0, card.annualFeeMinor - reduction);
-}
-
-function normalizeMerchantName(value: string): string {
-  return value.trim().toLocaleLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }

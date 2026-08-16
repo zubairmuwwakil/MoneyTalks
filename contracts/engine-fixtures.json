@@ -1,9 +1,9 @@
 {
-  "fixturesVersion": "1.0",
-  "_note": "Executable spec for RecommendationEngine. Amounts CAD unless stated. Expected values are exact engine outputs (unrounded beyond 4dp); UI rounds to cents at display. Valuations: MR pinned to 1.8¢ by pinnedValuations below (owner-state.json now ranks at the 1.0¢ floor), MBNA 1.0¢, Bonvoy 0.8¢, cash 1:1, CT ×0.95, CRO ×1.0 auto-sold / ×0.8 held. Default card wealthsimple-vip; threshold both(0.5pp, $0.25). Base owner state per owner-state.json: rogersEligibleServiceLinked=false, cryptoLevelUpProActive=false, Tangerine treatAsAllSelected (2% hypothetical everywhere — can only tie WS, never clears threshold), Scotia 4% cap progress $12,500. Ties rank the default card first.",
+  "fixturesVersion": "1.1",
+  "_note": "Executable spec for RecommendationEngine. Amounts CAD unless stated. Expected values are exact engine outputs (unrounded beyond 4dp); UI rounds to cents at display. Valuations: MR pinned to 1.8¢ by pinnedValuations below (owner-state.json now ranks at the 1.0¢ floor), MBNA 1.0¢, Bonvoy 0.8¢, cash 1:1, CT ×0.95, CRO ×1.0 auto-sold / ×0.8 held. Default card wealthsimple-vip; threshold both(0.5pp, $0.25). Base owner state per owner-state.json: rogersEligibleServiceLinked=false, cryptoLevelUpProActive=false, Tangerine treatAsAllSelected (2% hypothetical everywhere — can only tie WS, never clears threshold), Scotia 4% cap progress $12,500. Ties rank the default card first. Every case is evaluated at asOf 2026-08-20 unless it declares its own \"asOf\" — effective-dating is the one rule family that cannot be exercised at a single fixed date.",
   "pinnedValuations": {
     "amexMembershipRewards": 1.8,
-    "_why": "These 12 cases document ENGINE BEHAVIOUR and are pinned to an above-floor MR value so they exercise points-vs-cash ranking. They deliberately do NOT track owner-state.json, whose live setting is the 1.0¢ cash floor — otherwise every valuation change would re-baseline the whole spec and the temptation would be to accept engine output rather than re-derive the arithmetic."
+    "_why": "These 27 cases document ENGINE BEHAVIOUR and are pinned to an above-floor MR value so they exercise points-vs-cash ranking. They deliberately do NOT track owner-state.json, whose live setting is the 1.0¢ cash floor — otherwise every valuation change would re-baseline the whole spec and the temptation would be to accept engine output rather than re-derive the arithmetic."
   },
   "cases": [
     {
@@ -138,6 +138,194 @@
         "suppressedBetterCard": "amex-cobalt", "suppressedValueCad": 0.432,
         "switchFromDefault": false,
         "notes": "Cobalt 2x transit: 24 MR × 1.8¢ = $0.432; advantage $0.192 = 1.6pp ≥ 0.5pp BUT < $0.25 → 'both' semantics holds the default. This case distinguishes both-vs-either — under 'either' the winner would be Cobalt. Explanation should still show Cobalt as 'marginally better, not worth the wallet dig.'"
+      }
+    },
+    {
+      "caseId": "utilities-nil-mcc-permissive-fallback-80",
+      "description": "Household utility bill $80, MCC UNKNOWN (nil) — MBNA's mccInclude gate is skipped and the rule fires on category alone",
+      "purchase": { "amountCad": 80, "currency": "CAD", "category": "householdUtilities", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "expected": {
+        "winner": "mbna-rewards-we", "winnerValueCad": 4.00, "winnerRule": "mbna-utilities-5x",
+        "runnerUp": "wealthsimple-vip", "runnerUpValueCad": 1.60,
+        "switchFromDefault": true, "advantageOverDefaultCad": 2.40, "valuationSensitive": false,
+        "notes": "mbna-utilities-5x: 80 x 5 = 400 pts x 1.0c = $4.00 (cap mbna-utilities-annual $50,000, usage 0, no split). WS 2% x 80 = $1.60. Advantage 4.00 - 1.60 = $2.40 = 3.00pp - clears both floors. Field: Cobalt/Platinum base 1x = 80 x 1.8c = $1.44 each; Bonvoy base 2x = 160 x 0.8c = $1.28; Rogers 1.5% = $1.20; Scotia base 1% = $0.80; Triangle base 1% = CT$0.80 x 0.95 = $0.76; Tangerine $0.40 (householdUtilities is not a selected category, so base 0.5%); Crypto excluded (Level Up Pro inactive). CURRENT BEHAVIOUR, NOT ENDORSEMENT: RuleMatcher.matches applies mccInclude only when purchase.mcc is non-nil ('a known MCC must qualify; unknown falls back'), so an unknown MCC is treated as qualifying. That default is optimistic - the opposite of ownerConditions, which fails closed on nil (see owner-condition-unresolved-rogers-300). Paired with utilities-mcc-4816-include-miss-80."
+      }
+    },
+    {
+      "caseId": "utilities-mcc-4816-include-miss-80",
+      "description": "The same $80 utility bill, but the terminal submits MCC 4816 — outside mbna-utilities-5x's include list, so the rule is excluded",
+      "purchase": { "amountCad": 80, "currency": "CAD", "category": "householdUtilities", "mcc": 4816, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "expected": {
+        "winner": "wealthsimple-vip", "winnerValueCad": 1.60, "winnerRule": "wealthsimple-2pct",
+        "runnerUp": "amex-cobalt", "runnerUpValueCad": 1.44,
+        "switchFromDefault": false, "valuationSensitive": false,
+        "notes": "4816 is not in {4814, 4899, 4900} so mbna-utilities-5x cannot match, and MBNA falls to base 1x = 80 x 1.0c = $0.80. Nothing else changes from utilities-nil-mcc-permissive-fallback-80, so the winner drops from MBNA $4.00 back to the default: WS 2% x 80 = $1.60 > Cobalt/Platinum 80 x 1.8c = $1.44. THE PAIR IS THE ASSERTION - identical purchase, one field different (mcc null -> 4816), winner flips. valuationSensitive false is a second fact: at the 2.2c MR benchmark Cobalt reaches 80 x 2.2c = $1.76 and outranks WS on raw value, but the flip must also clear the switch threshold - $1.60 + max($0.25, 0.5pp x 80 = $0.40) = $2.00 -> 2.50c/pt, outside the 2.2c benchmark - so the upside is withheld."
+      }
+    },
+    {
+      "caseId": "crypto-mcc-exclude-insurance-200",
+      "description": "Insurance premium $200, MCC 6300, Level Up Pro ACTIVE and CRO auto-sold — mccExclude drops Crypto's only earn rule, so the card leaves the ranking entirely",
+      "purchase": { "amountCad": 200, "currency": "CAD", "category": "other", "mcc": 6300, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "ownerStateOverrides": { "cardStates": { "cryptocom-royal-indigo": { "cryptoLevelUpProActive": true, "croHandling": "autoSell" } } },
+      "expected": {
+        "winner": "wealthsimple-vip", "winnerValueCad": 4.00, "winnerRule": "wealthsimple-2pct",
+        "runnerUp": "amex-cobalt", "runnerUpValueCad": 3.60,
+        "switchFromDefault": false, "valuationSensitive": false,
+        "notes": "6300 is in crypto-pro-3pct's mccExclude, so the rule does not match; it is the card's ONLY earn rule, so RuleMatcher returns cardExcluded and Scorer drops the card from the ranking. The assertion is decisive: unexcluded, Crypto would score 3% x $200 x 1.0 (auto-sold) = $6.00, beat WS's $4.00 by $2.00 = 1.00pp, clear both floors and win outright. Winner = WS is therefore proof the exclusion fired. Field: Cobalt/Platinum base 1x = 200 x 1.8c = $3.60; Bonvoy 400 x 0.8c = $3.20; Rogers 1.5% = $3.00; MBNA and Scotia $2.00; Triangle CT$2.00 x 0.95 = $1.90; Tangerine 0.5% = $1.00 ('other' is not a selected category). Note the contrast with mccInclude: mccExclude is also skipped when purchase.mcc is nil, but skipping it is PERMISSIVE for the cardholder there and here - the two gates fail in the same direction on unknown data, which is only safe for one of them."
+      }
+    },
+    {
+      "caseId": "costco-5411-merchant-exclude-100",
+      "description": "Costco checkout $100 whose terminal submits MCC 5411 — brand exclusion, not the MCC, is the only thing blocking Triangle's 3% grocery rule",
+      "purchase": { "amountCad": 100, "currency": "CAD", "category": "grocery", "mcc": 5411, "merchantBrand": "costco", "recurringIndicator": false, "acceptedNetworks": ["mastercard"] },
+      "expected": {
+        "winner": "mbna-rewards-we", "winnerValueCad": 5.00, "winnerRule": "mbna-grocery-5x",
+        "runnerUp": "tangerine-moneyback-world", "runnerUpValueCad": 2.00,
+        "switchFromDefault": true, "defaultNotAccepted": true, "valuationSensitive": false,
+        "notes": "Deliberate contrast with costco-mastercard-only-200, where MCC 5300 blocked the grocery rules before merchantExclude ever mattered. Here 5411 passes every MCC gate, so predicate.merchantExclude is the only thing left doing work. Triangle: merchantExclude ['walmart','walmart-superstore','costco'] hits, triangle-grocery-3pct never matches, base 1% = CT$1.00 x 0.95 = $0.95. Without the exclusion Triangle would be 3% x 100 = CT$3.00 x 0.95 = $2.85 and would take second place - so asserting runnerUp = Tangerine at $2.00 is what pins the exclusion. MBNA grocery 5x has no merchantExclude and 5411 is in {5411,5462,5499}: 500 pts x 1.0c = $5.00. Tangerine 2% = $2.00 (grocery is selected; carries the hypotheticalSelection warning). Rogers 1.5% = $1.50. Amex and Visa cards are all gated by acceptance, so the default is not accepted. NOTE: momentum-grocery-recurring-4pct carries the identical merchantExclude ['costco'] but cannot be reached at a Canadian warehouse - Scotia is Visa and Costco Canada is Mastercard-only - so that rule's brand gate is only reachable through some future non-warehouse Costco charge."
+      }
+    },
+    {
+      "caseId": "scotia-effective-from-day-of-120",
+      "description": "Recurring insurance premium $120 evaluated on 2026-02-01 — the exact effectiveFrom day of every Scotia Momentum rule",
+      "asOf": "2026-02-01",
+      "purchase": { "amountCad": 120, "currency": "CAD", "category": "insurance", "mcc": 6300, "merchantBrand": null, "recurringIndicator": true, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "expected": {
+        "winner": "scotia-momentum-vi-plus", "winnerValueCad": 4.80, "winnerRule": "momentum-grocery-recurring-4pct",
+        "runnerUp": "wealthsimple-vip", "runnerUpValueCad": 2.40,
+        "switchFromDefault": true, "advantageOverDefaultCad": 2.40, "valuationSensitive": false,
+        "notes": "RuleMatcher.isLive compares ISO date strings lexicographically: '2026-02-01' <= '2026-02-01' is true, so effectiveFrom is INCLUSIVE. Scotia's 4% fires through the 'recurring' pseudo-category, which matches() evaluates before and independently of mccInclude (the include list is consulted only inside the default category branch), so MCC 6300 is irrelevant and the rate is 4% x $120 = $4.80 - cap momentum-4pct-accountYear sits at $12,500 of $25,000, room $12,500 >> $120 so no split, and $12,500 < 90% x $25,000 so no capNearlyExhausted. WS 2% = $2.40; advantage $2.40 = 2.00pp, both floors clear. Field: Cobalt/Platinum 120 x 1.8c = $2.16; Bonvoy 240 x 0.8c = $1.92; Rogers 1.5% = $1.80; MBNA 1x = $1.20; Triangle CT$1.20 x 0.95 = $1.14; Tangerine $0.60 - 'recurring' IS in Tangerine's selected list, but ownerSelectedTangerineCategory tests purchase.category ('insurance') and never the recurring flag, so Tangerine stays at base 0.5%. Paired with scotia-effective-from-day-before-120."
+      }
+    },
+    {
+      "caseId": "scotia-effective-from-day-before-120",
+      "description": "The same premium one day earlier, 2026-01-31 — every Scotia rule is pre-effective, so the card has no scorable rule at all",
+      "asOf": "2026-01-31",
+      "purchase": { "amountCad": 120, "currency": "CAD", "category": "insurance", "mcc": 6300, "merchantBrand": null, "recurringIndicator": true, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "expected": {
+        "winner": "wealthsimple-vip", "winnerValueCad": 2.40, "winnerRule": "wealthsimple-2pct",
+        "runnerUp": "amex-cobalt", "runnerUpValueCad": 2.16,
+        "switchFromDefault": false, "valuationSensitive": false,
+        "notes": "One day earlier and the flip is total. '2026-02-01' <= '2026-01-31' is false lexicographically, so ALL THREE Scotia rules - momentum-base included - fail isLive, RuleMatcher finds no candidate, and Scorer excludes the card. Scotia's $4.80 vanishes and the default takes it back: WS 2% x 120 = $2.40 > Cobalt 120 x 1.8c = $2.16. The day-of/day-before pair is the assertion; it pins both the inclusive boundary and the fact that a card whose ENTIRE rule set is pre-effective drops out rather than falling back to some implicit base rate. valuationSensitive false: at 2.2c Cobalt reaches $2.64, but the flip needs $2.40 + max($0.25, 0.5pp x $120 = $0.60) = $3.00 -> 2.50c/pt, past the 2.2c benchmark."
+      }
+    },
+    {
+      "caseId": "crypto-announced-fx-ignored-2026-08-20",
+      "description": "US$ purchase of C$2,000 evaluated 2026-08-20 — Crypto's announced 2026-09-01 FX record must not apply yet",
+      "asOf": "2026-08-20",
+      "purchase": { "amountCad": 2000, "currency": "USD", "category": "other", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "ownerStateOverrides": { "cardStates": { "cryptocom-royal-indigo": { "cryptoLevelUpProActive": true, "croHandling": "autoSell" } } },
+      "expected": {
+        "winner": "cryptocom-royal-indigo", "winnerValueCad": 60.00, "winnerRule": "crypto-pro-3pct",
+        "runnerUp": "wealthsimple-vip", "runnerUpValueCad": 40.00,
+        "switchFromDefault": true, "advantageOverDefaultCad": 20.00,
+        "warningsAbsent": ["fxAllowanceAssumed"], "valuationSensitive": false,
+        "notes": "activeFxRule takes the FIRST record whose window contains asOf. Record 1 (status current, effectiveTo 2026-08-31, rate 0) contains 2026-08-20, so the announced record - effectiveFrom 2026-09-01, freeAllowanceCadPerCalendarMonth C$1,400, postAllowanceRate 2% - is never consulted. Earn: 3% x $2,000 = 60 CRO x 1.0 (auto-sold) = $60.00, minus 0% FX = $60.00. The cap is measured in USD: no usdEquivalent supplied, so Scorer's fallback gives 2000 x 0.73 = US$1,460 < US$2,500, fully in-cap. WS 2% = $40.00 (0% FX). Advantage $20.00 = 1.00pp. THE ASSERTION IS THE ABSENT WARNING: both FX records carry rate 0, so the two windows are dollar-identical and only fxAllowanceAssumed distinguishes them - without warningsAbsent this case would pass even if the announced record were applied a fortnight early. Field, all net of 2.5% FX = $50.00: Rogers USD 3% = $60.00 - $50.00 = $10.00; Cobalt/Platinum $36.00 - $50.00 = -$14.00; Bonvoy -$18.00; MBNA and Scotia -$30.00; Triangle -$31.00; Tangerine -$40.00. Paired with crypto-fx-allowance-assumed-2026-09-01."
+      }
+    },
+    {
+      "caseId": "crypto-fx-allowance-assumed-2026-09-01",
+      "description": "The same US$ purchase one day later — the announced record takes over and the engine declares the free-allowance assumption instead of pricing it",
+      "asOf": "2026-09-01",
+      "purchase": { "amountCad": 2000, "currency": "USD", "category": "other", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "ownerStateOverrides": { "cardStates": { "cryptocom-royal-indigo": { "cryptoLevelUpProActive": true, "croHandling": "autoSell" } } },
+      "expected": {
+        "winner": "cryptocom-royal-indigo", "winnerValueCad": 60.00, "winnerRule": "crypto-pro-3pct",
+        "runnerUp": "wealthsimple-vip", "runnerUpValueCad": 40.00,
+        "switchFromDefault": true, "advantageOverDefaultCad": 20.00,
+        "warnings": ["fxAllowanceAssumed"], "valuationSensitive": false,
+        "notes": "Record 1 expires ('2026-09-01' <= '2026-08-31' is false) and the announced record becomes active. Scorer's FX branch is all-or-nothing: freeAllowanceCadPerCalendarMonth present -> charge NOTHING and raise fxAllowanceAssumed. Net stays $60.00, byte-identical to the day before, and only the warning moves. DECLARED-NOT-COMPUTED, and the amount is chosen to show the size of the gap: the allowance is C$1,400 per calendar month, so this single C$2,000 purchase already overruns it by C$600, and postAllowanceRate 2% would cost $12.00 - the defensible number is $48.00, not $60.00, and the advantage over WS would be $8.00 rather than $20.00. The engine does not track month-to-date foreign spend, so it declares the assumption rather than pricing it; both fields are marked x-status declared-not-computed in card-catalogue.schema.json. The winner does not change here, but it would wherever the margin is under the unpriced FX."
+      }
+    },
+    {
+      "caseId": "scotia-4pct-cap-straddle-500",
+      "description": "Recurring insurance premium $500 with momentum-4pct-accountYear at $24,700 of $25,000 — a 60/40 straddle of the accelerated/post-cap boundary",
+      "purchase": { "amountCad": 500, "currency": "CAD", "category": "insurance", "mcc": 6300, "merchantBrand": null, "recurringIndicator": true, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "ownerStateOverrides": { "cardStates": { "scotia-momentum-vi-plus": { "capProgress": { "momentum-4pct-accountYear": 24700 } } } },
+      "expected": {
+        "winner": "scotia-momentum-vi-plus", "winnerValueCad": 14.00, "winnerRule": "momentum-grocery-recurring-4pct",
+        "runnerUp": "wealthsimple-vip", "runnerUpValueCad": 10.00,
+        "switchFromDefault": true, "advantageOverDefaultCad": 4.00,
+        "warnings": ["capNearlyExhausted"], "valuationSensitive": false,
+        "notes": "Room = $25,000 - $24,700 = $300. CapMath.split($500, $25,000, $24,700) gives in-cap $300 / over-cap $200 - a 60/40 split against the existing cobalt-cap-proration-100's 50/50, on a different card, a different cap period and a cashback rather than points rate. Earn = $300 x 4% + $200 x postCapEarn 1% = $12.00 + $2.00 = $14.00, cash 1:1. capNearlyExhausted fires because usage $24,700 >= 90% x $25,000 = $22,500; note the trigger is usage BEFORE this purchase, so a purchase that exhausts a cap from zero raises no warning. WS 2% = $10.00; advantage $4.00 = 0.80pp, both floors clear. Field: Cobalt/Platinum 500 x 1.8c = $9.00; Bonvoy 1,000 x 0.8c = $8.00; Rogers 1.5% = $7.50; MBNA 1x = $5.00; Triangle CT$5.00 x 0.95 = $4.75; Tangerine 0.5% = $2.50. Unprorated the rule would pay 4% x $500 = $20.00, so the asserted $14.00 is decisive on the split."
+      }
+    },
+    {
+      "caseId": "rogers-cap-exhausted-postcap-400",
+      "description": "$400 at a Mastercard-only merchant with rogers-enhanced-accountYear fully consumed and an eligible service linked — appliedRuleId names the 2% rule while every dollar earns the 1.5% postCapEarn",
+      "purchase": { "amountCad": 400, "currency": "CAD", "category": "other", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["mastercard"] },
+      "ownerStateOverrides": { "cardStates": { "rogers-red-we": { "rogersEligibleServiceLinked": true, "capProgress": { "rogers-enhanced-accountYear": 61000 } } } },
+      "expected": {
+        "winner": "rogers-red-we", "winnerValueCad": 6.00, "winnerRule": "rogers-base-2-with-service",
+        "runnerUp": "mbna-rewards-we", "runnerUpValueCad": 4.00,
+        "switchFromDefault": true, "defaultNotAccepted": true,
+        "warnings": ["capNearlyExhausted"], "valuationSensitive": false,
+        "notes": "Usage $61,000 = limit $61,000, so room is $0: in-cap $0, over-cap $400, a pure postCapEarn case. It is the complement of cobalt-cap-exhausted-100, which asserts that exhaustion makes the winner FLIP; here the exhausted card still wins, at its post-cap rate, so the post-cap arithmetic is itself the asserted number. Earn = $0 x 2% + $400 x 1.5% = $6.00. Pairing winnerRule 'rogers-base-2-with-service' with a 1.5% outcome is deliberate: appliedRuleId names the rule that MATCHED, never the rate actually paid, and any UI that renders '2%' from appliedRuleId would overstate this checkout by $2.00. Field - Mastercard only, so WS and Scotia (Visa) and all three Amex cards are gated out, hence defaultNotAccepted: MBNA base 1x = 400 x 1.0c = $4.00; Triangle base 1% = CT$4.00 x 0.95 = $3.80; Tangerine base 0.5% = $2.00 ('other' unselected). capNearlyExhausted: $61,000 >= 90% x $61,000."
+      }
+    },
+    {
+      "caseId": "threshold-both-cad-cleared-pp-missed-1000",
+      "description": "$1,000 specialty-grocer order (MCC 5451) with Cobalt's eats cap at $2,420 — Cobalt beats the default by $3.76 but only 0.376pp, so 'both' semantics holds the default",
+      "purchase": { "amountCad": 1000, "currency": "CAD", "category": "grocery", "mcc": 5451, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"] },
+      "ownerStateOverrides": { "cardStates": { "amex-cobalt": { "capProgress": { "cobalt-eats-monthly": 2420 } } } },
+      "expected": {
+        "winner": "wealthsimple-vip", "winnerValueCad": 20.00, "winnerRule": "wealthsimple-2pct",
+        "runnerUp": "amex-cobalt", "runnerUpValueCad": 23.76,
+        "suppressedBetterCard": "amex-cobalt", "suppressedValueCad": 23.76,
+        "switchFromDefault": false,
+        "valuationSensitive": true, "valuationDirection": "above", "alternateWinner": "amex-cobalt", "breakevenCentsPerPoint": 1.8939,
+        "notes": "The MIRROR of taxi-12-threshold-suppression: there the pp floor was met and the CAD floor missed; here the CAD floor is met and the pp floor missed. The two together pin 'both' from both sides - under 'either' semantics BOTH would switch, which is exactly the reading owner-state.json flagged for veto. Cobalt: room = $2,500 - $2,420 = $80, so $80 x 5 + $920 x 1 = 1,320 MR x 1.8c = $23.76, with capNearlyExhausted ($2,420 >= $2,250). WS 2% = $20.00. Advantage $3.76: 0.376pp < the 0.5pp floor (fails), $3.76 >= the $0.25 floor (passes) -> held. MCC 5451 is doing quiet work here: it keeps mbna-grocery-5x (needs 5411/5462/5499), triangle-grocery-3pct (5411) and momentum-grocery-recurring-4pct (5411) all at base, leaving Cobalt - whose cobalt-eats-5x carries no mccInclude at all - as the only accelerated card. Field: Tangerine 2% = $20.00 (ties the default; ties rank the default first); Platinum 1,000 x 1.8c = $18.00; Bonvoy 2,000 x 0.8c = $16.00; Rogers 1.5% = $15.00; MBNA and Scotia $10.00; Triangle CT$10.00 x 0.95 = $9.50. TWO BEHAVIOURS WORTH NAMING. (a) runnerUp is $23.76 while the winner is $20.00 - when the threshold holds the default, runnerUp is 'the card you passed up', not 'second best', and any UI sorting on runnerUpValueCad must expect it to exceed the winner. (b) The upside breakeven is 1.8939c = ($20.00 + max($0.25, 0.5pp x $1,000 = $5.00)) x 100 / 1,320 pts, which is BELOW the declared 1.8c and inside the 2.2c benchmark, so it is disclosed: at this margin the breakeven is the point where Cobalt clears the SWITCH THRESHOLD, not the point where it overtakes on raw value - it already has."
+      }
+    },
+    {
+      "caseId": "threshold-both-cleared-by-a-hair-1000",
+      "description": "The same $1,000 order with the cap $20 lower ($2,400) — advantage lands at 0.520pp and the switch is recommended",
+      "purchase": { "amountCad": 1000, "currency": "CAD", "category": "grocery", "mcc": 5451, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"] },
+      "ownerStateOverrides": { "cardStates": { "amex-cobalt": { "capProgress": { "cobalt-eats-monthly": 2400 } } } },
+      "expected": {
+        "winner": "amex-cobalt", "winnerValueCad": 25.20, "winnerRule": "cobalt-eats-5x",
+        "runnerUp": "wealthsimple-vip", "runnerUpValueCad": 20.00,
+        "switchFromDefault": true, "advantageOverDefaultCad": 5.20,
+        "warnings": ["capNearlyExhausted"],
+        "valuationSensitive": true, "valuationDirection": "below", "alternateWinner": "wealthsimple-vip", "breakevenCentsPerPoint": 1.7857,
+        "notes": "Twenty dollars less cap usage than threshold-both-cad-cleared-pp-missed-1000, and the verdict inverts. Room $100 -> $100 x 5 + $900 x 1 = 1,400 MR x 1.8c = $25.20. Advantage over WS's $20.00 is $5.20 = 0.520pp: >= 0.5pp and >= $0.25, so both floors clear and the switch is recommended. The pp floor is the binding constraint and the exact break is $5.00 of advantage - 1,388.9 pts, i.e. cap room $97.22 - so these two cases bracket a real edge rather than a comfortable one. Field is unchanged from the paired case. The disclosed direction flips to 'below' because the winner is now a points card that only wins at the declared 1.8c: at the 1.0c MR floor Cobalt is 1,400 x 1.0c = $14.00 and the default takes it back, so the engine discloses the DOWNSIDE breakeven 1.7857c = ($20.00 + $5.00) x 100 / 1,400 pts. Read together the pair also pins ordering: RecommendationEngine checks downside before upside, so one purchase can disclose at most one direction."
+      }
+    },
+    {
+      "caseId": "valuation-upside-disclosed-inside-benchmark-400",
+      "description": "$400 recurring specialty-grocer charge — Scotia's 4% wins in dollars, Cobalt would win at 2.00¢/MR, and 2.00¢ is inside the 2.2¢ published benchmark, so the upside is disclosed",
+      "purchase": { "amountCad": 400, "currency": "CAD", "category": "grocery", "mcc": 5451, "merchantBrand": null, "recurringIndicator": true, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "ownerStateOverrides": { "cardStates": { "amex-cobalt": { "capProgress": { "cobalt-eats-monthly": 2400 } } } },
+      "expected": {
+        "winner": "scotia-momentum-vi-plus", "winnerValueCad": 16.00, "winnerRule": "momentum-grocery-recurring-4pct",
+        "runnerUp": "amex-cobalt", "runnerUpValueCad": 14.40,
+        "switchFromDefault": true, "advantageOverDefaultCad": 8.00,
+        "valuationSensitive": true, "valuationDirection": "above", "alternateWinner": "amex-cobalt", "breakevenCentsPerPoint": 2.00,
+        "notes": "Scotia via the recurring branch: 4% x $400 = $16.00 (cap at $12,500 of $25,000 - no split, no warning). Cobalt: room $100 -> $100 x 5 + $300 x 1 = 800 MR x 1.8c = $14.40, capNearlyExhausted. WS 2% = $8.00; advantage $8.00 = 2.00pp, so the switch is recommended. THE UPSIDE GATE IN FULL: at the 2.2c benchmark Cobalt is 800 x 2.2c = $17.60 > Scotia's $16.00, so the challenger genuinely overtakes and clears the threshold at benchmark. Breakeven = needed x 100 / units, where needed = max(incumbent Scotia $16.00, default WS $8.00 + max($0.25, 0.5pp x $400 = $2.00) = $10.00) = $16.00, giving $16.00 x 100 / 800 = 2.00c/pt. 2.00c <= 2.20c benchmark -> DISCLOSED. Field: Tangerine 2% = $8.00 (ties WS; default first); Platinum 400 x 1.8c = $7.20; Bonvoy 800 x 0.8c = $6.40; Rogers 1.5% = $6.00; MBNA base 1x = $4.00 (5451 not in its grocery list); Triangle base CT$4.00 x 0.95 = $3.80. Paired with valuation-upside-withheld-outside-benchmark-400."
+      }
+    },
+    {
+      "caseId": "valuation-upside-withheld-outside-benchmark-400",
+      "description": "The same $400 grocer charge, NOT recurring and with the Cobalt cap at $2,490 — the flip needs 2.2727¢/MR, past the 2.2¢ benchmark, so nothing is disclosed",
+      "purchase": { "amountCad": 400, "currency": "CAD", "category": "grocery", "mcc": 5451, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "ownerStateOverrides": { "cardStates": { "amex-cobalt": { "capProgress": { "cobalt-eats-monthly": 2490 } } } },
+      "expected": {
+        "winner": "wealthsimple-vip", "winnerValueCad": 8.00, "winnerRule": "wealthsimple-2pct",
+        "runnerUp": "tangerine-moneyback-world", "runnerUpValueCad": 8.00,
+        "switchFromDefault": false, "valuationSensitive": false,
+        "notes": "Not recurring, so Scotia drops to base 1% = $4.00 and the incumbent is the default itself. Cobalt: room $10 -> $10 x 5 + $390 x 1 = 440 MR x 1.8c = $7.92, just under WS's $8.00, with capNearlyExhausted. THE GATE: at 2.2c Cobalt reaches 440 x 2.2c = $9.68 and beats $8.00 on raw value - but the flip must also clear the switch threshold, so needed = $8.00 + max($0.25, 0.5pp x $400 = $2.00) = $10.00, giving $10.00 x 100 / 440 = 2.2727c/pt > the 2.20c benchmark -> WITHHELD, valuationSensitive false. This is the boundary the disclosure rule exists to draw: 2.00c inside (previous case) versus 2.2727c outside, a 27-hundredths-of-a-cent difference in what the owner is told. In practice the gate bites twice, because the aspirational ranking is a full Verdict and the threshold has already suppressed Cobalt there ($9.68 - $8.00 = $1.68 = 0.42pp < 0.5pp) before the explicit flip <= benchmarkCents check runs. runnerUp is Tangerine, tied with the default at 2%: ties rank the default first, and runnerUp when the default holds is the best NON-default card. Field: Platinum $7.20; Bonvoy $6.40; Rogers $6.00; MBNA and Scotia $4.00; Triangle $3.80."
+      }
+    },
+    {
+      "caseId": "owner-condition-unresolved-rogers-300",
+      "description": "$300 at a Mastercard-only merchant with rogersEligibleServiceLinked forced back to unresolved (nil) — the 2% rule is skipped rather than guessed",
+      "purchase": { "amountCad": 300, "currency": "CAD", "category": "other", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["mastercard"] },
+      "ownerStateOverrides": { "cardStates": { "rogers-red-we": { "unsetFields": ["rogersEligibleServiceLinked"] } } },
+      "expected": {
+        "winner": "rogers-red-we", "winnerValueCad": 4.50, "winnerRule": "rogers-base-1_5",
+        "runnerUp": "mbna-rewards-we", "runnerUpValueCad": 3.00,
+        "switchFromDefault": true, "defaultNotAccepted": true, "valuationSensitive": false,
+        "notes": "conditionsResolveTrue tests `state.rogersEligibleServiceLinked == true`, so nil and false take the same branch: the rule is dropped, never guessed in either direction. rogers-base-2-with-service is skipped and the unconditional rogers-base-1_5 carries the card at 1.5% x $300 = $4.50 (cap room $61,000, no split). Had the condition resolved true the same purchase would earn 2% = $6.00, so asserting BOTH winnerRule and $4.50 is what pins fail-closed. owner-state.json resolves this field to false rather than nil, so the fixture uses unsetFields to reach the genuinely-unresolved state; the outcome is identical, and that identity is itself the contract a TS twin must reproduce - unresolved is not a third state at the engine boundary, it collapses into 'condition not met'. Compare utilities-nil-mcc-permissive-fallback-80, where unknown DATA (a nil MCC) resolves permissively while unknown OWNER STATE resolves restrictively. Field: MBNA base 1x = 300 x 1.0c = $3.00; Triangle base 1% = CT$3.00 x 0.95 = $2.85; Tangerine base 0.5% = $1.50 ('other' unselected). WS and Scotia are Visa and the Amex cards are gated, hence defaultNotAccepted."
       }
     }
   ]

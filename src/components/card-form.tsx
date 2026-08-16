@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { createCard, type CardFormState, updateCard } from "@/app/cards/actions";
-import { CATEGORY_LABELS, SPEND_CATEGORIES, type Network, type SpendCategory } from "@/engine/cards/types";
+import { CATEGORY_LABELS, SPEND_CATEGORIES, type Network, type SpendCategory } from "@/lib/cards/types";
 
 type CategoryRateForm = {
   category: SpendCategory;
@@ -76,8 +78,9 @@ export type CardFormValues = {
   };
 };
 
-const input = "mt-1 w-full rounded border px-3 py-2 text-sm";
-const label = "block text-sm";
+const input =
+  "mt-1 flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-sm shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50";
+const label = "block text-xs font-medium text-foreground";
 const initialCardFormState: CardFormState = {};
 
 const emptyCard: CardFormValues = {
@@ -159,7 +162,7 @@ function fieldError(state: CardFormState, path: string) {
 }
 
 function ErrorText({ error, id }: { error?: string; id?: string }) {
-  return error ? <p id={id} className="mt-1 text-xs text-red-600">{error}</p> : null;
+  return error ? <p id={id} className="mt-1 text-xs font-medium text-red-600">{error}</p> : null;
 }
 
 function newCreditId(credits: CreditForm[]): string {
@@ -268,12 +271,17 @@ export function CardForm({
       <input type="hidden" name="cardJson" value={JSON.stringify(toPayload(values))} />
       {mode === "edit" ? <input type="hidden" name="cardId" value={cardId} /> : null}
 
-      {state.error && !state.fieldErrors?.nickname ? <p role="alert" className="text-sm text-red-600">{state.error}</p> : null}
+      {state.error && !state.fieldErrors?.nickname ? (
+        <div role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs font-medium text-red-600">
+          {state.error}
+        </div>
+      ) : null}
 
-      <section className="space-y-4">
+      {/* Card Details Card */}
+      <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs space-y-4">
         <div>
-          <h2 className="font-medium">Card details</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Use a nickname you will recognize at a glance.</p>
+          <h2 className="text-base font-semibold tracking-tight">Card details</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Use a nickname you will recognize at a glance.</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={label}>
@@ -281,6 +289,7 @@ export function CardForm({
             <input
               name="nickname"
               required
+              placeholder="e.g. Cobalt Card"
               value={values.nickname}
               onChange={(event) => setValues((current) => ({ ...current, nickname: event.target.value }))}
               aria-describedby={fieldError(state, "nickname") ? "nickname-error" : undefined}
@@ -293,6 +302,7 @@ export function CardForm({
             <input
               name="issuer"
               required
+              placeholder="e.g. American Express"
               value={values.issuer}
               onChange={(event) => setValues((current) => ({ ...current, issuer: event.target.value }))}
               className={input}
@@ -328,8 +338,8 @@ export function CardForm({
           </label>
         </div>
 
-        <details className="rounded border p-4">
-          <summary className="cursor-pointer text-sm font-medium">Optional account details</summary>
+        <details className="rounded-lg border border-border/80 bg-muted/20 p-4">
+          <summary className="cursor-pointer text-xs font-semibold text-foreground">Optional account details</summary>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className={label}>
               Last four digits
@@ -428,10 +438,11 @@ export function CardForm({
         </details>
       </section>
 
-      <section className="space-y-4">
+      {/* Rewards Core Multipliers */}
+      <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs space-y-4">
         <div>
-          <h2 className="font-medium">Rewards</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h2 className="text-base font-semibold tracking-tight">Rewards</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
             These numbers power the picker, annual-fee verdict, and cap tracker.
           </p>
         </div>
@@ -472,9 +483,8 @@ export function CardForm({
               }
               className={input}
             />
-            <span className="mt-1 block text-xs text-muted-foreground">
-              What one point is worth in cents: use 1 for plain cashback, so the multiplier reads as a percentage;
-              use 1.5 when each point is worth 1.5¢.
+            <span className="mt-1 block text-[11px] text-muted-foreground">
+              What 1 point is worth in cents (1 = 1¢ for plain cashback).
             </span>
             <ErrorText error={fieldError(state, "rewards.pointValueCents")} />
           </label>
@@ -496,12 +506,13 @@ export function CardForm({
           </label>
         </div>
 
-        <div data-testid="conditions-form" className="space-y-3 rounded border p-4">
+        {/* Conditions Form */}
+        <div data-testid="conditions-form" className="space-y-3 rounded-lg border border-border/80 bg-muted/20 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-medium">Wallet conditions</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Add account or eligibility states that change your rewards. You can turn them on or off from the card page later.
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Wallet conditions</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Add account or eligibility states that change rewards or waive fees.
               </p>
             </div>
             <button
@@ -518,18 +529,19 @@ export function CardForm({
                   },
                 }))
               }
-              className="rounded border px-3 py-1 text-sm hover:bg-muted/50"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted cursor-pointer"
             >
-              Add condition
+              <Plus className="size-3" />
+              <span>Add condition</span>
             </button>
           </div>
 
           {values.rewards.conditions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No account conditions yet.</p>
+            <p className="text-xs text-muted-foreground py-2">No account conditions yet.</p>
           ) : (
             <div className="space-y-3">
               {values.rewards.conditions.map((condition, index) => (
-                <div key={condition.id} className="grid gap-3 rounded bg-muted/40 p-3 sm:grid-cols-[1.6fr_auto_1fr_auto] sm:items-end">
+                <div key={condition.id} className="grid gap-3 rounded-lg bg-background p-3 border border-border/60 sm:grid-cols-[1.6fr_auto_1fr_auto] sm:items-end">
                   <label className={label}>
                     Condition
                     <input
@@ -541,11 +553,12 @@ export function CardForm({
                     />
                     <ErrorText error={fieldError(state, `rewards.conditions.${index}.label`)} />
                   </label>
-                  <label className="flex min-h-10 items-center gap-2 text-sm">
+                  <label className="flex min-h-9 items-center gap-2 text-xs font-medium cursor-pointer">
                     <input
                       type="checkbox"
                       checked={condition.enabled}
                       onChange={(event) => updateCondition(index, { enabled: event.target.checked })}
+                      className="rounded"
                     />
                     Active now
                   </label>
@@ -559,7 +572,6 @@ export function CardForm({
                       onChange={(event) => updateCondition(index, { annualFeeReduction: event.target.value })}
                       className={input}
                     />
-                    <span className="mt-1 block text-xs text-muted-foreground">Subtracts from the published fee while active.</span>
                     <ErrorText error={fieldError(state, `rewards.conditions.${index}.annualFeeReduction`)} />
                   </label>
                   <button
@@ -585,7 +597,7 @@ export function CardForm({
                         };
                       })
                     }
-                    className="rounded border border-red-600 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                    className="inline-flex h-9 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5 px-3 text-xs font-semibold text-destructive shadow-2xs hover:bg-destructive/15 cursor-pointer"
                   >
                     Remove
                   </button>
@@ -595,12 +607,13 @@ export function CardForm({
           )}
         </div>
 
-        <div data-testid="all-spend-rate-form" className="space-y-3 rounded border p-4">
+        {/* All Spend Rates Form */}
+        <div data-testid="all-spend-rate-form" className="space-y-3 rounded-lg border border-border/80 bg-muted/20 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-medium">All-spend conditional rates</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Use this when an active condition changes the standard rate on every purchase, such as a CRO lockup or a telecom-service bonus. Configured category and merchant bonuses still take priority.
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">All-spend conditional rates</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Rates that override the base rate across all spend when a condition is met.
               </p>
             </div>
             <button
@@ -625,18 +638,19 @@ export function CardForm({
                   },
                 }))
               }
-              className="rounded border px-3 py-1 text-sm hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted disabled:opacity-50 cursor-pointer"
             >
-              Add all-spend rate
+              <Plus className="size-3" />
+              <span>Add all-spend rate</span>
             </button>
           </div>
 
           {values.rewards.baseRateOverrides.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No conditional all-spend rates.</p>
+            <p className="text-xs text-muted-foreground py-2">No conditional all-spend rates.</p>
           ) : (
             <div className="space-y-3">
               {values.rewards.baseRateOverrides.map((rate, index) => (
-                <div key={rate.id} className="grid gap-3 rounded bg-muted/40 p-3 sm:grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr_auto] sm:items-end">
+                <div key={rate.id} className="grid gap-3 rounded-lg bg-background p-3 border border-border/60 sm:grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr_auto] sm:items-end">
                   <label className={label}>
                     Rule name
                     <input
@@ -664,8 +678,16 @@ export function CardForm({
                   </label>
                   <label className={label}>
                     Active when
-                    <select value={rate.requiresConditionId} onChange={(event) => updateBaseRateOverride(index, { requiresConditionId: event.target.value })} className={input}>
-                      {values.rewards.conditions.map((condition) => <option key={condition.id} value={condition.id}>{condition.label || "Unnamed condition"}</option>)}
+                    <select
+                      value={rate.requiresConditionId}
+                      onChange={(event) => updateBaseRateOverride(index, { requiresConditionId: event.target.value })}
+                      className={input}
+                    >
+                      {values.rewards.conditions.map((condition) => (
+                        <option key={condition.id} value={condition.id}>
+                          {condition.label || "Unnamed condition"}
+                        </option>
+                      ))}
                     </select>
                     <ErrorText error={fieldError(state, `rewards.baseRateOverrides.${index}.requiresConditionId`)} />
                   </label>
@@ -683,7 +705,11 @@ export function CardForm({
                   </label>
                   <label className={label}>
                     Cap window
-                    <select value={rate.capWindow} onChange={(event) => updateBaseRateOverride(index, { capWindow: event.target.value as "MONTH" | "YEAR" })} className={input}>
+                    <select
+                      value={rate.capWindow}
+                      onChange={(event) => updateBaseRateOverride(index, { capWindow: event.target.value as "MONTH" | "YEAR" })}
+                      className={input}
+                    >
                       <option value="MONTH">Per month</option>
                       <option value="YEAR">Per year</option>
                     </select>
@@ -699,7 +725,7 @@ export function CardForm({
                         },
                       }))
                     }
-                    className="rounded border border-red-600 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                    className="inline-flex h-9 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5 px-3 text-xs font-semibold text-destructive shadow-2xs hover:bg-destructive/15 cursor-pointer"
                   >
                     Remove
                   </button>
@@ -709,12 +735,13 @@ export function CardForm({
           )}
         </div>
 
-        <div data-testid="shared-cap-form" className="space-y-3 rounded border p-4">
+        {/* Shared Cap Form */}
+        <div data-testid="shared-cap-form" className="space-y-3 rounded-lg border border-border/80 bg-muted/20 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-medium">Shared spending caps</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Use one cap group when categories draw from the same spending limit, such as groceries and dining.
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Shared spending caps</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Group multiple categories under one shared spend ceiling (e.g. Dining &amp; Groceries).
               </p>
             </div>
             <button
@@ -731,18 +758,19 @@ export function CardForm({
                   },
                 }))
               }
-              className="rounded border px-3 py-1 text-sm hover:bg-muted/50"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted cursor-pointer"
             >
-              Add shared cap
+              <Plus className="size-3" />
+              <span>Add shared cap</span>
             </button>
           </div>
 
           {values.rewards.capGroups.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No shared caps. Individual category caps still work below.</p>
+            <p className="text-xs text-muted-foreground py-2">No shared caps. Individual category caps work below.</p>
           ) : (
             <div className="space-y-3">
               {values.rewards.capGroups.map((group, index) => (
-                <div key={group.id} className="grid gap-3 rounded bg-muted/40 p-3 sm:grid-cols-[1.5fr_1fr_1fr_auto] sm:items-end">
+                <div key={group.id} className="grid gap-3 rounded-lg bg-background p-3 border border-border/60 sm:grid-cols-[1.5fr_1fr_1fr_auto] sm:items-end">
                   <label className={label}>
                     Cap name
                     <input
@@ -769,7 +797,11 @@ export function CardForm({
                   </label>
                   <label className={label}>
                     Cap window
-                    <select value={group.capWindow} onChange={(event) => updateCapGroup(index, { capWindow: event.target.value as "MONTH" | "YEAR" })} className={input}>
+                    <select
+                      value={group.capWindow}
+                      onChange={(event) => updateCapGroup(index, { capWindow: event.target.value as "MONTH" | "YEAR" })}
+                      className={input}
+                    >
                       <option value="MONTH">Per month</option>
                       <option value="YEAR">Per year</option>
                     </select>
@@ -788,7 +820,7 @@ export function CardForm({
                         },
                       }))
                     }
-                    className="rounded border border-red-600 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                    className="inline-flex h-9 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5 px-3 text-xs font-semibold text-destructive shadow-2xs hover:bg-destructive/15 cursor-pointer"
                   >
                     Remove
                   </button>
@@ -798,12 +830,13 @@ export function CardForm({
           )}
         </div>
 
-        <div data-testid="bonus-category-form" className="space-y-3 rounded border p-4">
+        {/* Bonus Categories Form */}
+        <div data-testid="bonus-category-form" className="space-y-3 rounded-lg border border-border/80 bg-muted/20 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-medium">Bonus categories</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Add every category that earns more than the base rate. A cap is spend the bonus rate applies to, not the reward earned.
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Bonus categories</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Category rates that earn more than the base multiplier.
               </p>
             </div>
             <button
@@ -828,25 +861,32 @@ export function CardForm({
                   },
                 }))
               }
-              className="rounded border px-3 py-1 text-sm hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted disabled:opacity-50 cursor-pointer"
             >
-              Add category
+              <Plus className="size-3" />
+              <span>Add category</span>
             </button>
           </div>
 
           {values.rewards.categoryRates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No bonus categories yet.</p>
+            <p className="text-xs text-muted-foreground py-2">No bonus categories yet.</p>
           ) : (
             <div className="space-y-3">
               {values.rewards.categoryRates.map((rate, index) => (
-                <div key={rate.category} className="grid gap-3 rounded bg-muted/40 p-3 sm:grid-cols-[1.4fr_1fr_1fr_1fr_1.2fr_1.2fr_auto] sm:items-end">
+                <div key={rate.category} className="grid gap-3 rounded-lg bg-background p-3 border border-border/60 sm:grid-cols-[1.4fr_1fr_1fr_1fr_1.2fr_1.2fr_auto] sm:items-end">
                   <label className={label}>
                     Category
-                    <select value={rate.category} onChange={(event) => updateCategory(index, { category: event.target.value as SpendCategory })} className={input}>
+                    <select
+                      value={rate.category}
+                      onChange={(event) => updateCategory(index, { category: event.target.value as SpendCategory })}
+                      className={input}
+                    >
                       {SPEND_CATEGORIES.filter(
                         (category) => category === rate.category || availableCategories.includes(category),
                       ).map((category) => (
-                        <option key={category} value={category}>{CATEGORY_LABELS[category]}</option>
+                        <option key={category} value={category}>
+                          {CATEGORY_LABELS[category]}
+                        </option>
                       ))}
                     </select>
                   </label>
@@ -879,7 +919,12 @@ export function CardForm({
                   </label>
                   <label className={label}>
                     Cap window
-                    <select value={rate.capWindow} onChange={(event) => updateCategory(index, { capWindow: event.target.value as "MONTH" | "YEAR" })} disabled={Boolean(rate.capGroupId)} className={input}>
+                    <select
+                      value={rate.capWindow}
+                      onChange={(event) => updateCategory(index, { capWindow: event.target.value as "MONTH" | "YEAR" })}
+                      disabled={Boolean(rate.capGroupId)}
+                      className={input}
+                    >
                       <option value="MONTH">Per month</option>
                       <option value="YEAR">Per year</option>
                     </select>
@@ -888,19 +933,33 @@ export function CardForm({
                     Shared cap
                     <select
                       value={rate.capGroupId}
-                      onChange={(event) => updateCategory(index, { capGroupId: event.target.value, cap: event.target.value ? "" : rate.cap })}
+                      onChange={(event) =>
+                        updateCategory(index, { capGroupId: event.target.value, cap: event.target.value ? "" : rate.cap })
+                      }
                       className={input}
                     >
                       <option value="">Individual / none</option>
-                      {values.rewards.capGroups.map((group) => <option key={group.id} value={group.id}>{group.label || "Unnamed shared cap"}</option>)}
+                      {values.rewards.capGroups.map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.label || "Unnamed shared cap"}
+                        </option>
+                      ))}
                     </select>
                     <ErrorText error={fieldError(state, `rewards.categoryRates.${index}.capGroupId`)} />
                   </label>
                   <label className={label}>
                     Active when
-                    <select value={rate.requiresConditionId} onChange={(event) => updateCategory(index, { requiresConditionId: event.target.value })} className={input}>
+                    <select
+                      value={rate.requiresConditionId}
+                      onChange={(event) => updateCategory(index, { requiresConditionId: event.target.value })}
+                      className={input}
+                    >
                       <option value="">Always active</option>
-                      {values.rewards.conditions.map((condition) => <option key={condition.id} value={condition.id}>{condition.label || "Unnamed condition"}</option>)}
+                      {values.rewards.conditions.map((condition) => (
+                        <option key={condition.id} value={condition.id}>
+                          {condition.label || "Unnamed condition"}
+                        </option>
+                      ))}
                     </select>
                     <ErrorText error={fieldError(state, `rewards.categoryRates.${index}.requiresConditionId`)} />
                   </label>
@@ -915,7 +974,7 @@ export function CardForm({
                         },
                       }))
                     }
-                    className="rounded border border-red-600 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                    className="inline-flex h-9 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5 px-3 text-xs font-semibold text-destructive shadow-2xs hover:bg-destructive/15 cursor-pointer"
                   >
                     Remove
                   </button>
@@ -925,12 +984,13 @@ export function CardForm({
           )}
         </div>
 
-        <div data-testid="merchant-bonus-form" className="space-y-3 rounded border p-4">
+        {/* Merchant Bonuses Form */}
+        <div data-testid="merchant-bonus-form" className="space-y-3 rounded-lg border border-border/80 bg-muted/20 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-medium">Merchant-specific bonuses</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Add a bonus that only applies at specific merchants. Separate merchant names with commas to share one rate, such as Canadian Tire, Sport Chek, and Mark&apos;s.
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Merchant-specific bonuses</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Bonuses that apply at specific merchants (e.g. Canadian Tire, Spotify).
               </p>
             </div>
             <button
@@ -947,18 +1007,19 @@ export function CardForm({
                   },
                 }))
               }
-              className="rounded border px-3 py-1 text-sm hover:bg-muted/50"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted cursor-pointer"
             >
-              Add merchant bonus
+              <Plus className="size-3" />
+              <span>Add merchant bonus</span>
             </button>
           </div>
 
           {values.rewards.merchantRates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No merchant-specific bonuses.</p>
+            <p className="text-xs text-muted-foreground py-2">No merchant-specific bonuses.</p>
           ) : (
             <div className="space-y-3">
               {values.rewards.merchantRates.map((rate, index) => (
-                <div key={rate.id} className="grid gap-3 rounded bg-muted/40 p-3 sm:grid-cols-[1.5fr_1fr_1.2fr_auto] sm:items-end">
+                <div key={rate.id} className="grid gap-3 rounded-lg bg-background p-3 border border-border/60 sm:grid-cols-[1.5fr_1fr_1.2fr_auto] sm:items-end">
                   <label className={label}>
                     Merchant
                     <input
@@ -986,9 +1047,17 @@ export function CardForm({
                   </label>
                   <label className={label}>
                     Active when
-                    <select value={rate.requiresConditionId} onChange={(event) => updateMerchantRate(index, { requiresConditionId: event.target.value })} className={input}>
+                    <select
+                      value={rate.requiresConditionId}
+                      onChange={(event) => updateMerchantRate(index, { requiresConditionId: event.target.value })}
+                      className={input}
+                    >
                       <option value="">Always active</option>
-                      {values.rewards.conditions.map((condition) => <option key={condition.id} value={condition.id}>{condition.label || "Unnamed condition"}</option>)}
+                      {values.rewards.conditions.map((condition) => (
+                        <option key={condition.id} value={condition.id}>
+                          {condition.label || "Unnamed condition"}
+                        </option>
+                      ))}
                     </select>
                     <ErrorText error={fieldError(state, `rewards.merchantRates.${index}.requiresConditionId`)} />
                   </label>
@@ -1003,7 +1072,7 @@ export function CardForm({
                         },
                       }))
                     }
-                    className="rounded border border-red-600 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                    className="inline-flex h-9 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5 px-3 text-xs font-semibold text-destructive shadow-2xs hover:bg-destructive/15 cursor-pointer"
                   >
                     Remove
                   </button>
@@ -1013,11 +1082,14 @@ export function CardForm({
           )}
         </div>
 
-        <div data-testid="credit-form" className="space-y-3 rounded border p-4">
+        {/* Recurring Credits Form */}
+        <div data-testid="credit-form" className="space-y-3 rounded-lg border border-border/80 bg-muted/20 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-medium">Recurring credits & benefits</h3>
-              <p className="mt-1 text-xs text-muted-foreground">Add each monthly or annual credit, then mark it redeemed from the card page when you use it.</p>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recurring credits &amp; benefits</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Statement credits (dining, travel, lifestyle) to offset annual fees.
+              </p>
             </div>
             <button
               type="button"
@@ -1033,23 +1105,25 @@ export function CardForm({
                   },
                 }))
               }
-              className="rounded border px-3 py-1 text-sm hover:bg-muted/50"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-border/80 bg-background px-2.5 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted cursor-pointer"
             >
-              Add credit
+              <Plus className="size-3" />
+              <span>Add credit</span>
             </button>
           </div>
 
           {values.rewards.credits.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No recurring credits.</p>
+            <p className="text-xs text-muted-foreground py-2">No recurring credits.</p>
           ) : (
             <div className="space-y-3">
               {values.rewards.credits.map((credit, index) => (
-                <div key={credit.id} className="grid gap-3 rounded bg-muted/40 p-3 sm:grid-cols-[1.8fr_1fr_1fr_auto] sm:items-end">
+                <div key={credit.id} className="grid gap-3 rounded-lg bg-background p-3 border border-border/60 sm:grid-cols-[1.8fr_1fr_1fr_auto] sm:items-end">
                   <label className={label}>
                     Credit name
                     <input
                       required
                       value={credit.label}
+                      placeholder="e.g. Dining credit"
                       onChange={(event) => updateCredit(index, { label: event.target.value })}
                       className={input}
                     />
@@ -1070,7 +1144,11 @@ export function CardForm({
                   </label>
                   <label className={label}>
                     Frequency
-                    <select value={credit.period} onChange={(event) => updateCredit(index, { period: event.target.value as CreditForm["period"] })} className={input}>
+                    <select
+                      value={credit.period}
+                      onChange={(event) => updateCredit(index, { period: event.target.value as CreditForm["period"] })}
+                      className={input}
+                    >
                       <option value="YEAR">Annual</option>
                       <option value="MONTH">Monthly</option>
                     </select>
@@ -1086,7 +1164,7 @@ export function CardForm({
                         },
                       }))
                     }
-                    className="rounded border border-red-600 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                    className="inline-flex h-9 items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5 px-3 text-xs font-semibold text-destructive shadow-2xs hover:bg-destructive/15 cursor-pointer"
                   >
                     Remove
                   </button>
@@ -1097,11 +1175,18 @@ export function CardForm({
         </div>
       </section>
 
-      <div className="flex flex-wrap gap-3">
-        <button disabled={isPending} type="submit" className="rounded bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50">
+      {/* Form Submit & Cancel Controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          disabled={isPending}
+          type="submit"
+          className="inline-flex h-9 items-center justify-center rounded-lg bg-foreground px-5 text-xs font-semibold text-background shadow-xs hover:bg-foreground/90 transition-colors disabled:opacity-50 cursor-pointer"
+        >
           {isPending ? "Saving…" : mode === "create" ? "Add card" : "Save changes"}
         </button>
-        <Link href={returnHref} className="rounded border px-4 py-2 text-sm hover:bg-muted/50">Cancel</Link>
+        <Button asChild variant="outline" size="sm">
+          <Link href={returnHref}>Cancel</Link>
+        </Button>
       </div>
     </form>
   );

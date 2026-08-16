@@ -1,0 +1,42 @@
+# Decision Record — One Money App
+
+**Status:** Ratified 2026-08-16 (Zubair). Treat like orc `SPEC.md` §2: **do not relitigate these in implementation sessions** — build against them, and flag concerns in a report/PR instead. Each closed fork lists the one condition that would legitimately reopen it.
+**Evidence basis:** the "One Money App" review artifact (claude.ai/code/artifact/081707fc-446a-4217-b2e3-906d80946c3a) + four deep-dive code reviews of 2026-08-16.
+**Scope:** `MoneyTalks`, `PickMe`, `return-saas`. Canonical copy lives here (MoneyTalks is the web hub); each repo's `CLAUDE.md` points at it.
+
+---
+
+## Decisions
+
+1. **Product shape: unified product, separated modules.** One brand, one purchase spine, two clients (native iOS checkout + web money hub). Explicitly rejected: one merged codebase (kills the native checkout moat) and three standalone products (guarantees card-logic drift, triples ops).
+
+2. **Card semantics have exactly one owner: the PickMe engine.** Effective immediately, **MoneyTalks' card engine is frozen** — no new rule-model features, no new categories, no picker changes (`baseRateOverrides` was the last). Bug fixes only until it is deleted in Phase 1. *Why:* in one three-day window MoneyTalks re-implemented conditional rates PickMe already had; two engines can already disagree on the same purchase.
+
+3. **Card *data* is a shared, versioned JSON contract.** `card-catalogue.json` + owner state + `engine-fixtures.json` (the language-neutral conformance suite) become a shared package. No engine hard-codes card facts; any second implementation must pass the same fixtures. Fixtures are the cross-language truth, not code review.
+
+4. **Auth: Clerk** *(fork closed).* return-saas already enforces it across 43 routes; managed auth is the right risk posture for a honeypot-class app; MoneyTalks' Auth.js surface is ~20 LOC to migrate and Clerk supports passkeys. **Reopen only if:** Clerk pricing becomes material before revenue does.
+
+5. **return-saas is absorbed, not rehabilitated** *(fork closed).* Three pieces move into the web hub: email/receipt ingestion, returns/refunds domain, and the digest job queue (its best code). The standalone SaaS shell — pricing page, Stripe tiers, "Looply" branding, marketing pages — is retired. The 2026-08-16 security hardening was an investment in the absorbed component, not the standalone product. **Reopen only if:** Looply gets real external users before Phase 1 lands.
+
+6. **The wedge is the checkout card pick** *(fork closed).* v1 surface = card recommendation + wallet + post-purchase catch-net (returns/trials/refunds digest). Net worth, investments, bank aggregation, benefits finder, paid tiers: **out of v1**. The tax/cross-border rules engine stays as a seasonal differentiator, not the front door. **Reopen only if:** real users engage the compliance engine harder than the card pick.
+
+7. **iOS stays native** *(fork closed).* The zero-network, offline checkout is a strategic asset (speed + privacy posture). Cost accepted: the Swift engine and an eventual TS twin are both held to decision 3's fixtures. **Reopen only if:** solo maintenance of two languages measurably stalls the wedge.
+
+8. **One purchase spine.** A single Purchase record every stage enriches — created at checkout (card, predicted value), enriched by ingestion (receipt, return window), consumed by Money Core (what it actually cost). return-saas's `Purchase` model is the seed. In-process events with the `PurchaseCompleted` vocabulary; **no broker, no event infrastructure** for one process.
+
+9. **Don't do** (standing list): no Swift→TS port until a second consumer actually needs it · no bank aggregation, paid tiers, or investment tracking on the path to the wedge · no further work on return-saas's SaaS shell or its January duplicate trees except deletion · no event broker.
+
+10. **Process:** migration tasks that have a mechanical verifier (fixtures pass, build green, dead code gone) run through **orc**; judgment tasks don't. No card work merges anywhere without green golden fixtures in CI.
+
+---
+
+## Immediate consequences
+
+- **MoneyTalks:** card engine frozen (decision 2). Next card-related work is *consuming* the shared catalogue, not extending the picker.
+- **PickMe:** fix the red `BenefitsLoaderTests` (stale stub assertion vs. the new benefits catalogue) and add a CI gate — the last unfinished Phase 0 item. `PortfolioAnalyzer` (built, tested, no UI) is the designated keep/cancel authority and gets promoted to a surface in Phase 1.
+- **return-saas:** no new SaaS-shell features. Next work here is absorption prep: delete dead module trees/models, keep ingestion + returns + job queue healthy.
+- **Phase 0 status:** security items shipped 2026-08-16 (`b2c798b`): credential encryption at rest, OAuth `state`, cron fail-closed, Stripe/Clerk matcher. Remaining: PickMe red test + fixture CI.
+
+## Deferred, deliberately (cheap to decide later, in order of likely arrival)
+
+Monorepo mechanics and timing · consumer brand name · MoneyTalks→Clerk migration date · TS twin of the card engine · shipment-tracking honesty labels · pricing/packaging.

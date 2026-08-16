@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { AlertTriangle, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { forecastMonths, type BillDef } from "@/engine/billforecast";
-import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
 import { formatMinorUnits, type Currency } from "@/engine/money";
+import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -19,8 +23,12 @@ export default async function MonthViewPage({
 
   const bills = await prisma.bill.findMany({ where: { userId } });
   const defs: BillDef[] = bills.map((b) => ({
-    id: b.id, name: b.name, category: b.category, currency: b.currency,
-    autopay: b.autopay, variable: b.variable,
+    id: b.id,
+    name: b.name,
+    category: b.category,
+    currency: b.currency,
+    autopay: b.autopay,
+    variable: b.variable,
     cadence: b.cadence as unknown as Cadence,
     schedule: b.schedule as unknown as ScheduleEntry[],
   }));
@@ -30,50 +38,96 @@ export default async function MonthViewPage({
   const prev = `${m === 1 ? y - 1 : y}-${String(m === 1 ? 12 : m - 1).padStart(2, "0")}`;
   const next = `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}`;
 
-  // Precomputed rather than accumulated inside the JSX map: the React Compiler
-  // rejects mutating a captured variable during render.
   const rows = forecast.occurrences.map((occurrence, i, all) => ({
     occurrence,
     runningMinor: all.slice(0, i + 1).reduce((sum, o) => sum + o.amountMinor, 0),
   }));
 
   return (
-    <main className="space-y-6 py-8">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{month}</h1>
-        <nav className="flex gap-2 text-sm">
-          <Link href={`/bills/month?month=${prev}`} className="rounded border px-3 py-1">← {prev}</Link>
-          <Link href={`/bills/month?month=${next}`} className="rounded border px-3 py-1">{next} →</Link>
-        </nav>
-      </header>
+    <main className="space-y-6 py-6 sm:py-8">
+      <div>
+        <Link
+          href="/bills"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground mb-3 transition-colors"
+        >
+          <ArrowLeft className="size-3.5" />
+          <span>Back to Bills</span>
+        </Link>
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">{month} Schedule</h1>
+          <nav className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/bills/month?month=${prev}`} className="flex items-center gap-1">
+                <ChevronLeft className="size-3.5" />
+                <span>{prev}</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/bills/month?month=${next}`} className="flex items-center gap-1">
+                <span>{next}</span>
+                <ChevronRight className="size-3.5" />
+              </Link>
+            </Button>
+          </nav>
+        </header>
+      </div>
 
       {forecast.flags.length > 0 ? (
-        <p className="rounded border border-amber-500 p-3 text-sm" data-testid="pileup-flag">
-          ⚠ Pileup month: {forecast.flags.join(", ")}
-        </p>
+        <div
+          data-testid="pileup-flag"
+          className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs font-medium text-amber-800 dark:text-amber-300"
+        >
+          <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">⚠ Pileup month: {forecast.flags.join(", ")}</p>
+            <p className="mt-0.5 text-amber-700 dark:text-amber-400">
+              Multiple occurrences of recurring expenses land in this monthly cycle. Plan cashflow accordingly.
+            </p>
+          </div>
+        </div>
       ) : null}
 
-      <ul className="divide-y rounded border">
-        {rows.map(({ occurrence: o, runningMinor }) => (
-          <li key={`${o.billId}:${o.date}`} className="flex justify-between px-4 py-2 text-sm tabular-nums">
-            <span>
-              {o.date} <Link href={`/bills/${o.billId}`} className="underline">{o.billName}</Link>
-              {o.autopay ? <span className="ml-1 rounded bg-muted px-1 text-xs">autopay</span> : null}
-            </span>
-            <span>
-              {formatMinorUnits(o.amountMinor, o.currency as Currency)}
-              <span className="ml-3 text-xs text-muted-foreground">Σ {formatMinorUnits(runningMinor, "CAD")}</span>
-            </span>
-          </li>
-        ))}
-        {forecast.occurrences.length === 0 ? (
-          <li className="px-4 py-2 text-sm text-muted-foreground">No bills due this month.</li>
-        ) : null}
-      </ul>
+      <div className="space-y-4">
+        <ul className="divide-y divide-border/60 rounded-xl border border-border/80 bg-card shadow-2xs overflow-hidden">
+          {rows.map(({ occurrence: o, runningMinor }) => (
+            <li key={`${o.billId}:${o.date}`} className="flex items-center justify-between px-5 py-3.5 text-sm tabular-nums transition-colors hover:bg-muted/30">
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-xs text-muted-foreground">{o.date}</span>
+                <Link href={`/bills/${o.billId}`} className="font-semibold text-foreground underline-offset-4 hover:underline">
+                  {o.billName}
+                </Link>
+                {o.autopay ? (
+                  <Badge variant="secondary" className="text-[10px]">
+                    autopay
+                  </Badge>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-4 text-right">
+                <span className="font-semibold text-foreground">
+                  {formatMinorUnits(o.amountMinor, o.currency as Currency)}
+                </span>
+                <span className="text-xs text-muted-foreground font-medium">
+                  Σ {formatMinorUnits(runningMinor, "CAD")}
+                </span>
+              </div>
+            </li>
+          ))}
+          {forecast.occurrences.length === 0 ? (
+            <li className="px-5 py-8 text-center text-xs text-muted-foreground">
+              No bills due this month.
+            </li>
+          ) : null}
+        </ul>
 
-      <p className="text-right text-lg font-semibold tabular-nums">
-        Total: {formatMinorUnits(forecast.totalMinor, "CAD")}
-      </p>
+        <div className="flex justify-end rounded-xl border border-border/80 bg-muted/30 px-6 py-4">
+          <div className="text-right">
+            <span className="text-xs text-muted-foreground block">Month Total Outflow</span>
+            <p className="text-xl font-bold tabular-nums text-foreground">
+              Total: {formatMinorUnits(forecast.totalMinor, "CAD")}
+            </p>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { CardForm, type CardFormValues } from "@/components/card-form";
 import { minorToDollarInput } from "@/engine/money";
-import type { CardRewards } from "@/engine/cards/types";
+import type { CardRewards } from "@/lib/cards/types";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -73,8 +75,21 @@ export default async function EditCardPage({ params }: { params: Promise<{ id: s
   };
 
   return (
-    <main className="max-w-3xl py-8">
-      <h1 className="text-xl font-semibold">Edit {card.nickname}</h1>
+    <main className="max-w-3xl space-y-6 py-6 sm:py-8">
+      <div>
+        <Link
+          href={`/cards/${card.id}`}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground mb-3 transition-colors"
+        >
+          <ArrowLeft className="size-3.5" />
+          <span>Back to Card</span>
+        </Link>
+        <h1 className="text-2xl font-bold tracking-tight">Edit {card.nickname}</h1>
+        <p className="text-sm text-muted-foreground">
+          Update card parameters, rewards multipliers, category bonuses, and credits.
+        </p>
+      </div>
+
       <div className="mt-6">
         <CardForm mode="edit" cardId={card.id} initialValues={initialValues} />
       </div>

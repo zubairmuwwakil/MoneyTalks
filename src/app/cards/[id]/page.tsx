@@ -1,21 +1,37 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  CreditCard,
+  Edit2,
+  Layers,
+  Sparkles,
+  Tag,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import { addCapUsage, deleteCard, setRewardsEstimate, toggleCardCondition, toggleCredit } from "@/app/cards/actions";
-import { cardVerdict, isBestSomewhere, type RedeemedCredit } from "@/engine/cards/roi";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { creditsRealizedMinor, effectiveAnnualFeeMinor, type RedeemedCredit } from "@/lib/cards/fees";
 import {
   activeBaseRateOverride,
   capForBaseRateOverride,
   capForRate,
   CATEGORY_LABELS,
-  effectiveAnnualFeeMinor,
   periodKeyFor,
   type CapUsage,
   type CardDef,
   type CardRewards,
-} from "@/engine/cards/types";
+} from "@/lib/cards/types";
 import { formatMinorUnits, minorToDollarInput } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
+
+const inputStyle =
+  "flex h-8 rounded-lg border border-input bg-background px-2.5 py-1 text-xs shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring";
 
 export default async function CardDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const userId = await requireUserId();
@@ -28,18 +44,16 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
   const redeemed = (card.state?.creditsRedeemed as unknown as RedeemedCredit[]) ?? [];
   const usage = (card.state?.capsUsage as unknown as CapUsage[]) ?? [];
 
-  const allCards = await prisma.creditCard.findMany({ where: { userId } });
-  const defs: CardDef[] = allCards.map((c) => ({
-    id: c.id,
-    nickname: c.nickname,
-    network: c.network as CardDef["network"],
-    annualFeeMinor: c.annualFeeMinor,
-    rewards: c.rewards as unknown as CardRewards,
-  }));
-  const def = defs.find((d) => d.id === card.id);
-  if (!def) notFound();
-  const verdict = cardVerdict(def, redeemed, card.state?.rewardsEstimateMinor ?? 0, isBestSomewhere(def, defs, today), today);
+  const def: CardDef = {
+    id: card.id,
+    nickname: card.nickname,
+    network: card.network as CardDef["network"],
+    annualFeeMinor: card.annualFeeMinor,
+    rewards,
+  };
   const effectiveFee = effectiveAnnualFeeMinor(def);
+  const realizedMinor = creditsRealizedMinor(rewards.credits, redeemed, today) + (card.state?.rewardsEstimateMinor ?? 0);
+  const netMinor = realizedMinor - effectiveFee;
   const capEntries = rewards.categoryRates.reduce<Array<{ id: string; cap: NonNullable<ReturnType<typeof capForRate>> }>>(
     (entries, rate) => {
       const cap = capForRate(rewards, rate);
@@ -80,47 +94,97 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
   }
 
   return (
-    <main className="space-y-8 py-8">
-      <header>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold">{card.nickname}</h1>
-          <Link href={`/cards/${card.id}/edit`} className="rounded border px-3 py-1 text-sm hover:bg-muted/50">
-            Edit card
-          </Link>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {card.issuer} - {card.network}
-          {card.lastFour ? ` - ...${card.lastFour}` : ""} - effective fee {formatMinorUnits(effectiveFee, "CAD")}/yr
-          {effectiveFee !== card.annualFeeMinor ? ` (published ${formatMinorUnits(card.annualFeeMinor, "CAD")})` : ""}
-        </p>
-        <p className="mt-2 text-sm">
-          Realized value {formatMinorUnits(verdict.realizedMinor, "CAD")} - fee ={" "}
-          <span className="font-medium tabular-nums">{formatMinorUnits(verdict.netMinor, "CAD")}</span> -{" "}
-          <span className="font-semibold">{verdict.verdict.replace("_", " ")}</span>
-        </p>
-      </header>
+    <main className="space-y-8 py-6 sm:py-8">
+      <div>
+        <Link
+          href="/cards"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground mb-3 transition-colors"
+        >
+          <ArrowLeft className="size-3.5" />
+          <span>Back to Wallet</span>
+        </Link>
 
+        <header className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">{card.nickname}</h1>
+              <Badge variant="outline" className="text-xs font-mono">
+                {card.network}
+              </Badge>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/cards/${card.id}/edit`} className="flex items-center gap-1.5">
+                <Edit2 className="size-3" />
+                <span>Edit card</span>
+              </Link>
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {card.issuer} - {card.network}
+            {card.lastFour ? ` - ...${card.lastFour}` : ""} - effective fee {formatMinorUnits(effectiveFee, "CAD")}/yr
+            {effectiveFee !== card.annualFeeMinor ? ` (published ${formatMinorUnits(card.annualFeeMinor, "CAD")})` : ""}
+          </p>
+        </header>
+      </div>
+
+      {/* Realized Value Summary Card */}
+      <Card className="bg-gradient-to-b from-card to-muted/20">
+        <CardContent className="p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Net Annual Value
+              </p>
+              <p className="mt-1 text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
+                {formatMinorUnits(netMinor, "CAD")}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Realized value {formatMinorUnits(realizedMinor, "CAD")} - fee ={" "}
+                <span className="font-semibold text-foreground tabular-nums">{formatMinorUnits(netMinor, "CAD")}</span>
+              </p>
+            </div>
+            <div className="text-xs text-muted-foreground space-y-1 sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-border/60">
+              <p>Base Earn Rate: <span className="font-semibold text-foreground">{rewards.baseMultiplier ?? 1}x</span></p>
+              <p>Point Value: <span className="font-semibold text-foreground">{rewards.pointValueCents ?? 1}¢</span></p>
+              <p>FX Fee: <span className="font-semibold text-foreground">{rewards.fxFeePct ?? 0}%</span></p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Wallet Conditions Section */}
       {rewards.conditions?.length ? (
-        <section>
-          <h2 className="font-medium">Wallet conditions</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+        <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+          <h2 className="text-base font-semibold tracking-tight">Wallet conditions</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
             Keep these in sync with your accounts and eligibility. They change only the affected rewards or fee waiver.
           </p>
-          <ul className="mt-2 divide-y rounded border">
+          <ul className="mt-4 divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
             {rewards.conditions.map((condition) => (
-              <li key={condition.id} className="flex flex-col gap-2 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-                <span>
-                  {condition.label} <span className="text-xs text-muted-foreground">({condition.enabled ? "active" : "off"})</span>
+              <li
+                key={condition.id}
+                className="flex flex-col gap-3 px-4 py-3.5 text-sm sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-foreground">{condition.label}</span>
+                    <Badge variant={condition.enabled ? "success" : "muted"} className="text-[10px]">
+                      {condition.enabled ? "active" : "off"}
+                    </Badge>
+                  </div>
                   {condition.annualFeeReductionMinor ? (
                     <span className="block text-xs text-muted-foreground">
                       Reduces annual fee by {formatMinorUnits(condition.annualFeeReductionMinor, "CAD")} while active.
                     </span>
                   ) : null}
-                </span>
+                </div>
                 <form action={toggleConditionAction}>
                   <input type="hidden" name="cardId" value={card.id} />
                   <input type="hidden" name="conditionId" value={condition.id} />
-                  <button type="submit" className="rounded border px-2 py-0.5 text-xs hover:bg-muted/50">
+                  <button
+                    type="submit"
+                    className="inline-flex h-7 items-center justify-center rounded-md border border-border/80 bg-muted/60 px-3 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted transition-colors cursor-pointer"
+                  >
                     {condition.enabled ? "turn off" : "turn on"}
                   </button>
                 </form>
@@ -130,17 +194,30 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
         </section>
       ) : null}
 
+      {/* All-Spend Conditional Rates */}
       {rewards.baseRateOverrides?.length ? (
-        <section>
-          <h2 className="font-medium">All-spend conditional rates</h2>
-          <ul className="mt-2 divide-y rounded border">
+        <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+          <h2 className="text-base font-semibold tracking-tight">All-spend conditional rates</h2>
+          <ul className="mt-4 divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
             {rewards.baseRateOverrides.map((rate) => {
               const condition = rewards.conditions?.find((candidate) => candidate.id === rate.requiresConditionId);
               return (
-                <li key={rate.id} className="px-4 py-3 text-sm">
-                  {rate.label} <span className="font-medium">{rate.multiplier}x</span>
-                  <span className="text-xs text-muted-foreground"> - {condition?.enabled ? "active" : "off"}</span>
-                  {rate.capMinor ? <span className="text-xs text-muted-foreground"> - {formatMinorUnits(rate.capMinor, "CAD")} {rate.capWindow?.toLowerCase() ?? "monthly"} spend cap</span> : null}
+                <li key={rate.id} className="flex items-center justify-between px-4 py-3.5 text-sm">
+                  <div>
+                    <span className="font-medium text-foreground">{rate.label}</span>{" "}
+                    <span className="font-bold text-foreground">{rate.multiplier}x</span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      - {condition?.enabled ? "active" : "off"}
+                    </span>
+                    {rate.capMinor ? (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        - {formatMinorUnits(rate.capMinor, "CAD")} {rate.capWindow?.toLowerCase() ?? "monthly"} spend cap
+                      </span>
+                    ) : null}
+                  </div>
+                  <Badge variant={condition?.enabled ? "success" : "muted"} className="text-[10px]">
+                    {condition?.enabled ? "Active" : "Condition off"}
+                  </Badge>
                 </li>
               );
             })}
@@ -148,28 +225,35 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
         </section>
       ) : null}
 
+      {/* Recurring Credits & Benefits */}
       {rewards.credits.length > 0 ? (
-        <section>
-          <h2 className="font-medium">Recurring credits & benefits</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+        <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+          <h2 className="text-base font-semibold tracking-tight">Recurring credits &amp; benefits</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
             Mark a credit only after you use it in this month or year, so the fee verdict reflects real value.
           </p>
-          <ul className="mt-2 divide-y rounded border">
+          <ul className="mt-4 divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
             {rewards.credits.map((credit) => {
               const key = periodKeyFor(credit.period, today);
               const done = redeemed.some((r) => r.creditId === credit.id && r.periodKey === key);
               return (
-                <li key={credit.id} className="flex flex-col gap-2 px-4 py-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-                  <span>
-                    {credit.label}{" "}
+                <li
+                  key={credit.id}
+                  className="flex flex-col gap-3 px-4 py-3.5 text-sm sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <span className="font-medium text-foreground">{credit.label}</span>{" "}
                     <span className="text-xs text-muted-foreground">
                       ({formatMinorUnits(credit.valueMinor, "CAD")}/{credit.period.toLowerCase()})
                     </span>
-                  </span>
+                  </div>
                   <form action={toggleCreditAction}>
                     <input type="hidden" name="cardId" value={card.id} />
                     <input type="hidden" name="creditId" value={credit.id} />
-                    <button type="submit" className="rounded border px-2 py-0.5 text-xs hover:bg-muted/50">
+                    <button
+                      type="submit"
+                      className="inline-flex h-7 items-center justify-center rounded-md border border-border/80 bg-muted/60 px-3 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted transition-colors cursor-pointer"
+                    >
                       {done ? "redeemed - undo" : "mark redeemed"}
                     </button>
                   </form>
@@ -180,19 +264,27 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
         </section>
       ) : null}
 
+      {/* Merchant Bonuses */}
       {rewards.merchantRates?.length ? (
-        <section>
-          <h2 className="font-medium">Merchant-specific bonuses</h2>
-          <p className="mt-1 text-sm text-muted-foreground">The picker will surface these merchants when you search for them.</p>
-          <ul className="mt-2 divide-y rounded border">
+        <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+          <h2 className="text-base font-semibold tracking-tight">Merchant-specific bonuses</h2>
+          <p className="mt-1 text-xs text-muted-foreground">The picker will surface these merchants when you search for them.</p>
+          <ul className="mt-4 divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
             {rewards.merchantRates.map((rate) => {
               const condition = rate.requiresConditionId
                 ? rewards.conditions?.find((candidate) => candidate.id === rate.requiresConditionId)
                 : undefined;
               return (
-                <li key={rate.id} className="px-4 py-3 text-sm">
-                  {rate.merchant} <span className="font-medium">{rate.multiplier}x</span>
-                  {condition ? <span className="text-xs text-muted-foreground"> - {condition.label}: {condition.enabled ? "active" : "off"}</span> : null}
+                <li key={rate.id} className="flex items-center justify-between px-4 py-3.5 text-sm">
+                  <div>
+                    <span className="font-medium text-foreground">{rate.merchant}</span>{" "}
+                    <span className="font-bold text-foreground">{rate.multiplier}x</span>
+                    {condition ? (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        - {condition.label}: {condition.enabled ? "active" : "off"}
+                      </span>
+                    ) : null}
+                  </div>
                 </li>
               );
             })}
@@ -200,77 +292,110 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
         </section>
       ) : null}
 
+      {/* Spending Caps */}
       {capEntries.length > 0 ? (
-        <section>
-          <h2 className="font-medium">Caps</h2>
-          <ul className="mt-2 divide-y rounded border">
-            {capEntries.map(({ id, cap }) => {
-                const key = periodKeyFor(cap.capWindow, today);
-                const used = usage
-                  .filter((u) => cap.categories.includes(u.category) && u.periodKey === key)
-                  .reduce((sum, u) => sum + u.usedMinor, 0);
-                const pct = Math.min(100, Math.round((used / cap.capMinor) * 100));
-                return (
-                  <li key={id} className="space-y-2 px-4 py-3 text-sm">
-                    <div className="flex justify-between gap-3">
-                      <span>
-                        {cap.label} ({cap.capWindow.toLowerCase()})
-                        {cap.allSpend
-                          ? " - all spend"
-                          : cap.categories.length > 1
-                            ? ` - ${cap.categories.map((category) => CATEGORY_LABELS[category]).join(", ")}`
-                            : ""}
-                      </span>
-                      <span className="tabular-nums">
-                        {formatMinorUnits(used, "CAD")} / {formatMinorUnits(cap.capMinor, "CAD")} ({pct}%)
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full rounded bg-muted">
-                      <div className="h-1.5 rounded bg-foreground" style={{ width: `${pct}%` }} />
-                    </div>
-                    <form action={addCapUsageAction} className="flex flex-wrap gap-2">
-                      <input type="hidden" name="cardId" value={card.id} />
-                      {cap.categories.length === 1 ? (
-                        <input type="hidden" name="category" value={cap.categories[0]} />
-                      ) : (
-                        <select name="category" aria-label={`Category for ${cap.label}`} className="rounded border px-2 py-1 text-xs">
-                          {cap.categories.map((category) => <option key={category} value={category}>{CATEGORY_LABELS[category]}</option>)}
-                        </select>
-                      )}
-                      <input name="amount" placeholder="Add spend ($)" className="w-40 rounded border px-2 py-1 text-xs" />
-                      <button type="submit" className="rounded border px-2 py-1 text-xs hover:bg-muted/50">
-                        add
-                      </button>
-                    </form>
-                  </li>
-                );
-              })}
+        <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+          <h2 className="text-base font-semibold tracking-tight">Caps</h2>
+          <ul className="mt-4 divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
+            {capEntries.map(({ id: capId, cap }) => {
+              const key = periodKeyFor(cap.capWindow, today);
+              const used = usage
+                .filter((u) => cap.categories.includes(u.category) && u.periodKey === key)
+                .reduce((sum, u) => sum + u.usedMinor, 0);
+              const pct = Math.min(100, Math.round((used / cap.capMinor) * 100));
+              return (
+                <li key={capId} className="space-y-3 p-4 text-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <span className="font-medium text-foreground">
+                      {cap.label} ({cap.capWindow.toLowerCase()})
+                      {cap.allSpend
+                        ? " - all spend"
+                        : cap.categories.length > 1
+                          ? ` - ${cap.categories.map((category) => CATEGORY_LABELS[category]).join(", ")}`
+                          : ""}
+                    </span>
+                    <span className="tabular-nums font-semibold text-xs text-foreground">
+                      {formatMinorUnits(used, "CAD")} / {formatMinorUnits(cap.capMinor, "CAD")} ({pct}%)
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-2 rounded-full bg-foreground transition-all duration-300"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <form action={addCapUsageAction} className="flex flex-wrap items-center gap-2 pt-1">
+                    <input type="hidden" name="cardId" value={card.id} />
+                    {cap.categories.length === 1 ? (
+                      <input type="hidden" name="category" value={cap.categories[0]} />
+                    ) : (
+                      <select
+                        name="category"
+                        aria-label={`Category for ${cap.label}`}
+                        className={`${inputStyle} w-auto`}
+                      >
+                        {cap.categories.map((category) => (
+                          <option key={category} value={category}>
+                            {CATEGORY_LABELS[category]}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <input
+                      name="amount"
+                      placeholder="Add spend ($)"
+                      className={`${inputStyle} w-36`}
+                    />
+                    <button
+                      type="submit"
+                      className="inline-flex h-8 items-center justify-center rounded-lg border border-border/80 bg-muted/60 px-3 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      add
+                    </button>
+                  </form>
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}
 
-      <section>
-        <h2 className="font-medium">Rewards earned this year (estimate)</h2>
-        <form action={setRewardsEstimateAction} className="mt-2 flex flex-wrap gap-2 text-sm">
+      {/* Rewards Earned This Year */}
+      <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+        <h2 className="text-base font-semibold tracking-tight">Rewards earned this year (estimate)</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Enter an estimate of cash back or points value earned to date.
+        </p>
+        <form action={setRewardsEstimateAction} className="mt-3 flex flex-wrap items-center gap-2 text-sm">
           <input type="hidden" name="cardId" value={card.id} />
           <input
             name="rewardsEstimate"
             aria-label="Rewards earned this year in dollars"
             defaultValue={minorToDollarInput(card.state?.rewardsEstimateMinor ?? 0)}
-            className="w-40 rounded border px-2 py-1"
+            className={`${inputStyle} w-40`}
           />
-          <button type="submit" className="rounded border px-3 py-1 hover:bg-muted/50">
+          <button
+            type="submit"
+            className="inline-flex h-8 items-center justify-center rounded-lg bg-foreground px-3.5 text-xs font-semibold text-background shadow-xs hover:bg-foreground/90 transition-colors cursor-pointer"
+          >
             Save ($)
           </button>
         </form>
       </section>
 
-      <form action={deleteCardAction}>
-        <input type="hidden" name="cardId" value={card.id} />
-        <button type="submit" className="rounded border border-red-600 px-3 py-1 text-sm text-red-600 hover:bg-red-50">
-          Delete card
-        </button>
-      </form>
+      {/* Delete Card */}
+      <div className="border-t border-border/60 pt-6">
+        <form action={deleteCardAction}>
+          <input type="hidden" name="cardId" value={card.id} />
+          <button
+            type="submit"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 px-4 text-xs font-semibold text-destructive shadow-2xs hover:bg-destructive/15 transition-colors cursor-pointer"
+          >
+            <Trash2 className="size-3.5" />
+            <span>Delete card</span>
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

@@ -21,6 +21,7 @@ const EXPECTED_FILES = [
   "benefits-catalogue.json",
   "engine-fixtures.json",
   "schema/card-catalogue.schema.json",
+  "schema/benefits-catalogue.schema.json",
   "schema/engine-fixtures.schema.json",
 ];
 

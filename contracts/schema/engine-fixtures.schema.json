@@ -2,9 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pickme.local/contracts/engine-fixtures.schema.json",
   "title": "PickMe engine fixtures",
-  "description": "Documents the shape of engine-fixtures.json exactly as decoded by the private FixtureFile/FixtureCase types in Engine/Tests/CardCopilotEngineTests/FixtureHarnessTests.swift (spec §4/§5). As with card-catalogue.schema.json, \"x-status\": \"documentation-only\" marks fields present in the JSON with no matching Swift property — silently dropped on decode, human-facing only. There are more of these here than in the catalogue: the fixture format leans on prose (description, notes) that the test harness never reads back, because the assertions are the spec, not the prose.",
+  "description": "Documents the shape of engine-fixtures.json exactly as decoded by the private FixtureFile/FixtureCase types in Engine/Tests/CardCopilotEngineTests/FixtureHarnessTests.swift (spec §4/§5). As with card-catalogue.schema.json, \"x-status\": \"documentation-only\" marks fields present in the JSON with no matching Swift property — silently dropped on decode, human-facing only. There are more of these here than in the catalogue: the fixture format leans on prose (description, notes) that the test harness never reads back, because the assertions are the spec, not the prose. Fixtures 1.1 added four expectation fields plus per-case `asOf` and `unsetFields`, because three of spec §5's rule families — effective-dating boundaries, the announced-FX record, and the valuation-disclosure gate — could not be expressed at all in 1.0.",
   "type": "object",
-  "required": ["cases"],
+  "required": [
+    "cases"
+  ],
   "additionalProperties": false,
   "properties": {
     "fixturesVersion": {
@@ -18,41 +20,63 @@
       "x-status": "documentation-only",
       "description": "Global prose context (pinned valuations, base owner state). FixtureFile has no matching property."
     },
-    "pinnedValuations": { "$ref": "#/$defs/pinnedValuations" },
+    "pinnedValuations": {
+      "$ref": "#/$defs/pinnedValuations"
+    },
     "cases": {
       "type": "array",
-      "items": { "$ref": "#/$defs/fixtureCase" }
+      "items": {
+        "$ref": "#/$defs/fixtureCase"
+      }
     }
   },
   "$defs": {
     "pinnedValuations": {
       "type": "object",
-      "required": ["amexMembershipRewards"],
+      "required": [
+        "amexMembershipRewards"
+      ],
       "additionalProperties": false,
-      "patternProperties": { "^_": {} },
+      "patternProperties": {
+        "^_": {}
+      },
       "properties": {
         "amexMembershipRewards": {
           "type": "number",
           "description": "Overrides OwnerState.valuationsCad.amexMembershipRewards.centsPerPoint for the whole fixture run — deliberately pinned above the cash floor so cases exercise points-vs-cash ranking rather than tracking owner-state.json's live (lower) setting."
         },
         "_why": {
-          "type": "string", "x-status": "documentation-only",
+          "type": "string",
+          "x-status": "documentation-only",
           "description": "PinnedValuations decodes only amexMembershipRewards; this key is dropped."
         }
       }
     },
     "fixtureCase": {
       "type": "object",
-      "required": ["caseId", "purchase", "expected"],
+      "required": [
+        "caseId",
+        "purchase",
+        "expected"
+      ],
       "additionalProperties": false,
       "properties": {
-        "caseId": { "type": "string" },
+        "caseId": {
+          "type": "string"
+        },
         "description": {
           "type": "string",
           "x-status": "documentation-only",
           "description": "FixtureCase has no `description` property — dropped silently on decode. Purely for a human reading the file."
         },
-        "purchase": { "$ref": "#/$defs/purchaseContext" },
+        "purchase": {
+          "$ref": "#/$defs/purchaseContext"
+        },
+        "asOf": {
+          "type": "string",
+          "format": "date",
+          "description": "Evaluation date passed to RecommendationEngine.recommend. Defaults to 2026-08-20 (the suite-wide date) when omitted. Compared lexicographically against effectiveFrom/effectiveTo on both earn rules and FX records, so it is the only way to exercise date-boundary behaviour."
+        },
         "ownerStateOverrides": {
           "type": "object",
           "additionalProperties": false,
@@ -60,80 +84,214 @@
             "cardStates": {
               "type": "object",
               "description": "Keyed by cardId. Values merge onto the base owner-state.json CardState (spec: capProgress merges key-by-key; every other field replaces outright) — see FixtureHarnessTests' merge loop.",
-              "additionalProperties": { "$ref": "#/$defs/cardStateOverride" }
+              "additionalProperties": {
+                "$ref": "#/$defs/cardStateOverride"
+              }
             }
           }
         },
-        "expected": { "$ref": "#/$defs/expected" }
+        "expected": {
+          "$ref": "#/$defs/expected"
+        }
       }
     },
     "purchaseContext": {
       "type": "object",
       "description": "Decoded directly into the real engine type PurchaseContext (Models/PurchaseContext.swift) — every field here is genuinely consumed, not just documentation.",
-      "required": ["amountCad", "category"],
+      "required": [
+        "amountCad",
+        "category"
+      ],
       "additionalProperties": false,
       "properties": {
-        "amountCad": { "type": "number" },
-        "currency": { "type": "string", "default": "CAD", "examples": ["CAD", "USD"] },
+        "amountCad": {
+          "type": "number"
+        },
+        "currency": {
+          "type": "string",
+          "default": "CAD",
+          "examples": [
+            "CAD",
+            "USD"
+          ]
+        },
         "usdEquivalent": {
           "type": "number",
           "description": "Only consulted for a spendUsdEquivalent cap (currently just Crypto.com); Scorer falls back to amountCad * 0.73 when omitted."
         },
-        "category": { "type": "string" },
-        "mcc": { "type": ["integer", "null"] },
-        "merchantBrand": { "type": ["string", "null"] },
-        "country": { "type": "string", "default": "CA" },
-        "channel": { "type": "string", "default": "cardPresent", "examples": ["cardPresent", "online", "amexTravel"] },
-        "recurringIndicator": { "type": "boolean", "default": false },
+        "category": {
+          "type": "string"
+        },
+        "mcc": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "merchantBrand": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "country": {
+          "type": "string",
+          "default": "CA"
+        },
+        "channel": {
+          "type": "string",
+          "default": "cardPresent",
+          "examples": [
+            "cardPresent",
+            "online",
+            "amexTravel"
+          ]
+        },
+        "recurringIndicator": {
+          "type": "boolean",
+          "default": false
+        },
         "acceptedNetworks": {
           "type": "array",
-          "items": { "enum": ["amex", "visa", "mastercard"] },
-          "default": ["amex", "visa", "mastercard"]
+          "items": {
+            "enum": [
+              "amex",
+              "visa",
+              "mastercard"
+            ]
+          },
+          "default": [
+            "amex",
+            "visa",
+            "mastercard"
+          ]
         }
       }
     },
     "cardStateOverride": {
       "type": "object",
-      "description": "Decoded as the real engine CardState type (Models/OwnerState.swift) — every field genuinely consumed, all optional; a nil field means unresolved (RuleMatcher skips rules that depend on it rather than guessing).",
+      "description": "Decoded as the real engine CardState type (Models/OwnerState.swift) — every field genuinely consumed, all optional; a nil field means unresolved (RuleMatcher skips rules that depend on it rather than guessing). `unsetFields` is the escape hatch: merging can only ever SET a field, but nil (unresolved) is a distinct input and owner-state.json resolves most conditions to false rather than leaving them nil.",
       "additionalProperties": false,
       "properties": {
-        "capProgress": { "type": "object", "additionalProperties": { "type": "number" } },
-        "scotiaAccountYearAnchorMonth": { "type": "integer" },
-        "selectedCategories": { "type": "array", "items": { "type": "string" } },
-        "treatAsAllSelected": { "type": "boolean" },
-        "thirdCategoryUnlocked": { "type": "boolean" },
-        "nextChangeEffectiveDate": { "type": "string", "format": "date" },
-        "rogersEligibleServiceLinked": { "type": "boolean" },
-        "rogersAccountAnniversaryMonth": { "type": "integer" },
-        "feeWaiverActive": { "type": "boolean" },
-        "cryptoLevelUpProActive": { "type": "boolean" },
-        "croHandling": { "type": ["string", "null"], "enum": ["autoSell", "hold", null] }
+        "capProgress": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "scotiaAccountYearAnchorMonth": {
+          "type": "integer"
+        },
+        "selectedCategories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "treatAsAllSelected": {
+          "type": "boolean"
+        },
+        "thirdCategoryUnlocked": {
+          "type": "boolean"
+        },
+        "nextChangeEffectiveDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "rogersEligibleServiceLinked": {
+          "type": "boolean"
+        },
+        "rogersAccountAnniversaryMonth": {
+          "type": "integer"
+        },
+        "feeWaiverActive": {
+          "type": "boolean"
+        },
+        "cryptoLevelUpProActive": {
+          "type": "boolean"
+        },
+        "croHandling": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "autoSell",
+            "hold",
+            null
+          ]
+        },
+        "unsetFields": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "capProgress",
+              "cryptoLevelUpProActive",
+              "croHandling",
+              "rogersEligibleServiceLinked",
+              "selectedCategories",
+              "treatAsAllSelected"
+            ]
+          },
+          "description": "Fields forced back to nil AFTER the merge. An unknown entry fails the test rather than being ignored."
+        }
       }
     },
     "expected": {
       "type": "object",
-      "required": ["winner", "winnerValueCad"],
+      "required": [
+        "winner",
+        "winnerValueCad"
+      ],
       "additionalProperties": false,
       "properties": {
-        "winner": { "type": "string", "description": "cardId of RecommendationEngine's winner." },
-        "winnerValueCad": { "type": "number", "description": "Asserted with accuracy 0.005." },
-        "winnerRule": { "type": "string" },
-        "runnerUp": { "type": ["string", "null"] },
-        "runnerUpValueCad": { "type": "number" },
-        "switchFromDefault": { "type": "boolean" },
-        "advantageOverDefaultCad": { "type": "number" },
-        "defaultNotAccepted": { "type": "boolean" },
+        "winner": {
+          "type": "string",
+          "description": "cardId of RecommendationEngine's winner."
+        },
+        "winnerValueCad": {
+          "type": "number",
+          "description": "Asserted with accuracy 0.005."
+        },
+        "winnerRule": {
+          "type": "string"
+        },
+        "runnerUp": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runnerUpValueCad": {
+          "type": "number"
+        },
+        "switchFromDefault": {
+          "type": "boolean"
+        },
+        "advantageOverDefaultCad": {
+          "type": "number"
+        },
+        "defaultNotAccepted": {
+          "type": "boolean"
+        },
         "suppressedBetterCard": {
           "type": "string",
           "description": "A card that would win on raw value but the switch threshold ('both' or 'either' semantics, spec §5) holds the default instead."
         },
-        "suppressedValueCad": { "type": "number" },
+        "suppressedValueCad": {
+          "type": "number"
+        },
         "warnings": {
           "type": "array",
           "items": {
             "enum": [
-              "drawerCard", "unresolvedOwnerState", "networkNotAccepted",
-              "capNearlyExhausted", "negativeNetValue", "fxAllowanceAssumed", "hypotheticalSelection"
+              "drawerCard",
+              "unresolvedOwnerState",
+              "networkNotAccepted",
+              "capNearlyExhausted",
+              "negativeNetValue",
+              "fxAllowanceAssumed",
+              "hypotheticalSelection"
             ]
           },
           "description": "Checked as a subset (every listed warning must appear in the winner's actual warnings) — Warning enum raw values."
@@ -141,7 +299,41 @@
         "notes": {
           "type": "string",
           "x-status": "documentation-only",
-          "description": "Hand-derived arithmetic proving winnerValueCad by hand (spec §5's 'never tune the expectation to the engine' discipline). Expected struct has no `notes` property — the proof lives in the file for human review, not in the assertion."
+          "description": "Hand-derived arithmetic proving winnerValueCad by hand (spec §5's 'never tune the expectation to the engine' discipline). Expected struct has no `notes` property — the proof lives in the file for human review, not in the assertion. Required in practice for every case added from 1.1 onward."
+        },
+        "warningsAbsent": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "drawerCard",
+              "unresolvedOwnerState",
+              "networkNotAccepted",
+              "capNearlyExhausted",
+              "negativeNetValue",
+              "fxAllowanceAssumed",
+              "hypotheticalSelection"
+            ]
+          },
+          "description": "Warnings that must NOT appear on the winner. The only way to pin behaviour whose entire signal is a warning — e.g. Crypto's two FX records are both rate 0, so ignoring the announced one before its effectiveFrom is dollar-identical and observable only through fxAllowanceAssumed."
+        },
+        "valuationSensitive": {
+          "type": "boolean",
+          "description": "Recommendation.valuationSensitive — whether the advice turns on the declared point valuation."
+        },
+        "valuationDirection": {
+          "enum": [
+            "below",
+            "above"
+          ],
+          "description": "Recommendation.valuationDirection, compared by its Swift case name. 'below' = the winner is a points card that only wins above the cash floor; 'above' = a points card would overtake if points were worth more. Downside is checked first, so at most one direction is ever disclosed."
+        },
+        "alternateWinner": {
+          "type": "string",
+          "description": "Recommendation.alternateWinnerCardId — the card that wins on the other side of the breakeven."
+        },
+        "breakevenCentsPerPoint": {
+          "type": "number",
+          "description": "Recommendation.breakevenCentsPerPoint, asserted with accuracy 0.005. Includes the switch threshold against the default card, so it is the cents-per-point at which the ADVICE flips, not merely where raw values cross."
         }
       }
     }

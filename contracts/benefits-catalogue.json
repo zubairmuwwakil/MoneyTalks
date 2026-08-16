@@ -1,5 +1,5 @@
 {
-  "benefitsCatalogueVersion": "0.2.0",
+  "benefitsCatalogueVersion": "1.0",
   "_provenance": "Issuer-document sourcing pass completed 2026-08-16. Nine cards were re-derived from issuer-published Certificates of Insurance / Guides to Coverage and are marked issuerPage; unverified stub values were not carried forward. Crypto.com Royal Indigo remains stub because the exact prepaid-card agreement was found but no Certificate of Insurance or explicit certificate-level no-insurance statement was located. issuerPage is not a substitute for Zubair's own cardholder-document verification.",
   "triggers": {
     "bigTicketThresholdCad": 150,

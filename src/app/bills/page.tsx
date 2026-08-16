@@ -1,13 +1,31 @@
 import Link from "next/link";
+import {
+  CalendarDays,
+  ChevronRight,
+  LineChart,
+  Plus,
+  Receipt,
+  Sparkles,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { billOccurrences, type BillDef } from "@/engine/billforecast";
-import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
 import { formatMinorUnits, type Currency } from "@/engine/money";
+import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
 function toBillDef(b: {
-  id: string; name: string; category: string; currency: string; autopay: boolean;
-  variable: boolean; cadence: unknown; schedule: unknown;
+  id: string;
+  name: string;
+  category: string;
+  currency: string;
+  autopay: boolean;
+  variable: boolean;
+  cadence: unknown;
+  schedule: unknown;
 }): BillDef {
   return {
     id: b.id,
@@ -37,51 +55,115 @@ export default async function BillsPage() {
   const categories = [...new Set(bills.map((b) => b.category))].sort();
 
   return (
-    <main className="space-y-6 py-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Bills</h1>
-        <div className="flex gap-2 text-sm">
-          <Link href="/bills/month" className="rounded border px-3 py-1">Month view</Link>
-          <Link href="/bills/forecast" className="rounded border px-3 py-1">Forecast</Link>
-          <Link href="/bills/new" className="rounded bg-foreground px-3 py-1 text-background">Add bill</Link>
+    <main className="space-y-6 py-6 sm:py-8">
+      {/* Header with Title and Quick Navigation */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Bills</h1>
+          <p className="text-sm text-muted-foreground">
+            Recurring expenses, schedule stepping, pileup warnings, and 12-month cashflow forecasts.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/bills/month" className="flex items-center gap-1.5">
+              <CalendarDays className="size-3.5" />
+              <span>Month view</span>
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/bills/forecast" className="flex items-center gap-1.5">
+              <LineChart className="size-3.5" />
+              <span>Forecast</span>
+            </Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/bills/new" className="flex items-center gap-1.5">
+              <Plus className="size-3.5" />
+              <span>Add bill</span>
+            </Link>
+          </Button>
         </div>
       </div>
 
       {bills.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No bills yet — add one or use <Link href="/investments/import" className="underline">Import</Link>.
-        </p>
+        <EmptyState
+          icon={Receipt}
+          title="No bills yet"
+          description="Track subscriptions, utilities, rent/mortgage, and recurring debt payments."
+          action={{
+            label: "Add your first bill",
+            href: "/bills/new",
+          }}
+          secondaryAction={{
+            label: "Import from JSON",
+            href: "/investments/import",
+          }}
+        />
       ) : (
-        categories.map((category) => (
-          <section key={category}>
-            <h2 className="text-sm font-medium uppercase text-muted-foreground">{category}</h2>
-            <ul className="mt-2 divide-y rounded border">
-              {withNext
-                .filter(({ bill }) => bill.category === category)
-                .map(({ bill, next }) => (
-                  <li key={bill.id}>
-                    <Link href={`/bills/${bill.id}`} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50">
-                      <span>
-                        <span className="font-medium">{bill.name}</span>{" "}
-                        {bill.autopay ? <span className="rounded bg-muted px-1 text-xs">autopay</span> : null}
-                        {bill.variable ? <span className="ml-1 rounded bg-muted px-1 text-xs">variable</span> : null}
-                      </span>
-                      <span className="text-sm tabular-nums">
-                        {next ? (
-                          <>
-                            {next.date} · {formatMinorUnits(next.amountMinor, bill.currency as Currency)}
-                            {bill.variable ? " (est.)" : ""}
-                          </>
-                        ) : (
-                          <span className="text-muted-foreground">no upcoming date</span>
-                        )}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-            </ul>
-          </section>
-        ))
+        <div className="space-y-6">
+          {categories.map((category) => (
+            <section key={category} className="space-y-2.5">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[11px] font-semibold uppercase tracking-wider">
+                  {category}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  ({withNext.filter(({ bill }) => bill.category === category).length})
+                </span>
+              </div>
+              <ul className="divide-y divide-border/60 rounded-xl border border-border/80 bg-card shadow-2xs overflow-hidden">
+                {withNext
+                  .filter(({ bill }) => bill.category === category)
+                  .map(({ bill, next }) => (
+                    <li key={bill.id} className="transition-colors hover:bg-muted/40">
+                      <Link
+                        href={`/bills/${bill.id}`}
+                        className="flex flex-col gap-2 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-sm sm:text-base tracking-tight text-foreground">
+                              {bill.name}
+                            </span>
+                            {bill.autopay ? (
+                              <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                                autopay
+                              </Badge>
+                            ) : null}
+                            {bill.variable ? (
+                              <Badge variant="info" className="px-1.5 py-0 text-[10px]">
+                                variable
+                              </Badge>
+                            ) : null}
+                          </div>
+                          {bill.payee ? (
+                            <p className="text-xs text-muted-foreground">Payee: {bill.payee}</p>
+                          ) : null}
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-3">
+                          <div className="text-right">
+                            {next ? (
+                              <p className="text-sm font-semibold tabular-nums text-foreground">
+                                {next.date} · {formatMinorUnits(next.amountMinor, bill.currency as Currency)}
+                                {bill.variable ? (
+                                  <span className="text-xs font-normal text-muted-foreground ml-1">(est.)</span>
+                                ) : null}
+                              </p>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">no upcoming date</span>
+                            )}
+                          </div>
+                          <ChevronRight className="size-4 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       )}
     </main>
   );

@@ -1,5 +1,17 @@
 import Link from "next/link";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  FileCheck,
+  RotateCcw,
+  ShieldAlert,
+  Sparkles,
+} from "lucide-react";
 import { AlertCard } from "@/components/alert-card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { ALL_RULES, applyDismissals, evaluateRules } from "@/engine/rules";
 import { getOrCreateProfile } from "@/lib/profile";
 import { prisma } from "@/lib/prisma";
@@ -28,30 +40,40 @@ export default async function MoneyFinderPage({
   const opportunities = shown.filter((a) => a.kind === "opportunity");
 
   return (
-    <main className="space-y-8 py-8">
-      <header className="flex items-center justify-between">
+    <main className="space-y-8 py-6 sm:py-8">
+      {/* Header with Title, Status Description, and Primary Sub-nav */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Money Finder</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Money Finder</h1>
           <p className="text-sm text-muted-foreground">
             {showDismissed
               ? `${dismissed.length} dismissed alert(s)`
               : `${active.length} active — rules evaluate fresh on every load`}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/money-finder/tax" className="text-sm underline">
-            Tax checklist
-          </Link>
-          <Link href={showDismissed ? "/money-finder" : "/money-finder?dismissed=1"} className="text-sm underline">
-            {showDismissed ? "Show active" : `Dismissed (${dismissed.length})`}
-          </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/money-finder/tax" className="flex items-center gap-1.5 text-sm underline">
+              <FileCheck className="size-3.5" />
+              <span>Tax checklist</span>
+            </Link>
+          </Button>
+          <Button asChild variant={showDismissed ? "secondary" : "outline"} size="sm">
+            <Link
+              href={showDismissed ? "/money-finder" : "/money-finder?dismissed=1"}
+              className="flex items-center gap-1.5 text-sm underline"
+            >
+              <RotateCcw className="size-3.5" />
+              <span>{showDismissed ? "Show active" : `Dismissed (${dismissed.length})`}</span>
+            </Link>
+          </Button>
         </div>
       </header>
 
       {errors.length > 0 ? (
-        <div className="rounded border border-red-600 p-4 text-sm">
-          <p className="font-medium">Rule errors (the rest still evaluated):</p>
-          <ul className="mt-1 list-inside list-disc">
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-xs font-medium text-red-600">
+          <p className="font-semibold">Rule errors (the rest still evaluated):</p>
+          <ul className="mt-1.5 list-inside list-disc space-y-0.5">
             {errors.map((e) => (
               <li key={e.ruleKey}>
                 {e.ruleKey}: {e.message}
@@ -61,30 +83,55 @@ export default async function MoneyFinderPage({
         </div>
       ) : null}
 
-      <section>
-        <h2 className="font-medium">Compliance ({compliance.length})</h2>
-        <div className="mt-3 space-y-3">
+      {/* Compliance Section */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <ShieldAlert className="size-4 text-muted-foreground" />
+          <h2 className="text-base font-semibold tracking-tight text-foreground">
+            Compliance ({compliance.length})
+          </h2>
+        </div>
+        <div className="space-y-3">
           {compliance.map((a) => (
             <AlertCard key={`${a.ruleKey}:${a.entityRef}`} alert={a} mode={showDismissed ? "dismissed" : "active"} />
           ))}
-          {compliance.length === 0 ? <p className="text-sm text-muted-foreground">Nothing here.</p> : null}
+          {compliance.length === 0 ? (
+            <Card className="p-5 text-center">
+              <p className="text-xs text-muted-foreground">Nothing here.</p>
+            </Card>
+          ) : null}
         </div>
       </section>
 
-      <section>
-        <h2 className="font-medium">Opportunities ({opportunities.length})</h2>
-        <div className="mt-3 space-y-3">
+      {/* Opportunities Section */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-muted-foreground" />
+          <h2 className="text-base font-semibold tracking-tight text-foreground">
+            Opportunities ({opportunities.length})
+          </h2>
+        </div>
+        <div className="space-y-3">
           {opportunities.map((a) => (
             <AlertCard key={`${a.ruleKey}:${a.entityRef}`} alert={a} mode={showDismissed ? "dismissed" : "active"} />
           ))}
-          {opportunities.length === 0 ? <p className="text-sm text-muted-foreground">Nothing here.</p> : null}
+          {opportunities.length === 0 ? (
+            <Card className="p-5 text-center">
+              <p className="text-xs text-muted-foreground">Nothing here.</p>
+            </Card>
+          ) : null}
         </div>
       </section>
 
-      <footer className="border-t pt-4 text-xs text-muted-foreground">
+      {/* Citations and Legal Disclaimer Footer */}
+      <footer className="rounded-xl border border-border/80 bg-muted/20 p-4 text-xs text-muted-foreground leading-relaxed">
         MoneyTalks surfaces published program rules against your own data, with citations. It is not
         financial, tax, or legal advice; verify with your accountant or caseworker before acting.
-        Rules inputs come from <Link href="/settings" className="underline">Settings</Link>.
+        Rules inputs come from{" "}
+        <Link href="/settings" className="font-semibold text-foreground underline hover:text-foreground/80">
+          Settings
+        </Link>
+        .
       </footer>
     </main>
   );

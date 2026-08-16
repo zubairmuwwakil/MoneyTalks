@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ArrowLeft, CheckCircle2, FileSpreadsheet } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -33,18 +35,52 @@ export default async function CsvImportPage({
   }
 
   return (
-    <main className="max-w-xl space-y-4 py-8">
-      <h1 className="text-xl font-semibold">CSV import — {account.name}</h1>
-      <p className="text-sm text-muted-foreground">
-        The file is parsed in memory and never stored; only validated rows become transactions.
-        Re-importing an overlapping file is safe — duplicates are skipped by content hash. Use
-        Preview to check your column mapping before importing — it parses the file the same way
-        Import does, but writes nothing.
-      </p>
-      {done ? <p className="text-sm text-green-700">{done}</p> : null}
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      <CsvImportForm accountId={account.id} currency={account.currency as Currency} importAction={submit} />
-      <Link href={`/investments/${account.id}`} className="text-sm underline">← back to account</Link>
+    <main className="max-w-2xl space-y-6 py-6 sm:py-8">
+      <div>
+        <Link
+          href={`/investments/${account.id}`}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground mb-3 transition-colors"
+        >
+          <ArrowLeft className="size-3.5" />
+          <span>← back to account</span>
+        </Link>
+        <h1 className="text-2xl font-bold tracking-tight">CSV import — {account.name}</h1>
+        <p className="text-sm text-muted-foreground">
+          Import transactions directly from your institution's statement CSV.
+        </p>
+      </div>
+
+      {done ? (
+        <div className="flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+          <CheckCircle2 className="size-4 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">Statement processed</p>
+            <p className="mt-0.5 text-emerald-700 dark:text-emerald-400">{done}</p>
+          </div>
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-xs font-medium text-red-600" role="alert">
+          {error}
+        </div>
+      ) : null}
+
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet className="size-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-semibold">Statement CSV &amp; Column Mapping</CardTitle>
+          </div>
+          <CardDescription>
+            The file is parsed in memory and never stored; only validated rows become transactions.
+            Re-importing is safe — duplicates are skipped by content hash.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CsvImportForm accountId={account.id} currency={account.currency as Currency} importAction={submit} />
+        </CardContent>
+      </Card>
     </main>
   );
 }

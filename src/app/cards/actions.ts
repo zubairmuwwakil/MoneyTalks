@@ -13,8 +13,8 @@ import {
   type CapUsage,
   type CardRewards,
   type SpendCategory,
-} from "@/engine/cards/types";
-import type { RedeemedCredit } from "@/engine/cards/roi";
+} from "@/lib/cards/types";
+import type { RedeemedCredit } from "@/lib/cards/fees";
 import { parseDollarsToMinor } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -142,8 +142,6 @@ function revalidateCardRoutes(cardId?: string) {
   revalidatePath("/");
   revalidatePath("/cards");
   revalidatePath("/cards/manage");
-  revalidatePath("/cards/cheatsheet");
-  revalidatePath("/cards/analyzer");
   if (cardId) revalidatePath(`/cards/${cardId}`);
 }
 

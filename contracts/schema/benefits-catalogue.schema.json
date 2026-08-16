@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pickme.local/contracts/benefits-catalogue.schema.json",
+  "title": "PickMe benefits catalogue",
+  "description": "Documents the shape of benefits-catalogue.json exactly as decoded by Engine/Sources/CardCopilotEngine/Models/BenefitsModels.swift — it does not redesign the shape (spec §4). Benefits are card metadata verified only by reading certificates of insurance, a different truth procedure from earn rules (statement reconciliation), which is why they live in a separate catalogue with their own provenance ladder (benefits design decision B5). CRITICAL for any non-Swift consumer: this format mixes OPEN and CLOSED vocabularies on purpose — `family` and `kind` are open strings that must accept unknown values, while `verificationStatus` is a closed enum whose unknown values are a hard decode failure in Swift. A consumer that makes all three strict breaks forward compatibility; one that makes all three loose drops a real constraint. Two \"unused\" markers appear below, matching card-catalogue.schema.json: \"x-status\": \"declared-not-computed\" means the field IS a Swift struct property but no engine or app code reads it; \"x-status\": \"documentation-only\" means the field has NO corresponding Swift property at all, so JSONDecoder silently drops it on load.",
+  "type": "object",
+  "required": ["benefitsCatalogueVersion", "triggers", "cards"],
+  "additionalProperties": false,
+  "properties": {
+    "benefitsCatalogueVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "x-status": "declared-not-computed",
+      "description": "MAJOR.MINOR, matching catalogueVersion/fixturesVersion (spec §3). NOT yet load-bearing: unlike card-catalogue.json's catalogueVersion — which SeedLoader.validate(catalogueVersion:) parses and rejects on unknown MAJOR — this field is decoded into BenefitsCatalogue and never read. Deliberate: benefits are disclose-only and never feed scoring (B1), so a shape mismatch degrades displayed coverage facts rather than corrupting dollar recommendations. Add the interlock if a second engine ever loads this file. Bump MAJOR on any breaking shape change; every edit gets a CHANGELOG.md entry."
+    },
+    "_provenance": {
+      "type": "string",
+      "x-status": "documentation-only",
+      "description": "Free-text sourcing note recording how the current data was obtained and at what verification level. No BenefitsCatalogue.provenance property exists in Swift."
+    },
+    "triggers": {
+      "$ref": "#/$defs/triggers"
+    },
+    "cards": {
+      "type": "array",
+      "description": "One entry per wallet card. BenefitsLoaderTests.testEveryWalletCardHasABenefitsEntry asserts this set of cardIds equals card-catalogue.json's set exactly — the two catalogues describe the same wallet and drift between them fails the build.",
+      "items": { "$ref": "#/$defs/cardBenefits" }
+    }
+  },
+  "$defs": {
+    "triggers": {
+      "type": "object",
+      "description": "Mirrors BenefitsTriggers. Tuning for the ambient checkout disclosure lives in data, not code (benefits design §5), so thresholds can move without a release.",
+      "required": ["bigTicketThresholdCad", "consumableCategories"],
+      "additionalProperties": false,
+      "properties": {
+        "bigTicketThresholdCad": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "A checkout at or above this CAD amount, in a non-consumable category, surfaces the shopping benefit family for the recommended card. Compared with >=, so the boundary value itself triggers (BenefitsAdvisor.triggeredFamilies)."
+        },
+        "consumableCategories": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Categories that never trigger shopping disclosures however large the amount — you do not insure groceries. ENGINE-DEFINED VOCABULARY: these strings are matched against PurchaseContext.category from card-catalogue.json's earn rules, NOT against any benefits-specific vocabulary (benefits design B6 freezes the merchant-category list because it is the ground-truth axis of the 30-checkout accuracy experiment). BenefitsLoaderTests.testConsumableCategoriesUseTheFrozenVocabulary pins the legal values; adding one is a catalogue-plus-test change, and inventing a benefits-only category here would silently never match."
+        }
+      }
+    },
+    "cardBenefits": {
+      "type": "object",
+      "description": "Mirrors CardBenefits — every property below is non-optional in Swift and therefore required here.",
+      "required": ["cardId", "certificate", "benefits"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": { "description": "Free-text annotation (e.g. _note). Not decoded by the engine." }
+      },
+      "properties": {
+        "cardId": {
+          "type": "string",
+          "description": "Must match a cardId in card-catalogue.json. This is the only join key between the two catalogues."
+        },
+        "certificate": { "$ref": "#/$defs/certificateProvenance" },
+        "benefits": {
+          "type": "array",
+          "description": "May be empty. ABSENCE IS MEANINGFUL AND VERIFICATION-DEPENDENT (benefits design B8): a missing kind means \"no coverage\" only when certificate.verificationStatus is certificateVerified; at stub or issuerPage it means \"not yet established\", and the UI renders those two cases with different wording. A consumer that treats an empty array as a flat \"no coverage\" will assert something the data does not support.",
+          "items": { "$ref": "#/$defs/benefit" }
+        }
+      }
+    },
+    "certificateProvenance": {
+      "type": "object",
+      "description": "Mirrors CertificateProvenance. Only verificationStatus is non-optional in Swift; the rest are String? and may be null. Note that although no runtime code reads the four optional fields, BenefitsLoaderTests.testBenefitsProvenanceIsHonest asserts sourceUrl and lastVerifiedAt are non-empty on every non-stub card — so blanking them breaks the build even though nothing renders them.",
+      "required": ["verificationStatus"],
+      "additionalProperties": false,
+      "properties": {
+        "verificationStatus": {
+          "enum": ["stub", "issuerPage", "certificateVerified"],
+          "description": "CLOSED vocabulary — unlike family/kind. Swift decodes this into `BenefitVerification: String, Codable`, so an unrecognized value is a hard decode failure that fails the whole catalogue load, not a silently-ignored row. The three rungs are a claim about evidence, not quality: `stub` = drafted without a source document, never trustworthy display; `issuerPage` = read from an issuer-published certificate or benefits page, but not matched against this cardholder's own documents; `certificateVerified` = confirmed against the owner's actual cardholder documents. issuerPage stops one rung short on purpose because certificate terms vary by the date a card was opened, so what an issuer publishes today may not be this cardholder's terms."
+        },
+        "underwriter": {
+          "type": ["string", "null"],
+          "x-status": "declared-not-computed",
+          "description": "Insurer named on the certificate. Decoded, never read by engine or app."
+        },
+        "sourceUrl": {
+          "type": ["string", "null"],
+          "x-status": "declared-not-computed",
+          "description": "Exact URL of the document the data was read from. Decoded and never read at runtime, but asserted non-empty for non-stub cards by testBenefitsProvenanceIsHonest."
+        },
+        "certificateDate": {
+          "type": ["string", "null"],
+          "x-status": "declared-not-computed",
+          "description": "Date printed on the certificate, YYYY-MM or YYYY-MM-DD. Free-form string in Swift, not a parsed date. This is the field that makes issuerPage fall short of certificateVerified: terms vary by card-open date."
+        },
+        "lastVerifiedAt": {
+          "type": ["string", "null"],
+          "x-status": "declared-not-computed",
+          "description": "When someone last checked this card's entry against its source, YYYY-MM-DD. Decoded and never read at runtime, but asserted non-empty for non-stub cards by testBenefitsProvenanceIsHonest."
+        }
+      }
+    },
+    "benefit": {
+      "type": "object",
+      "description": "Mirrors Benefit. benefitId/family/kind/coverage/conditions are non-optional in Swift; exclusions/certificateQuote/notes are optional and may be null.",
+      "required": ["benefitId", "family", "kind", "coverage", "conditions"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": { "description": "Free-text annotation. Not decoded by the engine." }
+      },
+      "properties": {
+        "benefitId": {
+          "type": "string",
+          "description": "Stable id, conventionally <card>-<kind> in kebab-case. Used only as SwiftUI list identity in BenefitsReferenceView; no engine logic reads it. Uniqueness within a card is a convention the schema does not enforce."
+        },
+        "family": {
+          "type": "string",
+          "x-known-values": ["shopping", "travelDisruption", "rentalCdw", "travelMedical"],
+          "description": "OPEN vocabulary — deliberately NOT an enum. Swift declares this as a plain String; `BenefitFamily` is a CaseIterable namespace that is pointedly NOT Codable. Unknown values decode successfully, round-trip through re-encoding, and are simply ignored by advisor logic (BenefitsAdvisor.relevantBenefits filters on knownFamily != nil). This is load-bearing forward compatibility: a future family added by a newer writer must not break an older reader. A consumer that models this as a strict enum will reject valid future data. The shipped catalogue is separately constrained to known values by BenefitsLoaderTests.testEveryBenefitKindAndFamilyIsKnown — the open vocabulary exists for future data, not for typos in our own."
+        },
+        "kind": {
+          "type": "string",
+          "x-known-values": [
+            "purchaseProtection", "extendedWarranty", "mobileDeviceInsurance",
+            "flightDelay", "baggageDelay", "baggageLoss", "tripCancellation", "tripInterruption",
+            "rentalCdw", "travelMedical"
+          ],
+          "description": "OPEN vocabulary, same rules and same rationale as `family` above — plain String in Swift, `BenefitKind` is a non-Codable namespace, unknown values decode and are ignored rather than rejected. Kind determines which declared purchase context surfaces this benefit in the protection lens (benefits design §5): flight/trip pull the five travelDisruption kinds; carRental pulls rentalCdw; electronics/applianceFurniture pull purchaseProtection and extendedWarranty; mobileDevice adds mobileDeviceInsurance; travelMedical is added to travel contexts only when the purchase is declared as outside Canada."
+        },
+        "coverage": { "$ref": "#/$defs/coverage" },
+        "conditions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Near-verbatim clauses from the certificate that decide whether coverage applies at all (\"full amount charged to the card\", trip-length limits, \"decline the agency's CDW\"). Displayed unmodified in the benefit detail sheet. These are quoted rather than structured on purpose: paraphrasing an insurance condition into a boolean is how an app ends up promising coverage that does not exist. May be empty, but an empty conditions array on a real benefit almost always means the extraction was incomplete."
+        },
+        "exclusions": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Near-verbatim carve-outs (vehicle classes, unattended property, age limits). Optional in Swift ([String]?) and normalised to [] when absent. Displayed unmodified alongside conditions."
+        },
+        "certificateQuote": {
+          "type": ["string", "null"],
+          "x-status": "declared-not-computed",
+          "description": "Optional verbatim excerpt for anything ambiguous. Decoded, never read by engine or app — BenefitsAdvisor.disclosure() does not carry it into BenefitDisclosure, so it reaches no UI. Currently null on every entry."
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "x-status": "declared-not-computed",
+          "description": "Extraction notes for humans — why a field is null, which sublimits were dropped, whether a number came from a summary page rather than the certificate. Decoded, never read by engine or app; read by whoever next edits the catalogue."
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "description": "Mirrors BenefitCoverage: thirteen fields, ALL optional in Swift, all nullable here. Typed fields exist only for values the protection-lens comparison sorts or displays; everything conditional stays verbatim in conditions/exclusions rather than being modelled (benefits design §4). Which fields are meaningful depends on kind — see benefits-extraction-template.md for the per-kind field guide. Fields are used two ways, and the two sets are NOT the same: BenefitsFormatting.factsLine renders eleven of them into the UI, while BenefitsAdvisor.fieldSpecs feeds all thirteen (minus null) into the Pareto dominance comparison. See x-dominance and x-display markers below.",
+      "additionalProperties": false,
+      "x-dominance-direction": "BenefitsAdvisor.fieldSpecs treats delayHours and deductibleCad as lower-is-better and every other compared field as higher-is-better; a null field, or a card missing the kind entirely, scores worst. Only MAGNITUDES are compared — quantities where more is plainly better coverage, so that absence can honestly score worst. An eligibility gate, whose absence may mean \"no restriction\" rather than \"none offered\", must not be compared; it belongs in conditions and on screen. See x-compared-vs-displayed.",
+      "x-compared-vs-displayed": "Spec B7 requires the protection lens's \"equal or better on every line below\" badge to be checkable row by row, which imposes: every field compared by BenefitsAdvisor.fieldSpecs MUST be rendered by BenefitsFormatting.factsLine. The converse is deliberately allowed — a field may be displayed without voting. Exactly one field is in that state: maxOriginalWarrantyYears is shown (\"originals ≤ 5 yr\") but does not vote, because it is an eligibility ceiling rather than a magnitude — a certificate stating no ceiling plausibly means no restriction, i.e. the best case, so scoring its absence as worst ranked cards backwards. Both halves of this invariant were violated until catalogue 1.0: maxAnnualCad voted without being displayed (now displayed), and maxOriginalWarrantyYears voted on absence it could not interpret (now display-only).",
+      "properties": {
+        "windowDays": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"<n> days\"",
+          "description": "Days from purchase during which purchase protection applies. Typically 90–120."
+        },
+        "maxPerOccurrenceCad": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"up to $<n>\"",
+          "description": "Per-claim maximum. Distinct from maxAnnualCad; a certificate may state either, both, or neither."
+        },
+        "maxAnnualCad": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"$<n>/yr\"",
+          "description": "Per-year aggregate maximum. A magnitude, so it both renders and votes in the dominance badge."
+        },
+        "extraYears": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"+<n> yr warranty\"",
+          "description": "Additional years the card adds to the manufacturer warranty."
+        },
+        "maxOriginalWarrantyYears": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"originals ≤ <n> yr\"; DISPLAY-ONLY — does not vote in dominance",
+          "description": "Longest original manufacturer warranty still eligible for extension. An eligibility ceiling rather than a coverage magnitude, so it is shown but excluded from the dominance comparison: a certificate stating no ceiling plausibly means no restriction (the best case), which makes its absence unrankable. Pinned by BenefitsComparisonTests.testOriginalWarrantyCeilingDoesNotDecideDominance."
+        },
+        "maxCad": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"up to $<n>\"",
+          "description": "General maximum for kinds that state a single cap (travel disruption, mobile device, travel medical). Renders identically to maxPerOccurrenceCad; a benefit carrying both will render \"up to $X · up to $Y\"."
+        },
+        "deductibleCad": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"$<n> deductible\"",
+          "description": "Amount the cardholder pays per claim. LOWER IS BETTER for dominance."
+        },
+        "delayHours": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"<n> h+ delay\"",
+          "description": "Hours of delay before flight/baggage delay coverage begins. LOWER IS BETTER for dominance — a shorter wait pays out sooner."
+        },
+        "perDayCad": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"$<n>/day\"",
+          "description": "Daily sub-limit where a certificate states one. Supported end to end but absent from every entry in catalogue 1.0."
+        },
+        "maxTripLengthDays": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"trips ≤ <n> days\"",
+          "description": "Longest covered trip. On travel medical this is one of the two coverage-voiding numbers, alongside ageLimit."
+        },
+        "maxRentalDays": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"rentals ≤ <n> days\"",
+          "description": "Longest covered rental period for rentalCdw."
+        },
+        "maxVehicleValueCad": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"vehicles ≤ $<n>\"",
+          "description": "MSRP ceiling above which a rental vehicle is not eligible — one of the two numbers that most often voids a CDW claim."
+        },
+        "ageLimit": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "x-display": "rendered as \"under <n>\"",
+          "description": "Age at or above which travel medical coverage no longer applies. Modelled as higher-is-better for dominance, which reads correctly for a cut-off age; a certificate expressing an age rule any other way belongs in conditions instead."
+        }
+      }
+    }
+  }
+}

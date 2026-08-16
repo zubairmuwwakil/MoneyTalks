@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SPEND_CATEGORIES } from "@/engine/cards/types";
+import { SPEND_CATEGORIES } from "@/lib/cards/types";
 import { countryCode, currencyCode, dollarAmount } from "./primitives";
 
 // JSON imports contain numbers, while browser form controls submit their values as

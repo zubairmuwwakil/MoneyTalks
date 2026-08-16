@@ -1,7 +1,8 @@
 {
   "card-catalogue.json": "d4ccc680c408b71a1426665948470721975fd30a119e2932387ce7f7e312dd61",
-  "benefits-catalogue.json": "04e93ee16d87292ef9ab9f8073925ebd9e00383ed6748338106dcc4aec10bfe4",
-  "engine-fixtures.json": "4fc410b524739755e3f98d07166051f649a3fa3bb734c04708a4b3450827829d",
+  "benefits-catalogue.json": "067a9d80b3b7d81ca3d462ae87ff9e41f25ca9142183342a5e3c4dde93c9c4ac",
+  "engine-fixtures.json": "1b0ee9cc2fa155f409bdb815149e72797688720af2f33c33c6f168b23198d9ba",
   "schema/card-catalogue.schema.json": "af0126ab5c5589ddf2eae1b8b58b7b0b48067fba74950a69dc93f04f705b7021",
-  "schema/engine-fixtures.schema.json": "23a25b1ecbde1354a3bc7adb20e4a1759d469cd6a976da74f852bda5f202e33a"
+  "schema/benefits-catalogue.schema.json": "055c498a1c78b2ad091f249cbbb50b99c5c20ebeda99fd17aff8113bcd502888",
+  "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db"
 }
