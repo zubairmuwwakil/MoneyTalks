@@ -7,11 +7,18 @@ import benefitsCatalogueRaw from "../../../contracts/benefits-catalogue.json";
  * ../PickMe/docs/plans/2026-08-16-card-contract-spec.md §4). Validated on
  * load — nothing here is cast from the raw JSON import's inferred shape.
  *
- * There is no PickMe-authored schema for benefits-catalogue.json (schema/
- * only covers the catalogue and fixtures — see the spec's §1 file listing),
- * so the benefits schema below is hand-derived from the actual vendored data
- * plus PickMe/Engine/Sources/CardCopilotEngine/Models/BenefitsModels.swift,
- * the canonical Swift decode target. Flagged in the chunk-b report.
+ * The benefits half below mirrors contracts/schema/benefits-catalogue.schema.json,
+ * which PickMe authored after this loader was first written. The earlier
+ * hand-derivation from BenefitsModels.swift is retired: that schema is now the
+ * single authoritative reading of the format, so shape questions get settled
+ * there rather than re-derived here from the data.
+ *
+ * Two of its rules are load-bearing and easy to get backwards. `family` and
+ * `kind` are OPEN vocabularies — unknown values MUST parse, because Swift
+ * decodes them as plain strings and simply ignores unrecognised ones, which is
+ * how a newer writer's benefit kind stays readable by an older consumer.
+ * `verificationStatus` is CLOSED — an unknown value is a hard decode failure in
+ * Swift, so accepting one here would mask a real contract break.
  */
 
 // Every nested object in card-catalogue.schema.json declares
@@ -156,7 +163,7 @@ export function parseCardCatalogue(data: unknown): CardCatalogue {
   return cardCatalogueSchema.parse(data);
 }
 
-// --- Benefits (hand-derived — see file header) ---------------------------
+// --- Benefits (mirrors schema/benefits-catalogue.schema.json — see header) ---
 
 const benefitVerificationSchema = z.enum(["stub", "issuerPage", "certificateVerified"]);
 
@@ -182,13 +189,17 @@ const benefitCoverageSchema = z.strictObject({
 // `family`/`kind` are open strings in Swift (same idiom as
 // PurchaseContext.category) — unknown values decode fine there, so this
 // loader accepts any string rather than a closed enum.
-const benefitSchema = z.strictObject({
+// annotatedObject, not strictObject: the schema declares patternProperties
+// "^_" here, so "_"-prefixed annotations are legal on a benefit.
+const benefitSchema = annotatedObject({
   benefitId: z.string(),
   family: z.string(),
   kind: z.string(),
   coverage: benefitCoverageSchema,
   conditions: z.array(z.string()),
-  exclusions: z.array(z.string()).optional(),
+  // [String]? in Swift and ["array","null"] in the schema, so an explicit
+  // null is valid — .optional() alone would reject it.
+  exclusions: z.array(z.string()).nullable().optional(),
   certificateQuote: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
 });
@@ -201,7 +212,9 @@ const certificateProvenanceSchema = z.strictObject({
   verificationStatus: benefitVerificationSchema,
 });
 
-const cardBenefitsSchema = z.strictObject({
+// annotatedObject for the same reason as benefitSchema: the schema allows
+// "_"-prefixed annotations on a card entry.
+const cardBenefitsSchema = annotatedObject({
   cardId: z.string(),
   certificate: certificateProvenanceSchema,
   benefits: z.array(benefitSchema),
@@ -213,7 +226,10 @@ const benefitsTriggersSchema = z.strictObject({
 });
 
 export const benefitsCatalogueSchema = annotatedObject({
-  benefitsCatalogueVersion: z.string(),
+  // MAJOR.MINOR per spec §3, matching the schema's pattern. Enforced here even
+  // though PickMe's SeedLoader does not gate on it — a three-part version like
+  // the old "0.2.0" is a contract violation this loader should surface, not pass.
+  benefitsCatalogueVersion: z.string().regex(/^\d+\.\d+$/),
   triggers: benefitsTriggersSchema,
   cards: z.array(cardBenefitsSchema),
 });

@@ -87,4 +87,51 @@ describe("parseBenefitsCatalogue", () => {
   it("exposes the same shape via the exported schema directly", () => {
     expect(benefitsCatalogueSchema.safeParse(benefitsCatalogueRaw).success).toBe(true);
   });
+
+  // The cases below pin this loader to schema/benefits-catalogue.schema.json rather
+  // than to whatever data happens to be vendored today. The first three failed before
+  // the loader was aligned to that schema — it was stricter than the contract in two
+  // ways and looser in one. The fourth guards a property that was already correct and
+  // must stay that way.
+
+  it("accepts an explicitly null exclusions, which the schema permits", () => {
+    // exclusions is [String]? in Swift and ["array","null"] in the schema, so an
+    // explicit null is valid data — .optional() alone used to reject it.
+    const mutated = structuredClone(benefitsCatalogueRaw) as Record<string, unknown>;
+    const cards = mutated.cards as Array<Record<string, unknown>>;
+    const benefits = cards[0].benefits as Array<Record<string, unknown>>;
+    benefits[0].exclusions = null;
+    expect(() => parseBenefitsCatalogue(mutated)).not.toThrow();
+  });
+
+  it("accepts \"_\"-prefixed annotations on a benefit and on a card entry", () => {
+    // Both objects declare patternProperties "^_" in the schema; strictObject
+    // used to reject the annotations the contract explicitly allows.
+    const mutated = structuredClone(benefitsCatalogueRaw) as Record<string, unknown>;
+    const cards = mutated.cards as Array<Record<string, unknown>>;
+    cards[0]._note = "sourced from the 2025-07 certificate";
+    const benefits = cards[0].benefits as Array<Record<string, unknown>>;
+    benefits[0]._note = "sublimits omitted";
+    expect(() => parseBenefitsCatalogue(mutated)).not.toThrow();
+  });
+
+  it("rejects a three-part benefitsCatalogueVersion", () => {
+    // spec §3 fixes the format at MAJOR.MINOR; the pre-1.0 "0.2.0" was a
+    // contract violation this loader should surface rather than wave through.
+    const mutated = structuredClone(benefitsCatalogueRaw) as Record<string, unknown>;
+    mutated.benefitsCatalogueVersion = "0.2.0";
+    expect(() => parseBenefitsCatalogue(mutated)).toThrow();
+  });
+
+  it("still accepts an unknown benefit family or kind (open vocabulary)", () => {
+    // The mirror of the verificationStatus test above: family/kind are plain
+    // strings in Swift and unknown values are ignored, not rejected. Tightening
+    // these into enums would break forward compatibility.
+    const mutated = structuredClone(benefitsCatalogueRaw) as Record<string, unknown>;
+    const cards = mutated.cards as Array<Record<string, unknown>>;
+    const benefits = cards[0].benefits as Array<Record<string, unknown>>;
+    benefits[0].family = "someFutureFamily";
+    benefits[0].kind = "cellPlanInsurance";
+    expect(() => parseBenefitsCatalogue(mutated)).not.toThrow();
+  });
 });
