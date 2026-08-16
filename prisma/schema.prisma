@@ -28,6 +28,24 @@ model User {
   creditCards      CreditCard[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+  emailConnection        EmailConnection?
+  emailTransactions      EmailTransaction[]
+  receiptDocuments       ReceiptDocument[]
+  purchases              Purchase[]
+  returnItems            ReturnItem[]
+  shipmentEvents         ShipmentEvent[]
+  refundCases            RefundCase[]
+  subscriptions          Subscription[]
+  subscriptionPayments   SubscriptionPayment[]
+  detectedItems          DetectedItem[]
+  automationSuggestions  AutomationSuggestion[]
+  receiptUploads         ReceiptUpload[]
+  notifications          Notification[]
+  notificationJobs       NotificationJob[]
+  notificationPreference NotificationPreference?
+  snoozedEvents          SnoozedEvent[]
+  valueEvents            ValueEvent[]
+  dataDeletionJobs       DataDeletionJob[]
 }
 
 model Account {
@@ -277,4 +295,534 @@ model CardState {
   creditsRedeemed      Json       @default("[]") // [{creditId, periodKey}]
   rewardsEstimateMinor Int        @default(0) // owner's estimate of rewards earned this year
   updatedAt            DateTime   @updatedAt
+}
+
+// ---- Return SaaS Absorbed Models ----
+
+enum SubscriptionCadence {
+  MONTHLY
+  YEARLY
+  CUSTOM
+}
+
+enum DetectedItemType {
+  TRIAL
+  RENEWAL
+  BILL
+}
+
+enum DetectedItemStatus {
+  NEW
+  CONFIRMED
+  DISMISSED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum ReturnStatus {
+  NOT_STARTED
+  PACKED
+  DROPPED_OFF
+  DELIVERED
+  REFUNDED
+}
+
+enum ValueEventType {
+  AVOIDED_RENEWAL
+  REFUND_RECEIVED
+  FEE_AVOIDED
+}
+
+model Subscription {
+  id          String              @id @default(cuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  amountCents Int
+  currency    String              @default("CAD")
+  renewalDate DateTime
+  cadence     SubscriptionCadence @default(MONTHLY)
+  status      SubscriptionStatus  @default(ACTIVE)
+  cancelUrl   String?
+  notes       String?
+  trialEndAt  DateTime?
+  cancelInstructions String?
+  merchantCanonicalId String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  detectedItems DetectedItem[]
+
+  @@index([userId, renewalDate])
+}
+
+model ReturnItem {
+  id               String       @id @default(cuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchaseId       String?
+  store            String
+  itemNote         String?
+  amountCents      Int?
+  currency         String       @default("CAD")
+  purchaseDate     DateTime
+  returnWindowDays Int          @default(30)
+  returnBy         DateTime
+  status           ReturnStatus @default(NOT_STARTED)
+
+  trackingNumber    String?
+  carrier           String?
+  dropoffDate       DateTime? 
+  deliveredAt       DateTime?
+  refundExpectedAt  DateTime? 
+  refundedDate      DateTime? 
+  refundAmountCents Int? 
+  refundSlaDays     Int       @default(14)
+  refundType        String?   @default("ORIGINAL")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shipmentEvents ShipmentEvent[] @relation("ReturnItemShipmentEvents")
+  refundCase     RefundCase?     @relation("ReturnItemRefundCase")
+  purchase       Purchase?       @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+
+  @@index([userId, returnBy])
+  @@index([userId, refundExpectedAt]) 
+}
+
+enum EmailProvider {
+  GMAIL
+  UPLOAD
+}
+
+enum PurchaseSource {
+  GMAIL
+  UPLOAD
+  MANUAL
+}
+
+enum ScanMode {
+  ALL
+  RECEIPTS_ONLY
+  SHIPPING_ONLY
+  SUBSCRIPTIONS_ONLY
+}
+
+enum DataDeletionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model SnoozedEvent {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId      String
+  snoozedUntil DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, eventId])
+  @@index([userId, snoozedUntil])
+}
+
+enum ReceiptUploadStatus {
+  PARSED
+  NEEDS_REVIEW
+  FAILED
+}
+
+model ReceiptUpload {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  filename    String
+  contentType String
+  sizeBytes   Int
+  storagePath String
+
+  status    ReceiptUploadStatus @default(NEEDS_REVIEW)
+  extracted Json?
+  error     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model Purchase {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchant      String
+  totalCents    Int?
+  currency      String         @default("CAD")
+  purchasedAt   DateTime
+  orderNumber   String?
+  paymentMethod String?
+  source        PurchaseSource @default(GMAIL)
+  sourceEmailId String?
+
+  items       PurchaseItem[]
+  attachments PurchaseAttachment[]
+  returns     ReturnItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, purchasedAt])
+  @@index([userId, merchant])
+  @@unique([userId, sourceEmailId])
+}
+
+model PurchaseItem {
+  id          String   @id @default(cuid())
+  purchaseId  String
+  title       String
+  qty         Int?
+  priceCents  Int?
+  currency    String  @default("CAD")
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseId])
+}
+
+model PurchaseAttachment {
+  id            String   @id @default(cuid())
+  purchaseId    String
+  storageKey    String
+  mime          String?
+  sha256        String?
+  sourceEmailId String?
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([purchaseId])
+  @@unique([purchaseId, storageKey])
+}
+
+enum SuggestionStatus {
+  NEW
+  CONFIRMED
+  IGNORED
+}
+
+enum SuggestionType {
+  RETURN
+  SUBSCRIPTION
+  BILL
+}
+
+model EmailConnection {
+  id       String        @id @default(cuid())
+  userId   String        @unique
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider EmailProvider @default(GMAIL)
+
+  emailAddress String?
+  accessToken  String?
+  refreshToken String?
+  expiry       DateTime?
+  scope        String?
+  lastScanAt   DateTime?
+  scanMode     ScanMode     @default(ALL)
+  imapUser     String?
+  imapPassword String?
+  imapHost     String?
+  imapPort     Int?
+  imapSecure   Boolean?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DataDeletionJob {
+  id          String             @id @default(cuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestedAt DateTime           @default(now())
+  status      DataDeletionStatus @default(PENDING)
+  completedAt DateTime?
+  error       String?
+
+  @@index([userId, status])
+}
+
+model AutomationSuggestion {
+  id       String        @id @default(cuid())
+  userId   String
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider EmailProvider @default(GMAIL)
+
+  primaryMessageId String? 
+
+  type   SuggestionType
+  status SuggestionStatus @default(NEW)
+
+  merchant     String
+  amountCents  Int?
+  currency     String   @default("CAD")
+  detectedDate DateTime
+
+  confidence String
+  reasons    Json
+  messageIds Json
+  draft      Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, primaryMessageId])
+  @@index([userId, status])
+  @@index([userId, type])
+}
+
+model DetectedItem {
+  id            String             @id @default(cuid())
+  userId        String
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          DetectedItemType
+  merchant      String
+  amountCents   Int?
+  currency      String             @default("CAD")
+  date          DateTime
+  confidence    String
+  sourceEmailId String?
+  rawSnippetHash String
+  status        DetectedItemStatus @default(NEW)
+
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, date])
+  @@index([userId, merchant])
+}
+
+model EmailTransaction {
+  id       String        @id @default(cuid())
+  userId   String
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider EmailProvider @default(GMAIL)
+
+  messageId String
+  merchant  String
+  fromEmail String?
+  subject   String?
+
+  purchasedAt DateTime?
+  orderId     String?
+  totalCents  Int?
+  currency    String    @default("CAD")
+  items       Json?
+  rawSource   String
+  parserError String? 
+
+  receiptDocuments ReceiptDocument[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, provider, messageId])
+  @@index([userId, merchant])
+  @@index([userId, purchasedAt])
+}
+
+model ReceiptDocument {
+  id                 String           @id @default(cuid())
+  userId             String
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailTransactionId String
+  emailTransaction   EmailTransaction @relation(fields: [emailTransactionId], references: [id], onDelete: Cascade)
+
+  filename    String
+  contentType String
+  storagePath String 
+  sizeBytes   Int
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, emailTransactionId])
+}
+
+model SubscriptionPayment {
+  id             String @id @default(cuid())
+  userId         String
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId String
+
+  paidAt      DateTime
+  amountCents Int
+  currency    String   @default("CAD")
+  notes       String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, subscriptionId, paidAt])
+}
+
+enum NotificationType {
+  SUBSCRIPTION_RENEWAL_SOON
+  RETURN_DEADLINE_SOON
+  BILL_DUE_SOON
+  REFUND_CHECK_DUE
+  REFUND_OVERDUE
+  RETURN_DELIVERED
+}
+
+enum NotificationChannel {
+  EMAIL_DIGEST
+  EMAIL_IMMEDIATE
+}
+
+enum NotificationJobStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+  CANCELED
+}
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type  NotificationType
+  title String
+  body  String?
+
+  eventDate DateTime?
+
+  scheduledFor DateTime
+
+  sourceKind String
+  sourceId   String
+
+  eventKey String
+
+  readAt      DateTime?
+  dismissedAt DateTime?
+  emailedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs NotificationJob[]
+
+  @@unique([userId, eventKey])
+  @@index([userId, scheduledFor])
+  @@index([userId, readAt])
+  @@index([userId, dismissedAt])
+}
+
+model NotificationJob {
+  id      String                @id @default(cuid())
+  userId  String
+  user    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel NotificationChannel
+  status  NotificationJobStatus @default(PENDING)
+
+  sendAt    DateTime 
+  attempts  Int       @default(0)
+  lastError String?
+  sentAt    DateTime?
+
+  lockedAt DateTime?
+  lockId   String? 
+
+  notificationId String?
+  notification   Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+
+  dedupeKey String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, dedupeKey])
+  @@index([status, sendAt])
+  @@index([userId, sendAt])
+}
+
+model NotificationPreference {
+  userId             String  @id
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailDigestEnabled Boolean @default(false)
+  timezone           String  @default("America/Toronto")
+  digestHourLocal    Int     @default(9) 
+  windowDays         Int     @default(14)
+  subLeadDays        Int     @default(3)
+  returnLeadDays     Int     @default(2)
+  billLeadDays       Int     @default(2)
+  primaryEmail       String?
+  notifyOnDelivery   Boolean @default(true)
+  notifyOnRefundOverdue Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ShipmentEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  returnId   String
+  statusCode String
+  statusText String
+  occurredAt DateTime
+  location   String?
+  raw        Json?
+  createdAt  DateTime @default(now())
+
+  returnItem ReturnItem @relation("ReturnItemShipmentEvents", fields: [returnId], references: [id], onDelete: Cascade)
+
+  @@index([returnId, occurredAt])
+  @@index([userId, occurredAt])
+}
+
+model RefundCase {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  returnId          String   @unique
+  expectedAt        DateTime?
+  receivedAt        DateTime?
+  overdueNotifiedAt DateTime?
+  refundType        String?  @default("ORIGINAL")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  returnItem ReturnItem @relation("ReturnItemRefundCase", fields: [returnId], references: [id], onDelete: Cascade)
+}
+
+model ValueEvent {
+  id         String         @id @default(cuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       ValueEventType
+  amountCents Int
+  currency   String         @default("CAD")
+  occurredAt DateTime
+  sourceId   String?
+  isEstimated Boolean       @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, occurredAt])
+  @@index([userId, type])
 }
