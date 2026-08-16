@@ -181,22 +181,23 @@ export default async function AccountDetailPage({
         {errorForm === "account" && error ? <p className="mt-2 text-sm text-red-600" role="alert">{error}</p> : null}
       </section>
 
-      <section>
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="font-medium">Holdings</h2>
-          {account.type === "CRYPTO" ? (
-            <form action={refreshPrices}>
-              <input type="hidden" name="accountId" value={account.id} />
-              <button
-                type="submit"
-                className="rounded border px-2 py-1 text-xs"
-                title="Best-effort: fetches live prices from CoinGecko. Manual entry always works."
-              >
-                ↻ prices
-              </button>
-            </form>
-          ) : null}
-        </div>
+      {/* The refresh control is positioned rather than wrapped in a flex row so that
+          the Holdings heading stays a DIRECT child of this section — an existing E2E
+          scopes the add-holding form by the heading's parent element. */}
+      <section className="relative">
+        <h2 className="font-medium">Holdings</h2>
+        {account.type === "CRYPTO" ? (
+          <form action={refreshPrices} className="absolute right-0 top-0">
+            <input type="hidden" name="accountId" value={account.id} />
+            <button
+              type="submit"
+              className="rounded border px-2 py-1 text-xs"
+              title="Best-effort: fetches live prices from CoinGecko. Manual entry always works."
+            >
+              ↻ prices
+            </button>
+          </form>
+        ) : null}
         {pricesOk ? <p className="mt-1 text-xs text-green-700">{pricesOk}</p> : null}
         {pricesError ? <p className="mt-1 text-xs text-red-600">{pricesError}</p> : null}
         <ul className="mt-2 divide-y rounded border">
