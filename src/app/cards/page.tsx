@@ -41,11 +41,11 @@ export default async function CardsPage() {
       </div>
       {defs.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No cards yet - add them via{" "}
-          <Link href="/investments/import" className="underline">
-            Import
+          No cards yet —{" "}
+          <Link href="/cards/new" className="underline">
+            add your first card
           </Link>
-          .
+          . You can still use <Link href="/investments/import" className="underline">Import</Link> for a bulk upload.
         </p>
       ) : (
         <CardPicker cards={defs} capUsage={capUsage} today={new Date().toISOString().slice(0, 10)} />

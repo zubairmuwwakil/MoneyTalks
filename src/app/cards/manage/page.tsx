@@ -29,7 +29,13 @@ export default async function ManageCardsPage() {
 
   return (
     <main className="space-y-6 py-8">
-      <h1 className="text-xl font-semibold">Manage cards</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">Manage cards</h1>
+        <Link href="/cards/new" className="rounded bg-foreground px-3 py-1 text-sm text-background">
+          Add card
+        </Link>
+      </div>
+      {cards.length === 0 ? <p className="text-sm text-muted-foreground">No cards yet. Add your first card to get started.</p> : null}
       <ul className="divide-y rounded border">
         {cards.map((c, i) => {
           const def = defs[i];

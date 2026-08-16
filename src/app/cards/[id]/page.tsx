@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { addCapUsage, deleteCard, setRewardsEstimate, toggleCredit } from "@/app/cards/actions";
 import { cardVerdict, isBestSomewhere, type RedeemedCredit } from "@/engine/cards/roi";
 import { CATEGORY_LABELS, periodKeyFor, type CapUsage, type CardDef, type CardRewards } from "@/engine/cards/types";
@@ -52,7 +53,12 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
   return (
     <main className="space-y-8 py-8">
       <header>
-        <h1 className="text-xl font-semibold">{card.nickname}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-xl font-semibold">{card.nickname}</h1>
+          <Link href={`/cards/${card.id}/edit`} className="rounded border px-3 py-1 text-sm hover:bg-muted/50">
+            Edit card
+          </Link>
+        </div>
         <p className="text-sm text-muted-foreground">
           {card.issuer} - {card.network}
           {card.lastFour ? ` - ...${card.lastFour}` : ""} - fee {formatMinorUnits(card.annualFeeMinor, "CAD")}/yr

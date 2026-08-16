@@ -57,6 +57,38 @@ describe("cardRewardsInput", () => {
 });
 
 describe("cardImportEntry", () => {
+  it("accepts the string-valued numeric fields submitted by the card form", () => {
+    const parsed = cardImportEntry.safeParse({
+      nickname: "Browser form card",
+      issuer: "Fixture Bank",
+      network: "VISA",
+      annualFee: "120.00",
+      dueDay: "15",
+      aprPct: "19.99",
+      rewards: {
+        pointValueCents: "1.5",
+        fxFeePct: "2.5",
+        baseMultiplier: "1",
+        categoryRates: [{ category: "dining", multiplier: "3", cap: "500.00", capWindow: "MONTH" }],
+        credits: [{ id: "fixture-credit", label: "Fixture credit", value: "10.00", period: "MONTH" }],
+      },
+    });
+
+    expect(parsed).toMatchObject({
+      success: true,
+      data: {
+        annualFeeMinor: 12_000,
+        dueDay: 15,
+        aprPct: 19.99,
+        rewards: {
+          pointValueCents: 1.5,
+          categoryRates: [{ multiplier: 3, capMinor: 50_000 }],
+          credits: [{ valueMinor: 1_000 }],
+        },
+      },
+    });
+  });
+
   it("accepts a full card entry and converts its dollar amounts", () => {
     const parsed = cardImportEntry.safeParse({
       nickname: "Fixture Alpha Amex",
@@ -81,6 +113,23 @@ describe("cardImportEntry", () => {
       rewards: REWARDS_IN_DOLLARS,
     });
     expect(parsed).toMatchObject({ success: true, data: { annualFeeMinor: 0 } });
+  });
+
+  it("defaults omitted recurring credits to an empty list", () => {
+    const rewardsWithoutCredits = {
+      pointValueCents: REWARDS_IN_DOLLARS.pointValueCents,
+      fxFeePct: REWARDS_IN_DOLLARS.fxFeePct,
+      baseMultiplier: REWARDS_IN_DOLLARS.baseMultiplier,
+      categoryRates: REWARDS_IN_DOLLARS.categoryRates,
+    };
+    const parsed = cardImportEntry.safeParse({
+      nickname: "No credits card",
+      issuer: "Fixture Bank",
+      network: "VISA",
+      rewards: rewardsWithoutCredits,
+    });
+
+    expect(parsed).toMatchObject({ success: true, data: { rewards: { credits: [] } } });
   });
 
   it("rejects a bad network and out-of-range due days", () => {

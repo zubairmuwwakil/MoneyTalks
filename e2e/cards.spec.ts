@@ -39,6 +39,48 @@ test("cards end to end", async ({ browser, baseURL }) => {
 
   await page.goto("/cards/manage");
   await expect(page.getByText("DOWNGRADE").first()).toBeVisible();
+
+  await page.getByRole("link", { name: "Add card" }).click();
+  await page.locator('input[name="nickname"]').fill("Fixture Form Visa");
+  await page.locator('input[name="issuer"]').fill("Fixture Credit Union");
+  await page.locator('input[name="annualFee"]').fill("12.00");
+  await page.getByLabel("Base earn rate (points/$)").fill("1");
+  await page.getByLabel("Point value (¢)").fill("1");
+  await page.getByLabel("Foreign transaction fee (%)").fill("0");
+
+  const categories = page.getByTestId("bonus-category-form");
+  await categories.getByRole("button", { name: "Add category" }).click();
+  await categories.getByLabel("Category").selectOption("groceries");
+  await categories.getByLabel("Earn rate (points/$)").fill("3");
+  await categories.getByLabel("Spend cap ($, optional)").fill("750.00");
+
+  const credits = page.getByTestId("credit-form");
+  await credits.getByRole("button", { name: "Add credit" }).click();
+  await credits.getByLabel("Credit name").fill("Fixture dining credit");
+  await credits.getByLabel("Value ($)").fill("5.00");
+  await credits.getByLabel("Frequency").selectOption("MONTH");
+  await page.getByRole("button", { name: "Add card" }).click();
+  await expect(page.getByRole("heading", { name: "Fixture Form Visa" })).toBeVisible();
+  await expect(page.getByText("Fixture dining credit")).toBeVisible();
+
+  await page.getByRole("link", { name: "Edit card" }).click();
+  await page.locator('input[name="annualFee"]').fill("99.00");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText(/fee \$99\.00\/yr/)).toBeVisible();
+
+  await page.goto("/cards/new");
+  await page.locator('input[name="nickname"]').fill("Fixture Form Visa");
+  await page.locator('input[name="issuer"]').fill("Fixture Credit Union");
+  await page.getByRole("button", { name: "Add card" }).click();
+  await expect(page.getByText("You already have a card with this nickname.")).toBeVisible();
+
+  await page.goto("/cards/manage");
+  await page.getByText("Fixture Form Visa").click();
+  await page.getByRole("button", { name: "Delete card" }).click();
+  await expect(page.getByRole("heading", { name: "Manage cards" })).toBeVisible();
+  await expect(page.getByText("Fixture Form Visa")).not.toBeVisible();
+
+  await page.goto("/cards/manage");
   await page.getByText("Fixture Alpha Amex").click();
   await page.getByRole("button", { name: "mark redeemed" }).click();
   await page.locator('input[name="rewardsEstimate"]').fill("60.00");
