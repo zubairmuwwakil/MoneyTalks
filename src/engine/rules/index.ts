@@ -5,6 +5,7 @@ import { fhsaRoomRule, rdspLifetimeRule, rrspRoomRule, staleDataRule, tfsaRoomRu
 import { cdsbRule, cdsgRule } from "./rdsp";
 import { cwbRule, dtcRule, employmentAmountRule, incomeSupportRule, nhtRule } from "./ca-benefits";
 import { dangerMonthRule, digitalNewsRule, mortgagePrepaymentRule, studentLoanInterestRule } from "./bill-rules";
+import { taxSeasonRule } from "./season";
 
 export const ALL_RULES: Rule[] = [
   fbarRule,
@@ -30,6 +31,7 @@ export const ALL_RULES: Rule[] = [
   studentLoanInterestRule,
   mortgagePrepaymentRule,
   dangerMonthRule,
+  taxSeasonRule,
 ];
 
 export { evaluateRules, applyDismissals } from "./registry";

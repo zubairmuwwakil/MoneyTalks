@@ -38,9 +38,14 @@ export default async function MoneyFinderPage({
               : `${active.length} active — rules evaluate fresh on every load`}
           </p>
         </div>
-        <Link href={showDismissed ? "/money-finder" : "/money-finder?dismissed=1"} className="text-sm underline">
-          {showDismissed ? "Show active" : `Dismissed (${dismissed.length})`}
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/money-finder/tax" className="text-sm underline">
+            Tax checklist
+          </Link>
+          <Link href={showDismissed ? "/money-finder" : "/money-finder?dismissed=1"} className="text-sm underline">
+            {showDismissed ? "Show active" : `Dismissed (${dismissed.length})`}
+          </Link>
+        </div>
       </header>
 
       {errors.length > 0 ? (

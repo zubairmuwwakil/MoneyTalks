@@ -179,6 +179,6 @@ describe("ALL_RULES after Phase 3", () => {
     expect(keys).toEqual(
       expect.arrayContaining(["DIGITAL_NEWS", "STUDENT_LOAN_INTEREST", "MORTGAGE_PREPAYMENT", "DANGER_MONTH"]),
     );
-    expect(keys).toHaveLength(23);
+    expect(keys).toHaveLength(24);
   });
 });
