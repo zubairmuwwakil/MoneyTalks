@@ -1,9 +1,11 @@
-import { auth } from "@/auth";
+import { getSessionUserId } from "@/lib/require-user";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.email) {
+  const userId = await getSessionUserId();
+  if (!userId) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
-  return Response.json({ email: session.user.email });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  return Response.json({ email: user?.email ?? null });
 }

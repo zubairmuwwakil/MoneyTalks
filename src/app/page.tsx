@@ -14,10 +14,9 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import { signOut } from "@/auth";
+import { SignOutButton } from "@clerk/nextjs";
 import { refreshFxRates } from "@/app/actions/refresh";
 import { NetWorthSparkline } from "@/components/net-worth-sparkline";
-import { PasskeyRegisterButton } from "@/components/passkey-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -213,21 +212,15 @@ export default async function Home({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <PasskeyRegisterButton />
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/login" });
-            }}
-          >
+          <SignOutButton redirectUrl="/login">
             <button
-              type="submit"
+              type="button"
               className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/80 bg-background px-3 text-xs font-medium text-muted-foreground shadow-2xs transition-colors hover:bg-muted hover:text-foreground"
             >
               <LogOut className="size-3.5" />
               <span>Sign out</span>
             </button>
-          </form>
+          </SignOutButton>
         </div>
       </header>
 

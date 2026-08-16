@@ -27,12 +27,12 @@ export function BillFormFields() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className={label}>Name</label>
-          <input name="name" required placeholder="e.g. Hydro Electricity" className={input} />
+          <label className={label} htmlFor="bill-name">Name</label>
+          <input id="bill-name" name="name" required placeholder="e.g. Hydro Electricity" className={input} />
         </div>
         <div>
-          <label className={label}>Category</label>
-          <select name="category" className={input}>
+          <label className={label} htmlFor="bill-category">Category</label>
+          <select id="bill-category" name="category" className={input}>
             <option>housing</option>
             <option>utilities</option>
             <option>subscriptions</option>
@@ -42,12 +42,12 @@ export function BillFormFields() {
           </select>
         </div>
         <div>
-          <label className={label}>Payee (optional)</label>
-          <input name="payee" placeholder="e.g. Toronto Hydro" className={input} />
+          <label className={label} htmlFor="bill-payee">Payee (optional)</label>
+          <input id="bill-payee" name="payee" placeholder="e.g. Toronto Hydro" className={input} />
         </div>
         <div>
-          <label className={label}>Currency</label>
-          <select name="currency" className={input}>
+          <label className={label} htmlFor="bill-currency">Currency</label>
+          <select id="bill-currency" name="currency" className={input}>
             <option>CAD</option>
             <option>USD</option>
             <option>JMD</option>
@@ -61,8 +61,8 @@ export function BillFormFields() {
         </h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={label}>Cadence</label>
-            <select value={type} onChange={(e) => setType(e.target.value)} className={input}>
+            <label className={label} htmlFor="bill-cadence">Cadence</label>
+            <select id="bill-cadence" value={type} onChange={(e) => setType(e.target.value)} className={input}>
               <option>MONTHLY</option>
               <option>BIWEEKLY</option>
               <option>QUARTERLY</option>
@@ -72,8 +72,9 @@ export function BillFormFields() {
           {type === "MONTHLY" ? (
             <>
               <div>
-                <label className={label}>Day of month</label>
+                <label className={label} htmlFor="bill-day-of-month">Day of month</label>
                 <input
+                  id="bill-day-of-month"
                   type="number"
                   min={1}
                   max={31}
@@ -83,8 +84,9 @@ export function BillFormFields() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className={label}>Starts from (optional)</label>
+                <label className={label} htmlFor="bill-starts-from">Starts from (optional)</label>
                 <input
+                  id="bill-starts-from"
                   type="date"
                   value={startsFrom}
                   onChange={(e) => setStartsFrom(e.target.value)}
@@ -94,10 +96,11 @@ export function BillFormFields() {
             </>
           ) : (
             <div>
-              <label className={label}>
+              <label className={label} htmlFor="bill-anchor">
                 Anchor date {type === "BIWEEKLY" ? "(known payment date)" : ""}
               </label>
               <input
+                id="bill-anchor"
                 type="date"
                 required
                 value={anchor}
@@ -110,8 +113,9 @@ export function BillFormFields() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 border-t border-border/60 pt-4">
           <div>
-            <label className={label}>Amount ($)</label>
+            <label className={label} htmlFor="bill-amount">Amount ($)</label>
             <input
+              id="bill-amount"
               type="number"
               step="0.01"
               min="0"
@@ -123,8 +127,9 @@ export function BillFormFields() {
             />
           </div>
           <div>
-            <label className={label}>Amount effective from</label>
+            <label className={label} htmlFor="bill-amount-from">Amount effective from</label>
             <input
+              id="bill-amount-from"
               type="date"
               required
               value={from}
@@ -147,8 +152,8 @@ export function BillFormFields() {
       </div>
 
       <div>
-        <label className={label}>Notes (optional)</label>
-        <input name="notes" placeholder="Account numbers, portal links, notes" className={input} />
+        <label className={label} htmlFor="bill-notes">Notes (optional)</label>
+        <input id="bill-notes" name="notes" placeholder="Account numbers, portal links, notes" className={input} />
       </div>
     </>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Nav } from "@/components/nav";
 import { SwRegister } from "@/components/sw-register";
 import "./globals.css";
@@ -14,14 +15,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body className="min-h-full bg-background text-foreground antialiased selection:bg-foreground selection:text-background">
-        <SwRegister />
-        <Nav />
-        <div className="mx-auto max-w-5xl px-4 pb-24 sm:px-6 sm:pb-12 sm:pt-2">
-          {children}
-        </div>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className="h-full">
+        <body className="min-h-full bg-background text-foreground antialiased selection:bg-foreground selection:text-background">
+          <SwRegister />
+          <Nav />
+          <div className="mx-auto max-w-5xl px-4 pb-24 sm:px-6 sm:pb-12 sm:pt-2">
+            {children}
+          </div>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

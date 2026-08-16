@@ -4,7 +4,7 @@ test("unauthenticated visit to / redirects to login", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/login/);
   await expect(
-    page.getByRole("button", { name: /send sign-in link/i }),
+    page.getByRole("textbox", { name: /email address or username/i }),
   ).toBeVisible();
 });
 

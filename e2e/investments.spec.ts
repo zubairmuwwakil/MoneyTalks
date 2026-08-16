@@ -134,8 +134,14 @@ test("edit account and delete holding, transaction, snapshot, and account", asyn
     currency.value = "JMD";
     form.append(currency);
   });
-  await transactionSection.getByRole("button", { name: "Add transaction" }).click();
-  await expect(page.getByText(/2026-08-10 CONTRIBUTION/)).toBeVisible();
+  // Server actions POST to the current page URL and re-render on completion;
+  // wait for that response instead of racing the UI update with a fixed timeout.
+  const accountPath = new URL(page.url()).pathname;
+  await Promise.all([
+    page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes(accountPath)),
+    transactionSection.getByRole("button", { name: "Add transaction" }).click(),
+  ]);
+  await expect(page.getByText(/CONTRIBUTION\s*2026-08-10/)).toBeVisible();
   const accountId = new URL(page.url()).pathname.split("/").pop();
   const accountResponse = await page.request.get(`/api/accounts/${accountId}`);
   const accountBody = await accountResponse.json();
@@ -148,9 +154,9 @@ test("edit account and delete holding, transaction, snapshot, and account", asyn
   await editTransaction.locator('select[name="type"]').selectOption("DIVIDEND");
   await editTransaction.locator('input[name="amount"]').fill("15.00");
   await editTransaction.getByRole("button", { name: "Save transaction" }).click();
-  await expect(page.getByText(/2026-08-10 DIVIDEND/)).toBeVisible();
+  await expect(page.getByText(/DIVIDEND\s*2026-08-10/)).toBeVisible();
   await page.getByRole("button", { name: "Delete dividend transaction" }).click();
-  await expect(page.getByText(/2026-08-10 DIVIDEND/)).toHaveCount(0);
+  await expect(page.getByText(/DIVIDEND\s*2026-08-10/)).toHaveCount(0);
 
   const snapshotSection = page.getByRole("heading", { name: "Balance snapshots" }).locator("..");
   await snapshotSection.locator('input[name="balance"]').fill("1750.00");
