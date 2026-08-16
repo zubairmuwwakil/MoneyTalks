@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, LineChart } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, LineChart } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ForecastBars } from "@/components/forecast-bars";
 import { forecastMonths, type BillDef } from "@/engine/billforecast";

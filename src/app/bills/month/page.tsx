@@ -2,7 +2,6 @@ import Link from "next/link";
 import { AlertTriangle, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { forecastMonths, type BillDef } from "@/engine/billforecast";
 import { formatMinorUnits, type Currency } from "@/engine/money";
 import type { Cadence, ScheduleEntry } from "@/engine/recurrence";

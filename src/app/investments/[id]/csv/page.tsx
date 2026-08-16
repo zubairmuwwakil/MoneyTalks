@@ -46,7 +46,7 @@ export default async function CsvImportPage({
         </Link>
         <h1 className="text-2xl font-bold tracking-tight">CSV import — {account.name}</h1>
         <p className="text-sm text-muted-foreground">
-          Import transactions directly from your institution's statement CSV.
+          Import transactions directly from your institution&apos;s statement CSV.
         </p>
       </div>
 

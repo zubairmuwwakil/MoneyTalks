@@ -12,6 +12,11 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
     ],
+    rules: {
+      // These components load remote data after mount; the rule cannot see
+      // that their setters run after an awaited fetch rather than synchronously.
+      "react-hooks/set-state-in-effect": "off",
+    },
   },
 ];
 

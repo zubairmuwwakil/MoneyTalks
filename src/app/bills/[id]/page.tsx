@@ -1,15 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  DollarSign,
-  Plus,
-  Receipt,
-  Trash2,
-} from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import {
   addScheduleEntry,
   deleteBill,
@@ -18,8 +9,6 @@ import {
   unmarkPaid,
 } from "@/app/bills/actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { billOccurrences, type BillDef } from "@/engine/billforecast";
 import { formatMinorUnits, type Currency } from "@/engine/money";
 import type { Cadence, ScheduleEntry } from "@/engine/recurrence";

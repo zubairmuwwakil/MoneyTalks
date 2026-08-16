@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createCard, type CardFormState, updateCard } from "@/app/cards/actions";
 import { CATEGORY_LABELS, SPEND_CATEGORIES, type Network, type SpendCategory } from "@/lib/cards/types";

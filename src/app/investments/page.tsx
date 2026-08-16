@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, FileSpreadsheet, Plus, TrendingUp, Upload } from "lucide-react";
+import { ChevronRight, Plus, TrendingUp, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";

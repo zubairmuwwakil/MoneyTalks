@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, Info, RotateCcw, ShieldAlert, X } from "lucide-react";
+import { AlertTriangle, Info, RotateCcw, ShieldAlert, X } from "lucide-react";
 import type { RuleAlert } from "@/engine/rules/types";
 import { formatMinorUnits } from "@/engine/money";
 import { dismissAlert, restoreAlert } from "@/app/money-finder/actions";

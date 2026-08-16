@@ -5,11 +5,9 @@ import {
   LineChart,
   Plus,
   Receipt,
-  Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { billOccurrences, type BillDef } from "@/engine/billforecast";
 import { formatMinorUnits, type Currency } from "@/engine/money";

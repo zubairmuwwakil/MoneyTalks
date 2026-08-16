@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { SubscriptionPayment } from "@prisma/client";
 
 export interface TransactionRecord {
   id: string;
@@ -119,7 +120,7 @@ export async function getSubscriptionTransactionHistory(
     orderBy: { paidAt: "desc" },
   });
 
-  return payments.map((p: any) => ({
+  return payments.map((p: SubscriptionPayment) => ({
     id: p.id,
     date: p.paidAt,
     title: "Payment",

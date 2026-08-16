@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, CreditCard } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { CardForm } from "@/components/card-form";
 import { requireUserId } from "@/lib/require-user";
 

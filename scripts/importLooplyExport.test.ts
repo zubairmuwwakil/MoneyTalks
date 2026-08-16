@@ -11,6 +11,7 @@ const mockPrisma = {
     create: vi.fn(),
   }
 };
+const prismaForTest = mockPrisma as unknown as Parameters<typeof processExport>[0];
 
 describe('processExport', () => {
   beforeEach(() => {
@@ -53,7 +54,7 @@ describe('processExport', () => {
     mockPrisma.returnItem.findFirst.mockResolvedValue(null);
     mockPrisma.valueEvent.findFirst.mockResolvedValue(null);
 
-    const stats = await processExport(mockPrisma as any, 'user123', fixture, true);
+    const stats = await processExport(prismaForTest, 'user123', fixture, true);
 
     expect(stats.returnItems.created).toBe(1);
     expect(stats.returnItems.skipped).toBe(0);
@@ -73,7 +74,7 @@ describe('processExport', () => {
     mockPrisma.returnItem.findFirst.mockResolvedValue({ id: 'existing-ret' });
     mockPrisma.valueEvent.findFirst.mockResolvedValue({ id: 'existing-val' });
 
-    const stats = await processExport(mockPrisma as any, 'user123', fixture, true);
+    const stats = await processExport(prismaForTest, 'user123', fixture, true);
 
     expect(stats.returnItems.created).toBe(0);
     expect(stats.returnItems.skipped).toBe(1);
@@ -88,7 +89,7 @@ describe('processExport', () => {
     mockPrisma.returnItem.findFirst.mockResolvedValue(null);
     mockPrisma.valueEvent.findFirst.mockResolvedValue(null);
 
-    const stats = await processExport(mockPrisma as any, 'user123', fixture, false);
+    const stats = await processExport(prismaForTest, 'user123', fixture, false);
 
     expect(stats.returnItems.created).toBe(1);
     expect(stats.returnItems.skipped).toBe(0);
@@ -102,7 +103,7 @@ describe('processExport', () => {
     mockPrisma.valueEvent.findFirst.mockResolvedValue(null);
 
     // It should strip "purchases" and process successfully
-    await expect(processExport(mockPrisma as any, 'user123', fixture, false)).resolves.toBeDefined();
+    await expect(processExport(prismaForTest, 'user123', fixture, false)).resolves.toBeDefined();
   });
 
   it('fails on invalid returnItem schema', async () => {
@@ -111,6 +112,6 @@ describe('processExport', () => {
         { store: 123 } // store must be string
       ]
     };
-    await expect(processExport(mockPrisma as any, 'user123', badFixture, false)).rejects.toThrow();
+    await expect(processExport(prismaForTest, 'user123', badFixture, false)).rejects.toThrow();
   });
 });

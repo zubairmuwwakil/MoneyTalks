@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { parsePurchaseFromRawGmailMessage } from "@/lib/domain/receipts/gmailPurchaseParser";
 import { storeReceiptAttachment } from "@/lib/domain/receipts/receiptAttachmentStorage";
 import { getAuthedImap } from "@/lib/services/imapClient";
+import type { Prisma } from "@prisma/client";
 import crypto from "crypto";
 
 type TrackingHit = { trackingNumber: string; carrier?: string };
@@ -71,10 +72,6 @@ function detectSubscriptionItem(subject: string | null, decoded: string) {
   if (trialHints) return "TRIAL" as const;
   if (renewalHints) return "RENEWAL" as const;
   return "RENEWAL" as const;
-}
-
-function toISODateOnly(d: Date) {
-  return d.toISOString().slice(0, 10);
 }
 
 export const runtime = "nodejs";
@@ -281,8 +278,6 @@ export async function POST(req: NextRequest) {
         if (!suggestionType) {
           continue;
         }
-        const subj = (tx.subject ?? "").toLowerCase();
-        const merch = (tx.merchant ?? "").toLowerCase();
         const type = suggestionType;
 
         const detected = tx.purchasedAt ?? new Date();
@@ -330,7 +325,7 @@ export async function POST(req: NextRequest) {
             confidence: "MEDIUM",
             reasons: [`Built from transaction (${tx.rawSource})`],
             messageIds: [msg.messageId],
-            draft: draft as any,
+            draft: draft as Prisma.InputJsonValue,
           },
         });
 

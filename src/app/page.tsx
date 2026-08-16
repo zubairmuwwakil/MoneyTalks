@@ -6,20 +6,17 @@ import {
   CheckCircle2,
   ChevronRight,
   Info,
-  Layers,
   LogOut,
   RefreshCw,
   ShieldAlert,
   Sparkles,
-  TrendingUp,
   Wallet,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
 import { refreshFxRates } from "@/app/actions/refresh";
 import { NetWorthSparkline } from "@/components/net-worth-sparkline";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { accountBalanceWithCurrency } from "@/engine/balance";
 import { billOccurrences } from "@/engine/billforecast";
 import { MissingFxRateError, type FxRateInput } from "@/engine/fx";

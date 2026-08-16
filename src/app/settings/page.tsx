@@ -2,18 +2,14 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
   Coins,
-  DollarSign,
   Globe2,
   HeartHandshake,
   Plus,
   Save,
   Shield,
   Trash2,
-  User,
-  Wallet,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { IncomeSource } from "@/engine/rules/types";
 import { formatMinorUnits, minorToDollarInput } from "@/engine/money";

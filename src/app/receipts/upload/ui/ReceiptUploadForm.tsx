@@ -3,8 +3,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ReceiptUploadForm() {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,7 @@ export default function ReceiptUploadForm() {
       }
 
       setMsg("Uploaded. Added to Inbox Review.");
-      window.location.href = "/settings/automation/review";
+      router.push("/settings/automation/review");
     } finally {
       setLoading(false);
     }

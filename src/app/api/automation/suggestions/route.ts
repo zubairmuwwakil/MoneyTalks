@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { scheduleBillDueSoon, scheduleReturnDeadlineSoon, scheduleReturnDelivered, scheduleSubscriptionRenewalSoon } from "@/lib/domain/notifications/eventNotificationScheduler";
 import { refreshShipmentTimeline, syncRefundExpectation } from "@/lib/domain/shipping/tracking";
 import { canTransition, type ReturnStatus } from "@/engine/returns/transitions";
+import type { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 
@@ -297,7 +298,7 @@ export async function POST(req: NextRequest) {
       merchant,
       amountCents,
       currency,
-      draft: mergedDraft as any,
+      draft: mergedDraft as Prisma.InputJsonValue,
     },
   });
 

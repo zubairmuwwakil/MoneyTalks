@@ -64,20 +64,21 @@ function deriveStage(item: ReturnItem): StageKey | "refunded" {
   return "to_ship";
 }
 
-function normalizeReturn(r: any): ReturnItem {
+function normalizeReturn(r: Partial<ReturnItem>): ReturnItem {
+  const toIso = (value: string | undefined) => value ?? new Date().toISOString();
   return {
-    id: r.id,
-    store: r.store,
+    id: r.id ?? "",
+    store: r.store ?? "",
     itemNote: r.itemNote ?? null,
     amountCents: r.amountCents ?? null,
     currency: r.currency ?? "CAD",
-    purchaseDate: typeof r.purchaseDate === "string" ? r.purchaseDate : new Date(r.purchaseDate).toISOString(),
-    returnBy: typeof r.returnBy === "string" ? r.returnBy : new Date(r.returnBy).toISOString(),
+    purchaseDate: toIso(r.purchaseDate),
+    returnBy: toIso(r.returnBy),
     returnWindowDays: r.returnWindowDays ?? 30,
     refundAmountCents: r.refundAmountCents ?? null,
     refundExpectedAt: r.refundExpectedAt ? new Date(r.refundExpectedAt).toISOString() : null,
     refundedDate: r.refundedDate ? new Date(r.refundedDate).toISOString() : null,
-    status: r.status,
+    status: r.status ?? "NOT_STARTED",
     dropoffDate: r.dropoffDate ? new Date(r.dropoffDate).toISOString() : null,
     trackingNumber: r.trackingNumber ?? null,
     carrier: r.carrier ?? null,

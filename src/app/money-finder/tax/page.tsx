@@ -1,8 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, FileText, Printer } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
 import { buildTaxChecklist, type ChecklistStatus } from "@/engine/taxchecklist";
 import { getOrCreateProfile } from "@/lib/profile";
 import { requireUserId } from "@/lib/require-user";

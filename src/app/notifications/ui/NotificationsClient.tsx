@@ -63,7 +63,7 @@ export default function NotificationsClient() {
   const { data, mutate, isLoading } = useSWR("/api/notifications?limit=200", fetcher, { refreshInterval: 30000 });
   const [busy, setBusy] = useState(false);
 
-  const notifications: Notification[] = data?.notifications ?? [];
+  const notifications = useMemo<Notification[]>(() => data?.notifications ?? [], [data?.notifications]);
   const unread = notifications.filter(n => !n.readAt && !n.dismissedAt);
 
   const grouped = useMemo(() => {

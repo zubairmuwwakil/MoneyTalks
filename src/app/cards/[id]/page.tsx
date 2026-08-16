@@ -2,19 +2,13 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
-  CheckCircle2,
-  CreditCard,
   Edit2,
-  Layers,
-  Sparkles,
-  Tag,
   Trash2,
-  Zap,
 } from "lucide-react";
 import { addCapUsage, deleteCard, setRewardsEstimate, toggleCardCondition, toggleCredit } from "@/app/cards/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { creditsRealizedMinor, effectiveAnnualFeeMinor, type RedeemedCredit } from "@/lib/cards/fees";
 import {
   activeBaseRateOverride,

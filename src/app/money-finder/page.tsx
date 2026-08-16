@@ -1,17 +1,13 @@
 import Link from "next/link";
 import {
-  AlertTriangle,
-  ArrowRight,
-  CheckCircle2,
   FileCheck,
   RotateCcw,
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
 import { AlertCard } from "@/components/alert-card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ALL_RULES, applyDismissals, evaluateRules } from "@/engine/rules";
 import { getOrCreateProfile } from "@/lib/profile";
 import { prisma } from "@/lib/prisma";

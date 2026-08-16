@@ -1,13 +1,10 @@
 import {
-  AlertCircle,
   ArrowLeft,
-  Coins,
   FileSpreadsheet,
   Plus,
   RefreshCw,
   Save,
   Trash2,
-  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -25,7 +22,7 @@ import {
 import { refreshPrices } from "@/app/actions/refresh";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { accountBalanceWithCurrency, holdingValueMinor } from "@/engine/balance";
 import { formatMinorUnits, minorToDollarInput, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";

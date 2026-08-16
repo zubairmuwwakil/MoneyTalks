@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { DateTime } from "luxon";
 import crypto from "crypto";
 
+type ClaimedDigestJob = { id: string; userId: string; attempts: number };
+
 type Prefs = { timezone: string; digestHourLocal: number };
 
 export function computeNextDigestJob(now: Date, prefs: Prefs) {
@@ -71,7 +73,7 @@ export async function cancelPendingDigestJobs(userId: string) {
 export async function claimDueDigestJobs(limit = 25) {
   const lockId = crypto.randomUUID();
 
-  const jobs = await prisma.$queryRaw<any[]>`
+  const jobs = await prisma.$queryRaw<ClaimedDigestJob[]>`
     WITH picked AS (
       SELECT id
       FROM "NotificationJob"
