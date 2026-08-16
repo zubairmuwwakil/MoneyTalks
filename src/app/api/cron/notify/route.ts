@@ -8,6 +8,7 @@ import {
   scheduleRefundOverdueOnce,
 } from "@/lib/domain/notifications/eventNotificationScheduler";
 import { refreshShipmentTimeline } from "@/lib/domain/shipping/tracking";
+import { processWalletEvents } from "@/lib/domain/wallet/walletNormalization";
 
 export const runtime = "nodejs";
 
@@ -20,10 +21,12 @@ function addDaysUTC(d: Date, days: number) {
   return out;
 }
 
-export async function POST(req: NextRequest) {
-  if (!isAuthorizedCronRequest(req)) {
+async function runNotifyCron(req: NextRequest) {
+  if (!(await isAuthorizedCronRequest(req))) {
     return new NextResponse("Forbidden", { status: 403 });
   }
+
+  const walletProcessed = await processWalletEvents();
 
   const today = startOfDayUTC(new Date());
   const horizon = addDaysUTC(today, 45);
@@ -143,6 +146,14 @@ export async function POST(req: NextRequest) {
     attempted,
     polled,
     overdueNotified,
-    scanned: { subs: subs.length, returns: returns.length, refundCandidates: refundCandidates.length },
+    scanned: { subs: subs.length, returns: returns.length, refundCandidates: refundCandidates.length }, walletProcessed,
   });
+}
+
+export async function GET(req: NextRequest) {
+  return runNotifyCron(req);
+}
+
+export async function POST(req: NextRequest) {
+  return runNotifyCron(req);
 }

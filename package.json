@@ -8,6 +8,7 @@
     "e2e": "playwright test",
     "start": "next start",
     "lint": "eslint",
+    "qstash:schedules": "node scripts/qstash-schedules.mjs",
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -17,6 +18,7 @@
     "@clerk/nextjs": "^7.7.6",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
+    "@upstash/qstash": "^2.11.3",
     "@vercel/blob": "^2.8.0",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",

@@ -60,8 +60,8 @@ function renderDigestEmail(args: { appUrl: string; digest: NonNullable<Awaited<R
   `;
 }
 
-export async function POST(req: NextRequest) {
-  if (!isAuthorizedCronRequest(req)) {
+async function runDigestCron(req: NextRequest) {
+  if (!(await isAuthorizedCronRequest(req))) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
@@ -174,4 +174,12 @@ export async function POST(req: NextRequest) {
     failed,
     errors,
   });
+}
+
+export async function GET(req: NextRequest) {
+  return runDigestCron(req);
+}
+
+export async function POST(req: NextRequest) {
+  return runDigestCron(req);
 }

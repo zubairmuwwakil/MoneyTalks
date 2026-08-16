@@ -14,13 +14,18 @@
 - **Engine unchanged in semantics:** real cap data arrives as `OwnerState.capProgress` — the engine already consumes it; Phase 3 replaces the static seeded numbers with synced truth. No card-contract version bump.
 - **Identity on iOS:** PickMe gains Clerk (same application). Sync is authenticated per-user against the MoneyTalks API.
 
-## Chunks (sequence: 3a → 3b → 3c on iOS; 3d server-side parallel after 3a; 3e last)
+## Chunks (sequence: 3t → 3b → 3a → 3c; 3d after 3b; 3e last)
 
-**3a — Spine sync API + iOS client** · server `sonnet-5 @ high`, iOS `sonnet-5 @ high`
-MoneyTalks API routes (Clerk-authed): `POST /api/spine/purchase-events` (idempotent by client-generated event id; source WALLET|EMAIL|MANUAL), `GET /api/spine/caps` (per-card capId → usedMinor for the current periods), `GET /api/spine/feedback` (recent verified outcomes). PickMe: Clerk iOS sign-in, thin API client, offline queue (store-and-forward — recommendations must never block on network, A1). Verify: vitest route tests (idempotency asserted) + `swift test` + manual round-trip.
+*(Revised 2026-08-16 per record C1/C2 and `2026-08-16-wallet-capture-spec.md` — capture is a dumb Shortcut POSTing straight to the backend; verdicts compute server-side. The earlier App-Intent design is superseded.)*
 
-**3b — Wallet capture + verified feedback** · `sonnet-5 @ high`
-App Intent receives the Shortcut payload → normalize merchant via truth graph → match against the recommendation log (was there a prediction for this merchant/time?) → run the existing arithmetic-verdict machinery → local notification: "✓ Best card used · $18.47 at Starbucks · ~$1.56 value" or "⚠ Cobalt would have earned ~$0.74 more" (estimates labeled, A6) → enqueue spine event. Guided per-card automation setup screen with paste-ready shortcut. Verify: `swift test` for mapping/verdict integration; scripted manual capture test.
+**3t — TS scoring-core twin (record C1)** · `sonnet-5 @ high`, escalate only on fixture divergence
+Port RuleMatcher + CapMath + Scorer + recommend (~503 LOC; NOT portfolio/benefits/explainer) to TypeScript in MoneyTalks (`src/engine/cards-twin/` or similar), consuming the vendored contracts. CI runs `engine-fixtures.json` (27 cases) against BOTH engines — Swift in PickMe CI, TS here; divergence fails the build. Mind the porting traps: lexicographic ISO-date compares (string, not Date), integer minor-units arithmetic, the 0.005 accuracy tolerance. Swift stays canonical (C1); the twin never gains features first. Verify: all 27 fixtures pass in TS.
+
+**3b — Wallet capture backend** · `sonnet-5 @ high` *(the Shortcut itself is owner-assembled per the capture spec's assembly contract)*
+Implement `2026-08-16-wallet-capture-spec.md` server-side: `POST /api/v1/wallet-events` with installation-token auth (hashed, single-scope), `WalletEvent` landing table + processingStatus states, eventId idempotency + fuzzy-dup marking, sync verdict via the 3t twin returned in the response (⚠-only per A3/C2), merchant + card alias tables, async normalization → spine promotion. Verify: vitest (idempotency replay, dup-window, verdict cases incl. `unknown`, capturedAt-vs-uploadedAt) + a real tap end-to-end.
+
+**3a — Spine read APIs + iOS client** · server `sonnet-5 @ medium`, iOS `sonnet-5 @ high`
+Now thinner: `GET /api/spine/caps` (capId → usedMinor per current period) and `GET /api/spine/feedback` (recent outcomes) — wallet ingestion already lands via 3b. PickMe: Clerk iOS sign-in (**the NEW MoneyTalks Clerk app** — not Looply's), thin authed client, installation-token generation screen for the Shortcut, caps merged into `OwnerState.capProgress` on sync; recommendations never block on network (A1). Verify: vitest + `swift test` + manual round-trip.
 
 **3c — Geofenced ambient recommendations** · `sonnet-5 @ high`
 Region rotation service (significant-change driven, battery budget documented); on region-enter: resolve merchant → run engine on-device → **A3 conjunctive gate** (confidence ∧ differs-from-default ∧ clears switch threshold ∧ not muted) → time-sensitive local notification with card + reason. Per-merchant mute from the notification. The gate is a pure function in Engine/ with exhaustive unit tests (each conjunct independently flipped). Verify: `swift test` incl. gate matrix; a week of owner field-testing is the real acceptance — instrument fired/suppressed counts locally.

@@ -61,11 +61,29 @@ Tests: `npm test` (engines, ~230 unit tests) · `npm run lint` · `npm run build
 
 ### Scheduled notification jobs
 
-`vercel.json` schedules `/api/cron/digest` every 15 minutes and
-`/api/cron/notify` hourly. Set `CRON_SECRET` in Vercel: Vercel Cron sends it as
-`Authorization: Bearer <CRON_SECRET>` and `cronAuth` also accepts
-`x-cron-secret` for other schedulers. The cron routes are deliberately exempt
-from Clerk, but fail closed when the secret is absent or incorrect.
+QStash schedules `/api/cron/digest` every 15 minutes and `/api/cron/notify`
+hourly. Vercel Cron is intentionally not configured, so the app can stay on
+Vercel Hobby.
+
+Set these in Vercel runtime env:
+
+    QSTASH_CURRENT_SIGNING_KEY
+    QSTASH_NEXT_SIGNING_KEY
+
+Set these locally when creating/updating schedules:
+
+    QSTASH_TOKEN
+    QSTASH_URL
+    APP_URL
+
+Then run:
+
+    npx dotenv -e .env.local -- npm run qstash:schedules
+
+The script uses stable schedule IDs (`moneytalks-digest`, `moneytalks-notify`),
+so rerunning it updates the existing schedules. `CRON_SECRET` remains as an
+optional manual fallback via `x-cron-secret` or `Authorization: Bearer`, but
+QStash requests are verified with Upstash's signing keys.
 
 ### Receipt storage
 
