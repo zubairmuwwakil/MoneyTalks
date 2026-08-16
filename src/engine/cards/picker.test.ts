@@ -103,6 +103,36 @@ describe("effectiveReturnPct", () => {
     merchantBonusCard.rewards.conditions![0].enabled = false;
     expect(effectiveReturnPct(merchantBonusCard, ctx, [])?.pct).toBeCloseTo(1.2);
   });
+
+  it("applies an active all-spend rate until its shared spend cap is reached", () => {
+    const conditionalBaseCard = {
+      ...alpha,
+      rewards: {
+        ...alpha.rewards,
+        baseMultiplier: 0,
+        conditions: [{ id: "pro", label: "Pro plan", enabled: true }],
+        baseRateOverrides: [
+          {
+            id: "pro-rate",
+            label: "Pro plan rewards",
+            multiplier: 3,
+            requiresConditionId: "pro",
+            capMinor: 250_000,
+            capWindow: "MONTH",
+          },
+        ],
+        categoryRates: [{ category: "dining", multiplier: 5 }],
+      },
+    } as unknown as typeof alpha;
+
+    expect(effectiveReturnPct(conditionalBaseCard, { ...baseCtx, category: "groceries" }, [])?.pct).toBeCloseTo(3.6);
+    expect(effectiveReturnPct(conditionalBaseCard, { ...baseCtx, category: "dining" }, [])?.pct).toBeCloseTo(6);
+    const capped = effectiveReturnPct(conditionalBaseCard, { ...baseCtx, category: "groceries" }, [
+      { cardId: "alpha", category: "everything_else", periodKey: "2026-08", usedMinor: 250_000 },
+    ]);
+    expect(capped?.pct).toBeCloseTo(0);
+    expect(capped?.why).toContain("Pro plan rewards cap reached");
+  });
 });
 
 describe("recommend", () => {

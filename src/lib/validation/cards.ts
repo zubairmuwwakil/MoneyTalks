@@ -61,6 +61,20 @@ const merchantRateInput = z.object({
   requiresConditionId: optionalId,
 });
 
+const baseRateOverrideInput = z
+  .object({
+    id: shortId,
+    label: z.string().trim().min(1).max(80),
+    multiplier: numericInput.pipe(z.number().positive().max(20)),
+    requiresConditionId: shortId,
+    cap: dollarAmount({ min: 1 }).optional(),
+    capWindow: z.enum(["MONTH", "YEAR"]).optional(),
+  })
+  .refine((rate) => (rate.cap === undefined) === (rate.capWindow === undefined), {
+    message: "cap and capWindow must be set together",
+  })
+  .transform(({ cap, ...rest }) => ({ ...rest, capMinor: cap }));
+
 export const cardRewardsInput = z
   .object({
     pointValueCents: numericInput.pipe(z.number().positive().max(10)),
@@ -82,6 +96,7 @@ export const cardRewardsInput = z
     capGroups: z.array(capGroupInput).default([]),
     conditions: z.array(conditionInput).default([]),
     merchantRates: z.array(merchantRateInput).default([]),
+    baseRateOverrides: z.array(baseRateOverrideInput).default([]),
   })
   .superRefine((rewards, ctx) => {
     const duplicate = (values: string[]) => values.find((value, index) => values.indexOf(value) !== index);
@@ -101,6 +116,9 @@ export const cardRewardsInput = z
     if (duplicate(rewards.merchantRates.map((rate) => rate.id))) {
       ctx.addIssue({ code: "custom", path: ["merchantRates"], message: "Merchant bonus IDs must be unique" });
     }
+    if (duplicate(rewards.baseRateOverrides.map((rate) => rate.id))) {
+      ctx.addIssue({ code: "custom", path: ["baseRateOverrides"], message: "All-spend rate IDs must be unique" });
+    }
 
     rewards.categoryRates.forEach((rate, index) => {
       if (rate.capGroupId && !capGroupIds.has(rate.capGroupId)) {
@@ -113,6 +131,15 @@ export const cardRewardsInput = z
     rewards.merchantRates.forEach((rate, index) => {
       if (rate.requiresConditionId && !conditionIds.has(rate.requiresConditionId)) {
         ctx.addIssue({ code: "custom", path: ["merchantRates", index, "requiresConditionId"], message: "Choose an existing condition" });
+      }
+    });
+    rewards.baseRateOverrides.forEach((rate, index) => {
+      if (!conditionIds.has(rate.requiresConditionId)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["baseRateOverrides", index, "requiresConditionId"],
+          message: "Choose an existing condition",
+        });
       }
     });
   });

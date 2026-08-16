@@ -67,6 +67,15 @@ export interface MerchantRate {
   requiresConditionId?: string;
 }
 
+export interface BaseRateOverride {
+  id: string;
+  label: string;
+  multiplier: number;
+  requiresConditionId: string;
+  capMinor?: number;
+  capWindow?: "MONTH" | "YEAR";
+}
+
 export interface CardRewards {
   pointValueCents: number; // cents of value per point; 1 = plain cashback
   fxFeePct: number;
@@ -76,6 +85,7 @@ export interface CardRewards {
   capGroups?: CapGroup[];
   conditions?: CardCondition[];
   merchantRates?: MerchantRate[];
+  baseRateOverrides?: BaseRateOverride[];
 }
 
 export interface CardDef {
@@ -118,12 +128,19 @@ export function activeMerchantRate(rewards: CardRewards, merchantName?: string |
   );
 }
 
+export function activeBaseRateOverride(rewards: CardRewards): BaseRateOverride | undefined {
+  return (rewards.baseRateOverrides ?? [])
+    .filter((rate) => conditionIsEnabled(rewards, rate.requiresConditionId))
+    .sort((left, right) => right.multiplier - left.multiplier)[0];
+}
+
 export interface ResolvedSpendCap {
   id: string;
   label: string;
   capMinor: number;
   capWindow: "MONTH" | "YEAR";
   categories: SpendCategory[];
+  allSpend?: boolean;
 }
 
 export function capForRate(rewards: CardRewards, rate: CategoryRate): ResolvedSpendCap | undefined {
@@ -148,6 +165,19 @@ export function capForRate(rewards: CardRewards, rate: CategoryRate): ResolvedSp
     capMinor: rate.capMinor,
     capWindow: rate.capWindow ?? "MONTH",
     categories: [rate.category],
+  };
+}
+
+export function capForBaseRateOverride(rewards: CardRewards, rate: BaseRateOverride): ResolvedSpendCap | undefined {
+  if (rate.capMinor === undefined) return undefined;
+  const categories = SPEND_CATEGORIES.filter((category) => !activeCategoryRate(rewards, category));
+  return {
+    id: `base-rate:${rate.id}`,
+    label: rate.label,
+    capMinor: rate.capMinor,
+    capWindow: rate.capWindow ?? "MONTH",
+    categories,
+    allSpend: categories.length === SPEND_CATEGORIES.length,
   };
 }
 

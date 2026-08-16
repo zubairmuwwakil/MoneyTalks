@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
 import {
   activeCategoryRate,
+  activeBaseRateOverride,
+  capForBaseRateOverride,
   capForRate,
   periodKeyFor,
   SPEND_CATEGORIES,
@@ -158,7 +160,10 @@ export async function addCapUsage(formData: FormData): Promise<ActionResult> {
     const card = await ownedCard(userId, cardId);
     const rewards = card.rewards as unknown as CardRewards;
     const rate = activeCategoryRate(rewards, category);
-    const cap = rate ? capForRate(rewards, rate) : undefined;
+    const baseRateOverride = activeBaseRateOverride(rewards);
+    const categoryCap = rate ? capForRate(rewards, rate) : undefined;
+    const baseRateCap = baseRateOverride ? capForBaseRateOverride(rewards, baseRateOverride) : undefined;
+    const cap = categoryCap ?? (baseRateCap?.categories.includes(category) ? baseRateCap : undefined);
     if (!cap) return { ok: false, error: "This category has no active cap" };
     const periodKey = periodKeyFor(cap.capWindow, today());
     const usage = ((card.state?.capsUsage as unknown as CapUsage[]) ?? []).slice();

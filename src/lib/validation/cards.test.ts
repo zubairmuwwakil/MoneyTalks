@@ -65,6 +65,9 @@ describe("cardRewardsInput", () => {
       capGroups: [{ id: "food", label: "Food spend", cap: "500.00", capWindow: "MONTH" }],
       conditions: [{ id: "savings", label: "Savings account linked", enabled: true, annualFeeReduction: "10.00" }],
       merchantRates: [{ id: "triangle", merchant: "Canadian Tire", multiplier: "4", requiresConditionId: "savings" }],
+      baseRateOverrides: [
+        { id: "pro", label: "Pro plan", multiplier: "3", requiresConditionId: "savings", cap: "2500", capWindow: "MONTH" },
+      ],
     });
 
     expect(parsed).toMatchObject({
@@ -73,6 +76,7 @@ describe("cardRewardsInput", () => {
         capGroups: [{ id: "food", capMinor: 50_000 }],
         conditions: [{ id: "savings", enabled: true, annualFeeReductionMinor: 1_000 }],
         merchantRates: [{ id: "triangle", multiplier: 4 }],
+        baseRateOverrides: [{ id: "pro", multiplier: 3, capMinor: 250_000 }],
       },
     });
 

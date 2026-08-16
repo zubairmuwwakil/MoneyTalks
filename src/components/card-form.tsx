@@ -42,6 +42,15 @@ type MerchantRateForm = {
   requiresConditionId: string;
 };
 
+type BaseRateOverrideForm = {
+  id: string;
+  label: string;
+  multiplier: string;
+  requiresConditionId: string;
+  cap: string;
+  capWindow: "MONTH" | "YEAR";
+};
+
 export type CardFormValues = {
   nickname: string;
   issuer: string;
@@ -63,6 +72,7 @@ export type CardFormValues = {
     capGroups: CapGroupForm[];
     conditions: ConditionForm[];
     merchantRates: MerchantRateForm[];
+    baseRateOverrides: BaseRateOverrideForm[];
   };
 };
 
@@ -91,6 +101,7 @@ const emptyCard: CardFormValues = {
     capGroups: [],
     conditions: [],
     merchantRates: [],
+    baseRateOverrides: [],
   },
 };
 
@@ -135,6 +146,10 @@ function toPayload(values: CardFormValues) {
         ...rate,
         requiresConditionId: optional(requiresConditionId),
       })),
+      baseRateOverrides: values.rewards.baseRateOverrides.map(({ cap, capWindow, ...rate }) => {
+        const spendCap = optional(cap);
+        return { ...rate, ...(spendCap === undefined ? {} : { cap: spendCap, capWindow }) };
+      }),
     },
   };
 }
@@ -230,6 +245,18 @@ export function CardForm({
       rewards: {
         ...current.rewards,
         merchantRates: current.rewards.merchantRates.map((rate, rateIndex) =>
+          rateIndex === index ? { ...rate, ...update } : rate,
+        ),
+      },
+    }));
+  }
+
+  function updateBaseRateOverride(index: number, update: Partial<BaseRateOverrideForm>) {
+    setValues((current) => ({
+      ...current,
+      rewards: {
+        ...current.rewards,
+        baseRateOverrides: current.rewards.baseRateOverrides.map((rate, rateIndex) =>
           rateIndex === index ? { ...rate, ...update } : rate,
         ),
       },
@@ -538,11 +565,137 @@ export function CardForm({
                   <button
                     type="button"
                     onClick={() =>
+                      setValues((current) => {
+                        const removedId = current.rewards.conditions[index]?.id;
+                        return {
+                          ...current,
+                          rewards: {
+                            ...current.rewards,
+                            conditions: current.rewards.conditions.filter((_, conditionIndex) => conditionIndex !== index),
+                            categoryRates: current.rewards.categoryRates.map((rate) =>
+                              rate.requiresConditionId === removedId ? { ...rate, requiresConditionId: "" } : rate,
+                            ),
+                            merchantRates: current.rewards.merchantRates.map((rate) =>
+                              rate.requiresConditionId === removedId ? { ...rate, requiresConditionId: "" } : rate,
+                            ),
+                            baseRateOverrides: current.rewards.baseRateOverrides.filter(
+                              (rate) => rate.requiresConditionId !== removedId,
+                            ),
+                          },
+                        };
+                      })
+                    }
+                    className="rounded border border-red-600 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div data-testid="all-spend-rate-form" className="space-y-3 rounded border p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-medium">All-spend conditional rates</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Use this when an active condition changes the standard rate on every purchase, such as a CRO lockup or a telecom-service bonus. Configured category and merchant bonuses still take priority.
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={values.rewards.conditions.length === 0}
+              onClick={() =>
+                setValues((current) => ({
+                  ...current,
+                  rewards: {
+                    ...current.rewards,
+                    baseRateOverrides: [
+                      ...current.rewards.baseRateOverrides,
+                      {
+                        id: newId("all-spend-rate", current.rewards.baseRateOverrides),
+                        label: "",
+                        multiplier: "",
+                        requiresConditionId: current.rewards.conditions[0]?.id ?? "",
+                        cap: "",
+                        capWindow: "MONTH",
+                      },
+                    ],
+                  },
+                }))
+              }
+              className="rounded border px-3 py-1 text-sm hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Add all-spend rate
+            </button>
+          </div>
+
+          {values.rewards.baseRateOverrides.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No conditional all-spend rates.</p>
+          ) : (
+            <div className="space-y-3">
+              {values.rewards.baseRateOverrides.map((rate, index) => (
+                <div key={rate.id} className="grid gap-3 rounded bg-muted/40 p-3 sm:grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr_auto] sm:items-end">
+                  <label className={label}>
+                    Rule name
+                    <input
+                      required
+                      value={rate.label}
+                      placeholder="e.g. CRO lockup rewards"
+                      onChange={(event) => updateBaseRateOverride(index, { label: event.target.value })}
+                      className={input}
+                    />
+                    <ErrorText error={fieldError(state, `rewards.baseRateOverrides.${index}.label`)} />
+                  </label>
+                  <label className={label}>
+                    Earn rate (points/$)
+                    <input
+                      type="number"
+                      min="0.01"
+                      max="20"
+                      step="0.01"
+                      required
+                      value={rate.multiplier}
+                      onChange={(event) => updateBaseRateOverride(index, { multiplier: event.target.value })}
+                      className={input}
+                    />
+                    <ErrorText error={fieldError(state, `rewards.baseRateOverrides.${index}.multiplier`)} />
+                  </label>
+                  <label className={label}>
+                    Active when
+                    <select value={rate.requiresConditionId} onChange={(event) => updateBaseRateOverride(index, { requiresConditionId: event.target.value })} className={input}>
+                      {values.rewards.conditions.map((condition) => <option key={condition.id} value={condition.id}>{condition.label || "Unnamed condition"}</option>)}
+                    </select>
+                    <ErrorText error={fieldError(state, `rewards.baseRateOverrides.${index}.requiresConditionId`)} />
+                  </label>
+                  <label className={label}>
+                    Spend cap ($, optional)
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={rate.cap}
+                      onChange={(event) => updateBaseRateOverride(index, { cap: event.target.value })}
+                      className={input}
+                    />
+                    <ErrorText error={fieldError(state, `rewards.baseRateOverrides.${index}.cap`)} />
+                  </label>
+                  <label className={label}>
+                    Cap window
+                    <select value={rate.capWindow} onChange={(event) => updateBaseRateOverride(index, { capWindow: event.target.value as "MONTH" | "YEAR" })} className={input}>
+                      <option value="MONTH">Per month</option>
+                      <option value="YEAR">Per year</option>
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
                       setValues((current) => ({
                         ...current,
                         rewards: {
                           ...current.rewards,
-                          conditions: current.rewards.conditions.filter((_, conditionIndex) => conditionIndex !== index),
+                          baseRateOverrides: current.rewards.baseRateOverrides.filter((_, rateIndex) => rateIndex !== index),
                         },
                       }))
                     }

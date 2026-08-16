@@ -61,6 +61,14 @@ export default async function EditCardPage({ params }: { params: Promise<{ id: s
         multiplier: rate.multiplier.toString(),
         requiresConditionId: rate.requiresConditionId ?? "",
       })),
+      baseRateOverrides: (rewards.baseRateOverrides ?? []).map((rate) => ({
+        id: rate.id,
+        label: rate.label,
+        multiplier: rate.multiplier.toString(),
+        requiresConditionId: rate.requiresConditionId,
+        cap: rate.capMinor === undefined ? "" : minorToDollarInput(rate.capMinor),
+        capWindow: rate.capWindow ?? "MONTH",
+      })),
     },
   };
 

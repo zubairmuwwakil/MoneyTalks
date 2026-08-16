@@ -53,6 +53,12 @@ test("cards end to end", async ({ browser, baseURL }) => {
   await conditions.getByLabel("Condition").fill("Fixture account condition");
   await conditions.getByLabel("Annual-fee reduction ($, optional)").fill("12.00");
 
+  const allSpendRates = page.getByTestId("all-spend-rate-form");
+  await allSpendRates.getByRole("button", { name: "Add all-spend rate" }).click();
+  await allSpendRates.getByLabel("Rule name").fill("Fixture all-spend rate");
+  await allSpendRates.getByLabel("Earn rate (points/$)").fill("2");
+  await allSpendRates.getByLabel("Spend cap ($, optional)").fill("1000.00");
+
   const sharedCaps = page.getByTestId("shared-cap-form");
   await sharedCaps.getByRole("button", { name: "Add shared cap" }).click();
   await sharedCaps.getByLabel("Cap name").fill("Fixture food cap");
@@ -81,6 +87,8 @@ test("cards end to end", async ({ browser, baseURL }) => {
   await expect(page.getByText("Fixture dining credit")).toBeVisible();
   const walletConditions = page.getByRole("heading", { name: "Wallet conditions" }).locator("..");
   await expect(walletConditions.getByText("Fixture account condition")).toBeVisible();
+  const allSpendRateSection = page.getByRole("heading", { name: "All-spend conditional rates" }).locator("..");
+  await expect(allSpendRateSection.getByText(/Fixture all-spend rate.*2x/)).toBeVisible();
   await expect(page.getByText(/effective fee \$0\.00\/yr/)).toBeVisible();
 
   await page.goto("/cards");

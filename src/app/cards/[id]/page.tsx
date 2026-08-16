@@ -3,6 +3,8 @@ import Link from "next/link";
 import { addCapUsage, deleteCard, setRewardsEstimate, toggleCardCondition, toggleCredit } from "@/app/cards/actions";
 import { cardVerdict, isBestSomewhere, type RedeemedCredit } from "@/engine/cards/roi";
 import {
+  activeBaseRateOverride,
+  capForBaseRateOverride,
   capForRate,
   CATEGORY_LABELS,
   effectiveAnnualFeeMinor,
@@ -46,6 +48,11 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
     },
     [],
   );
+  const baseRateOverride = activeBaseRateOverride(rewards);
+  const baseRateCap = baseRateOverride ? capForBaseRateOverride(rewards, baseRateOverride) : undefined;
+  if (baseRateCap && baseRateCap.categories.length > 0 && !capEntries.some((entry) => entry.id === baseRateCap.id)) {
+    capEntries.push({ id: baseRateCap.id, cap: baseRateCap });
+  }
 
   async function toggleCreditAction(formData: FormData) {
     "use server";
@@ -123,6 +130,24 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
         </section>
       ) : null}
 
+      {rewards.baseRateOverrides?.length ? (
+        <section>
+          <h2 className="font-medium">All-spend conditional rates</h2>
+          <ul className="mt-2 divide-y rounded border">
+            {rewards.baseRateOverrides.map((rate) => {
+              const condition = rewards.conditions?.find((candidate) => candidate.id === rate.requiresConditionId);
+              return (
+                <li key={rate.id} className="px-4 py-3 text-sm">
+                  {rate.label} <span className="font-medium">{rate.multiplier}x</span>
+                  <span className="text-xs text-muted-foreground"> - {condition?.enabled ? "active" : "off"}</span>
+                  {rate.capMinor ? <span className="text-xs text-muted-foreground"> - {formatMinorUnits(rate.capMinor, "CAD")} {rate.capWindow?.toLowerCase() ?? "monthly"} spend cap</span> : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
       {rewards.credits.length > 0 ? (
         <section>
           <h2 className="font-medium">Recurring credits & benefits</h2>
@@ -190,7 +215,11 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
                     <div className="flex justify-between gap-3">
                       <span>
                         {cap.label} ({cap.capWindow.toLowerCase()})
-                        {cap.categories.length > 1 ? ` - ${cap.categories.map((category) => CATEGORY_LABELS[category]).join(", ")}` : ""}
+                        {cap.allSpend
+                          ? " - all spend"
+                          : cap.categories.length > 1
+                            ? ` - ${cap.categories.map((category) => CATEGORY_LABELS[category]).join(", ")}`
+                            : ""}
                       </span>
                       <span className="tabular-nums">
                         {formatMinorUnits(used, "CAD")} / {formatMinorUnits(cap.capMinor, "CAD")} ({pct}%)

@@ -1,6 +1,8 @@
 import {
   activeCategoryRate,
+  activeBaseRateOverride,
   activeMerchantRate,
+  capForBaseRateOverride,
   capForRate,
   periodKeyFor,
   type CapUsage,
@@ -39,7 +41,8 @@ export function effectiveReturnPct(
 
   const merchantRate = activeMerchantRate(card.rewards, ctx.merchantName);
   const rate = activeCategoryRate(card.rewards, ctx.category);
-  let multiplier = card.rewards.baseMultiplier;
+  const baseRateOverride = activeBaseRateOverride(card.rewards);
+  let multiplier = baseRateOverride?.multiplier ?? card.rewards.baseMultiplier;
   let capNote = "";
 
   if (merchantRate) {
@@ -60,6 +63,22 @@ export function effectiveReturnPct(
       capNote = ` (${cap?.label} cap reached - base rate)`;
     } else {
       multiplier = rate.multiplier;
+    }
+  } else if (baseRateOverride) {
+    const cap = capForBaseRateOverride(card.rewards, baseRateOverride);
+    const overCap =
+      cap !== undefined &&
+      capUsage
+        .filter(
+          (usage) =>
+            usage.cardId === card.id &&
+            cap.categories.includes(usage.category) &&
+            usage.periodKey === periodKeyFor(cap.capWindow, ctx.today),
+        )
+        .reduce((sum, usage) => sum + usage.usedMinor, 0) >= cap.capMinor;
+    if (overCap) {
+      multiplier = card.rewards.baseMultiplier;
+      capNote = ` (${cap?.label} cap reached - base rate)`;
     }
   }
 
