@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cardVerdict, isBestSomewhere, type RedeemedCredit } from "@/engine/cards/roi";
-import type { CardDef, CardRewards } from "@/engine/cards/types";
+import { effectiveAnnualFeeMinor, type CardDef, type CardRewards } from "@/engine/cards/types";
 import { formatMinorUnits } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -60,7 +60,7 @@ export default async function ManageCardsPage() {
                 </span>
                 <span className="flex flex-wrap items-center gap-3 text-sm tabular-nums">
                   <span>
-                    fee {formatMinorUnits(c.annualFeeMinor, "CAD")} - net {formatMinorUnits(verdict.netMinor, "CAD")}
+                    fee {formatMinorUnits(effectiveAnnualFeeMinor(def), "CAD")} - net {formatMinorUnits(verdict.netMinor, "CAD")}
                   </span>
                   <span className={`rounded px-2 py-0.5 text-xs ${VERDICT_STYLES[verdict.verdict]}`}>
                     {verdict.verdict.replace("_", " ")}

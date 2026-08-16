@@ -54,6 +54,35 @@ describe("cardRewardsInput", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("stores shared caps, conditions, and merchant bonuses with validated links", () => {
+    const parsed = cardRewardsInput.safeParse({
+      ...REWARDS_IN_DOLLARS,
+      categoryRates: [
+        { category: "groceries", multiplier: 3, capGroupId: "food" },
+        { category: "dining", multiplier: 3, capGroupId: "food", requiresConditionId: "savings" },
+      ],
+      capGroups: [{ id: "food", label: "Food spend", cap: "500.00", capWindow: "MONTH" }],
+      conditions: [{ id: "savings", label: "Savings account linked", enabled: true, annualFeeReduction: "10.00" }],
+      merchantRates: [{ id: "triangle", merchant: "Canadian Tire", multiplier: "4", requiresConditionId: "savings" }],
+    });
+
+    expect(parsed).toMatchObject({
+      success: true,
+      data: {
+        capGroups: [{ id: "food", capMinor: 50_000 }],
+        conditions: [{ id: "savings", enabled: true, annualFeeReductionMinor: 1_000 }],
+        merchantRates: [{ id: "triangle", multiplier: 4 }],
+      },
+    });
+
+    expect(
+      cardRewardsInput.safeParse({
+        ...REWARDS_IN_DOLLARS,
+        categoryRates: [{ category: "dining", multiplier: 3, capGroupId: "missing" }],
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe("cardImportEntry", () => {
@@ -141,5 +170,20 @@ describe("cardImportEntry", () => {
     };
     expect(cardImportEntry.safeParse({ ...good, network: "DINERS" }).success).toBe(false);
     expect(cardImportEntry.safeParse({ ...good, dueDay: 31 }).success).toBe(false);
+  });
+
+  it("rejects fee reductions above the published annual fee", () => {
+    expect(
+      cardImportEntry.safeParse({
+        nickname: "Over-waived",
+        issuer: "Fixture Bank",
+        network: "VISA",
+        annualFee: 10,
+        rewards: {
+          ...REWARDS_IN_DOLLARS,
+          conditions: [{ id: "waiver", label: "Fee waiver", enabled: true, annualFeeReduction: 11 }],
+        },
+      }).success,
+    ).toBe(false);
   });
 });

@@ -1,4 +1,13 @@
-import { periodKeyFor, type CapUsage, type CardDef, type Network, type SpendCategory } from "./types";
+import {
+  activeCategoryRate,
+  activeMerchantRate,
+  capForRate,
+  periodKeyFor,
+  type CapUsage,
+  type CardDef,
+  type Network,
+  type SpendCategory,
+} from "./types";
 
 export interface PurchaseCtx {
   category: SpendCategory;
@@ -6,6 +15,7 @@ export interface PurchaseCtx {
   foreign: boolean;
   networkRestriction: Network | null;
   today: string;
+  merchantName?: string | null;
 }
 
 export interface Pick {
@@ -27,22 +37,27 @@ export function effectiveReturnPct(
   if (ctx.networkRestriction && card.network !== ctx.networkRestriction) return null;
   if (!ctx.amexAccepted && card.network === "AMEX") return null;
 
-  const rate = card.rewards.categoryRates.find((r) => r.category === ctx.category);
+  const merchantRate = activeMerchantRate(card.rewards, ctx.merchantName);
+  const rate = activeCategoryRate(card.rewards, ctx.category);
   let multiplier = card.rewards.baseMultiplier;
   let capNote = "";
 
-  if (rate) {
+  if (merchantRate) {
+    multiplier = merchantRate.multiplier;
+  } else if (rate) {
+    const cap = capForRate(card.rewards, rate);
     const overCap =
-      rate.capMinor !== undefined &&
-      capUsage.some(
-        (u) =>
-          u.cardId === card.id &&
-          u.category === ctx.category &&
-          u.periodKey === periodKeyFor(rate.capWindow ?? "MONTH", ctx.today) &&
-          u.usedMinor >= (rate.capMinor ?? 0),
-      );
+      cap !== undefined &&
+      capUsage
+        .filter(
+          (usage) =>
+            usage.cardId === card.id &&
+            cap.categories.includes(usage.category) &&
+            usage.periodKey === periodKeyFor(cap.capWindow, ctx.today),
+        )
+        .reduce((sum, usage) => sum + usage.usedMinor, 0) >= cap.capMinor;
     if (overCap) {
-      capNote = " (category cap reached - base rate)";
+      capNote = ` (${cap?.label} cap reached - base rate)`;
     } else {
       multiplier = rate.multiplier;
     }
@@ -55,6 +70,7 @@ export function effectiveReturnPct(
   const why =
     `${multiplier}x at ${card.rewards.pointValueCents}c/pt = ${round1(gross)}%` +
     (fx > 0 ? ` - ${fx}% FX` : "") +
+    (merchantRate ? ` (${merchantRate.merchant} bonus)` : "") +
     capNote;
 
   return { pct, why };

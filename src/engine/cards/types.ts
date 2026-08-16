@@ -42,6 +42,29 @@ export interface CategoryRate {
   multiplier: number;
   capMinor?: number;
   capWindow?: "MONTH" | "YEAR";
+  capGroupId?: string;
+  requiresConditionId?: string;
+}
+
+export interface CapGroup {
+  id: string;
+  label: string;
+  capMinor: number;
+  capWindow: "MONTH" | "YEAR";
+}
+
+export interface CardCondition {
+  id: string;
+  label: string;
+  enabled: boolean;
+  annualFeeReductionMinor?: number;
+}
+
+export interface MerchantRate {
+  id: string;
+  merchant: string;
+  multiplier: number;
+  requiresConditionId?: string;
 }
 
 export interface CardRewards {
@@ -50,6 +73,9 @@ export interface CardRewards {
   baseMultiplier: number;
   categoryRates: CategoryRate[];
   credits: CardCredit[];
+  capGroups?: CapGroup[];
+  conditions?: CardCondition[];
+  merchantRates?: MerchantRate[];
 }
 
 export interface CardDef {
@@ -69,4 +95,70 @@ export interface CapUsage {
 
 export function periodKeyFor(window: "MONTH" | "YEAR", today: string): string {
   return window === "MONTH" ? today.slice(0, 7) : today.slice(0, 4);
+}
+
+export function conditionIsEnabled(rewards: CardRewards, conditionId?: string): boolean {
+  if (!conditionId) return true;
+  return rewards.conditions?.some((condition) => condition.id === conditionId && condition.enabled) ?? false;
+}
+
+export function activeCategoryRate(rewards: CardRewards, category: SpendCategory): CategoryRate | undefined {
+  return rewards.categoryRates.find(
+    (rate) => rate.category === category && conditionIsEnabled(rewards, rate.requiresConditionId),
+  );
+}
+
+export function activeMerchantRate(rewards: CardRewards, merchantName?: string | null): MerchantRate | undefined {
+  if (!merchantName) return undefined;
+  const normalizedMerchant = normalizeMerchantName(merchantName);
+  return rewards.merchantRates?.find(
+    (rate) =>
+      rate.merchant.split(",").some((name) => normalizeMerchantName(name) === normalizedMerchant) &&
+      conditionIsEnabled(rewards, rate.requiresConditionId),
+  );
+}
+
+export interface ResolvedSpendCap {
+  id: string;
+  label: string;
+  capMinor: number;
+  capWindow: "MONTH" | "YEAR";
+  categories: SpendCategory[];
+}
+
+export function capForRate(rewards: CardRewards, rate: CategoryRate): ResolvedSpendCap | undefined {
+  if (rate.capGroupId) {
+    const group = rewards.capGroups?.find((candidate) => candidate.id === rate.capGroupId);
+    if (!group) return undefined;
+    return {
+      id: group.id,
+      label: group.label,
+      capMinor: group.capMinor,
+      capWindow: group.capWindow,
+      categories: rewards.categoryRates
+        .filter((candidate) => candidate.capGroupId === group.id && conditionIsEnabled(rewards, candidate.requiresConditionId))
+        .map((candidate) => candidate.category),
+    };
+  }
+
+  if (rate.capMinor === undefined) return undefined;
+  return {
+    id: `category:${rate.category}`,
+    label: CATEGORY_LABELS[rate.category],
+    capMinor: rate.capMinor,
+    capWindow: rate.capWindow ?? "MONTH",
+    categories: [rate.category],
+  };
+}
+
+export function effectiveAnnualFeeMinor(card: CardDef): number {
+  const reduction = (card.rewards.conditions ?? []).reduce(
+    (sum, condition) => sum + (condition.enabled ? (condition.annualFeeReductionMinor ?? 0) : 0),
+    0,
+  );
+  return Math.max(0, card.annualFeeMinor - reduction);
+}
+
+function normalizeMerchantName(value: string): string {
+  return value.trim().toLocaleLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }

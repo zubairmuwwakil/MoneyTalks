@@ -1,8 +1,16 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { addCapUsage, deleteCard, setRewardsEstimate, toggleCredit } from "@/app/cards/actions";
+import { addCapUsage, deleteCard, setRewardsEstimate, toggleCardCondition, toggleCredit } from "@/app/cards/actions";
 import { cardVerdict, isBestSomewhere, type RedeemedCredit } from "@/engine/cards/roi";
-import { CATEGORY_LABELS, periodKeyFor, type CapUsage, type CardDef, type CardRewards } from "@/engine/cards/types";
+import {
+  capForRate,
+  CATEGORY_LABELS,
+  effectiveAnnualFeeMinor,
+  periodKeyFor,
+  type CapUsage,
+  type CardDef,
+  type CardRewards,
+} from "@/engine/cards/types";
 import { formatMinorUnits, minorToDollarInput } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -29,6 +37,15 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
   const def = defs.find((d) => d.id === card.id);
   if (!def) notFound();
   const verdict = cardVerdict(def, redeemed, card.state?.rewardsEstimateMinor ?? 0, isBestSomewhere(def, defs, today), today);
+  const effectiveFee = effectiveAnnualFeeMinor(def);
+  const capEntries = rewards.categoryRates.reduce<Array<{ id: string; cap: NonNullable<ReturnType<typeof capForRate>> }>>(
+    (entries, rate) => {
+      const cap = capForRate(rewards, rate);
+      if (cap && !entries.some((entry) => entry.id === cap.id)) entries.push({ id: cap.id, cap });
+      return entries;
+    },
+    [],
+  );
 
   async function toggleCreditAction(formData: FormData) {
     "use server";
@@ -38,6 +55,11 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
   async function addCapUsageAction(formData: FormData) {
     "use server";
     await addCapUsage(formData);
+  }
+
+  async function toggleConditionAction(formData: FormData) {
+    "use server";
+    await toggleCardCondition(formData);
   }
 
   async function setRewardsEstimateAction(formData: FormData) {
@@ -61,7 +83,8 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
         </div>
         <p className="text-sm text-muted-foreground">
           {card.issuer} - {card.network}
-          {card.lastFour ? ` - ...${card.lastFour}` : ""} - fee {formatMinorUnits(card.annualFeeMinor, "CAD")}/yr
+          {card.lastFour ? ` - ...${card.lastFour}` : ""} - effective fee {formatMinorUnits(effectiveFee, "CAD")}/yr
+          {effectiveFee !== card.annualFeeMinor ? ` (published ${formatMinorUnits(card.annualFeeMinor, "CAD")})` : ""}
         </p>
         <p className="mt-2 text-sm">
           Realized value {formatMinorUnits(verdict.realizedMinor, "CAD")} - fee ={" "}
@@ -70,9 +93,42 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
         </p>
       </header>
 
+      {rewards.conditions?.length ? (
+        <section>
+          <h2 className="font-medium">Wallet conditions</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Keep these in sync with your accounts and eligibility. They change only the affected rewards or fee waiver.
+          </p>
+          <ul className="mt-2 divide-y rounded border">
+            {rewards.conditions.map((condition) => (
+              <li key={condition.id} className="flex flex-col gap-2 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  {condition.label} <span className="text-xs text-muted-foreground">({condition.enabled ? "active" : "off"})</span>
+                  {condition.annualFeeReductionMinor ? (
+                    <span className="block text-xs text-muted-foreground">
+                      Reduces annual fee by {formatMinorUnits(condition.annualFeeReductionMinor, "CAD")} while active.
+                    </span>
+                  ) : null}
+                </span>
+                <form action={toggleConditionAction}>
+                  <input type="hidden" name="cardId" value={card.id} />
+                  <input type="hidden" name="conditionId" value={condition.id} />
+                  <button type="submit" className="rounded border px-2 py-0.5 text-xs hover:bg-muted/50">
+                    {condition.enabled ? "turn off" : "turn on"}
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {rewards.credits.length > 0 ? (
         <section>
-          <h2 className="font-medium">Credits checklist</h2>
+          <h2 className="font-medium">Recurring credits & benefits</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Mark a credit only after you use it in this month or year, so the fee verdict reflects real value.
+          </p>
           <ul className="mt-2 divide-y rounded border">
             {rewards.credits.map((credit) => {
               const key = periodKeyFor(credit.period, today);
@@ -99,26 +155,45 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
         </section>
       ) : null}
 
-      {rewards.categoryRates.some((r) => r.capMinor !== undefined) ? (
+      {rewards.merchantRates?.length ? (
+        <section>
+          <h2 className="font-medium">Merchant-specific bonuses</h2>
+          <p className="mt-1 text-sm text-muted-foreground">The picker will surface these merchants when you search for them.</p>
+          <ul className="mt-2 divide-y rounded border">
+            {rewards.merchantRates.map((rate) => {
+              const condition = rate.requiresConditionId
+                ? rewards.conditions?.find((candidate) => candidate.id === rate.requiresConditionId)
+                : undefined;
+              return (
+                <li key={rate.id} className="px-4 py-3 text-sm">
+                  {rate.merchant} <span className="font-medium">{rate.multiplier}x</span>
+                  {condition ? <span className="text-xs text-muted-foreground"> - {condition.label}: {condition.enabled ? "active" : "off"}</span> : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
+      {capEntries.length > 0 ? (
         <section>
           <h2 className="font-medium">Caps</h2>
           <ul className="mt-2 divide-y rounded border">
-            {rewards.categoryRates
-              .filter((r) => r.capMinor !== undefined)
-              .map((rate) => {
-                const key = periodKeyFor(rate.capWindow ?? "MONTH", today);
+            {capEntries.map(({ id, cap }) => {
+                const key = periodKeyFor(cap.capWindow, today);
                 const used = usage
-                  .filter((u) => u.category === rate.category && u.periodKey === key)
+                  .filter((u) => cap.categories.includes(u.category) && u.periodKey === key)
                   .reduce((sum, u) => sum + u.usedMinor, 0);
-                const pct = Math.min(100, Math.round((used / (rate.capMinor ?? 1)) * 100));
+                const pct = Math.min(100, Math.round((used / cap.capMinor) * 100));
                 return (
-                  <li key={rate.category} className="space-y-2 px-4 py-3 text-sm">
+                  <li key={id} className="space-y-2 px-4 py-3 text-sm">
                     <div className="flex justify-between gap-3">
                       <span>
-                        {CATEGORY_LABELS[rate.category]} ({rate.capWindow?.toLowerCase()})
+                        {cap.label} ({cap.capWindow.toLowerCase()})
+                        {cap.categories.length > 1 ? ` - ${cap.categories.map((category) => CATEGORY_LABELS[category]).join(", ")}` : ""}
                       </span>
                       <span className="tabular-nums">
-                        {formatMinorUnits(used, "CAD")} / {formatMinorUnits(rate.capMinor ?? 0, "CAD")} ({pct}%)
+                        {formatMinorUnits(used, "CAD")} / {formatMinorUnits(cap.capMinor, "CAD")} ({pct}%)
                       </span>
                     </div>
                     <div className="h-1.5 w-full rounded bg-muted">
@@ -126,7 +201,13 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
                     </div>
                     <form action={addCapUsageAction} className="flex flex-wrap gap-2">
                       <input type="hidden" name="cardId" value={card.id} />
-                      <input type="hidden" name="category" value={rate.category} />
+                      {cap.categories.length === 1 ? (
+                        <input type="hidden" name="category" value={cap.categories[0]} />
+                      ) : (
+                        <select name="category" aria-label={`Category for ${cap.label}`} className="rounded border px-2 py-1 text-xs">
+                          {cap.categories.map((category) => <option key={category} value={category}>{CATEGORY_LABELS[category]}</option>)}
+                        </select>
+                      )}
                       <input name="amount" placeholder="Add spend ($)" className="w-40 rounded border px-2 py-1 text-xs" />
                       <button type="submit" className="rounded border px-2 py-1 text-xs hover:bg-muted/50">
                         add

@@ -3,7 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
-import { periodKeyFor, SPEND_CATEGORIES, type CapUsage, type CardRewards, type SpendCategory } from "@/engine/cards/types";
+import {
+  activeCategoryRate,
+  capForRate,
+  periodKeyFor,
+  SPEND_CATEGORIES,
+  type CapUsage,
+  type CardRewards,
+  type SpendCategory,
+} from "@/engine/cards/types";
 import type { RedeemedCredit } from "@/engine/cards/roi";
 import { parseDollarsToMinor } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
@@ -149,9 +157,10 @@ export async function addCapUsage(formData: FormData): Promise<ActionResult> {
   try {
     const card = await ownedCard(userId, cardId);
     const rewards = card.rewards as unknown as CardRewards;
-    const rate = rewards.categoryRates.find((r) => r.category === category);
-    const window = rate?.capWindow ?? "MONTH";
-    const periodKey = periodKeyFor(window, today());
+    const rate = activeCategoryRate(rewards, category);
+    const cap = rate ? capForRate(rewards, rate) : undefined;
+    if (!cap) return { ok: false, error: "This category has no active cap" };
+    const periodKey = periodKeyFor(cap.capWindow, today());
     const usage = ((card.state?.capsUsage as unknown as CapUsage[]) ?? []).slice();
     const existing = usage.find((u) => u.cardId === cardId && u.category === category && u.periodKey === periodKey);
     if (existing) existing.usedMinor += amountMinor;
@@ -191,6 +200,33 @@ export async function toggleCredit(formData: FormData): Promise<ActionResult> {
     });
     revalidatePath(`/cards/${cardId}`);
     revalidatePath("/cards/manage");
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed" };
+  }
+  return { ok: true };
+}
+
+export async function toggleCardCondition(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const cardId = String(formData.get("cardId") ?? "");
+  const conditionId = String(formData.get("conditionId") ?? "");
+  try {
+    const card = await ownedCard(userId, cardId);
+    const rewards = card.rewards as unknown as CardRewards;
+    const condition = rewards.conditions?.find((candidate) => candidate.id === conditionId);
+    if (!condition) return { ok: false, error: "Unknown card condition" };
+    await prisma.creditCard.update({
+      where: { id: card.id },
+      data: {
+        rewards: asJson({
+          ...rewards,
+          conditions: rewards.conditions?.map((candidate) =>
+            candidate.id === conditionId ? { ...candidate, enabled: !candidate.enabled } : candidate,
+          ),
+        }),
+      },
+    });
+    revalidateCardRoutes(card.id);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed" };
   }

@@ -30,6 +30,20 @@ describe("cardVerdict", () => {
     expect(v.verdict).toBe("KEEP");
   });
 
+  it("uses an active fee-waiver condition when calculating the verdict", () => {
+    const waived = {
+      ...alpha,
+      rewards: {
+        ...alpha.rewards,
+        conditions: [{ id: "waiver", label: "Employer annual-fee waiver", enabled: true, annualFeeReductionMinor: 15_000 }],
+      },
+    };
+    const v = cardVerdict(waived, [], 0, false, today);
+
+    expect(v.netMinor).toBe(0);
+    expect(v.verdict).toBe("KEEP");
+  });
+
   it("downgrades a losing card that still wins somewhere", () => {
     const v = cardVerdict(alpha, [{ creditId: "dine100", periodKey: "2026" }], 4_000, true, today);
     expect(v.netMinor).toBe(-1_000);

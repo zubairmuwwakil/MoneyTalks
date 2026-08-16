@@ -33,12 +33,33 @@ export default async function EditCardPage({ params }: { params: Promise<{ id: s
         multiplier: rate.multiplier.toString(),
         cap: rate.capMinor === undefined ? "" : minorToDollarInput(rate.capMinor),
         capWindow: rate.capWindow ?? "MONTH",
+        capGroupId: rate.capGroupId ?? "",
+        requiresConditionId: rate.requiresConditionId ?? "",
       })),
       credits: rewards.credits.map((credit) => ({
         id: credit.id,
         label: credit.label,
         value: minorToDollarInput(credit.valueMinor),
         period: credit.period,
+      })),
+      capGroups: (rewards.capGroups ?? []).map((group) => ({
+        id: group.id,
+        label: group.label,
+        cap: minorToDollarInput(group.capMinor),
+        capWindow: group.capWindow,
+      })),
+      conditions: (rewards.conditions ?? []).map((condition) => ({
+        id: condition.id,
+        label: condition.label,
+        enabled: condition.enabled,
+        annualFeeReduction:
+          condition.annualFeeReductionMinor === undefined ? "" : minorToDollarInput(condition.annualFeeReductionMinor),
+      })),
+      merchantRates: (rewards.merchantRates ?? []).map((rate) => ({
+        id: rate.id,
+        merchant: rate.merchant,
+        multiplier: rate.multiplier.toString(),
+        requiresConditionId: rate.requiresConditionId ?? "",
       })),
     },
   };

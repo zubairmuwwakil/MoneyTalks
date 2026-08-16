@@ -1,5 +1,5 @@
 import { recommend, type Pick, type PurchaseCtx } from "./picker";
-import { periodKeyFor, SPEND_CATEGORIES, type CardDef, type SpendCategory } from "./types";
+import { effectiveAnnualFeeMinor, periodKeyFor, SPEND_CATEGORIES, type CardDef, type SpendCategory } from "./types";
 
 export function cheatSheet(
   cards: CardDef[],
@@ -36,9 +36,10 @@ export function cardVerdict(
   }, 0);
 
   const realizedMinor = creditValue + rewardsEstimateMinor;
-  const netMinor = realizedMinor - card.annualFeeMinor;
+  const effectiveAnnualFee = effectiveAnnualFeeMinor(card);
+  const netMinor = realizedMinor - effectiveAnnualFee;
   const verdict =
-    card.annualFeeMinor === 0 || netMinor >= 0
+    effectiveAnnualFee === 0 || netMinor >= 0
       ? "KEEP"
       : isBestSomewhere
         ? "DOWNGRADE"

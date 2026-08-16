@@ -16,10 +16,23 @@ export function CardPicker({ cards, capUsage, today }: { cards: CardDef[]; capUs
   const [amexAccepted, setAmexAccepted] = useState(true);
   const [foreign, setForeign] = useState(false);
   const [merchant, setMerchant] = useState<MerchantFact | null>(null);
+  const [personalMerchantName, setPersonalMerchantName] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
   const matches = useMemo(() => matchMerchant(query).slice(0, 5), [query]);
-  const effectiveCategory = merchant?.category ?? category;
+  const personalMerchantMatches = useMemo(() => {
+    const uniqueNames = [
+      ...new Set(
+        cards.flatMap((card) =>
+          card.rewards.merchantRates?.flatMap((rate) => rate.merchant.split(",").map((name) => name.trim()).filter(Boolean)) ?? [],
+        ),
+      ),
+    ];
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    if (!normalizedQuery) return [];
+    return uniqueNames.filter((name) => name.toLocaleLowerCase().includes(normalizedQuery)).slice(0, 5);
+  }, [cards, query]);
+  const effectiveCategory = merchant?.category ?? category ?? (personalMerchantName ? "everything_else" : null);
   const ctx: PurchaseCtx | null = effectiveCategory
     ? {
         category: effectiveCategory,
@@ -27,6 +40,7 @@ export function CardPicker({ cards, capUsage, today }: { cards: CardDef[]; capUs
         foreign: effectiveCategory === "online_foreign" ? true : foreign,
         networkRestriction: merchant?.networkRestriction ?? null,
         today,
+        merchantName: merchant?.name ?? personalMerchantName,
       }
     : null;
   const answer = ctx ? recommend(cards, ctx, capUsage) : null;
@@ -39,11 +53,12 @@ export function CardPicker({ cards, capUsage, today }: { cards: CardDef[]; capUs
           onChange={(e) => {
             setQuery(e.target.value);
             setMerchant(null);
+            setPersonalMerchantName(null);
           }}
           placeholder="Merchant search (e.g. Costco)"
           className="w-full rounded border px-3 py-2 text-sm"
         />
-        {matches.length > 0 && !merchant ? (
+        {(matches.length > 0 || personalMerchantMatches.length > 0) && !merchant && !personalMerchantName ? (
           <ul className="mt-1 rounded border text-sm">
             {matches.map((m) => (
               <li key={m.name}>
@@ -52,6 +67,7 @@ export function CardPicker({ cards, capUsage, today }: { cards: CardDef[]; capUs
                   className="w-full px-3 py-2 text-left hover:bg-muted/50"
                   onClick={() => {
                     setMerchant(m);
+                    setPersonalMerchantName(null);
                     setQuery(m.name);
                   }}
                 >
@@ -60,6 +76,21 @@ export function CardPicker({ cards, capUsage, today }: { cards: CardDef[]; capUs
                     {CATEGORY_LABELS[m.category]}
                     {m.note ? ` - ${m.note}` : ""}
                   </span>
+                </button>
+              </li>
+            ))}
+            {personalMerchantMatches.map((name) => (
+              <li key={`personal-${name}`}>
+                <button
+                  type="button"
+                  className="w-full px-3 py-2 text-left hover:bg-muted/50"
+                  onClick={() => {
+                    setMerchant(null);
+                    setPersonalMerchantName(name);
+                    setQuery(name);
+                  }}
+                >
+                  <span>{name}</span> <span className="text-xs text-muted-foreground">your merchant bonus</span>
                 </button>
               </li>
             ))}
@@ -75,6 +106,7 @@ export function CardPicker({ cards, capUsage, today }: { cards: CardDef[]; capUs
             onClick={() => {
               setCategory(c);
               setMerchant(null);
+              setPersonalMerchantName(null);
               setQuery("");
             }}
             className={`min-h-12 rounded border px-3 py-3 text-sm ${

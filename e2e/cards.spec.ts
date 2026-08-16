@@ -48,11 +48,28 @@ test("cards end to end", async ({ browser, baseURL }) => {
   await page.getByLabel("Point value (¢)").fill("1");
   await page.getByLabel("Foreign transaction fee (%)").fill("0");
 
+  const conditions = page.getByTestId("conditions-form");
+  await conditions.getByRole("button", { name: "Add condition" }).click();
+  await conditions.getByLabel("Condition").fill("Fixture account condition");
+  await conditions.getByLabel("Annual-fee reduction ($, optional)").fill("12.00");
+
+  const sharedCaps = page.getByTestId("shared-cap-form");
+  await sharedCaps.getByRole("button", { name: "Add shared cap" }).click();
+  await sharedCaps.getByLabel("Cap name").fill("Fixture food cap");
+  await sharedCaps.getByLabel("Spend cap ($)").fill("750.00");
+
   const categories = page.getByTestId("bonus-category-form");
   await categories.getByRole("button", { name: "Add category" }).click();
   await categories.getByLabel("Category").selectOption("groceries");
   await categories.getByLabel("Earn rate (points/$)").fill("3");
-  await categories.getByLabel("Spend cap ($, optional)").fill("750.00");
+  await categories.getByLabel("Shared cap").selectOption("cap-group-1");
+  await categories.getByLabel("Active when").selectOption("condition-1");
+
+  const merchants = page.getByTestId("merchant-bonus-form");
+  await merchants.getByRole("button", { name: "Add merchant bonus" }).click();
+  await merchants.getByLabel("Merchant").fill("Fixture Merchant");
+  await merchants.getByLabel("Earn rate (points/$)").fill("4");
+  await merchants.getByLabel("Active when").selectOption("condition-1");
 
   const credits = page.getByTestId("credit-form");
   await credits.getByRole("button", { name: "Add credit" }).click();
@@ -62,6 +79,20 @@ test("cards end to end", async ({ browser, baseURL }) => {
   await page.getByRole("button", { name: "Add card" }).click();
   await expect(page.getByRole("heading", { name: "Fixture Form Visa" })).toBeVisible();
   await expect(page.getByText("Fixture dining credit")).toBeVisible();
+  const walletConditions = page.getByRole("heading", { name: "Wallet conditions" }).locator("..");
+  await expect(walletConditions.getByText("Fixture account condition")).toBeVisible();
+  await expect(page.getByText(/effective fee \$0\.00\/yr/)).toBeVisible();
+
+  await page.goto("/cards");
+  await page.getByPlaceholder(/Merchant search/).fill("Fixture Merchant");
+  await page.getByRole("button", { name: /Fixture Merchant.*your merchant bonus/ }).click();
+  await expect(page.getByTestId("picker-answer")).toContainText("Fixture Form Visa");
+  await expect(page.getByTestId("picker-answer")).toContainText("4.0%");
+
+  await page.goto("/cards/manage");
+  await page.getByText("Fixture Form Visa").click();
+  await page.getByRole("button", { name: "turn off" }).click();
+  await expect(page.getByText("(off)")).toBeVisible();
 
   await page.getByRole("link", { name: "Edit card" }).click();
   await page.locator('input[name="annualFee"]').fill("99.00");

@@ -52,6 +52,57 @@ describe("effectiveReturnPct", () => {
     ]);
     expect(lastMonth?.pct).toBeCloseTo(4.8);
   });
+
+  it("shares a cap across the categories assigned to a cap group", () => {
+    const sharedCapCard = {
+      ...alpha,
+      rewards: {
+        ...alpha.rewards,
+        capGroups: [
+          { id: "food", label: "Food", capMinor: 100_000, capWindow: "MONTH" },
+        ],
+        categoryRates: [
+          { category: "groceries", multiplier: 4, capGroupId: "food" },
+          { category: "dining", multiplier: 4, capGroupId: "food" },
+        ],
+      },
+    } as unknown as typeof alpha;
+
+    const result = effectiveReturnPct(sharedCapCard, { ...baseCtx, category: "groceries" }, [
+      { cardId: "alpha", category: "dining", periodKey: "2026-08", usedMinor: 100_000 },
+    ]);
+
+    expect(result?.pct).toBeCloseTo(1.2);
+    expect(result?.why).toContain("Food cap reached");
+  });
+
+  it("uses an eligible merchant-specific bonus and ignores it when its condition is off", () => {
+    const merchantBonusCard = {
+      ...alpha,
+      rewards: {
+        ...alpha.rewards,
+        baseMultiplier: 1,
+        merchantRates: [
+          {
+            id: "triangle",
+            merchant: "Canadian Tire, Sport Chek",
+            multiplier: 4,
+            requiresConditionId: "triangle-account",
+          },
+        ],
+        conditions: [{ id: "triangle-account", label: "Triangle account", enabled: true }],
+      },
+    } as unknown as typeof alpha;
+    const ctx = {
+      ...baseCtx,
+      merchantName: "Sport Chek",
+    } as unknown as PurchaseCtx;
+
+    expect(effectiveReturnPct(merchantBonusCard, ctx, [])?.pct).toBeCloseTo(4.8);
+
+    merchantBonusCard.rewards.conditions![0].enabled = false;
+    expect(effectiveReturnPct(merchantBonusCard, ctx, [])?.pct).toBeCloseTo(1.2);
+  });
 });
 
 describe("recommend", () => {
