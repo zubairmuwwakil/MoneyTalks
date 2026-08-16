@@ -55,7 +55,7 @@ test("rules engine end to end", async ({ browser, baseURL }) => {
   await page.locator('form:has(input[name="symbol"]) input[name="name"]').fill("Fictional Canadian ETF");
   await page.locator('input[name="domicileCountry"]').fill("CA");
   await page.locator('input[name="quantity"]').fill("10");
-  await page.locator('input[name="lastPriceMinor"]').fill("1000");
+  await page.locator('input[name="lastPrice"]').fill("10.00");
   await page.locator('input[name="priceAsOf"]').fill("2026-08-01");
   await submit(page, /Add \/ update holding/, "/investments/");
 

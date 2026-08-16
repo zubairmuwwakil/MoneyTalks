@@ -8,35 +8,71 @@
       "autopay": true,
       "prepaymentMonthDay": "03-15",
       "interestRatePct": 5,
-      "cadence": { "type": "BIWEEKLY", "anchor": "2026-01-07" },
-      "schedule": [{ "from": "2020-01-01", "amountMinor": 100000 }]
+      "cadence": {
+        "type": "BIWEEKLY",
+        "anchor": "2026-01-07"
+      },
+      "schedule": [
+        {
+          "from": "2020-01-01",
+          "amount": 1000.0
+        }
+      ]
     },
     {
       "name": "Fixture Condo Fees",
       "category": "housing",
       "autopay": true,
-      "cadence": { "type": "MONTHLY", "dayOfMonth": 1 },
+      "cadence": {
+        "type": "MONTHLY",
+        "dayOfMonth": 1
+      },
       "schedule": [
-        { "from": "2020-01-01", "to": "2026-07-31", "amountMinor": 40000 },
-        { "from": "2026-08-01", "amountMinor": 42000 }
+        {
+          "from": "2020-01-01",
+          "to": "2026-07-31",
+          "amount": 400.0
+        },
+        {
+          "from": "2026-08-01",
+          "amount": 420.0
+        }
       ]
     },
     {
       "name": "Fixture Stream Bundle",
       "category": "subscriptions",
       "autopay": true,
-      "cadence": { "type": "MONTHLY", "dayOfMonth": 1 },
+      "cadence": {
+        "type": "MONTHLY",
+        "dayOfMonth": 1
+      },
       "schedule": [
-        { "from": "2025-09-01", "to": "2026-08-31", "amountMinor": 1000 },
-        { "from": "2026-09-01", "amountMinor": 1500 }
+        {
+          "from": "2025-09-01",
+          "to": "2026-08-31",
+          "amount": 10.0
+        },
+        {
+          "from": "2026-09-01",
+          "amount": 15.0
+        }
       ]
     },
     {
       "name": "Fixture Water",
       "category": "utilities",
       "variable": true,
-      "cadence": { "type": "QUARTERLY", "anchor": "2026-09-30" },
-      "schedule": [{ "from": "2020-01-01", "amountMinor": 25000 }]
+      "cadence": {
+        "type": "QUARTERLY",
+        "anchor": "2026-09-30"
+      },
+      "schedule": [
+        {
+          "from": "2020-01-01",
+          "amount": 250.0
+        }
+      ]
     }
   ]
 }

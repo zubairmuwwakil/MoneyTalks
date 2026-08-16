@@ -75,7 +75,7 @@ test("creating a biweekly bill through the form", async ({ browser, baseURL }) =
   await page.locator('select[name="category"]').selectOption("utilities");
   await page.getByLabel("Cadence").selectOption("BIWEEKLY");
   await page.getByLabel(/Anchor date/).fill("2026-01-07");
-  await page.getByLabel("Amount (cents)").fill("8250");
+  await page.getByLabel("Amount ($)").fill("82.50");
   await page.getByLabel("Amount effective from").fill("2020-01-01");
   await submit(page, "Create bill", "/bills/new");
 
@@ -92,7 +92,7 @@ test("creating a biweekly bill through the form", async ({ browser, baseURL }) =
   // A duplicate name is rejected rather than silently replacing the schedule
   await page.goto("/bills/new");
   await page.locator('input[name="name"]').fill("Fixture Hydro");
-  await page.getByLabel("Amount (cents)").fill("100");
+  await page.getByLabel("Amount ($)").fill("1.00");
   await page.getByLabel("Amount effective from").fill("2020-01-01");
   await submit(page, "Create bill", "/bills/new");
   await expect(page.getByText(/already exists/)).toBeVisible();

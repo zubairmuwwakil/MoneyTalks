@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { periodKeyFor, SPEND_CATEGORIES, type CapUsage, type CardRewards, type SpendCategory } from "@/engine/cards/types";
 import type { RedeemedCredit } from "@/engine/cards/roi";
+import { parseDollarsToMinor } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -27,9 +28,11 @@ export async function addCapUsage(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const cardId = String(formData.get("cardId") ?? "");
   const category = String(formData.get("category") ?? "") as SpendCategory;
-  const amountMinor = Number(formData.get("amountMinor"));
+  const amountMinor = parseDollarsToMinor(String(formData.get("amount") ?? ""));
   if (!SPEND_CATEGORIES.includes(category)) return { ok: false, error: "Bad category" };
-  if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) return { ok: false, error: "Bad amount" };
+  if (amountMinor === null || !Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
+    return { ok: false, error: "Spend must be a dollar amount, e.g. 84.20" };
+  }
   try {
     const card = await ownedCard(userId, cardId);
     const rewards = card.rewards as unknown as CardRewards;
@@ -84,8 +87,10 @@ export async function toggleCredit(formData: FormData): Promise<ActionResult> {
 export async function setRewardsEstimate(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const cardId = String(formData.get("cardId") ?? "");
-  const estimate = Number(formData.get("rewardsEstimateMinor"));
-  if (!Number.isSafeInteger(estimate) || estimate < 0) return { ok: false, error: "Bad estimate" };
+  const estimate = parseDollarsToMinor(String(formData.get("rewardsEstimate") ?? ""));
+  if (estimate === null || !Number.isSafeInteger(estimate) || estimate < 0) {
+    return { ok: false, error: "Estimate must be a dollar amount, e.g. 240.00" };
+  }
   try {
     await ownedCard(userId, cardId);
     await prisma.cardState.upsert({

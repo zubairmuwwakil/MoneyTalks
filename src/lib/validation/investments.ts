@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { billImportEntry } from "./bills";
 import { cardImportEntry } from "./cards";
-import { countryCode, currencyCode, formBoolean, isoDate, minorUnits } from "./primitives";
+import { countryCode, currencyCode, dollarAmount, formBoolean, isoDate } from "./primitives";
 
 export const IMPORT_LIMITS = {
   fileBytes: 5 * 1024 * 1024,
@@ -14,8 +14,6 @@ export const IMPORT_LIMITS = {
   totalRows: 10000,
 } as const;
 
-const positiveMinor = minorUnits.positive();
-
 export const accountInput = z.object({
   type: z.enum(["RRSP", "TFSA", "RDSP", "FHSA", "ROTH_IRA", "NON_REGISTERED", "CASH", "CHEQUING", "CRYPTO"]),
   name: z.string().trim().min(1).max(80),
@@ -25,27 +23,37 @@ export const accountInput = z.object({
   isUSSitus: formBoolean,
 });
 
-export const holdingInput = z.object({
-  symbol: z.string().trim().min(1).max(20),
-  name: z.string().trim().min(1).max(80),
-  domicileCountry: countryCode,
-  quantity: z.coerce.number().positive().finite(),
-  bookCostMinor: minorUnits.nonnegative().optional(),
-  lastPriceMinor: minorUnits.nonnegative(),
-  priceAsOf: isoDate,
-});
+export const holdingInput = z
+  .object({
+    symbol: z.string().trim().min(1).max(20),
+    name: z.string().trim().min(1).max(80),
+    domicileCountry: countryCode,
+    quantity: z.coerce.number().positive().finite(),
+    bookCost: dollarAmount({ min: 0 }).optional(),
+    lastPrice: dollarAmount({ min: 0 }),
+    priceAsOf: isoDate,
+  })
+  .transform(({ bookCost, lastPrice, ...rest }) => ({
+    ...rest,
+    bookCostMinor: bookCost,
+    lastPriceMinor: lastPrice,
+  }));
 
-export const transactionInput = z.object({
-  type: z.enum(["CONTRIBUTION", "WITHDRAWAL", "BUY", "SELL", "DIVIDEND", "INTEREST", "FEE"]),
-  amountMinor: positiveMinor,
-  date: isoDate,
-  description: z.string().trim().max(200).optional(),
-});
+export const transactionInput = z
+  .object({
+    type: z.enum(["CONTRIBUTION", "WITHDRAWAL", "BUY", "SELL", "DIVIDEND", "INTEREST", "FEE"]),
+    amount: dollarAmount({ min: 1 }),
+    date: isoDate,
+    description: z.string().trim().max(200).optional(),
+  })
+  .transform(({ amount, ...rest }) => ({ ...rest, amountMinor: amount }));
 
-export const snapshotInput = z.object({
-  balanceMinor: minorUnits,
-  asOf: isoDate,
-});
+export const snapshotInput = z
+  .object({
+    balance: dollarAmount(),
+    asOf: isoDate,
+  })
+  .transform(({ balance, ...rest }) => ({ ...rest, balanceMinor: balance }));
 
 export const fxRateInput = z
   .object({

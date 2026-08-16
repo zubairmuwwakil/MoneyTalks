@@ -14,7 +14,7 @@ import {
 } from "@/app/investments/actions";
 import { refreshPrices } from "@/app/actions/refresh";
 import { accountBalanceWithCurrency, holdingValueMinor } from "@/engine/balance";
-import { formatMinorUnits, type Currency } from "@/engine/money";
+import { formatMinorUnits, minorToDollarInput, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -227,7 +227,7 @@ export default async function AccountDetailPage({
           <input name="name" placeholder="Name" required className="rounded border px-2 py-1" />
           <input name="domicileCountry" placeholder="Domicile (CA)" required pattern="[A-Z]{2}" className="rounded border px-2 py-1" />
           <input name="quantity" placeholder="Quantity" required className="rounded border px-2 py-1" />
-          <input name="lastPriceMinor" placeholder="Price (cents)" required className="rounded border px-2 py-1" />
+          <input name="lastPrice" placeholder="Price ($)" required className="rounded border px-2 py-1" />
           <input name="priceAsOf" type="date" required className="rounded border px-2 py-1" />
           <button type="submit" className="col-span-2 rounded border px-2 py-1 sm:col-span-3">
             Add / update holding
@@ -245,7 +245,7 @@ export default async function AccountDetailPage({
               <option key={t}>{t}</option>
             ))}
           </select>
-          <input name="amountMinor" placeholder="Amount (cents)" required className="rounded border px-2 py-1" />
+          <input name="amount" placeholder="Amount ($)" required className="rounded border px-2 py-1" />
           <input name="date" type="date" required className="rounded border px-2 py-1" />
           <input name="description" placeholder="Description" className="rounded border px-2 py-1" />
           {account.type === "ROTH_IRA" ? (
@@ -283,7 +283,7 @@ export default async function AccountDetailPage({
                   <select name="type" defaultValue={t.type} aria-label="Transaction type" className="rounded border px-2 py-1">
                     {TX_TYPES.map((type) => <option key={type}>{type}</option>)}
                   </select>
-                  <input name="amountMinor" defaultValue={t.amountMinor} required aria-label="Amount in cents" className="rounded border px-2 py-1" />
+                  <input name="amount" defaultValue={minorToDollarInput(t.amountMinor)} required aria-label="Amount in dollars" className="rounded border px-2 py-1" />
                   <input name="date" type="date" defaultValue={t.date.toISOString().slice(0, 10)} required aria-label="Transaction date" className="rounded border px-2 py-1" />
                   <input name="description" defaultValue={t.description ?? ""} aria-label="Description" className="rounded border px-2 py-1" />
                   <button type="submit" className="col-span-2 inline-flex items-center justify-center gap-2 rounded border px-2 py-1 sm:col-span-4">
@@ -301,7 +301,7 @@ export default async function AccountDetailPage({
         <h2 className="font-medium">Balance snapshots</h2>
         <form action={submitSnapshot} className="mt-3 flex max-w-md gap-2 text-sm">
           <input type="hidden" name="accountId" value={account.id} />
-          <input name="balanceMinor" placeholder="Balance (cents)" required className="flex-1 rounded border px-2 py-1" />
+          <input name="balance" placeholder="Balance ($)" required className="flex-1 rounded border px-2 py-1" />
           <input name="asOf" type="date" required className="rounded border px-2 py-1" />
           <button type="submit" className="rounded border px-2 py-1">
             Snapshot

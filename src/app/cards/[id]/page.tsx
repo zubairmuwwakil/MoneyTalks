@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { addCapUsage, deleteCard, setRewardsEstimate, toggleCredit } from "@/app/cards/actions";
 import { cardVerdict, isBestSomewhere, type RedeemedCredit } from "@/engine/cards/roi";
 import { CATEGORY_LABELS, periodKeyFor, type CapUsage, type CardDef, type CardRewards } from "@/engine/cards/types";
-import { formatMinorUnits } from "@/engine/money";
+import { formatMinorUnits, minorToDollarInput } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -121,7 +121,7 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
                     <form action={addCapUsageAction} className="flex flex-wrap gap-2">
                       <input type="hidden" name="cardId" value={card.id} />
                       <input type="hidden" name="category" value={rate.category} />
-                      <input name="amountMinor" placeholder="Add spend (cents)" className="w-40 rounded border px-2 py-1 text-xs" />
+                      <input name="amount" placeholder="Add spend ($)" className="w-40 rounded border px-2 py-1 text-xs" />
                       <button type="submit" className="rounded border px-2 py-1 text-xs hover:bg-muted/50">
                         add
                       </button>
@@ -138,12 +138,13 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
         <form action={setRewardsEstimateAction} className="mt-2 flex flex-wrap gap-2 text-sm">
           <input type="hidden" name="cardId" value={card.id} />
           <input
-            name="rewardsEstimateMinor"
-            defaultValue={card.state?.rewardsEstimateMinor ?? 0}
+            name="rewardsEstimate"
+            aria-label="Rewards earned this year in dollars"
+            defaultValue={minorToDollarInput(card.state?.rewardsEstimateMinor ?? 0)}
             className="w-40 rounded border px-2 py-1"
           />
           <button type="submit" className="rounded border px-3 py-1 hover:bg-muted/50">
-            Save (cents)
+            Save ($)
           </button>
         </form>
       </section>

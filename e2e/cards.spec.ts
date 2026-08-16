@@ -41,11 +41,11 @@ test("cards end to end", async ({ browser, baseURL }) => {
   await expect(page.getByText("DOWNGRADE").first()).toBeVisible();
   await page.getByText("Fixture Alpha Amex").click();
   await page.getByRole("button", { name: "mark redeemed" }).click();
-  await page.locator('input[name="rewardsEstimateMinor"]').fill("6000");
+  await page.locator('input[name="rewardsEstimate"]').fill("60.00");
   await page.getByRole("button", { name: /Save/ }).click();
   await expect(page.getByText("KEEP")).toBeVisible();
 
-  await page.locator('input[name="amountMinor"]').fill("150000");
+  await page.locator('input[name="amount"]').fill("1500.00");
   await page.getByRole("button", { name: "add", exact: true }).click();
   await page.goto("/cards");
   await page.getByRole("button", { name: "Groceries" }).click();

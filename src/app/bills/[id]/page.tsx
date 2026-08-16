@@ -124,7 +124,7 @@ export default async function BillDetailPage({
           <input type="hidden" name="billId" value={bill.id} />
           <input name="from" type="date" required className="rounded border px-2 py-1" />
           <input name="to" type="date" className="rounded border px-2 py-1" />
-          <input name="amountMinor" placeholder="Amount (cents)" required className="rounded border px-2 py-1" />
+          <input name="amount" placeholder="Amount ($)" required className="rounded border px-2 py-1" />
           <input name="note" placeholder="Note" className="rounded border px-2 py-1" />
           <button type="submit" className="rounded border px-2 py-1">Add schedule entry</button>
         </form>
@@ -158,8 +158,8 @@ export default async function BillDetailPage({
                       <input type="hidden" name="dueDate" value={o.date} />
                       {bill.variable ? (
                         <input
-                          name="actualAmountMinor"
-                          placeholder="actual ¢"
+                          name="actualAmount"
+                          placeholder="actual $"
                           className="w-20 rounded border px-1 py-0.5 text-xs"
                         />
                       ) : null}

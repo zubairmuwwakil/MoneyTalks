@@ -5,29 +5,49 @@
       "nickname": "Fixture Alpha Amex",
       "issuer": "Fixture Financial",
       "network": "AMEX",
-      "annualFeeMinor": 15000,
+      "annualFee": 150.0,
       "dueDay": 15,
       "rewards": {
         "pointValueCents": 1.2,
         "fxFeePct": 2.5,
         "baseMultiplier": 1,
         "categoryRates": [
-          { "category": "dining", "multiplier": 5 },
-          { "category": "groceries", "multiplier": 4, "capMinor": 150000, "capWindow": "MONTH" }
+          {
+            "category": "dining",
+            "multiplier": 5
+          },
+          {
+            "category": "groceries",
+            "multiplier": 4,
+            "cap": 1500.0,
+            "capWindow": "MONTH"
+          }
         ],
-        "credits": [{ "id": "dine100", "label": "$100 dining credit", "valueMinor": 10000, "period": "YEAR" }]
+        "credits": [
+          {
+            "id": "dine100",
+            "label": "$100 dining credit",
+            "value": 100.0,
+            "period": "YEAR"
+          }
+        ]
       }
     },
     {
       "nickname": "Fixture Beta Visa",
       "issuer": "Fixture Bank",
       "network": "VISA",
-      "annualFeeMinor": 0,
+      "annualFee": 0.0,
       "rewards": {
         "pointValueCents": 1,
         "fxFeePct": 2.5,
         "baseMultiplier": 1.5,
-        "categoryRates": [{ "category": "groceries", "multiplier": 3 }],
+        "categoryRates": [
+          {
+            "category": "groceries",
+            "multiplier": 3
+          }
+        ],
         "credits": []
       }
     },
@@ -35,13 +55,20 @@
       "nickname": "Fixture Gamma MC",
       "issuer": "Fixture Trust",
       "network": "MASTERCARD",
-      "annualFeeMinor": 12000,
+      "annualFee": 120.0,
       "rewards": {
         "pointValueCents": 1,
         "fxFeePct": 0,
         "baseMultiplier": 2,
         "categoryRates": [],
-        "credits": [{ "id": "travel90", "label": "$90 travel credit", "valueMinor": 9000, "period": "YEAR" }]
+        "credits": [
+          {
+            "id": "travel90",
+            "label": "$90 travel credit",
+            "value": 90.0,
+            "period": "YEAR"
+          }
+        ]
       }
     }
   ]

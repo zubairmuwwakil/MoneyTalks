@@ -11,13 +11,13 @@ export function BillFormFields() {
   const [dayOfMonth, setDayOfMonth] = useState("1");
   const [startsFrom, setStartsFrom] = useState("");
   const [from, setFrom] = useState("");
-  const [amountMinor, setAmountMinor] = useState("");
+  const [amount, setAmount] = useState("");
 
   const cadence =
     type === "MONTHLY"
       ? { type, dayOfMonth: Number(dayOfMonth), ...(startsFrom ? { startsFrom } : {}) }
       : { type, anchor };
-  const schedule = [{ from, amountMinor: Number(amountMinor) }];
+  const schedule = [{ from, amount }];
 
   return (
     <>
@@ -62,8 +62,8 @@ export function BillFormFields() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <label className={label}>Amount (cents)
-          <input type="number" required value={amountMinor} onChange={(e) => setAmountMinor(e.target.value)} className={input} />
+        <label className={label}>Amount ($)
+          <input type="number" step="0.01" min="0" required value={amount} onChange={(e) => setAmount(e.target.value)} className={input} />
         </label>
         <label className={label}>Amount effective from
           <input type="date" required value={from} onChange={(e) => setFrom(e.target.value)} className={input} />

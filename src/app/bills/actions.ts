@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
+import { parseDollarsToMinor } from "@/engine/money";
 import { amountOn, type ScheduleEntry } from "@/engine/recurrence";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -94,13 +95,16 @@ export async function removeScheduleEntry(formData: FormData): Promise<ActionRes
 export async function markPaid(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const dueDate = String(formData.get("dueDate") ?? "");
-  const actualRaw = String(formData.get("actualAmountMinor") ?? "").trim();
+  const actualRaw = String(formData.get("actualAmount") ?? "").trim();
   try {
     const bill = await ownedBill(userId, String(formData.get("billId") ?? ""));
     const expected = amountOn(bill.schedule as unknown as ScheduleEntry[], dueDate);
     if (expected === null) return { ok: false, error: "No scheduled amount on that date" };
-    const actual = actualRaw === "" ? expected : Number(actualRaw);
-    if (!Number.isSafeInteger(actual) || actual < 0) return { ok: false, error: "Bad actual amount" };
+    // Typed in dollars like every other money field; stored as integer cents.
+    const actual = actualRaw === "" ? expected : parseDollarsToMinor(actualRaw);
+    if (actual === null || !Number.isSafeInteger(actual) || actual < 0) {
+      return { ok: false, error: "Actual amount must be a dollar amount, e.g. 84.20" };
+    }
     await prisma.payment.upsert({
       where: { billId_dueDate: { billId: bill.id, dueDate: new Date(dueDate) } },
       update: { actualAmountMinor: actual, paidAt: new Date() },

@@ -8,8 +8,12 @@ import {
   transactionInput,
 } from "./investments";
 
-const PRISMA_INT_MIN = -2_147_483_648;
-const PRISMA_INT_MAX = 2_147_483_647;
+// Money is entered in DOLLARS and stored as integer cents, so the Prisma Int
+// boundary is expressed here as the dollar value that lands exactly on it.
+const MAX_DOLLARS = "21474836.47"; // -> 2_147_483_647 cents
+const MIN_DOLLARS = "-21474836.48"; // -> -2_147_483_648 cents
+const OVER_MAX_DOLLARS = "21474836.48";
+const UNDER_MIN_DOLLARS = "-21474836.49";
 
 describe("accountInput", () => {
   it("accepts a valid account", () => {
@@ -42,15 +46,21 @@ describe("accountInput", () => {
 });
 
 describe("transactionInput", () => {
-  it("coerces form-data strings and requires positive integers", () => {
-    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amountMinor: "5000", currency: "CAD", date: "2026-08-01" }).success).toBe(true);
-    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amountMinor: "-5000", currency: "CAD", date: "2026-08-01" }).success).toBe(false);
-    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amountMinor: "50.5", currency: "CAD", date: "2026-08-01" }).success).toBe(false);
+  it("takes dollars, stores cents, and requires a positive amount", () => {
+    const ok = transactionInput.safeParse({ type: "CONTRIBUTION", amount: "50.00", currency: "CAD", date: "2026-08-01" });
+    expect(ok).toMatchObject({ success: true, data: { amountMinor: 5000 } });
+    // A bare dollar figure and a formatted one land on the same cents.
+    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amount: "$1,234.56", currency: "CAD", date: "2026-08-01" }))
+      .toMatchObject({ success: true, data: { amountMinor: 123456 } });
+    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amount: "-50.00", currency: "CAD", date: "2026-08-01" }).success).toBe(false);
+    // Sub-cent precision is not representable and must not silently round.
+    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amount: "50.555", currency: "CAD", date: "2026-08-01" }).success).toBe(false);
+    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amount: "not money", currency: "CAD", date: "2026-08-01" }).success).toBe(false);
   });
 
   it("rejects impossible and trailing calendar dates", () => {
-    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amountMinor: "5000", currency: "CAD", date: "2026-02-31" }).success).toBe(false);
-    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amountMinor: "5000", currency: "CAD", date: "2026-08-01junk" }).success).toBe(false);
+    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amount: "50.00", currency: "CAD", date: "2026-02-31" }).success).toBe(false);
+    expect(transactionInput.safeParse({ type: "CONTRIBUTION", amount: "50.00", currency: "CAD", date: "2026-08-01junk" }).success).toBe(false);
   });
 
   it("rejects amounts outside the signed Prisma Int range", () => {
@@ -60,8 +70,9 @@ describe("transactionInput", () => {
       date: "2026-08-01",
     };
 
-    expect(transactionInput.safeParse({ ...transaction, amountMinor: PRISMA_INT_MAX }).success).toBe(true);
-    expect(transactionInput.safeParse({ ...transaction, amountMinor: PRISMA_INT_MAX + 1 }).success).toBe(false);
+    expect(transactionInput.safeParse({ ...transaction, amount: MAX_DOLLARS }))
+      .toMatchObject({ success: true, data: { amountMinor: 2_147_483_647 } });
+    expect(transactionInput.safeParse({ ...transaction, amount: OVER_MAX_DOLLARS }).success).toBe(false);
   });
 });
 
@@ -75,20 +86,25 @@ describe("holdingInput", () => {
   };
 
   it("rejects price and book-cost amounts above the signed Prisma Int range", () => {
-    expect(holdingInput.safeParse({ ...holding, lastPriceMinor: PRISMA_INT_MAX }).success).toBe(true);
-    expect(holdingInput.safeParse({ ...holding, lastPriceMinor: PRISMA_INT_MAX + 1 }).success).toBe(false);
+    expect(holdingInput.safeParse({ ...holding, lastPrice: "30.00" }))
+      .toMatchObject({ success: true, data: { lastPriceMinor: 3000 } });
+    expect(holdingInput.safeParse({ ...holding, lastPrice: MAX_DOLLARS }).success).toBe(true);
+    expect(holdingInput.safeParse({ ...holding, lastPrice: OVER_MAX_DOLLARS }).success).toBe(false);
     expect(
-      holdingInput.safeParse({ ...holding, lastPriceMinor: 1, bookCostMinor: PRISMA_INT_MAX + 1 }).success,
+      holdingInput.safeParse({ ...holding, lastPrice: "1.00", bookCost: OVER_MAX_DOLLARS }).success,
     ).toBe(false);
   });
 });
 
 describe("snapshotInput", () => {
   it("accepts Int boundaries and rejects balances outside them", () => {
-    expect(snapshotInput.safeParse({ balanceMinor: PRISMA_INT_MIN, asOf: "2026-08-01" }).success).toBe(true);
-    expect(snapshotInput.safeParse({ balanceMinor: PRISMA_INT_MAX, asOf: "2026-08-01" }).success).toBe(true);
-    expect(snapshotInput.safeParse({ balanceMinor: PRISMA_INT_MIN - 1, asOf: "2026-08-01" }).success).toBe(false);
-    expect(snapshotInput.safeParse({ balanceMinor: PRISMA_INT_MAX + 1, asOf: "2026-08-01" }).success).toBe(false);
+    expect(snapshotInput.safeParse({ balance: MIN_DOLLARS, asOf: "2026-08-01" }).success).toBe(true);
+    expect(snapshotInput.safeParse({ balance: MAX_DOLLARS, asOf: "2026-08-01" }).success).toBe(true);
+    expect(snapshotInput.safeParse({ balance: UNDER_MIN_DOLLARS, asOf: "2026-08-01" }).success).toBe(false);
+    expect(snapshotInput.safeParse({ balance: OVER_MAX_DOLLARS, asOf: "2026-08-01" }).success).toBe(false);
+    // A negative balance is legitimate (an overdrawn chequing account).
+    expect(snapshotInput.safeParse({ balance: "-120.50", asOf: "2026-08-01" }))
+      .toMatchObject({ success: true, data: { balanceMinor: -12050 } });
   });
 });
 
@@ -103,9 +119,9 @@ describe("importFile", () => {
           country: "CA",
           currency: "CAD",
           holdings: [
-            { symbol: "XEQT.TO", name: "Fictional All-Equity ETF", domicileCountry: "CA", quantity: 10, lastPriceMinor: 3000, priceAsOf: "2026-08-01" },
+            { symbol: "XEQT.TO", name: "Fictional All-Equity ETF", domicileCountry: "CA", quantity: 10, lastPrice: 30.0, priceAsOf: "2026-08-01" },
           ],
-          snapshots: [{ balanceMinor: 30000, asOf: "2026-08-01" }],
+          snapshots: [{ balance: 300.0, asOf: "2026-08-01" }],
         },
       ],
       fxRates: [{ base: "USD", quote: "CAD", rate: 1.4, asOf: "2026-08-01" }],

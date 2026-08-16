@@ -114,7 +114,7 @@ test("edit account and delete holding, transaction, snapshot, and account", asyn
   await holdingSection.locator('input[name="name"]').fill("Fictional test holding");
   await holdingSection.locator('input[name="domicileCountry"]').fill("CA");
   await holdingSection.locator('input[name="quantity"]').fill("2");
-  await holdingSection.locator('input[name="lastPriceMinor"]').fill("1250");
+  await holdingSection.locator('input[name="lastPrice"]').fill("12.50");
   await holdingSection.locator('input[name="priceAsOf"]').fill("2026-08-10");
   await holdingSection.getByRole("button", { name: "Add / update holding" }).click();
   const deleteHoldingButton = page.getByRole("button", { name: "Delete TEST holding" });
@@ -124,7 +124,7 @@ test("edit account and delete holding, transaction, snapshot, and account", asyn
 
   const transactionSection = page.getByRole("heading", { name: "Log a transaction" }).locator("..");
   await transactionSection.locator('select[name="type"]').first().selectOption("CONTRIBUTION");
-  await transactionSection.locator('input[name="amountMinor"]').first().fill("1000");
+  await transactionSection.locator('input[name="amount"]').first().fill("10.00");
   await transactionSection.locator('input[name="date"]').first().fill("2026-08-10");
   await transactionSection.locator('input[name="description"]').first().fill("Fictional contribution");
   await transactionSection.locator("form").first().evaluate((form) => {
@@ -146,14 +146,14 @@ test("edit account and delete holding, transaction, snapshot, and account", asyn
   await page.getByText("Edit transaction", { exact: true }).click();
   const editTransaction = page.locator("details form").filter({ has: page.locator('input[name="transactionId"]') });
   await editTransaction.locator('select[name="type"]').selectOption("DIVIDEND");
-  await editTransaction.locator('input[name="amountMinor"]').fill("1500");
+  await editTransaction.locator('input[name="amount"]').fill("15.00");
   await editTransaction.getByRole("button", { name: "Save transaction" }).click();
   await expect(page.getByText(/2026-08-10 DIVIDEND/)).toBeVisible();
   await page.getByRole("button", { name: "Delete dividend transaction" }).click();
   await expect(page.getByText(/2026-08-10 DIVIDEND/)).toHaveCount(0);
 
   const snapshotSection = page.getByRole("heading", { name: "Balance snapshots" }).locator("..");
-  await snapshotSection.locator('input[name="balanceMinor"]').fill("175000");
+  await snapshotSection.locator('input[name="balance"]').fill("1750.00");
   await snapshotSection.locator('input[name="asOf"]').fill("2026-08-10");
   await snapshotSection.getByRole("button", { name: "Snapshot", exact: true }).click();
   await expect(page.getByText("2026-08-10", { exact: true })).toBeVisible();

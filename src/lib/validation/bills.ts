@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { currencyCode, formBoolean, isoDate, minorUnits } from "./primitives";
+import { currencyCode, dollarAmount, formBoolean, isoDate } from "./primitives";
 
 /**
  * Blank optional inputs: an empty <input type="date"> or text field submits ""
@@ -27,10 +27,11 @@ export const scheduleEntryInput = z
   .object({
     from: isoDate,
     to: optional(isoDate),
-    amountMinor: minorUnits.positive(),
+    amount: dollarAmount({ min: 1 }),
     note: optional(z.string().trim().max(200)),
   })
-  .refine((s) => s.to === undefined || s.from <= s.to, { message: "from must be <= to" });
+  .refine((s) => s.to === undefined || s.from <= s.to, { message: "from must be <= to" })
+  .transform(({ amount, ...rest }) => ({ ...rest, amountMinor: amount }));
 
 export const billCore = z.object({
   name: z.string().trim().min(1).max(80),

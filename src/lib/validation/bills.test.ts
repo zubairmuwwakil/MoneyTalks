@@ -29,8 +29,8 @@ describe("billImportEntry", () => {
       autopay: true,
       cadence: { type: "MONTHLY", dayOfMonth: 1 },
       schedule: [
-        { from: "2025-09-01", to: "2026-08-31", amountMinor: 1000 },
-        { from: "2026-09-01", amountMinor: 1500 },
+        { from: "2025-09-01", to: "2026-08-31", amount: 10.0 },
+        { from: "2026-09-01", amount: 15.0 },
       ],
     });
     expect(parsed.success).toBe(true);
@@ -54,7 +54,7 @@ describe("form-blank handling", () => {
   it("treats an empty optional date input as absent, so open-ended entries are addable", () => {
     // <input type="date" name="to"> submits "" when left blank; a bare
     // isoDate.optional() rejects that, making open-ended entries unaddable.
-    const parsed = scheduleEntryInput.safeParse({ from: "2026-01-01", to: "", amountMinor: "500" });
+    const parsed = scheduleEntryInput.safeParse({ from: "2026-01-01", to: "", amount: "5.00" });
     expect(parsed.success).toBe(true);
     expect(parsed.success && parsed.data.to).toBeUndefined();
   });
@@ -65,7 +65,7 @@ describe("form-blank handling", () => {
       category: "other",
       autopay: "false",
       cadence: { type: "MONTHLY", dayOfMonth: 1 },
-      schedule: [{ from: "2026-01-01", amountMinor: 100 }],
+      schedule: [{ from: "2026-01-01", amount: 1.0 }],
     });
     expect(parsed.success && parsed.data.autopay).toBe(false);
   });
@@ -73,17 +73,17 @@ describe("form-blank handling", () => {
 
 describe("calendar and range validation", () => {
   it("rejects dates that do not exist", () => {
-    expect(scheduleEntryInput.safeParse({ from: "2026-02-31", amountMinor: 100 }).success).toBe(false);
+    expect(scheduleEntryInput.safeParse({ from: "2026-02-31", amount: 1.0 }).success).toBe(false);
     expect(cadenceInput.safeParse({ type: "BIWEEKLY", anchor: "2026-13-01" }).success).toBe(false);
   });
 
   it("rejects an amount beyond the int32 column range", () => {
-    expect(scheduleEntryInput.safeParse({ from: "2026-01-01", amountMinor: 2_147_483_648 }).success).toBe(false);
+    expect(scheduleEntryInput.safeParse({ from: "2026-01-01", amount: "21474836.48" }).success).toBe(false);
   });
 
   it("rejects a schedule entry ending before it starts", () => {
     expect(
-      scheduleEntryInput.safeParse({ from: "2026-06-01", to: "2026-01-01", amountMinor: 100 }).success,
+      scheduleEntryInput.safeParse({ from: "2026-06-01", to: "2026-01-01", amount: 1.0 }).success,
     ).toBe(false);
   });
 });
