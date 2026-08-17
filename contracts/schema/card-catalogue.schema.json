@@ -260,12 +260,13 @@
         "limit": { "type": "number" },
         "period": {
           "enum": ["calendarMonth", "calendarYear", "accountYear"],
-          "description": "Read by PortfolioAnalyzer for monthly-cap reporting — the only one of period/anchor/resetTimeZone the engine actually consumes."
+          "x-status": "server-implemented",
+          "description": "Read by PortfolioAnalyzer for monthly-cap reporting and by Swift cap-window projections. MoneyTalks additionally resolves the current server ledger window from this field."
         },
         "anchor": {
           "type": "string",
-          "x-status": "declared-not-computed",
-          "description": "Decoded onto Cap.anchor (a self-documenting pointer string like \"ownerState.scotiaAccountYearAnchorMonth\") but nothing resolves or reads it — cap usage comes entirely from the externally-tracked OwnerState.CardState.capProgress, not from period math the engine performs itself."
+          "x-status": "server-implemented",
+          "description": "Decoded onto Cap.anchor (a self-documenting pointer string like \"ownerState.scotiaAccountYearAnchorMonth\"). MoneyTalks resolves the declared owner-state anchor for account-year ledger windows; Swift cap-window projections resolve the same supported paths."
         },
         "resetTimeZone": {
           "type": "string",

@@ -20,6 +20,8 @@ model User {
   accounts       Account[]
   walletInstallations WalletInstallation[]
   walletEvents    WalletEvent[]
+  capUsageLedgers CapUsageLedger[]
+  capAccruals     CapAccrual[]
   ownerStateRecord OwnerStateRecord?
   sessions       Session[]
   authenticators Authenticator[]
@@ -473,6 +475,9 @@ model Purchase {
   purchasedAt   DateTime
   orderNumber   String?
   paymentMethod String?
+  // Canonical checkout category once the source has been resolved. A null
+  // category remains deliberately unresolved rather than being guessed.
+  category      String?
   source        PurchaseSource @default(GMAIL)
   sourceEmailId String?
   sourceEventId String?
@@ -900,6 +905,8 @@ model MerchantAlias {
   id             String   @id @default(cuid())
   rawString      String   @unique
   normalizedName String
+  // Optional because aliases can be resolved before a category is known.
+  category       String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
@@ -923,4 +930,38 @@ model OwnerStateRecord {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Materialized cap use for the active card-contract window. Amounts are minor
+// units of the cap's measure (CAD cents or USD-equivalent cents).
+model CapUsageLedger {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId    String
+  capId     String
+  periodKey String
+  usedMinor Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, cardId, capId, periodKey])
+  @@index([userId, capId, periodKey])
+}
+
+// One row per source event gives cap updates exactly-once semantics and retains
+// the delta required to reverse a WalletEvent after it has been normalized.
+model CapAccrual {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceKey     String   @unique
+  cardId        String
+  capId         String
+  periodKey     String
+  usedMinor     Int
+  reversedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, cardId, capId, periodKey])
 }

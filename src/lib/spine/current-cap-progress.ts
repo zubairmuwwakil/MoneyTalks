@@ -1,11 +1,13 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { capPeriodKey } from "@/lib/spine/cap-usage";
 
 type CapPeriod = "calendarMonth" | "calendarYear" | "accountYear";
 
 type CardCap = {
   capId: string;
   period: CapPeriod;
+  anchor?: string;
 };
 
 type Catalogue = {
@@ -13,12 +15,23 @@ type Catalogue = {
 };
 
 type OwnerState = {
-  cardStates?: Record<string, { capProgress?: Record<string, number>; scotiaAccountYearAnchorMonth?: number }>;
+  cardStates?: Record<string, {
+    capProgress?: Record<string, number>;
+    scotiaAccountYearAnchorMonth?: number;
+    rogersAccountAnniversaryMonth?: number;
+  }>;
 };
 
 export type CurrentCap = {
   usedMinor: number;
   periodKey: string;
+};
+
+export type CapLedgerRow = {
+  cardId: string;
+  capId: string;
+  periodKey: string;
+  usedMinor: number;
 };
 
 function loadCatalogue(): Catalogue {
@@ -27,41 +40,36 @@ function loadCatalogue(): Catalogue {
 }
 
 export function periodKey(period: CapPeriod, asOf: Date, anchorMonth?: number): string {
-  const year = asOf.getUTCFullYear();
-  const month = asOf.getUTCMonth() + 1;
-  switch (period) {
-  case "calendarMonth":
-    return `${year}-${String(month).padStart(2, "0")}`;
-  case "calendarYear":
-    return String(year);
-  case "accountYear": {
-    // The account year is named for its starting month. A missing anchor is unresolved,
-    // so retain an explicit unknown key rather than inventing a calendar-year reset.
-    if (!anchorMonth || anchorMonth < 1 || anchorMonth > 12) return "unknown";
-    const startYear = month >= anchorMonth ? year : year - 1;
-    return `${startYear}-${String(anchorMonth).padStart(2, "0")}`;
-  }
-  }
+  // Kept for callers/tests that predate the declared cap.anchor field.
+  return capPeriodKey({ period, anchor: period === "accountYear" ? "ownerState.scotiaAccountYearAnchorMonth" : undefined }, { scotiaAccountYearAnchorMonth: anchorMonth }, asOf) ?? "unknown";
 }
 
 /**
- * Until 3d's ledger is live, OwnerState's seeded cap progress is the read model.
- * Progress is stored in currency units in the card contract and exposed as minor units.
+ * OwnerState's seeded progress is the migration baseline. The spine route
+ * overlays current-period CapUsageLedger rows with real observed use.
  */
-export function currentCapProgress(stateData: unknown, asOf = new Date(), catalogue = loadCatalogue()): Record<string, CurrentCap> {
+export function currentCapProgress(stateData: unknown, asOf = new Date(), catalogue = loadCatalogue(), ledgerRows: CapLedgerRow[] = []): Record<string, CurrentCap> {
   const state = stateData as OwnerState;
   const caps: Record<string, CurrentCap> = {};
+  const ledger = new Map(ledgerRows.map((row) => [`${row.cardId}:${row.capId}:${row.periodKey}`, row]));
 
   for (const [cardId, cardState] of Object.entries(state.cardStates ?? {})) {
     const card = catalogue.cards.find((candidate) => candidate.cardId === cardId);
-    if (!card || !cardState.capProgress) continue;
+    if (!card) continue;
 
     for (const cap of card.caps) {
-      const used = cardState.capProgress[cap.capId];
+      const currentPeriodKey = capPeriodKey(cap, cardState, asOf) ?? "unknown";
+      const observed = ledger.get(`${cardId}:${cap.capId}:${currentPeriodKey}`);
+      if (observed) {
+        caps[cap.capId] = { usedMinor: observed.usedMinor, periodKey: observed.periodKey };
+        continue;
+      }
+
+      const used = cardState.capProgress?.[cap.capId];
       if (typeof used !== "number" || !Number.isFinite(used)) continue;
       caps[cap.capId] = {
         usedMinor: Math.round(used * 100),
-        periodKey: periodKey(cap.period, asOf, cardState.scotiaAccountYearAnchorMonth),
+        periodKey: currentPeriodKey,
       };
     }
   }

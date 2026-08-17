@@ -6,6 +6,7 @@ import { storeReceiptAttachment } from "@/lib/domain/receipts/receiptAttachmentS
 import { getAuthedImap } from "@/lib/services/imapClient";
 import type { Prisma } from "@prisma/client";
 import crypto from "crypto";
+import { applyCapAccrual } from "@/lib/spine/cap-usage";
 
 type TrackingHit = { trackingNumber: string; carrier?: string };
 
@@ -225,6 +226,28 @@ export async function POST(req: NextRequest) {
             orderNumber: tx.orderId ?? null,
           },
         });
+
+        // Email purchases only accrue once a card and category have been
+        // resolved. Unknown classifications deliberately remain unaccrued.
+        const resolvedCardId = purchase.paymentMethod;
+        const resolvedCategory = purchase.category;
+        const resolvedAmountMinor = purchase.totalCents;
+        if (resolvedCardId && resolvedCategory && resolvedAmountMinor != null) {
+          await prisma.$transaction(async (tx) => {
+            const ownerState = await tx.ownerStateRecord.findUnique({ where: { userId } });
+            if (!ownerState) return;
+            await applyCapAccrual(tx, {
+              sourceKey: `purchase:${purchase.id}`,
+              userId,
+              cardId: resolvedCardId,
+              category: resolvedCategory,
+              merchantBrand: purchase.merchant,
+              amountMinor: resolvedAmountMinor,
+              currency: purchase.currency,
+              occurredAt: purchase.purchasedAt,
+            }, ownerState.stateData);
+          });
+        }
 
         if (Array.isArray(tx.items)) {
           await prisma.purchaseItem.deleteMany({ where: { purchaseId: purchase.id } });

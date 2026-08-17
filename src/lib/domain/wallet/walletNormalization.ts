@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { applyCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
 
 export async function processWalletEvents() {
   const events = await prisma.walletEvent.findMany({
@@ -36,8 +37,23 @@ export async function processWalletEvents() {
               currency: event.currencyRaw || "CAD",
               purchasedAt: event.capturedAt,
               paymentMethod: cardAlias?.cardId || undefined,
+              category: merchantAlias.category,
             }
           });
+        }
+
+        const ownerState = await tx.ownerStateRecord.findUnique({ where: { userId: event.userId } });
+        if (ownerState && event.amountRaw != null && cardAlias) {
+          await applyCapAccrual(tx, {
+            sourceKey: `wallet:${event.id}`,
+            userId: event.userId,
+            cardId: cardAlias.cardId,
+            category: merchantAlias.category,
+            merchantBrand: merchantAlias.normalizedName,
+            amountMinor: Math.round(event.amountRaw * 100),
+            currency: event.currencyRaw || "CAD",
+            occurredAt: event.capturedAt,
+          }, ownerState.stateData);
         }
 
         await tx.walletEvent.update({
@@ -47,6 +63,16 @@ export async function processWalletEvents() {
       });
       processed++;
     }
+  }
+
+  // Reversed is terminal. Its original period and amount come from CapAccrual,
+  // so the current owner state cannot accidentally move the decrement.
+  const reversedEvents = await prisma.walletEvent.findMany({
+    where: { processingStatus: "REVERSED" },
+    take: 100,
+  });
+  for (const event of reversedEvents) {
+    await prisma.$transaction((tx) => reverseCapAccrual(tx, `wallet:${event.id}`));
   }
 
   return processed;
