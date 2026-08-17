@@ -2,31 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createHash } from "node:crypto";
 import { secretEquals } from "@/lib/security/secretCrypto";
-import { z } from "zod";
 import * as fs from "fs";
 import * as path from "path";
 import { RecommendationEngine, PurchaseContext, OwnerState, Catalogue } from "@/engine/cards-twin";
-
-const payloadSchema = z.object({
-  schemaVersion: z.literal(1),
-  shortcutVersion: z.number(),
-  source: z.literal("apple_wallet_shortcuts"),
-  eventId: z.string(),
-  capturedAt: z.string(),
-  timezone: z.string(),
-  transaction: z.object({
-    merchantRaw: z.string(),
-    transactionNameRaw: z.string().nullable().optional(),
-    amount: z.number().nullable().optional(),
-    currency: z.string().nullable().optional(),
-    cardRaw: z.string().nullable().optional(),
-  }),
-  location: z.object({
-    latitude: z.number(),
-    longitude: z.number(),
-    horizontalAccuracyMeters: z.number().optional(),
-  }).nullable().optional(),
-});
+import { parseWalletCapturePayload } from "@/lib/domain/wallet/capturePayload";
+import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 
 function loadCatalogue(): Catalogue {
   const p = path.resolve(process.cwd(), "contracts/card-catalogue.json");
@@ -41,8 +21,6 @@ export async function POST(req: Request) {
   const token = authHeader.substring(7);
   const tokenHash = createHash("sha256").update(token).digest("hex");
 
-  // Constant-time comparison logic requires fetching the installation first
-  // However, we can just query by tokenHash.
   const installation = await prisma.walletInstallation.findUnique({
     where: { tokenHash },
   });
@@ -56,9 +34,12 @@ export async function POST(req: Request) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  const rawBody = await req.json().catch(() => ({}));
-  const parsed = payloadSchema.safeParse(rawBody);
-  if (!parsed.success) {
+  const rawBody = await req.json().catch(() => null);
+  if (rawBody == null) {
+    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  }
+  const parsed = parseWalletCapturePayload(rawBody);
+  if (!parsed.ok) {
     return NextResponse.json({ error: "invalid payload", details: parsed.error }, { status: 400 });
   }
 
@@ -72,26 +53,38 @@ export async function POST(req: Request) {
     return NextResponse.json({ accepted: true, duplicate: true, eventId: data.eventId });
   }
 
-  // Fuzzy dup check
-  const oneMinuteAgo = new Date(Date.now() - 60000);
-  const oneMinuteFuture = new Date(Date.now() + 60000);
-  const capturedAtDate = new Date(data.capturedAt);
+  // An unparseable device timestamp must not cost us the transaction; the
+  // original string survives in capturedAtRaw / rawPayload.
+  const capturedAt = data.capturedAt ?? new Date();
 
+  // Fuzzy dup check
   const fuzzyDup = await prisma.walletEvent.findFirst({
     where: {
       userId: installation.userId,
-      cardRaw: data.transaction.cardRaw || null,
-      merchantRaw: data.transaction.merchantRaw,
-      amountRaw: data.transaction.amount || null,
+      cardRaw: data.cardRaw,
+      merchantRaw: data.merchantRaw,
+      amountRaw: data.amount,
       capturedAt: {
-        gte: new Date(capturedAtDate.getTime() - 60000),
-        lte: new Date(capturedAtDate.getTime() + 60000),
+        gte: new Date(capturedAt.getTime() - 60000),
+        lte: new Date(capturedAt.getTime() + 60000),
       }
     }
   });
 
   const processingStatus = fuzzyDup ? "POSSIBLE_DUPLICATE" : "OBSERVED";
-  const assumedCurrency = data.transaction.currency == null;
+  const assumedCurrency = data.currency == null;
+
+  // Resolve identities up front when the alias tables already know them, so
+  // the stored record is complete at capture time. The async pipeline still
+  // owns processingStatus transitions.
+  const merchantAlias = data.merchantRaw
+    ? await prisma.merchantAlias.findUnique({ where: { rawString: data.merchantRaw } })
+    : null;
+  const cardAlias = data.cardRaw
+    ? await prisma.cardAlias.findUnique({
+        where: { userId_rawString: { userId: installation.userId, rawString: data.cardRaw } },
+      })
+    : null;
 
   const createdEvent = await prisma.walletEvent.create({
     data: {
@@ -101,15 +94,20 @@ export async function POST(req: Request) {
       source: data.source,
       schemaVersion: data.schemaVersion,
       shortcutVersion: data.shortcutVersion,
-      capturedAt: capturedAtDate,
-      merchantRaw: data.transaction.merchantRaw,
-      transactionNameRaw: data.transaction.transactionNameRaw,
-      amountRaw: data.transaction.amount,
-      currencyRaw: data.transaction.currency,
-      cardRaw: data.transaction.cardRaw,
-      latitude: data.location?.latitude,
-      longitude: data.location?.longitude,
-      locationAccuracyMeters: data.location?.horizontalAccuracyMeters,
+      capturedAt,
+      capturedAtRaw: data.capturedAtRaw,
+      capturedTimezone: data.capturedTimezone,
+      merchantRaw: data.merchantRaw,
+      transactionNameRaw: data.transactionNameRaw,
+      amountRaw: data.amount,
+      currencyRaw: data.currency,
+      cardRaw: data.cardRaw,
+      merchantNormalized: merchantAlias?.normalizedName ?? null,
+      resolvedCardId: cardAlias?.cardId ?? null,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      locationAccuracyMeters: data.locationAccuracyMeters,
+      rawPayload: rawBody,
       assumedCurrency,
       processingStatus,
     }
@@ -118,69 +116,48 @@ export async function POST(req: Request) {
   // Sync verdict
   let verdict = "unknown";
   let warning: string | undefined = undefined;
+  const amountNumber = data.amount != null ? Number(data.amount) : null;
 
   try {
-    const ownerStateRecord = await prisma.ownerStateRecord.findUnique({
-      where: { userId: installation.userId }
-    });
+    const ownerStateRecord = await ensureOwnerStateRecord(prisma, installation.userId);
 
-    if (ownerStateRecord && data.transaction.cardRaw && data.transaction.amount != null) {
-      const cardAlias = await prisma.cardAlias.findUnique({ where: { rawString: data.transaction.cardRaw } });
-      const merchantAlias = await prisma.merchantAlias.findUnique({ where: { rawString: data.transaction.merchantRaw } });
-      
-      if (cardAlias && merchantAlias) {
-        // We need category for recommendation engine... 
-        // For now, if we have merchantNormalized, we can try to run it.
-        // We'll hardcode some generic category if not known, but wait, the engine requires category.
-        // If we don't know the category, how can we give a verdict?
-        // Maybe we just say category = "unknown"?
-        const ownerState = ownerStateRecord.stateData as unknown as OwnerState;
-        
-        // Wait, the real engine needs a valid category to match rules. If we just pass "unknown", it falls back to base earn.
-        // This is fine for V1 until the async categorization updates the DB. Wait, but sync verdict is generated synchronously!
-        // We will just do what we can. 
-        const purchaseContext: PurchaseContext = {
-          amountCad: data.transaction.amount,
-          currency: data.transaction.currency || "CAD",
-          category: "unknown",
-          merchantBrand: merchantAlias.normalizedName,
-        };
+    if (ownerStateRecord && cardAlias && merchantAlias && amountNumber != null) {
+      // Category is unknown at capture time; the engine falls back to base
+      // earn until async categorization improves the record.
+      const ownerState = ownerStateRecord.stateData as unknown as OwnerState;
+      const purchaseContext: PurchaseContext = {
+        amountCad: amountNumber,
+        currency: data.currency || "CAD",
+        category: "unknown",
+        merchantBrand: merchantAlias.normalizedName,
+      };
 
-        const engine = new RecommendationEngine(loadCatalogue(), ownerState);
-        
-        // Hack: we need to find what card was used.
-        // The purchaseContext doesn't specify the used card. It just scores all.
-        // Then we see if the card used was the winner.
-        const recommendation = engine.recommend(purchaseContext, capturedAtDate.toISOString().split("T")[0]);
-        const usedCardId = cardAlias.cardId;
+      const engine = new RecommendationEngine(loadCatalogue(), ownerState);
+      const recommendation = engine.recommend(purchaseContext, capturedAt.toISOString().split("T")[0]);
+      const usedCardId = cardAlias.cardId;
 
-        const best = recommendation.winner;
-        if (best.cardId === usedCardId) {
-          verdict = "best";
-        } else {
-          // It's a warning only if it clears switch threshold (A3).
-          // RecommendationEngine handles threshold logic for switchedFromDefault.
-          // BUT wait, A3 says "clears the switch threshold".
-          // In the twin engine, `advantageOverDefaultCad` handles it if the used card was the default.
-          // If they used a card that is NOT the winner, and the winner's advantage over the USED card clears the threshold...
-          const usedScore = recommendation.allCandidates.find(c => c.cardId === usedCardId);
-          if (usedScore) {
-            const advantage = best.netValueCad - usedScore.netValueCad;
-            const advantagePP = purchaseContext.amountCad > 0 ? (advantage / purchaseContext.amountCad) * 100 : 0;
-            const t = ownerState.switchThreshold;
-            const cadOk = advantage >= t.minAdvantageCad;
-            const ppOk = advantagePP >= t.minAdvantagePercentagePoints;
-            const clears = t.semantics === 'either' ? (cadOk || ppOk) : (cadOk && ppOk);
+      const best = recommendation.winner;
+      if (best.cardId === usedCardId) {
+        verdict = "best";
+      } else {
+        // A warning only if the winner's advantage over the used card clears
+        // the switch threshold (A3).
+        const usedScore = recommendation.allCandidates.find(c => c.cardId === usedCardId);
+        if (usedScore) {
+          const advantage = best.netValueCad - usedScore.netValueCad;
+          const advantagePP = amountNumber > 0 ? (advantage / amountNumber) * 100 : 0;
+          const t = ownerState.switchThreshold;
+          const cadOk = advantage >= t.minAdvantageCad;
+          const ppOk = advantagePP >= t.minAdvantagePercentagePoints;
+          const clears = t.semantics === 'either' ? (cadOk || ppOk) : (cadOk && ppOk);
 
-            if (clears) {
-              verdict = "warning";
-              // We need to format the warning. "⚠ Cobalt would have earned ~$0.74 more"
-              const bestCard = loadCatalogue().cards.find(c => c.cardId === best.cardId);
-              const cardName = bestCard ? bestCard.officialName : best.cardId;
-              warning = `⚠ ${cardName} would have earned ~$${advantage.toFixed(2)} more`;
-            } else {
-               verdict = "best"; // or acceptable
-            }
+          if (clears) {
+            verdict = "warning";
+            const bestCard = loadCatalogue().cards.find(c => c.cardId === best.cardId);
+            const cardName = bestCard ? bestCard.officialName : best.cardId;
+            warning = `⚠ ${cardName} would have earned ~$${advantage.toFixed(2)} more`;
+          } else {
+            verdict = "best";
           }
         }
       }

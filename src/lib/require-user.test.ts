@@ -55,6 +55,23 @@ describe("require-user", () => {
     expect(findUniqueMock).not.toHaveBeenCalled();
   });
 
+  it("revokes an existing account whose email was removed from the allowlist", async () => {
+    authMock.mockResolvedValue({ userId: "clerk_1", sessionId: "sess_1" });
+    findUniqueMock.mockResolvedValue({ id: "user_1", email: "removed-friend@example.com" });
+    const { getSessionUserId } = await import("./require-user");
+    expect(await getSessionUserId()).toBeNull();
+    expect(revokeSessionMock).toHaveBeenCalledWith("sess_1");
+  });
+
+  it("keeps existing accounts working when no allowlist is configured", async () => {
+    process.env.ALLOWED_EMAILS = "";
+    authMock.mockResolvedValue({ userId: "clerk_1", sessionId: "sess_1" });
+    findUniqueMock.mockResolvedValue({ id: "user_1", email: "anyone@example.com" });
+    const { getSessionUserId } = await import("./require-user");
+    expect(await getSessionUserId()).toBe("user_1");
+    expect(revokeSessionMock).not.toHaveBeenCalled();
+  });
+
   it("resolves an existing clerkId match without calling the Clerk API", async () => {
     authMock.mockResolvedValue({ userId: "clerk_1", sessionId: "sess_1" });
     findUniqueMock.mockResolvedValue({ id: "user_1", email: "owner@example.com" });

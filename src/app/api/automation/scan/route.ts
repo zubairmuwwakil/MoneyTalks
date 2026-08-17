@@ -7,6 +7,7 @@ import { getAuthedImap } from "@/lib/services/imapClient";
 import type { Prisma } from "@prisma/client";
 import crypto from "crypto";
 import { applyCapAccrual } from "@/lib/spine/cap-usage";
+import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 
 type TrackingHit = { trackingNumber: string; carrier?: string };
 
@@ -234,7 +235,7 @@ export async function POST(req: NextRequest) {
         const resolvedAmountMinor = purchase.totalCents;
         if (resolvedCardId && resolvedCategory && resolvedAmountMinor != null) {
           await prisma.$transaction(async (tx) => {
-            const ownerState = await tx.ownerStateRecord.findUnique({ where: { userId } });
+            const ownerState = await ensureOwnerStateRecord(tx, userId);
             if (!ownerState) return;
             await applyCapAccrual(tx, {
               sourceKey: `purchase:${purchase.id}`,

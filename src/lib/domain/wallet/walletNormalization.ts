@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { applyCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
+import { walletAmountMinor } from "./amount";
+import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 
 export async function processWalletEvents() {
   const events = await prisma.walletEvent.findMany({
@@ -15,15 +17,17 @@ export async function processWalletEvents() {
       where: { rawString: event.merchantRaw },
     });
 
-    const cardAlias = event.cardRaw 
-      ? await prisma.cardAlias.findUnique({ where: { rawString: event.cardRaw } })
+    const cardAlias = event.cardRaw
+      ? await prisma.cardAlias.findUnique({
+          where: { userId_rawString: { userId: event.userId, rawString: event.cardRaw } },
+        })
       : null;
 
     if (merchantAlias && (cardAlias || !event.cardRaw)) {
       // Normalize & promote to spine
       await prisma.$transaction(async (tx) => {
         const existingSpine = await tx.purchase.findFirst({
-          where: { source: "WALLET", sourceEventId: event.eventId }
+          where: { userId: event.userId, source: "WALLET", sourceEventId: event.eventId }
         });
 
         if (!existingSpine) {
@@ -33,7 +37,7 @@ export async function processWalletEvents() {
               source: "WALLET",
               sourceEventId: event.eventId,
               merchant: merchantAlias.normalizedName,
-              totalCents: event.amountRaw != null ? Math.round(event.amountRaw * 100) : null,
+              totalCents: walletAmountMinor(event.amountRaw),
               currency: event.currencyRaw || "CAD",
               purchasedAt: event.capturedAt,
               paymentMethod: cardAlias?.cardId || undefined,
@@ -42,7 +46,7 @@ export async function processWalletEvents() {
           });
         }
 
-        const ownerState = await tx.ownerStateRecord.findUnique({ where: { userId: event.userId } });
+        const ownerState = await ensureOwnerStateRecord(tx, event.userId);
         if (ownerState && event.amountRaw != null && cardAlias) {
           await applyCapAccrual(tx, {
             sourceKey: `wallet:${event.id}`,
@@ -50,7 +54,7 @@ export async function processWalletEvents() {
             cardId: cardAlias.cardId,
             category: merchantAlias.category,
             merchantBrand: merchantAlias.normalizedName,
-            amountMinor: Math.round(event.amountRaw * 100),
+            amountMinor: walletAmountMinor(event.amountRaw)!,
             currency: event.currencyRaw || "CAD",
             occurredAt: event.capturedAt,
           }, ownerState.stateData);
@@ -58,7 +62,11 @@ export async function processWalletEvents() {
 
         await tx.walletEvent.update({
           where: { id: event.id },
-          data: { processingStatus: "NORMALIZED" },
+          data: {
+            processingStatus: "NORMALIZED",
+            merchantNormalized: merchantAlias.normalizedName,
+            resolvedCardId: cardAlias?.cardId ?? null,
+          },
         });
       });
       processed++;

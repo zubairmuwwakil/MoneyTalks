@@ -23,6 +23,7 @@ model User {
   capUsageLedgers CapUsageLedger[]
   capAccruals     CapAccrual[]
   ownerStateRecord OwnerStateRecord?
+  cardAliases    CardAlias[]
   sessions       Session[]
   authenticators Authenticator[]
   financialAccounts FinancialAccount[]
@@ -897,17 +898,27 @@ model WalletEvent {
   schemaVersion          Int
   shortcutVersion        Int
   capturedAt             DateTime
+  // The device's original timestamp string (offset preserved) and IANA zone —
+  // capturedAt alone can't reproduce the wall-clock time the user experienced.
+  capturedAtRaw          String?
+  capturedTimezone       String?
   uploadedAt             DateTime                    @default(now())
-  
+
   merchantRaw            String?
   transactionNameRaw     String?
-  amountRaw              Float?
+  amountRaw              Decimal?                    @db.Decimal(15, 4)
   currencyRaw            String?
   cardRaw                String?
-  
+  merchantNormalized     String?
+  resolvedCardId         String?
+
   latitude               Float?
   longitude              Float?
   locationAccuracyMeters Float?
+
+  // Payload as received, before any server interpretation. Lets improved
+  // parsers re-read history and preserves fields the server didn't understand.
+  rawPayload             Json?
 
   assumedCurrency        Boolean                     @default(false)
 
@@ -935,12 +946,19 @@ model MerchantAlias {
   updatedAt      DateTime @updatedAt
 }
 
+// Per-user: the same raw device string ("RBC Visa") can mean different
+// physical cards for different users. MerchantAlias stays global on purpose —
+// merchant identity is universal, shared learning benefits everyone.
 model CardAlias {
   id        String   @id @default(cuid())
-  rawString String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rawString String
   cardId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([userId, rawString])
 }
 
 model OwnerStateRecord {
@@ -948,9 +966,6 @@ model OwnerStateRecord {
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   stateData Json
-  
-  // v1-single-user marker
-  isV1SingleUser Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

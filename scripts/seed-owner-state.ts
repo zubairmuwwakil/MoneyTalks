@@ -14,10 +14,15 @@ async function main() {
 
   const stateData = JSON.parse(fs.readFileSync(sourcePath, "utf-8"));
   
-  // Find the single user for v1-single-user
-  const user = await prisma.user.findFirst();
+  // Owner state is per-user now — require an explicit target.
+  const email = process.argv[2];
+  if (!email) {
+    console.error("Usage: tsx scripts/seed-owner-state.ts <user-email>");
+    process.exit(1);
+  }
+  const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
-    console.error("No user found in database. Create a user first.");
+    console.error(`No user found with email ${email}.`);
     process.exit(1);
   }
 
@@ -26,7 +31,6 @@ async function main() {
     create: {
       userId: user.id,
       stateData,
-      isV1SingleUser: true,
     },
     update: {
       stateData,

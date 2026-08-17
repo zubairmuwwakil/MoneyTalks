@@ -5,7 +5,7 @@ import WalletSettingsClient from "./WalletSettingsClient";
 export default async function WalletSettingsPage() {
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/sign-in");
+    redirect("/login");
   }
 
   return (

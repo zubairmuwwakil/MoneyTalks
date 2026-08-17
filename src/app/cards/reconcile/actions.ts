@@ -10,6 +10,7 @@ import {
   type ReconciledStatementLine,
 } from "@/engine/statement-reconciliation";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
+import { walletAmountMinor } from "@/lib/domain/wallet/amount";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { csvMappingInput } from "@/lib/validation/csv-import";
@@ -90,7 +91,7 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
   const window = dateWindow(dates);
 
   const cardAliases = await prisma.cardAlias.findMany({
-    where: { cardId: cardParsed.data.contractCardId }, select: { rawString: true },
+    where: { userId, cardId: cardParsed.data.contractCardId }, select: { rawString: true },
   });
   const rawCardNames = cardAliases.map((alias) => alias.rawString);
   const [purchases, walletEvents] = await Promise.all([
@@ -120,7 +121,7 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
     ...walletEvents
       .filter((event) => !promotedEventIds.has(event.eventId))
       .map((event) => ({
-        id: `wallet:${event.id}`, date: event.capturedAt.toISOString().slice(0, 10), amountMinor: Math.round(event.amountRaw! * 100),
+        id: `wallet:${event.id}`, date: event.capturedAt.toISOString().slice(0, 10), amountMinor: walletAmountMinor(event.amountRaw)!,
         merchant: event.merchantRaw ?? "", source: "wallet" as const,
       })),
   ];

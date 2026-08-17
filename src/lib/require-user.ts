@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { isAllowedEmail } from "@/lib/allowlist";
+import { hasAllowlist, isAllowedEmail } from "@/lib/allowlist";
 
 type ResolvedUser = { id: string; email: string | null; clerkId: string };
 
@@ -13,7 +13,19 @@ async function resolveUser(): Promise<ResolvedUser | null> {
     where: { clerkId },
     select: { id: true, email: true },
   });
-  if (existing) return { ...existing, clerkId };
+  if (existing) {
+    // Re-enforce the allowlist on every resolution, not just at signup, so
+    // removing an email actually revokes access for an existing account.
+    const allowlist = process.env.ALLOWED_EMAILS;
+    if (hasAllowlist(allowlist) && !isAllowedEmail(existing.email, allowlist)) {
+      if (sessionId) {
+        const client = await clerkClient();
+        await client.sessions.revokeSession(sessionId);
+      }
+      return null;
+    }
+    return { ...existing, clerkId };
+  }
 
   const client = await clerkClient();
   const clerkUser = await client.users.getUser(clerkId);

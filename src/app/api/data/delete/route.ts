@@ -54,6 +54,7 @@ async function wipeUserOwnedData(userId: string) {
     await tx.capAccrual.deleteMany({ where: { userId } });
     await tx.capUsageLedger.deleteMany({ where: { userId } });
     await tx.ownerStateRecord.deleteMany({ where: { userId } });
+    await tx.cardAlias.deleteMany({ where: { userId } });
     await tx.coverageReport.deleteMany({ where: { userId } });
   });
 }

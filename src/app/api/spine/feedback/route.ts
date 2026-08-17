@@ -1,4 +1,5 @@
 import { getSessionUserId } from "@/lib/require-user";
+import { walletAmountMinor } from "@/lib/domain/wallet/amount";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -15,7 +16,10 @@ export async function GET() {
     select: {
       eventId: true,
       capturedAt: true,
+      capturedAtRaw: true,
+      capturedTimezone: true,
       merchantRaw: true,
+      merchantNormalized: true,
       amountRaw: true,
       currencyRaw: true,
       cardRaw: true,
@@ -28,8 +32,11 @@ export async function GET() {
     feedback: feedback.map((event) => ({
       eventId: event.eventId,
       capturedAt: event.capturedAt.toISOString(),
+      capturedAtRaw: event.capturedAtRaw,
+      capturedTimezone: event.capturedTimezone,
       merchantRaw: event.merchantRaw,
-      amountMinor: event.amountRaw == null ? null : Math.round(event.amountRaw * 100),
+      merchantNormalized: event.merchantNormalized,
+      amountMinor: walletAmountMinor(event.amountRaw),
       currency: event.currencyRaw,
       cardRaw: event.cardRaw,
       verdict: event.feedbackVerdict,
