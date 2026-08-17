@@ -55,6 +55,7 @@ model User {
   snoozedEvents          SnoozedEvent[]
   valueEvents            ValueEvent[]
   dataDeletionJobs       DataDeletionJob[]
+  cardRequests           CardRequest[]
 }
 
 model Account {
@@ -1066,4 +1067,25 @@ model CapAccrual {
   updatedAt     DateTime @updatedAt
 
   @@index([userId, cardId, capId, periodKey])
+}
+
+// ---- Waitlist & Card Requests (Phase 4) ----
+
+model Waitlist {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  createdAt DateTime  @default(now())
+  invitedAt DateTime?
+}
+
+model CardRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issuer    String
+  cardName  String
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

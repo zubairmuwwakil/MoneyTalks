@@ -12,6 +12,8 @@ const isPublicRoute = createRouteMatcher([
   "/privacy",
   "/api/health",
   "/api/cron(.*)",
+  "/waitlist",
+  "/api/waitlist",
 ]);
 // This is not public: POST /api/v1/wallet-events independently requires an
 // installation-scoped token which is hashed at rest. The Wallet Shortcut cannot
