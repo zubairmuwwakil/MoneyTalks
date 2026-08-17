@@ -240,6 +240,21 @@ const tHash = createHash("sha256").update(token).digest("hex");
       expect(json.notification).toBeUndefined();
     });
 
+    it("forgives trailing spaces in hand-typed dictionary keys", async () => {
+      mockAuthedNoDups();
+      const payload: Record<string, any> = {
+        schemaVersion: 1, shortcutVersion: 1, source: "apple_wallet_shortcuts",
+        eventId: "wevt_sp", capturedAt: "2026-08-17T18:40:14-04:00", timezone: "America/Toronto",
+        "transaction ": JSON.stringify({ "merchantRaw ": "Starbucks", amount: "6.42" }),
+        "location ": { Latitude: "43.88843", Longitude: "-78.98083" },
+      };
+      const res = await POST(mockReq(payload));
+      expect(res.status).toBe(200);
+      expect(createdData()).toMatchObject({
+        merchantRaw: "Starbucks", amountRaw: "6.42", latitude: 43.88843, longitude: -78.98083,
+      });
+    });
+
     it("accepts the transaction as a JSON string (dictionary-as-text from Shortcuts)", async () => {
       mockAuthedNoDups();
       const res = await POST(mockReq(basePayload({

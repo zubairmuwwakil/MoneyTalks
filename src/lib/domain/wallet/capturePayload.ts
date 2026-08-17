@@ -48,6 +48,16 @@ const transactionSchema = z.object({
   cardRaw: z.unknown().optional(),
 });
 
+// Hand-typed dictionary keys on a phone often carry invisible trailing
+// spaces ("location ") — trim keys everywhere before validating. rawPayload
+// still stores the body exactly as received.
+function trimKeys(value: unknown): unknown {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, nested]) => [key.trim(), trimKeys(nested)]),
+  );
+}
+
 // Shortcuts can only nest a dictionary variable into another dictionary as
 // text, which renders it as a JSON string — accept that shape too, exactly
 // like location.
@@ -62,7 +72,7 @@ function parseTransaction(raw: unknown):
       // fall through; schema validation below reports the failure
     }
   }
-  const parsed = transactionSchema.safeParse(candidate);
+  const parsed = transactionSchema.safeParse(trimKeys(candidate));
   return parsed.success ? { ok: true, data: parsed.data } : { ok: false, error: parsed.error };
 }
 
@@ -155,7 +165,7 @@ function parseCapturedAt(rawString: string, zone: string | null): Date | null {
 }
 
 export function parseWalletCapturePayload(rawBody: unknown): WalletCaptureParseResult {
-  const parsed = envelopeSchema.safeParse(rawBody);
+  const parsed = envelopeSchema.safeParse(trimKeys(rawBody));
   if (!parsed.success) return { ok: false, error: parsed.error };
   const env = parsed.data;
 
