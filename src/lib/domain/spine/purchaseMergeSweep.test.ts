@@ -104,6 +104,31 @@ describe("sweepPurchaseDuplicateFlags", () => {
     expect(prisma.purchase.updateMany).not.toHaveBeenCalled();
   });
 
+  it("honors a keep-separate decision created after the sweep's bulk read", async () => {
+    vi.mocked(prisma.purchase.findMany).mockResolvedValue([
+      purchase({
+        id: "gmail-old",
+        source: "GMAIL",
+        purchasedAt: new Date("2026-08-12T12:00:00Z"),
+        createdAt: new Date("2026-08-12T12:01:00Z"),
+      }),
+      purchase({ id: "wallet-new" }),
+    ] as any);
+    vi.mocked(prisma.purchaseDuplicateDismissal.findUnique).mockResolvedValue({
+      id: "dismissal-raced",
+      userId: "user-1",
+      purchaseLowId: "gmail-old",
+      purchaseHighId: "wallet-new",
+      dismissedAt: new Date("2026-08-17T11:59:59Z"),
+    });
+
+    const result = await sweepPurchaseDuplicateFlags(new Date("2026-08-17T12:00:00Z"));
+
+    expect(result).toEqual({ scanned: 2, matched: 1, flagged: 0, dismissed: 1 });
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(prisma.purchase.updateMany).not.toHaveBeenCalled();
+  });
+
   it("skips an otherwise eligible row that already has second-source evidence", async () => {
     vi.mocked(prisma.purchase.findMany).mockResolvedValue([
       purchase({
