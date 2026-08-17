@@ -882,6 +882,11 @@ model WalletEvent {
 
   assumedCurrency        Boolean                     @default(false)
 
+  // The synchronous capture verdict is retained so the iOS feedback log can show
+  // what the server actually returned at tap time. Raw event fields remain immutable.
+  feedbackVerdict        String?
+  feedbackWarning        String?
+
   processingStatus       WalletEventProcessingStatus @default(OBSERVED)
 
   createdAt              DateTime                    @default(now())

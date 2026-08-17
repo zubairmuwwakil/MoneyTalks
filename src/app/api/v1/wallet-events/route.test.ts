@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     walletInstallation: { findUnique: vi.fn() },
-    walletEvent: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
+    walletEvent: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
     ownerStateRecord: { findUnique: vi.fn() },
     cardAlias: { findUnique: vi.fn() },
     merchantAlias: { findUnique: vi.fn() },
@@ -22,6 +22,8 @@ const tHash = createHash("sha256").update(token).digest("hex");
 
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(prisma.walletEvent.create).mockResolvedValue({ id: "evt-created" } as any);
+    vi.mocked(prisma.walletEvent.update).mockResolvedValue({} as any);
   });
 
   function mockReq(body: any, auth: string | null = `Bearer ${token}`) {

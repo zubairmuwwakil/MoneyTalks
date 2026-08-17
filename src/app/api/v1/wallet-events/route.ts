@@ -93,7 +93,7 @@ export async function POST(req: Request) {
   const processingStatus = fuzzyDup ? "POSSIBLE_DUPLICATE" : "OBSERVED";
   const assumedCurrency = data.transaction.currency == null;
 
-  await prisma.walletEvent.create({
+  const createdEvent = await prisma.walletEvent.create({
     data: {
       userId: installation.userId,
       walletInstallationId: installation.id,
@@ -188,6 +188,11 @@ export async function POST(req: Request) {
   } catch (e) {
     console.error("Error computing verdict", e);
   }
+
+  await prisma.walletEvent.update({
+    where: { id: createdEvent.id },
+    data: { feedbackVerdict: verdict, feedbackWarning: warning ?? null },
+  });
 
   return NextResponse.json({
     accepted: true,
