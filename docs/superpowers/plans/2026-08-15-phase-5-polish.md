@@ -1514,7 +1514,7 @@ git commit -m "test: add polish-phase E2E (CSV dedupe, analyzer, tax checklist)"
 
 - [ ] **Step 3: Production verification with the owner** — ↻ FX pulls a real Bank of Canada rate; ↻ prices updates what it can on a real account; the owner sets their real cash cushion in Settings and reviews the danger-month output against their own expectations; the tax checklist reflects their real data; a real statement CSV runs through the analyzer; the app installs to the phone home screen with the icon.
 
-- [ ] **Step 4: Mark the spec complete** — every phase row of `docs/superpowers/specs/2026-08-14-moneytalks-design.md` §7 is now shipped. Update `README.md`'s feature list to match reality (public-safe wording). Remaining ideas (per-account danger months, historical FX for the series, PNG icon rasters, demo mode for recruiters, bank aggregation) live in §9 Non-goals / future — new work starts with a new brainstorm, not scope creep here.
+- [ ] **Step 4: Mark the spec complete** — every phase row of `docs/superpowers/specs/2026-08-14-moneytalks-design.md` §7 is now shipped. Update `README.md`'s feature list to match reality (public-safe wording) and link `docs/ROADMAP.md` — the single parking lot for all deferred ideas (demo mode, benefits calendar/ICS, reminders, historical FX, per-account danger months, and the rest). New work starts with a new brainstorm, not scope creep here.
 
 ---
 
