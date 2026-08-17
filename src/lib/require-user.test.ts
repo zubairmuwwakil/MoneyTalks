@@ -123,7 +123,43 @@ describe("require-user", () => {
     });
   });
 
-  it("rejects and revokes the session when the verified email is not allowlisted", async () => {
+  it("creates a User for any verified email when no allowlist is configured", async () => {
+    // Signup is open by default. An unset ALLOWED_EMAILS means "no restriction",
+    // not "no signups" — the env var is now a kill switch, not the gate.
+    process.env.ALLOWED_EMAILS = "";
+    authMock.mockResolvedValue({ userId: "clerk_9", sessionId: "sess_9" });
+    findUniqueMock.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+    getUserMock.mockResolvedValue({
+      primaryEmailAddressId: "email_1",
+      emailAddresses: [verifiedEmail("stranger@example.com")],
+    });
+    createMock.mockResolvedValue({ id: "user_9", email: "stranger@example.com" });
+    const { getSessionUserId } = await import("./require-user");
+
+    expect(await getSessionUserId()).toBe("user_9");
+    expect(createMock).toHaveBeenCalledWith({
+      data: { clerkId: "clerk_9", email: "stranger@example.com" },
+      select: { id: true, email: true },
+    });
+    expect(revokeSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("still rejects an unverified email when signup is open", async () => {
+    // Opening signup removes the allowlist, not the verification requirement.
+    process.env.ALLOWED_EMAILS = "";
+    authMock.mockResolvedValue({ userId: "clerk_10", sessionId: "sess_10" });
+    findUniqueMock.mockResolvedValueOnce(null);
+    getUserMock.mockResolvedValue({
+      primaryEmailAddressId: "email_1",
+      emailAddresses: [{ id: "email_1", emailAddress: "stranger@example.com", verification: { status: "unverified" } }],
+    });
+    const { getSessionUserId } = await import("./require-user");
+
+    expect(await getSessionUserId()).toBeNull();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it("still rejects a non-allowlisted email while a kill-switch list is configured", async () => {
     authMock.mockResolvedValue({ userId: "clerk_4", sessionId: "sess_4" });
     findUniqueMock.mockResolvedValueOnce(null);
     getUserMock.mockResolvedValue({

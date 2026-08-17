@@ -35,7 +35,10 @@ async function resolveUser(): Promise<ResolvedUser | null> {
         address.id === clerkUser.primaryEmailAddressId && address.verification?.status === "verified",
     )?.emailAddress ?? null;
 
-  if (!primaryEmail || !isAllowedEmail(primaryEmail, process.env.ALLOWED_EMAILS)) {
+  // A verified email is always required; the allowlist is checked only when one is
+  // configured. Opening signup removed the allowlist, not the verification.
+  const signupAllowlist = process.env.ALLOWED_EMAILS;
+  if (!primaryEmail || (hasAllowlist(signupAllowlist) && !isAllowedEmail(primaryEmail, signupAllowlist))) {
     if (sessionId) await client.sessions.revokeSession(sessionId);
     return null;
   }

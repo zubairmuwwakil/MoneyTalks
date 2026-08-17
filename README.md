@@ -8,8 +8,9 @@ opportunities (grants, credits, benefit thresholds).
   Prisma + Postgres (Neon) · Clerk · Vercel
 - **Design spec:** [`docs/superpowers/specs/2026-08-14-moneytalks-design.md`](docs/superpowers/specs/2026-08-14-moneytalks-design.md)
 - **Privacy by construction:** the repo contains zero personal data — all
-  personal records enter at runtime through an authenticated import path,
-  and registration is closed by allowlist.
+  personal records enter at runtime through an authenticated import path.
+  Registration is **open**: anyone with a verified email may sign up. Setting
+  `ALLOWED_EMAILS` re-closes it immediately (kill switch, no deploy).
 
 ## What it does
 

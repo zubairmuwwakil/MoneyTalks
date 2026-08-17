@@ -2,6 +2,7 @@
 
 One line per settled decision, newest first. Agents: check here before treating any question as open; add a line whenever the owner ratifies something in chat.
 
+- 2026-08-17 — Signup is OPEN by default (owner-authored): empty/unset ALLOWED_EMAILS means no restriction for any verified email; a configured list is a kill switch that re-closes registration without a deploy and revokes outside accounts on next request. Supersedes "gated by ALLOWED_EMAILS" below.
 - 2026-08-17 — Statement lines are persisted (`StatementLine`, idempotent by line hash), reversing the earlier ephemeral-by-design choice per complete-record posture; matched lines link to canonical purchases and flip NORMALIZED wallet events to RECONCILED. Unmatched lines stay user-promoted (existing add-as-purchase flow), never auto-created.
 - 2026-08-17 — Duplicate resolution is user-confirmed on the purchase page: merge folds observations into the canonical row and reverses the duplicate's cap accrual only when both accrued; "keep separate" clears the flag.
 - 2026-08-17 — Home timezone = NotificationPreference.timezone (editable at /settings/notifications, now routed); wallet capturedTimezone still wins when present.
@@ -11,8 +12,8 @@ One line per settled decision, newest first. Agents: check here before treating 
 
 - 2026-08-17 — Working mode: agents proceed autonomously; discussion reserved for high-ROI / hard-to-reverse decisions, batched into one question set; token-conscious.
 - 2026-08-17 — Build sequence: multi-user foundations → cross-source purchase merge (incl. email ingestion) → transactions experience → optimizer/money-back UX polish. All three loops matter equally; ordering is by dependency.
-- 2026-08-17 — First real users: friends/family within weeks, gated by `ALLOWED_EMAILS`.
-- 2026-08-17 — Allowlist enforced on every session resolution (removal revokes an existing account), not just at signup; empty/unset list never locks out existing accounts.
+- 2026-08-17 — ~~First real users: friends/family within weeks, gated by `ALLOWED_EMAILS`.~~ **Superseded same day:** registration opened to anyone with a verified email. `ALLOWED_EMAILS` inverted from gate to kill switch — unset/empty now means open, setting a list re-closes registration with no deploy. Owner's call, made against advice: the Gmail connect path requests the `gmail.readonly` restricted scope, so an open signup means strangers can hand the app a full mailbox, under a privacy policy that `PickMe/docs/compliance/account-deletion.md` §5 documents as currently inaccurate. Consequences accepted; kill switch retained. **Knock-on:** the phase-4 waitlist chunk (`docs/plans/2026-08-16-phase4-launch-spec.md` §22) assumed "promoting a waitlister = allowlist add" and now needs redesign or removal.
+- 2026-08-17 — Allowlist, when configured, is enforced on every session resolution (removal revokes an existing account), not just at signup.
 - 2026-08-17 — Location retention: keep precise purchase coordinates for now (the reversible choice); make the deliberate privacy policy before any public launch.
 - 2026-08-17 — `CardAlias` is per-user (same raw string ≠ same card across users); `MerchantAlias` stays global on purpose (merchant identity is universal, shared learning).
 - 2026-08-17 — OwnerStateRecord auto-provisions on first use from the user's contract-linked CreditCard rows: floor point valuations, conservative "both" switch threshold, empty cardStates (engine safely refuses unresolved rules). Hand-curated state remains possible via `scripts/seed-owner-state.ts <email>`.
