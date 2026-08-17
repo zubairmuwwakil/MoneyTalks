@@ -36,11 +36,11 @@ export async function POST(req: Request) {
 
   const rawBody = await req.json().catch(() => null);
   if (rawBody == null) {
-    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+    return NextResponse.json({ error: "invalid payload", final: true }, { status: 400 });
   }
   const parsed = parseWalletCapturePayload(rawBody);
   if (!parsed.ok) {
-    return NextResponse.json({ error: "invalid payload", details: parsed.error }, { status: 400 });
+    return NextResponse.json({ error: "invalid payload", final: true, details: parsed.error }, { status: 400 });
   }
 
   const data = parsed.data;
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     where: { eventId: data.eventId }
   });
   if (existing) {
-    return NextResponse.json({ accepted: true, duplicate: true, eventId: data.eventId });
+    return NextResponse.json({ accepted: true, duplicate: true, final: true, eventId: data.eventId });
   }
 
   // An unparseable device timestamp must not cost us the transaction; the
@@ -171,9 +171,15 @@ export async function POST(req: Request) {
     data: { feedbackVerdict: verdict, feedbackWarning: warning ?? null },
   });
 
+  // `final: true` marks every definitive JSON verdict (2xx and 4xx) so the
+  // Shortcut can use one flat check to delete its outbox file; transient
+  // failures (network, 5xx, platform errors) never produce this shape.
+  // `notification` is the ready-to-show text, present only when there is one.
   return NextResponse.json({
     accepted: true,
     eventId: data.eventId,
-    feedback: { verdict, warning }
+    final: true,
+    feedback: { verdict, warning },
+    ...(warning ? { notification: warning } : {}),
   });
 }

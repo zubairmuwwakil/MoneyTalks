@@ -36,12 +36,14 @@ Date formatting is done ON chips: insert a **Current Date** chip, tap it, set Da
 5. **Save File** — ‹Dictionary› · iCloud Drive · Ask Where to Save OFF · path `Wallet Outbox/‹Text step 2›.json` · Overwrite ON.
 6. **Get Contents of Folder** — `Wallet Outbox`.
 7. **Filter Files** — sort Creation Date, Oldest First.
-8. **Repeat with Each** file:
-   1. **Get Contents of URL** — `https://YOUR-DOMAIN/api/v1/wallet-events` · POST · headers `Authorization: Bearer YOUR-TOKEN`, `Content-Type: application/json` · Request Body: **File** = Repeat Item.
+8. **Repeat with Each** file — every action below goes INSIDE the loop (above End Repeat), or "Repeat Item" won't be offered as a variable:
+   1. **Get Contents of URL** — `https://YOUR-DOMAIN/api/v1/wallet-events` · POST · headers `Authorization: Bearer YOUR-TOKEN`, `Content-Type: application/json` · Request Body: **File** = ‹Repeat Item›.
    2. **Get Dictionary from Input**.
-   3. **Get Dictionary Value** `accepted` → **If has any value**: get `feedback` → get `warning` → If has any value → **Show Notification** with it → End If → **Delete Files** ‹Repeat Item›.
-   4. **Otherwise**: **Get Dictionary Value** `error` → If has any value → **Delete Files** ‹Repeat Item› (4xx = permanently invalid; network errors abort the run and files stay for retry).
-   5. End Ifs, End Repeat.
+   3. **Get Dictionary Value** `notification` → **If** ‹Dictionary Value› has any value → **Show Notification** ‹Dictionary Value› → **End If**.
+   4. **Get Dictionary Value** `final` from ‹Dictionary› → **If** ‹Dictionary Value› has any value → **Delete Files** ‹Repeat Item› → **End If**.
+   5. End Repeat.
+
+   No Otherwise branches needed: the server marks every definitive verdict (success, duplicate, or permanent 4xx rejection) with `final: true` → delete the file. Transient failures (network down, 5xx) either abort the run or fail the JSON parse, so the file stays for retry. `notification` is ready-to-show text, present only when a card warning exists.
 
 ## 3. First run
 

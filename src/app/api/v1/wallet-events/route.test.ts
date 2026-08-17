@@ -70,7 +70,7 @@ const tHash = createHash("sha256").update(token).digest("hex");
     
     const res = await POST(mockReq(payload));
     const json = await res.json();
-    expect(json).toEqual({ accepted: true, duplicate: true, eventId: "wevt_123" });
+    expect(json).toEqual({ accepted: true, duplicate: true, final: true, eventId: "wevt_123" });
   });
 
   it("marks fuzzy dup but never deletes", async () => {
@@ -230,6 +230,14 @@ const tHash = createHash("sha256").update(token).digest("hex");
         where: expect.objectContaining({ amountRaw: "0" }),
       }));
       expect(createdData().amountRaw).toBe("0");
+    });
+
+    it("marks definitive responses final, with notification only when a warning exists", async () => {
+      mockAuthedNoDups();
+      const res = await POST(mockReq(basePayload()));
+      const json = await res.json();
+      expect(json.final).toBe(true);
+      expect(json.notification).toBeUndefined();
     });
 
     it("accepts the transaction as a JSON string (dictionary-as-text from Shortcuts)", async () => {
