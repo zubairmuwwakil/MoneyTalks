@@ -88,7 +88,13 @@ describe("sweepPurchaseDuplicateFlags", () => {
       purchase({ id: "wallet-new" }),
     ] as any);
     vi.mocked(prisma.purchaseDuplicateDismissal.findMany).mockResolvedValue([
-      { purchaseLowId: "gmail-old", purchaseHighId: "wallet-new" },
+      {
+        id: "dismissal-1",
+        userId: "user-1",
+        purchaseLowId: "gmail-old",
+        purchaseHighId: "wallet-new",
+        dismissedAt: new Date("2026-08-16T12:00:00Z"),
+      },
     ]);
 
     const result = await sweepPurchaseDuplicateFlags(new Date("2026-08-17T12:00:00Z"));
