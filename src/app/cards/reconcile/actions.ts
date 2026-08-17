@@ -58,6 +58,17 @@ function dateWindow(dates: string[]) {
   return { gte: new Date(first), lte: new Date(last) };
 }
 
+/**
+ * A statement posts in the card's billing currency, so a foreign-currency
+ * observation is a different number for the same purchase — USD 45.00 against a
+ * CAD 58.50 line is FX, not a tip, and the merchant gate cannot tell them apart
+ * because the merchant genuinely matches. Such a capture must not be a candidate
+ * at all. The storage default mirrors walletNormalization and purchaseMerge.
+ */
+function billedIn(currency: string | null | undefined, cardCurrency: string): boolean {
+  return (currency?.trim() || "CAD").toUpperCase() === cardCurrency.toUpperCase();
+}
+
 async function ownedCard(userId: string, cardId: string) {
   return prisma.creditCard.findFirst({ where: { id: cardId, userId }, select: { id: true, currency: true, contractCardId: true } });
 }
@@ -105,13 +116,13 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
   const [purchases, walletEvents] = await Promise.all([
     prisma.purchase.findMany({
       where: { userId, paymentMethod: cardParsed.data.contractCardId, totalCents: { not: null }, purchasedAt: window },
-      select: { id: true, sourceEventId: true, merchant: true, totalCents: true, purchasedAt: true },
+      select: { id: true, sourceEventId: true, merchant: true, totalCents: true, purchasedAt: true, currency: true },
     }),
     rawCardNames.length === 0
       ? Promise.resolve([])
       : prisma.walletEvent.findMany({
           where: { userId, cardRaw: { in: rawCardNames }, amountRaw: { not: null }, capturedAt: window },
-          select: { id: true, eventId: true, merchantRaw: true, amountRaw: true, capturedAt: true },
+          select: { id: true, eventId: true, merchantRaw: true, amountRaw: true, capturedAt: true, currencyRaw: true },
         }),
   ]);
   const promotedEventIds = new Set(purchases.flatMap((purchase) => purchase.sourceEventId ? [purchase.sourceEventId] : []));
@@ -122,12 +133,14 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
   });
   const aliases = new Map(aliasRows.map((alias) => [alias.rawString.toLocaleLowerCase(), alias.normalizedName]));
   const candidates: CapturedPurchase[] = [
-    ...purchases.map((purchase) => ({
-      id: `purchase:${purchase.id}`, date: purchase.purchasedAt.toISOString().slice(0, 10), amountMinor: purchase.totalCents!,
-      merchant: purchase.merchant, source: "purchase" as const,
-    })),
+    ...purchases
+      .filter((purchase) => billedIn(purchase.currency, card.currency))
+      .map((purchase) => ({
+        id: `purchase:${purchase.id}`, date: purchase.purchasedAt.toISOString().slice(0, 10), amountMinor: purchase.totalCents!,
+        merchant: purchase.merchant, source: "purchase" as const,
+      })),
     ...walletEvents
-      .filter((event) => !promotedEventIds.has(event.eventId))
+      .filter((event) => !promotedEventIds.has(event.eventId) && billedIn(event.currencyRaw, card.currency))
       .map((event) => ({
         id: `wallet:${event.id}`, date: event.capturedAt.toISOString().slice(0, 10), amountMinor: walletAmountMinor(event.amountRaw)!,
         merchant: event.merchantRaw ?? "", source: "wallet" as const,
