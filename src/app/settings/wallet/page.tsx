@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import WalletSettingsClient from "./WalletSettingsClient";
 import CardMappingSection from "./CardMappingSection";
+import CatalogueLinkSection from "./CatalogueLinkSection";
+import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 
 export default async function WalletSettingsPage() {
   const userId = await getSessionUserId();
@@ -18,9 +20,9 @@ export default async function WalletSettingsPage() {
     }),
     prisma.cardAlias.findMany({ where: { userId: userId! }, select: { rawString: true } }),
     prisma.creditCard.findMany({
-      where: { userId: userId!, contractCardId: { not: null } },
+      where: { userId: userId! },
       orderBy: { nickname: "asc" },
-      select: { nickname: true, contractCardId: true },
+      select: { id: true, nickname: true, issuer: true, network: true, contractCardId: true },
     }),
   ]);
 
@@ -33,9 +35,15 @@ export default async function WalletSettingsPage() {
     <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
       <h1 className="text-2xl font-bold mb-6">Apple Wallet Integrations</h1>
       <WalletSettingsClient />
+      <div className="mt-8">
+        <CatalogueLinkSection
+          cards={cards}
+          contracts={cardCatalogue.cards.map((card) => ({ id: card.cardId, label: card.officialName, issuer: card.issuer }))}
+        />
+      </div>
       <CardMappingSection
         unmapped={unmapped}
-        cards={cards.map((c) => ({ nickname: c.nickname, contractCardId: c.contractCardId! }))}
+        cards={cards.filter((c) => c.contractCardId != null).map((c) => ({ nickname: c.nickname, contractCardId: c.contractCardId! }))}
       />
     </div>
   );

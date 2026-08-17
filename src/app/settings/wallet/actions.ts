@@ -4,11 +4,41 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
+import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 
 const mapInput = z.object({
   rawString: z.string().min(1),
   contractCardId: z.string().min(1),
 });
+
+const linkSavedCardInput = z.object({
+  cardId: z.string().min(1),
+  contractCardId: z.string().min(1).max(100),
+});
+
+/**
+ * Confirms which published PickMe contract a personal CreditCard row represents. This is
+ * purposefully an explicit user choice: names such as "Momentum Visa Infinite" are not enough
+ * to safely infer a product variant and its caps/earn rules.
+ */
+export async function linkSavedCardToContract(input: { cardId: string; contractCardId: string }) {
+  const userId = await requireUserId();
+  const parsed = linkSavedCardInput.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "invalid input" };
+  if (!cardCatalogue.cards.some((card) => card.cardId === parsed.data.contractCardId)) {
+    return { ok: false as const, error: "unknown catalogue card" };
+  }
+
+  const updated = await prisma.creditCard.updateMany({
+    where: { id: parsed.data.cardId, userId },
+    data: { contractCardId: parsed.data.contractCardId },
+  });
+  if (updated.count !== 1) return { ok: false as const, error: "card not found" };
+
+  revalidatePath("/settings/wallet");
+  revalidatePath("/cards/reconcile");
+  return { ok: true as const };
+}
 
 // Maps a raw Apple Pay card string ("American Express Cobalt") to one of the
 // user's cards, then backfills every captured event that carried that string.
