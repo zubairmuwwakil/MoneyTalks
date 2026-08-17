@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useClerk } from "@clerk/nextjs";
 
 type GmailStatus = {
   connected: boolean;
@@ -41,6 +42,10 @@ export default function PrivacySettings() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [accountConfirm, setAccountConfirm] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const { signOut } = useClerk();
 
   async function load() {
     const [statusRes, summaryRes] = await Promise.all([
@@ -91,6 +96,28 @@ export default function PrivacySettings() {
     }
     setDeleting(false);
     await load();
+  }
+
+  // Deliberately typed confirmation rather than a browser confirm(): this is the one action on
+  // the page that cannot be undone, and it removes the sign-in used to reach the page.
+  async function deleteAccount() {
+    setDeletingAccount(true);
+    setAccountError(null);
+    const res = await fetch("/api/data/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scope: "account" }),
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      setAccountError(body?.error ?? "Couldn't complete the deletion. Please try again.");
+      setDeletingAccount(false);
+      return;
+    }
+
+    // The Clerk user is already gone server-side; this clears the local session and leaves.
+    await signOut({ redirectUrl: "/" });
   }
 
   return (
@@ -183,22 +210,66 @@ export default function PrivacySettings() {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-rose-200/30 bg-rose-500/10 p-5 shadow-xl shadow-black/30">
+      <div className="rounded-3xl border border-amber-200/30 bg-amber-500/10 p-5 shadow-xl shadow-black/30">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-rose-100">Delete data</p>
-            <p className="text-lg font-semibold text-white">Wipe your data</p>
-            <p className="text-sm text-rose-100/80">This removes purchases, receipts, subscriptions, returns, and notifications.</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-amber-100">Delete data</p>
+            <p className="text-lg font-semibold text-white">Wipe your data, keep your account</p>
+            <p className="text-sm text-amber-100/80">
+              Removes purchases, receipts, subscriptions, returns, notifications, and everything the
+              PickMe app has synced — captured wallet events, cap usage, and your saved card setup.
+              Your sign-in stays, so you can start over.
+            </p>
           </div>
         </div>
         <div className="mt-3">
           <button
-            className="rounded-full border border-rose-200/60 px-4 py-2 text-sm text-rose-50 hover:bg-rose-500/20 disabled:opacity-60"
+            className="rounded-full border border-amber-200/60 px-4 py-2 text-sm text-amber-50 hover:bg-amber-500/20 disabled:opacity-60"
             onClick={deleteData}
             disabled={deleting}
           >
             {deleting ? "Deleting…" : "Delete my data"}
           </button>
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-rose-200/30 bg-rose-500/10 p-5 shadow-xl shadow-black/30">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.24em] text-rose-100">Delete account</p>
+          <p className="text-lg font-semibold text-white">Delete your account permanently</p>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-rose-100/85">
+            <li>Everything above is deleted, plus your account record itself.</li>
+            <li>Your PickMe sign-in is removed. You will not be able to sign in again.</li>
+            <li>Any Wallet Shortcut installation tokens stop working immediately.</li>
+            <li>
+              The PickMe iPhone app keeps working offline, but stops syncing. Data stored only on
+              your iPhone is not touched by this — delete that in the app.
+            </li>
+            <li>This cannot be undone, and we cannot restore it for you.</li>
+          </ul>
+        </div>
+        <div className="mt-4 space-y-3">
+          <label className="block text-xs text-rose-100/80" htmlFor="confirm-delete-account">
+            Type <span className="font-semibold text-white">DELETE</span> to confirm.
+          </label>
+          <input
+            id="confirm-delete-account"
+            value={accountConfirm}
+            onChange={(event) => setAccountConfirm(event.target.value)}
+            autoComplete="off"
+            className="w-48 rounded-lg border border-rose-200/40 bg-black/30 px-3 py-2 text-sm text-white outline-none placeholder:text-rose-100/40 focus:border-rose-200/80"
+            placeholder="DELETE"
+          />
+          <div className="flex items-center gap-3">
+            <button
+              className="rounded-full border border-rose-200/60 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-50 hover:bg-rose-500/30 disabled:opacity-40"
+              onClick={deleteAccount}
+              disabled={deletingAccount || accountConfirm.trim() !== "DELETE"}
+            >
+              {deletingAccount ? "Deleting account…" : "Delete my account"}
+            </button>
+            {accountError ? <span className="text-xs text-rose-100">{accountError}</span> : null}
+          </div>
         </div>
       </div>
     </div>

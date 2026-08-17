@@ -3,7 +3,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { isAllowedEmail } from "@/lib/allowlist";
 
-type ResolvedUser = { id: string; email: string | null };
+type ResolvedUser = { id: string; email: string | null; clerkId: string };
 
 async function resolveUser(): Promise<ResolvedUser | null> {
   const { userId: clerkId, sessionId } = await auth();
@@ -13,7 +13,7 @@ async function resolveUser(): Promise<ResolvedUser | null> {
     where: { clerkId },
     select: { id: true, email: true },
   });
-  if (existing) return existing;
+  if (existing) return { ...existing, clerkId };
 
   const client = await clerkClient();
   const clerkUser = await client.users.getUser(clerkId);
@@ -33,17 +33,19 @@ async function resolveUser(): Promise<ResolvedUser | null> {
     select: { id: true, email: true },
   });
   if (byEmail) {
-    return prisma.user.update({
+    const linked = await prisma.user.update({
       where: { id: byEmail.id },
       data: { clerkId },
       select: { id: true, email: true },
     });
+    return { ...linked, clerkId };
   }
 
-  return prisma.user.create({
+  const created = await prisma.user.create({
     data: { clerkId, email: primaryEmail },
     select: { id: true, email: true },
   });
+  return { ...created, clerkId };
 }
 
 export async function requireUser(): Promise<{ email: string | null }> {
@@ -61,4 +63,12 @@ export async function requireUserId(): Promise<string> {
 export async function getSessionUserId(): Promise<string | null> {
   const user = await resolveUser();
   return user?.id ?? null;
+}
+
+// Account deletion is the one caller that needs both identities at once: the local row to
+// cascade and the Clerk user to remove. Resolving them together keeps the route from
+// re-entering `auth()` and racing its own deletion.
+export async function getSessionAccount(): Promise<{ id: string; clerkId: string } | null> {
+  const user = await resolveUser();
+  return user ? { id: user.id, clerkId: user.clerkId } : null;
 }
