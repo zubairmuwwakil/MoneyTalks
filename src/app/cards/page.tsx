@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CreditCard, Plus, Settings2 } from "lucide-react";
+import { CreditCard, FileSpreadsheet, Plus, Settings2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -14,6 +14,7 @@ export default async function CardsPage() {
   const cards = await prisma.creditCard.findMany({
     where: { userId },
     orderBy: { nickname: "asc" },
+    include: { coverageReports: { orderBy: { month: "desc" }, take: 1 } },
   });
 
   const defs: CardDef[] = cards.map((c) => ({
@@ -35,6 +36,12 @@ export default async function CardsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/cards/reconcile" className="flex items-center gap-1.5">
+              <FileSpreadsheet className="size-3.5" />
+              <span>Reconcile statement</span>
+            </Link>
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="/cards/manage" className="flex items-center gap-1.5">
               <Settings2 className="size-3.5" />
@@ -90,6 +97,11 @@ export default async function CardsPage() {
                   <span className="text-sm font-semibold tabular-nums text-muted-foreground">
                     fee {formatMinorUnits(effectiveAnnualFeeMinor(defs[i]), "CAD")}/yr
                   </span>
+                  {c.coverageReports[0] ? (
+                    <span className="mt-1 block text-xs tabular-nums text-muted-foreground">
+                      capture coverage {c.coverageReports[0].eligibleLines === 0 ? "—" : `${Math.round((c.coverageReports[0].matchedLines / c.coverageReports[0].eligibleLines) * 100)}%`}
+                    </span>
+                  ) : null}
                 </div>
               </Link>
             </li>

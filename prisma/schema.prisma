@@ -31,6 +31,7 @@ model User {
   alerts           Alert[]
   bills            Bill[]
   creditCards      CreditCard[]
+  coverageReports  CoverageReport[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   emailConnection        EmailConnection?
@@ -285,12 +286,35 @@ model CreditCard {
   dueDay         Int?
   aprPct         Decimal?
   annualFeeMinor Int        @default(0)
+  // The scoring-contract identity used by Wallet capture aliases. This is
+  // intentionally separate from this user's CreditCard.id.
+  contractCardId String?
   rewards        Json // validated rewards structure — see src/lib/validation/cards.ts
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   state          CardState?
+  coverageReports CoverageReport[]
 
   @@unique([userId, nickname])
+  @@index([userId, contractCardId])
+}
+
+// A compact, durable result of an in-memory statement reconciliation. Raw
+// statement lines are deliberately never retained after the upload response.
+model CoverageReport {
+  id             String     @id @default(cuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId         String
+  card           CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  month          String     // transaction month: YYYY-MM
+  matchedLines   Int
+  eligibleLines  Int
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([cardId, month])
+  @@index([userId, cardId, month])
 }
 
 model CardState {
