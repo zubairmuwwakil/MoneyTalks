@@ -89,7 +89,7 @@ export async function GET() {
   return new NextResponse(json, {
     headers: {
       "Content-Type": "application/json",
-      "Content-Disposition": "attachment; filename=moneytalks-export.json",
+      "Content-Disposition": "attachment; filename=pickme-export.json",
     },
   });
 }

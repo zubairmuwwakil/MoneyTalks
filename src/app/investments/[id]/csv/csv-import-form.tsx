@@ -170,7 +170,7 @@ export function CsvImportForm({
                   </tbody>
                 </table>
                 <p className="mt-3 text-[11px] text-muted-foreground border-t border-border/40 pt-2">
-                  MoneyTalks stores amounts unsigned and carries the direction in the transaction
+                  PickMe stores amounts unsigned and carries the direction in the transaction
                   type — Amount and Type above are exactly what Import will save for each row.
                 </p>
               </div>

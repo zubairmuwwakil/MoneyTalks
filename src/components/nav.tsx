@@ -43,7 +43,7 @@ export function Nav() {
           <div className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
             <Coins className="size-4.5" />
           </div>
-          <span className="text-base font-semibold">MoneyTalks</span>
+          <span className="text-base font-semibold">PickMe</span>
         </Link>
       </header>
 
@@ -55,7 +55,7 @@ export function Nav() {
               <div className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background shadow-xs">
                 <Coins className="size-4.5" />
               </div>
-              <span className="text-base font-semibold tracking-tight">MoneyTalks</span>
+              <span className="text-base font-semibold tracking-tight">PickMe</span>
             </Link>
 
             <nav aria-label="Main Navigation">

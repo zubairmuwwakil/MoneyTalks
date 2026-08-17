@@ -45,7 +45,7 @@ export async function buildDigestForUser(userId: string, now: Date, tz = "Americ
     overdue,
   };
 
-  const subject = `Your digest: ${counts.returns} returns · ${counts.bills} bills · ${counts.subs} subs`;
+  const subject = `PickMe Digest: ${counts.returns} returns · ${counts.bills} bills · ${counts.subs} subs`;
 
   return {
     dateLocal,

@@ -15,7 +15,7 @@ export default async function LoginPage() {
             <Coins className="size-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">MoneyTalks</h1>
+            <h1 className="text-2xl font-bold tracking-tight">PickMe</h1>
             <p className="text-xs text-muted-foreground mt-0.5">Personal finance command center</p>
           </div>
         </div>

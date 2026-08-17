@@ -8,9 +8,11 @@ export async function sendEmail(opts: {
   html: string;
   text?: string;
 }) {
-  const from = process.env.EMAIL_FROM;
-  if (!from) throw new Error("EMAIL_FROM missing");
+  const rawFrom = process.env.EMAIL_FROM;
+  if (!rawFrom) throw new Error("EMAIL_FROM missing");
   if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY missing");
+
+  const from = rawFrom.includes("<") ? rawFrom : `PickMe <${rawFrom}>`;
 
   return resend.emails.send({
     from,

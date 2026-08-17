@@ -11,7 +11,7 @@ export default function OfflinePage() {
           </div>
           <h1 className="text-xl font-bold tracking-tight">You are offline</h1>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            MoneyTalks needs an internet connection for live data — balances, rules, and card caps
+            PickMe needs an internet connection for live data — balances, rules, and card caps
             are all computed fresh, never served stale.
           </p>
         </CardContent>

@@ -120,7 +120,7 @@ export default function PrivacySettings() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-100">Scan modes</p>
-            <p className="text-lg font-semibold text-white">Choose what MoneyTalks scans</p>
+            <p className="text-lg font-semibold text-white">Choose what PickMe scans</p>
           </div>
         </div>
         <div className="mt-3 grid gap-2 text-sm text-slate-200">

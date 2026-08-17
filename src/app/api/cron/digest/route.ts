@@ -37,6 +37,7 @@ function renderDigestEmail(args: { appUrl: string; digest: NonNullable<Awaited<R
 
   return `
   <div style="font-family: ui-sans-serif, system-ui; line-height:1.4; color:#111;">
+    <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#2563eb; margin-bottom:6px;">PickMe Hub</div>
     <h2 style="margin:0 0 8px 0;">${escapeHtml(digest.subject)}</h2>
     <div style="color:#555;margin-bottom:16px;">Returns: ${digest.counts.returns} · Bills: ${digest.counts.bills} · Subs: ${digest.counts.subs} · Overdue: ${digest.counts.overdue}</div>
 

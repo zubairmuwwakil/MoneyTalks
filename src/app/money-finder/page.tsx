@@ -121,7 +121,7 @@ export default async function MoneyFinderPage({
 
       {/* Citations and Legal Disclaimer Footer */}
       <footer className="rounded-xl border border-border/80 bg-muted/20 p-4 text-xs text-muted-foreground leading-relaxed">
-        MoneyTalks surfaces published program rules against your own data, with citations. It is not
+        PickMe surfaces published program rules against your own data, with citations. It is not
         financial, tax, or legal advice; verify with your accountant or caseworker before acting.
         Rules inputs come from{" "}
         <Link href="/settings" className="font-semibold text-foreground underline hover:text-foreground/80">
