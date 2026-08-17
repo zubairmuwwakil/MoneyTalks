@@ -8,6 +8,7 @@ import type { Prisma } from "@prisma/client";
 import crypto from "crypto";
 import { applyCapAccrual } from "@/lib/spine/cap-usage";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
+import { findMatchingPurchase } from "@/lib/domain/spine/purchaseMerge";
 
 type TrackingHit = { trackingNumber: string; carrier?: string };
 
@@ -206,27 +207,67 @@ export async function POST(req: NextRequest) {
       }
 
       if (tx) {
-        const purchase = await prisma.purchase.upsert({
-          where: { userId_sourceEmailId: { userId, sourceEmailId: msg.messageId } },
-          create: {
-            userId,
-            merchant: tx.merchant,
-            totalCents: tx.totalCents ?? null,
-            currency: (tx.currency ?? "CAD").toUpperCase(),
-            purchasedAt: tx.purchasedAt ?? msg.internalDate ?? new Date(),
-            orderNumber: tx.orderId ?? null,
-            paymentMethod: null,
-            source: "GMAIL",
-            sourceEmailId: msg.messageId,
-          },
-          update: {
-            merchant: tx.merchant,
-            totalCents: tx.totalCents ?? null,
-            currency: (tx.currency ?? "CAD").toUpperCase(),
-            purchasedAt: tx.purchasedAt ?? msg.internalDate ?? new Date(),
-            orderNumber: tx.orderId ?? null,
-          },
-        });
+        // Resolve the canonical purchase: previously linked observation first,
+        // then this source's own key, then a cross-source match, else create.
+        let purchase = tx.purchaseId
+          ? await prisma.purchase.findUnique({ where: { id: tx.purchaseId } })
+          : await prisma.purchase.findUnique({
+              where: { userId_sourceEmailId: { userId, sourceEmailId: msg.messageId } },
+            });
+
+        if (purchase && purchase.source === "GMAIL") {
+          purchase = await prisma.purchase.update({
+            where: { id: purchase.id },
+            data: {
+              merchant: tx.merchant,
+              totalCents: tx.totalCents ?? null,
+              currency: (tx.currency ?? "CAD").toUpperCase(),
+              purchasedAt: tx.purchasedAt ?? msg.internalDate ?? new Date(),
+              orderNumber: tx.orderId ?? null,
+            },
+          });
+        } else if (!purchase) {
+          const observedAt = tx.purchasedAt ?? msg.internalDate ?? new Date();
+          const match = tx.totalCents != null
+            ? await findMatchingPurchase(prisma, {
+                userId,
+                amountMinor: tx.totalCents,
+                observedAt,
+                merchantCandidates: [tx.merchant],
+                incomingSource: "GMAIL",
+              })
+            : null;
+
+          if (match?.confidence === "exact") {
+            // Same real purchase, first seen by Wallet — enrich, don't duplicate.
+            purchase = await prisma.purchase.update({
+              where: { id: match.purchase.id },
+              data: { orderNumber: match.purchase.orderNumber ?? tx.orderId ?? undefined },
+            });
+          } else {
+            purchase = await prisma.purchase.create({
+              data: {
+                userId,
+                merchant: tx.merchant,
+                totalCents: tx.totalCents ?? null,
+                currency: (tx.currency ?? "CAD").toUpperCase(),
+                purchasedAt: observedAt,
+                orderNumber: tx.orderId ?? null,
+                paymentMethod: null,
+                source: "GMAIL",
+                sourceEmailId: msg.messageId,
+                possibleDuplicateOfId: match?.purchase.id ?? null,
+              },
+            });
+          }
+        }
+
+        if (tx.purchaseId !== purchase.id) {
+          await prisma.emailTransaction.update({
+            where: { id: tx.id },
+            data: { purchaseId: purchase.id },
+          });
+        }
 
         // Email purchases only accrue once a card and category have been
         // resolved. Unknown classifications deliberately remain unaccrued.

@@ -506,10 +506,15 @@ model Purchase {
   source        PurchaseSource @default(GMAIL)
   sourceEmailId String?
   sourceEventId String?
+  // Conservative near-match (amount+time matched, merchant unclear). Plain
+  // column, no FK — the flagged row must survive its counterpart's deletion.
+  possibleDuplicateOfId String?
 
   items       PurchaseItem[]
   attachments PurchaseAttachment[]
   returns     ReturnItem[]
+  walletEvents      WalletEvent[]
+  emailTransactions EmailTransaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -669,13 +674,18 @@ model EmailTransaction {
   currency    String    @default("CAD")
   items       Json?
   rawSource   String
-  parserError String? 
+  parserError String?
 
   receiptDocuments ReceiptDocument[]
+
+  // Canonical purchase this observation fed (set at scan promotion).
+  purchaseId String?
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
   @@unique([userId, provider, messageId])
+  @@index([purchaseId])
   @@index([userId, merchant])
   @@index([userId, purchasedAt])
 }
@@ -929,11 +939,16 @@ model WalletEvent {
 
   processingStatus       WalletEventProcessingStatus @default(OBSERVED)
 
+  // Canonical purchase this observation fed (set at normalization).
+  purchaseId             String?
+  purchase               Purchase?                   @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+
   createdAt              DateTime                    @default(now())
   updatedAt              DateTime                    @updatedAt
 
   @@index([userId, eventId])
   @@index([userId, capturedAt])
+  @@index([purchaseId])
 }
 
 model MerchantAlias {

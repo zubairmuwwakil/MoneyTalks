@@ -2,6 +2,8 @@
 
 One line per settled decision, newest first. Agents: check here before treating any question as open; add a line whenever the owner ratifies something in chat.
 
+- 2026-08-17 — Cross-source merge: observations (WalletEvent/EmailTransaction) link to one canonical Purchase; exact = amount + 72h window + merchant-compatible → enrich, never duplicate; amount+time alone → `possibleDuplicateOfId` flag, never a silent merge; cap accrual keyed `purchase:{id}` for exactly-once across sources (closes a latent double-count).
+
 - 2026-08-17 — Working mode: agents proceed autonomously; discussion reserved for high-ROI / hard-to-reverse decisions, batched into one question set; token-conscious.
 - 2026-08-17 — Build sequence: multi-user foundations → cross-source purchase merge (incl. email ingestion) → transactions experience → optimizer/money-back UX polish. All three loops matter equally; ordering is by dependency.
 - 2026-08-17 — First real users: friends/family within weeks, gated by `ALLOWED_EMAILS`.

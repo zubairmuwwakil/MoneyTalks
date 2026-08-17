@@ -18,7 +18,7 @@ vi.mock("@/lib/spine/cap-usage", () => ({
 
 describe("processWalletEvents", () => {
   const tx = {
-    purchase: { findFirst: vi.fn(), create: vi.fn() },
+    purchase: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
     ownerStateRecord: { findUnique: vi.fn(), create: vi.fn() },
     creditCard: { findMany: vi.fn() },
     walletEvent: { update: vi.fn() },
@@ -42,6 +42,8 @@ describe("processWalletEvents", () => {
     vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Cafe", category: "dining" } as any);
     vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue({ cardId: "amex-cobalt" } as any);
     tx.purchase.findFirst.mockResolvedValue(null);
+    tx.purchase.findMany.mockResolvedValue([]);
+    tx.purchase.create.mockResolvedValue({ id: "purch-1" });
     tx.ownerStateRecord.findUnique.mockResolvedValue(null);
     tx.creditCard.findMany.mockResolvedValue([]);
 
@@ -49,7 +51,7 @@ describe("processWalletEvents", () => {
 
     expect(processed).toBe(1);
     expect(tx.purchase.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ totalCents: 642, merchant: "Cafe" }),
+      data: expect.objectContaining({ totalCents: 642, merchant: "Cafe", possibleDuplicateOfId: null }),
     }));
     expect(tx.walletEvent.update).toHaveBeenCalledWith({
       where: { id: "evt-1" },
@@ -57,7 +59,46 @@ describe("processWalletEvents", () => {
         processingStatus: "NORMALIZED",
         merchantNormalized: "Cafe",
         resolvedCardId: "amex-cobalt",
+        purchaseId: "purch-1",
       },
     });
+  });
+
+  it("merges a wallet event into an existing cross-source purchase instead of duplicating", async () => {
+    const event = {
+      id: "evt-2", userId: "user-1", eventId: "wevt_2",
+      merchantRaw: "STARBUCKS #1234", cardRaw: "Amex Cobalt",
+      amountRaw: new Prisma.Decimal("6.42"), currencyRaw: "CAD",
+      capturedAt: new Date("2026-08-16T22:25:31Z"),
+    };
+    const gmailPurchase = {
+      id: "purch-gmail", merchant: "Starbucks", totalCents: 642,
+      purchasedAt: new Date("2026-08-16T21:00:00Z"), paymentMethod: null, category: null,
+    };
+    vi.mocked(prisma.walletEvent.findMany)
+      .mockResolvedValueOnce([event] as any)
+      .mockResolvedValueOnce([]);
+    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Starbucks", category: "dining" } as any);
+    vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue({ cardId: "amex-cobalt" } as any);
+    tx.purchase.findFirst.mockResolvedValue(null);
+    tx.purchase.findMany.mockResolvedValue([gmailPurchase]);
+    tx.purchase.update.mockResolvedValue({ ...gmailPurchase, purchasedAt: event.capturedAt });
+    tx.ownerStateRecord.findUnique.mockResolvedValue(null);
+    tx.creditCard.findMany.mockResolvedValue([]);
+
+    await processWalletEvents();
+
+    expect(tx.purchase.create).not.toHaveBeenCalled();
+    expect(tx.purchase.update).toHaveBeenCalledWith({
+      where: { id: "purch-gmail" },
+      data: expect.objectContaining({
+        purchasedAt: event.capturedAt,
+        paymentMethod: "amex-cobalt",
+        category: "dining",
+      }),
+    });
+    expect(tx.walletEvent.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ purchaseId: "purch-gmail" }),
+    }));
   });
 });

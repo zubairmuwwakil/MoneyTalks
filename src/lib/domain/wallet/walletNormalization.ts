@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { applyCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
 import { walletAmountMinor } from "./amount";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
+import { findMatchingPurchase } from "@/lib/domain/spine/purchaseMerge";
 
 export async function processWalletEvents() {
   const events = await prisma.walletEvent.findMany({
@@ -26,30 +27,61 @@ export async function processWalletEvents() {
     if (merchantAlias && (cardAlias || !event.cardRaw)) {
       // Normalize & promote to spine
       await prisma.$transaction(async (tx) => {
-        const existingSpine = await tx.purchase.findFirst({
+        const amountMinor = walletAmountMinor(event.amountRaw);
+        let spine = await tx.purchase.findFirst({
           where: { userId: event.userId, source: "WALLET", sourceEventId: event.eventId }
         });
 
-        if (!existingSpine) {
-          await tx.purchase.create({
-            data: {
-              userId: event.userId,
-              source: "WALLET",
-              sourceEventId: event.eventId,
-              merchant: merchantAlias.normalizedName,
-              totalCents: walletAmountMinor(event.amountRaw),
-              currency: event.currencyRaw || "CAD",
-              purchasedAt: event.capturedAt,
-              paymentMethod: cardAlias?.cardId || undefined,
-              category: merchantAlias.category,
-            }
-          });
+        if (!spine) {
+          const match = amountMinor != null
+            ? await findMatchingPurchase(tx, {
+                userId: event.userId,
+                amountMinor,
+                observedAt: event.capturedAt,
+                merchantCandidates: [merchantAlias.normalizedName, event.merchantRaw].filter(
+                  (m): m is string => !!m,
+                ),
+                incomingSource: "WALLET",
+              })
+            : null;
+
+          if (match?.confidence === "exact") {
+            // Same real purchase, first seen by another source. Enrich the
+            // canonical row instead of duplicating; the tap is the
+            // authoritative instant for purchasedAt.
+            spine = await tx.purchase.update({
+              where: { id: match.purchase.id },
+              data: {
+                purchasedAt: event.capturedAt,
+                paymentMethod: match.purchase.paymentMethod ?? cardAlias?.cardId ?? undefined,
+                category: match.purchase.category ?? merchantAlias.category ?? undefined,
+              },
+            });
+          } else {
+            spine = await tx.purchase.create({
+              data: {
+                userId: event.userId,
+                source: "WALLET",
+                sourceEventId: event.eventId,
+                merchant: merchantAlias.normalizedName,
+                totalCents: amountMinor,
+                currency: event.currencyRaw || "CAD",
+                purchasedAt: event.capturedAt,
+                paymentMethod: cardAlias?.cardId || undefined,
+                category: merchantAlias.category,
+                possibleDuplicateOfId: match?.purchase.id ?? null,
+              }
+            });
+          }
         }
 
         const ownerState = await ensureOwnerStateRecord(tx, event.userId);
         if (ownerState && event.amountRaw != null && cardAlias) {
+          // Keyed on the canonical purchase: whichever source resolves first
+          // accrues; CapAccrual.sourceKey uniqueness blocks a second source
+          // from double-counting the same real dollars.
           await applyCapAccrual(tx, {
-            sourceKey: `wallet:${event.id}`,
+            sourceKey: `purchase:${spine.id}`,
             userId: event.userId,
             cardId: cardAlias.cardId,
             category: merchantAlias.category,
@@ -66,6 +98,7 @@ export async function processWalletEvents() {
             processingStatus: "NORMALIZED",
             merchantNormalized: merchantAlias.normalizedName,
             resolvedCardId: cardAlias?.cardId ?? null,
+            purchaseId: spine.id,
           },
         });
       });
@@ -80,7 +113,13 @@ export async function processWalletEvents() {
     take: 100,
   });
   for (const event of reversedEvents) {
-    await prisma.$transaction((tx) => reverseCapAccrual(tx, `wallet:${event.id}`));
+    await prisma.$transaction(async (tx) => {
+      // Canonical key first; pre-merge history accrued under the legacy key.
+      const reversed = event.purchaseId
+        ? await reverseCapAccrual(tx, `purchase:${event.purchaseId}`)
+        : false;
+      if (!reversed) await reverseCapAccrual(tx, `wallet:${event.id}`);
+    });
   }
 
   return processed;
