@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 export default function AutomationHome() {
   const [connected, setConnected] = useState(false);
+  const [needsReauth, setNeedsReauth] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -13,6 +14,7 @@ export default function AutomationHome() {
     const res = await fetch("/api/gmail/status", { cache: "no-store" });
     const data = await res.json();
     setConnected(Boolean(data.connected));
+    setNeedsReauth(Boolean(data.needsReauth));
     setEmail(data.emailAddress ?? null);
   }
 
@@ -50,7 +52,7 @@ export default function AutomationHome() {
       }
 
       setResult(
-        `Imported ${data?.importedEmails} · already scanned ${data?.alreadyScanned} · suggestions ${data?.suggestionsCreated}`
+        `Imported ${data?.importedEmails} · already scanned ${data?.skipped} · suggestions ${data?.suggestionsCreated}`
       );
     } finally {
       setScanning(false);
@@ -64,6 +66,11 @@ export default function AutomationHome() {
         <div className="mt-1 text-sm opacity-70">
           {connected ? `Connected: ${email ?? "Gmail"}` : "Not connected"}
         </div>
+        {!connected && needsReauth ? (
+          <div className="mt-1 text-sm text-amber-700">
+            Google didn&apos;t grant Gmail access — reconnect and tick the Gmail checkbox on the consent screen.
+          </div>
+        ) : null}
 
         <div className="mt-3 flex gap-2">
           {!connected ? (

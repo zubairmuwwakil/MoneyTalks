@@ -3,7 +3,8 @@ import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { parsePurchaseFromRawGmailMessage } from "@/lib/domain/receipts/gmailPurchaseParser";
 import { storeReceiptAttachment } from "@/lib/domain/receipts/receiptAttachmentStorage";
-import { getAuthedImap } from "@/lib/services/imapClient";
+import { getAuthedGmail } from "@/lib/services/gmailClient";
+import { hasGmailReadScope, listRecentRawGmailMessages } from "@/lib/services/gmailScanSource";
 import type { Prisma } from "@prisma/client";
 import crypto from "crypto";
 import { applyCapAccrual } from "@/lib/spine/cap-usage";
@@ -87,9 +88,18 @@ export async function POST(req: NextRequest) {
   const days = Number(body?.days ?? 90);
   const max = Number(body?.max ?? 200);
 
-  const authedImap = await getAuthedImap(userId);
-  if (!authedImap) return NextResponse.json({ error: "IMAP not connected; add credentials at /api/imap/credentials" }, { status: 400 });
-  const scanMode = authedImap.conn.scanMode ?? "ALL";
+  const authed = await getAuthedGmail(userId);
+  if (!authed) {
+    return NextResponse.json({ error: "Gmail not connected. Connect it in Settings → Automation." }, { status: 400 });
+  }
+  if (!hasGmailReadScope(authed.conn.scope)) {
+    return NextResponse.json(
+      { error: "Google didn't grant Gmail access. Reconnect and tick the Gmail checkbox on the consent screen." },
+      { status: 400 }
+    );
+  }
+  const { gmail, flushTokens } = authed;
+  const scanMode = authed.conn.scanMode ?? "ALL";
 
   let already = 0;
   let parsed = 0;
@@ -101,15 +111,10 @@ export async function POST(req: NextRequest) {
   since.setUTCDate(since.getUTCDate() - (Number.isFinite(days) ? days : 90));
 
   try {
-    const messages: { uid: number; raw: Buffer; subject?: string | null; from?: string | null; internalDate?: Date | null; messageId: string }[] = [];
-    for await (const msg of authedImap.client.fetch({ since }, { uid: true, envelope: true, internalDate: true, source: true })) {
-      if (messages.length >= Math.min(Number.isFinite(max) ? max : 200, 500)) break;
-      if (!msg.source) continue;
-      const messageId = msg.envelope?.messageId ?? `uid-${msg.uid}`;
-      const from = msg.envelope?.from?.[0]?.address ?? null;
-      const subject = msg.envelope?.subject ?? null;
-      messages.push({ uid: msg.uid, raw: msg.source as Buffer, subject, from, internalDate: msg.internalDate ? new Date(msg.internalDate) : null, messageId });
-    }
+    const messages = await listRecentRawGmailMessages(gmail, {
+      since,
+      max: Math.min(Number.isFinite(max) ? max : 200, 500),
+    });
 
     fetched = messages.length;
 
@@ -453,7 +458,8 @@ export async function POST(req: NextRequest) {
       where: { userId },
       data: { lastScanAt: new Date() },
     });
-    await authedImap.client.logout().catch(() => {});
+    // Refreshed tokens must be durably stored before the function returns.
+    await flushTokens();
   }
 
   return NextResponse.json({
