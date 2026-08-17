@@ -169,7 +169,19 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
         create: { userId, cardId: card.id, month, matchedLines: result.matchedLines, eligibleLines: result.eligibleLines },
       });
     }),
-    ...reconciled.map((line, index) => {
+    ...(matchedPurchaseIds.length > 0
+      ? [
+          prisma.walletEvent.updateMany({
+            where: { userId, purchaseId: { in: matchedPurchaseIds }, processingStatus: "NORMALIZED" },
+            data: { processingStatus: "RECONCILED" },
+          }),
+        ]
+      : []),
+  ]);
+
+  // Line upserts run in chunks so a 500-line statement never becomes one
+  // giant transaction (Neon-friendly); each upsert is idempotent by hash.
+  const lineUpserts = reconciled.map((line, index) => {
       const match = parsedMatches[index];
       const purchaseId =
         match.purchaseId ?? (match.walletEventId ? walletEventPurchase.get(match.walletEventId) ?? null : null);
@@ -192,17 +204,10 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
         create: { userId, cardId: card.id, lineHash, ...shared },
         update: shared,
       });
-    }),
-    // The statement confirmed these charges posted: observed → reconciled.
-    ...(matchedPurchaseIds.length > 0
-      ? [
-          prisma.walletEvent.updateMany({
-            where: { userId, purchaseId: { in: matchedPurchaseIds }, processingStatus: "NORMALIZED" },
-            data: { processingStatus: "RECONCILED" },
-          }),
-        ]
-      : []),
-  ]);
+  });
+  for (let i = 0; i < lineUpserts.length; i += 100) {
+    await prisma.$transaction(lineUpserts.slice(i, i + 100));
+  }
   revalidatePath("/cards");
   revalidatePath("/cards/reconcile");
 

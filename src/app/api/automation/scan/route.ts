@@ -233,6 +233,7 @@ export async function POST(req: NextRequest) {
                 userId,
                 amountMinor: tx.totalCents,
                 observedAt,
+                currency: tx.currency,
                 merchantCandidates: [tx.merchant],
                 incomingSource: "GMAIL",
               })

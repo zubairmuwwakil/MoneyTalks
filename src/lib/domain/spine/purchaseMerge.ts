@@ -11,6 +11,9 @@ export interface IncomingObservation {
   userId: string;
   amountMinor: number;
   observedAt: Date;
+  // ISO code; null/undefined falls back to CAD, matching storage defaults.
+  // Without this filter, USD 20.00 and CAD 20.00 could wrongly merge.
+  currency?: string | null;
   // Ordered by quality: normalized merchant first, raw string fallback.
   merchantCandidates: string[];
   incomingSource: PurchaseSource;
@@ -59,6 +62,7 @@ export async function findMatchingPurchase(
       userId: incoming.userId,
       source: { not: incoming.incomingSource },
       totalCents: incoming.amountMinor,
+      currency: { equals: incoming.currency?.trim() || "CAD", mode: "insensitive" },
       purchasedAt: {
         gte: new Date(incoming.observedAt.getTime() - windowMs),
         lte: new Date(incoming.observedAt.getTime() + windowMs),
@@ -71,10 +75,39 @@ export async function findMatchingPurchase(
   });
 
   let possible: Purchase | null = null;
+  let confidence: MatchConfidence | null = null;
+  let matched: Purchase | null = null;
   for (const candidate of candidates) {
-    const confidence = scoreCandidate(candidate, incoming);
-    if (confidence === "exact") return { purchase: candidate, confidence };
-    if (confidence === "possible" && !possible) possible = candidate;
+    const score = scoreCandidate(candidate, incoming);
+    if (score === "exact") {
+      matched = candidate;
+      confidence = "exact";
+      break;
+    }
+    if (score === "possible" && !possible) possible = candidate;
   }
-  return possible ? { purchase: possible, confidence: "possible" } : null;
+  if (!matched && possible) {
+    matched = possible;
+    confidence = "possible";
+  }
+
+  // Tuning telemetry: real-data rates for exact/possible/none decide whether
+  // the 72h window and merchant rules need adjusting. No merchant names or
+  // user ids — the DB rows themselves carry the detail.
+  console.log(
+    JSON.stringify({
+      tag: "merge-decision",
+      source: incoming.incomingSource,
+      decision: confidence ?? "none",
+      amountMinor: incoming.amountMinor,
+      candidatesInWindow: candidates.length,
+      deltaHours: matched
+        ? Math.round(
+            (Math.abs(matched.purchasedAt.getTime() - incoming.observedAt.getTime()) / 3_600_000) * 10,
+          ) / 10
+        : null,
+    }),
+  );
+
+  return matched && confidence ? { purchase: matched, confidence } : null;
 }

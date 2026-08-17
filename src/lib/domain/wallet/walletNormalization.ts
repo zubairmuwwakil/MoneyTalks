@@ -54,6 +54,7 @@ export async function processWalletEvents() {
                 userId: event.userId,
                 amountMinor,
                 observedAt: event.capturedAt,
+                currency: event.currencyRaw,
                 merchantCandidates: [merchantAlias.normalizedName, event.merchantRaw].filter(
                   (m): m is string => !!m,
                 ),
