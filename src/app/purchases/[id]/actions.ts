@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { reverseCapAccrual } from "@/lib/spine/cap-usage";
+import { orderedPurchasePair } from "@/lib/domain/spine/purchaseMerge";
 
 const idInput = z.string().min(1);
 
@@ -80,9 +81,29 @@ export async function keepSeparatePurchase(purchaseIdRaw: unknown) {
   const parsed = idInput.safeParse(purchaseIdRaw);
   if (!parsed.success) return { ok: false as const, error: "invalid input" };
 
-  await prisma.purchase.updateMany({
-    where: { id: parsed.data, userId, possibleDuplicateOfId: { not: null } },
-    data: { possibleDuplicateOfId: null },
+  await prisma.$transaction(async (tx) => {
+    const flagged = await tx.purchase.findFirst({
+      where: { id: parsed.data, userId, possibleDuplicateOfId: { not: null } },
+      select: { id: true, possibleDuplicateOfId: true },
+    });
+    if (!flagged?.possibleDuplicateOfId) return;
+
+    const pair = orderedPurchasePair(flagged.id, flagged.possibleDuplicateOfId);
+    await tx.purchaseDuplicateDismissal.upsert({
+      where: {
+        userId_purchaseLowId_purchaseHighId: { userId, ...pair },
+      },
+      create: { userId, ...pair },
+      update: {},
+    });
+    await tx.purchase.updateMany({
+      where: {
+        id: flagged.id,
+        userId,
+        possibleDuplicateOfId: flagged.possibleDuplicateOfId,
+      },
+      data: { possibleDuplicateOfId: null },
+    });
   });
   revalidatePath(`/purchases/${parsed.data}`);
   revalidatePath("/purchases");

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { reverseCapAccrual } from "@/lib/spine/cap-usage";
-import { mergeDuplicatePurchase } from "./actions";
+import { keepSeparatePurchase, mergeDuplicatePurchase } from "./actions";
 
 vi.mock("@/lib/require-user", () => ({ requireUserId: vi.fn(async () => "user-1") }));
 vi.mock("@/lib/spine/cap-usage", () => ({ reverseCapAccrual: vi.fn() }));
@@ -23,6 +23,7 @@ describe("mergeDuplicatePurchase", () => {
     purchaseAttachment: { updateMany: vi.fn() },
     returnItem: { updateMany: vi.fn() },
     capAccrual: { findUnique: vi.fn() },
+    purchaseDuplicateDismissal: { upsert: vi.fn() },
   };
 
   const flagged = {
@@ -76,5 +77,33 @@ describe("mergeDuplicatePurchase", () => {
     await expect(mergeDuplicatePurchase("dup-1")).rejects.toThrow("REDIRECT:/purchases/target-1");
 
     expect(reverseCapAccrual).not.toHaveBeenCalled();
+  });
+
+  it("durably records a keep-separate decision before clearing the flag", async () => {
+    await keepSeparatePurchase("dup-1");
+
+    expect(tx.purchaseDuplicateDismissal.upsert).toHaveBeenCalledWith({
+      where: {
+        userId_purchaseLowId_purchaseHighId: {
+          userId: "user-1",
+          purchaseLowId: "dup-1",
+          purchaseHighId: "target-1",
+        },
+      },
+      create: {
+        userId: "user-1",
+        purchaseLowId: "dup-1",
+        purchaseHighId: "target-1",
+      },
+      update: {},
+    });
+    expect(tx.purchase.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "dup-1",
+        userId: "user-1",
+        possibleDuplicateOfId: "target-1",
+      },
+      data: { possibleDuplicateOfId: null },
+    });
   });
 });

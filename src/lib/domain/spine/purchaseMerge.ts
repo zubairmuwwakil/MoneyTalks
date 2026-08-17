@@ -21,6 +21,12 @@ export interface IncomingObservation {
 
 export const MATCH_WINDOW_HOURS = 72;
 
+export function orderedPurchasePair(a: string, b: string) {
+  return a < b
+    ? { purchaseLowId: a, purchaseHighId: b }
+    : { purchaseLowId: b, purchaseHighId: a };
+}
+
 function canonMerchant(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
@@ -35,11 +41,12 @@ export function merchantsCompatible(a: string, b: string): boolean {
 export function scoreCandidate(
   candidate: Pick<Purchase, "merchant" | "totalCents" | "purchasedAt">,
   incoming: IncomingObservation,
+  windowHours = MATCH_WINDOW_HOURS,
 ): MatchConfidence | null {
   if (candidate.totalCents == null || candidate.totalCents !== incoming.amountMinor) return null;
   const hoursApart =
     Math.abs(candidate.purchasedAt.getTime() - incoming.observedAt.getTime()) / 3_600_000;
-  if (hoursApart > MATCH_WINDOW_HOURS) return null;
+  if (hoursApart > windowHours) return null;
   const compatible = incoming.merchantCandidates.some(
     (m) => m && merchantsCompatible(m, candidate.merchant),
   );

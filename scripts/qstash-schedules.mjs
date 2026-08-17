@@ -13,6 +13,7 @@ Optional env:
   QSTASH_URL
   QSTASH_DIGEST_CRON   default: */15 * * * *
   QSTASH_NOTIFY_CRON   default: 0 * * * *
+  QSTASH_PURCHASE_MERGE_CRON default: 30 3 * * *
 
 Run:
   npx dotenv -e .env.local -- npm run qstash:schedules`);
@@ -46,6 +47,12 @@ const schedules = [
     scheduleId: "moneytalks-notify",
     path: "/api/cron/notify",
     cron: process.env.QSTASH_NOTIFY_CRON || "0 * * * *",
+  },
+  {
+    name: "purchase-merge",
+    scheduleId: "moneytalks-purchase-merge",
+    path: "/api/cron/purchase-merge",
+    cron: process.env.QSTASH_PURCHASE_MERGE_CRON || "30 3 * * *",
   },
 ];
 

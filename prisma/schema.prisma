@@ -40,6 +40,7 @@ model User {
   emailTransactions      EmailTransaction[]
   receiptDocuments       ReceiptDocument[]
   purchases              Purchase[]
+  purchaseDuplicateDismissals PurchaseDuplicateDismissal[]
   returnItems            ReturnItem[]
   shipmentEvents         ShipmentEvent[]
   refundCases            RefundCase[]
@@ -546,14 +547,35 @@ model Purchase {
   walletEvents      WalletEvent[]
   emailTransactions EmailTransaction[]
   statementLines    StatementLine[]
+  duplicateDismissalsAsLow  PurchaseDuplicateDismissal[] @relation("DuplicateDismissalLow")
+  duplicateDismissalsAsHigh PurchaseDuplicateDismissal[] @relation("DuplicateDismissalHigh")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId, purchasedAt])
+  @@index([purchasedAt])
   @@index([userId, merchant])
   @@unique([userId, sourceEmailId])
   @@unique([userId, sourceEventId])
+}
+
+// Durable, order-normalized record of a user's "keep separate" decision.
+// The cron must never offer the same pair again while both purchases exist.
+model PurchaseDuplicateDismissal {
+  id             String   @id @default(cuid())
+  userId         String
+  purchaseLowId  String
+  purchaseHighId String
+  dismissedAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchaseLow  Purchase @relation("DuplicateDismissalLow", fields: [purchaseLowId], references: [id], onDelete: Cascade)
+  purchaseHigh Purchase @relation("DuplicateDismissalHigh", fields: [purchaseHighId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, purchaseLowId, purchaseHighId])
+  @@index([purchaseLowId])
+  @@index([purchaseHighId])
 }
 
 model PurchaseItem {
