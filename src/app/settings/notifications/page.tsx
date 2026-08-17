@@ -2,8 +2,7 @@ import { getSessionUserId } from "@/lib/require-user";
 import { redirect } from "next/navigation";
 import NotificationSettings from "../NotificationSettings";
 
-// Home for the notification/digest preferences (including home timezone) and
-// the IMAP connection form — this component existed but was never routed.
+// Home for the notification/digest preferences, including home timezone.
 export default async function NotificationSettingsPage() {
   const userId = await getSessionUserId();
   if (!userId) {

@@ -35,58 +35,11 @@ export default function NotificationSettings() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const storageKey = "moneytalks-theme";
 
-  const [imapLoading, setImapLoading] = useState(true);
-  const [imapSaving, setImapSaving] = useState(false);
-  const [imapError, setImapError] = useState<string | null>(null);
-  const [imapForm, setImapForm] = useState({
-    emailAddress: "",
-    imapUser: "",
-    imapPassword: "",
-    imapHost: "imap.gmail.com",
-    imapPort: 993,
-    imapSecure: true,
-  });
-
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = (localStorage.getItem(storageKey) as "light" | "dark" | null) ?? "dark";
     setTheme(saved);
     applyTheme(saved);
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    async function loadImap() {
-      setImapLoading(true);
-      setImapError(null);
-      try {
-        const res = await fetch("/api/imap/credentials");
-        if (!res.ok) throw new Error("Failed to load IMAP credentials");
-        const json = await res.json();
-        if (!active) return;
-        const creds = json?.credentials;
-        if (creds) {
-          setImapForm(prev => ({
-            ...prev,
-            emailAddress: creds.emailAddress ?? "",
-            imapUser: creds.imapUser ?? "",
-            imapHost: creds.imapHost ?? prev.imapHost,
-            imapPort: creds.imapPort ?? prev.imapPort,
-            imapSecure: typeof creds.imapSecure === "boolean" ? creds.imapSecure : prev.imapSecure,
-            imapPassword: "",
-          }));
-        }
-      } catch (err) {
-        console.error(err);
-        if (active) setImapError("Unable to load IMAP settings.");
-      } finally {
-        if (active) setImapLoading(false);
-      }
-    }
-    loadImap();
-    return () => {
-      active = false;
-    };
   }, []);
 
   function applyTheme(next: "light" | "dark") {
@@ -139,35 +92,6 @@ export default function NotificationSettings() {
     } catch (err) {
       console.error(err);
       setDemoStatus("error");
-    }
-  }
-
-  async function saveImap() {
-    setImapSaving(true);
-    setImapError(null);
-    try {
-      const res = await fetch("/api/imap/credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          emailAddress: imapForm.emailAddress || undefined,
-          imapUser: imapForm.imapUser || undefined,
-          imapPassword: imapForm.imapPassword || undefined,
-          imapHost: imapForm.imapHost || undefined,
-          imapPort: imapForm.imapPort || undefined,
-          imapSecure: imapForm.imapSecure,
-        }),
-      });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        throw new Error(json?.error || "Failed to save IMAP settings");
-      }
-    } catch (err) {
-      console.error(err);
-      setImapError(err instanceof Error ? err.message : "Failed to save IMAP settings");
-    } finally {
-      setImapSaving(false);
-      setImapForm(prev => ({ ...prev, imapPassword: "" }));
     }
   }
 
@@ -277,86 +201,6 @@ export default function NotificationSettings() {
               Appearance controls are UI-only for now.
             </Link>
           </div>
-        </div>
-      </div>
-
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl shadow-black/30 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-100">IMAP inbox</p>
-            <p className="text-lg font-semibold text-white">Connect any IMAP mailbox for scanning.</p>
-            <p className="text-sm text-slate-300">Stored per user. For Gmail, use an app password or OAuth token.</p>
-          </div>
-          <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] text-slate-100">{imapLoading ? "Loading…" : "Ready"}</span>
-        </div>
-        {imapError && <div className="rounded-xl border border-rose-200/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-50">{imapError}</div>}
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="block text-sm">
-            <div className="mb-1 text-slate-300">Email address</div>
-            <input
-              className="w-full rounded-xl border px-3 py-2 text-sm"
-              value={imapForm.emailAddress}
-              onChange={(e) => setImapForm(f => ({ ...f, emailAddress: e.target.value }))}
-              placeholder="you@example.com"
-            />
-          </label>
-          <label className="block text-sm">
-            <div className="mb-1 text-slate-300">IMAP username</div>
-            <input
-              className="w-full rounded-xl border px-3 py-2 text-sm"
-              value={imapForm.imapUser}
-              onChange={(e) => setImapForm(f => ({ ...f, imapUser: e.target.value }))}
-              placeholder="usually the same as email"
-            />
-          </label>
-          <label className="block text-sm">
-            <div className="mb-1 text-slate-300">Password / app password</div>
-            <input
-              type="password"
-              className="w-full rounded-xl border px-3 py-2 text-sm"
-              value={imapForm.imapPassword}
-              onChange={(e) => setImapForm(f => ({ ...f, imapPassword: e.target.value }))}
-              placeholder="not returned after save"
-            />
-          </label>
-          <div className="grid grid-cols-3 gap-2 text-sm">
-            <label className="col-span-2">
-              <div className="mb-1 text-slate-300">IMAP host</div>
-              <input
-                className="w-full rounded-xl border px-3 py-2 text-sm"
-                value={imapForm.imapHost}
-                onChange={(e) => setImapForm(f => ({ ...f, imapHost: e.target.value }))}
-                placeholder="imap.gmail.com"
-              />
-            </label>
-            <label>
-              <div className="mb-1 text-slate-300">Port</div>
-              <input
-                type="number"
-                className="w-full rounded-xl border px-3 py-2 text-sm"
-                value={imapForm.imapPort}
-                onChange={(e) => setImapForm(f => ({ ...f, imapPort: Number(e.target.value) }))}
-              />
-            </label>
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={imapForm.imapSecure}
-              onChange={(e) => setImapForm(f => ({ ...f, imapSecure: e.target.checked }))}
-            />
-            <span className="text-slate-200">Use TLS (recommended)</span>
-          </label>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={saveImap}
-            disabled={imapSaving}
-            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-emerald-200/50 hover:bg-white/10 disabled:opacity-60"
-          >
-            {imapSaving ? "Saving…" : "Save IMAP settings"}
-          </button>
-          <p className="text-xs text-slate-400">We never return your password once saved.</p>
         </div>
       </div>
 

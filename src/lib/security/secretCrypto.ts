@@ -1,4 +1,4 @@
-// Authenticated encryption for credentials held at rest (OAuth tokens, IMAP passwords).
+// Authenticated encryption for credentials held at rest (OAuth tokens).
 //
 // Envelope format:  encv1:<keyVersion>:<base64url(iv ‖ authTag ‖ ciphertext)>
 //
@@ -10,7 +10,7 @@
 
 import { createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from "node:crypto";
 
-export type SecretField = "accessToken" | "refreshToken" | "imapPassword";
+export type SecretField = "accessToken" | "refreshToken";
 export type SecretContext = { userId: string; field: SecretField };
 
 export type SecretCryptoCode =

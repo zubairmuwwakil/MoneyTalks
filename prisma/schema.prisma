@@ -633,11 +633,6 @@ model EmailConnection {
   scope        String?
   lastScanAt   DateTime?
   scanMode     ScanMode     @default(ALL)
-  imapUser     String?
-  imapPassword String?
-  imapHost     String?
-  imapPort     Int?
-  imapSecure   Boolean?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

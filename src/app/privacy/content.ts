@@ -347,15 +347,10 @@ export const SECTIONS: Section[] = [
         kind: "note",
         text: "The scan mode setting in the web hub — all messages, receipts only, shipping only, or subscriptions only — narrows what the server actually processes. It does not narrow what Google authorized. That is a genuine gap between the permission and the practice, and you should judge the permission, because it is the part that is enforced.",
       },
-      { kind: "sub", text: "IMAP" },
-      {
-        kind: "p",
-        text: "As an alternative you can supply IMAP server details and a password, ideally an app-specific password rather than your main one. It is encrypted before it is stored and is never returned to the browser afterwards; the interface can only tell you whether a password is set, not what it is.",
-      },
       { kind: "sub", text: "What is kept" },
       {
         kind: "p",
-        text: "From scanned mail the server keeps what it extracted — merchants, amounts, dates, order and tracking numbers, line items, and the linked purchase, return, or subscription records. Access tokens and IMAP credentials are encrypted at rest.",
+        text: "From scanned mail the server keeps what it extracted — merchants, amounts, dates, order and tracking numbers, line items, and the linked purchase, return, or subscription records. Access tokens are encrypted at rest.",
       },
       {
         kind: "p",

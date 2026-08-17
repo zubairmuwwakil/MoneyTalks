@@ -70,7 +70,7 @@ it("rejects a ciphertext replayed under a different userId", () => {
 it("rejects a ciphertext replayed into a different column", () => {
   withKeys(activeKeyEnv, () => {
     const envelope = encryptSecret("a-refresh-token", { userId: "user_abc", field: "refreshToken" });
-    expect(() => decryptSecret(envelope, { userId: "user_abc", field: "imapPassword" })).toThrow(expect.objectContaining({ code: "DECRYPT_FAILED" }));
+    expect(() => decryptSecret(envelope, { userId: "user_abc", field: "accessToken" })).toThrow(expect.objectContaining({ code: "DECRYPT_FAILED" }));
   });
 });
 

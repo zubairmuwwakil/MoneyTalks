@@ -1,4 +1,4 @@
-// Field-level helpers for EmailConnection's three credential columns.
+// Field-level helpers for EmailConnection's credential columns.
 //
 // Every call site goes through here so that the (userId, field) binding used as
 // GCM additional data is constructed in exactly one place. Hand-rolling it at
@@ -16,7 +16,6 @@ type MaybeSecret = string | null | undefined;
 export type ConnectionSecrets = {
   accessToken?: MaybeSecret;
   refreshToken?: MaybeSecret;
-  imapPassword?: MaybeSecret;
 };
 
 /**
@@ -26,7 +25,7 @@ export type ConnectionSecrets = {
  */
 export function encryptConnectionSecrets(userId: string, secrets: ConnectionSecrets): ConnectionSecrets {
   const out: ConnectionSecrets = {};
-  for (const field of ["accessToken", "refreshToken", "imapPassword"] as const) {
+  for (const field of ["accessToken", "refreshToken"] as const) {
     if (!(field in secrets)) continue;
     const value = secrets[field];
     out[field] = typeof value === "string" && value.length > 0
