@@ -1,0 +1,227 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Coins } from "lucide-react";
+import {
+  SECTIONS,
+  EFFECTIVE_DATE,
+  CONTACT_EMAIL,
+  PUBLISHER,
+  POLICY_URL,
+  type Block,
+} from "./content";
+
+// Public by design: App Store Connect requires a privacy policy URL that is
+// reachable without signing in, and a policy nobody can read is not a policy.
+// The route is allowlisted in src/proxy.ts.
+export const metadata: Metadata = {
+  title: "Privacy Policy — PickMe",
+  description:
+    "How PickMe and the MoneyTalks web hub handle your information: what stays on your iPhone, what reaches the server, and how to delete either.",
+  alternates: { canonical: POLICY_URL },
+};
+
+// Static: nothing here depends on a request, a session, or the database.
+export const dynamic = "force-static";
+
+// Minimal inline formatting so the policy text can stay plain strings in
+// content.ts: **bold** and [label](href). Deliberately not a markdown parser.
+function formatInline(text: string, keyPrefix: string) {
+  const pattern = /\*\*(.+?)\*\*|\[([^\]]+)\]\(([^)]+)\)/g;
+  const nodes: React.ReactNode[] = [];
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > cursor) nodes.push(text.slice(cursor, match.index));
+
+    if (match[1] !== undefined) {
+      nodes.push(
+        <strong key={`${keyPrefix}-b-${match.index}`} className="font-semibold text-foreground">
+          {match[1]}
+        </strong>,
+      );
+    } else {
+      nodes.push(
+        <a
+          key={`${keyPrefix}-a-${match.index}`}
+          href={match[3]}
+          className="underline decoration-border underline-offset-4 transition-colors hover:decoration-foreground"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {match[2]}
+        </a>,
+      );
+    }
+    cursor = match.index + match[0].length;
+  }
+
+  if (cursor < text.length) nodes.push(text.slice(cursor));
+  return nodes;
+}
+
+function BlockView({ block, id }: { block: Block; id: string }) {
+  switch (block.kind) {
+    case "p":
+      return (
+        <p className="text-[15px] leading-7 text-muted-foreground">
+          {formatInline(block.text, id)}
+        </p>
+      );
+
+    case "sub":
+      return (
+        <h3 className="pt-2 text-sm font-semibold tracking-tight text-foreground">
+          {block.text}
+        </h3>
+      );
+
+    case "bullets":
+      return (
+        <ul className="space-y-2 pl-1">
+          {block.items.map((item, i) => (
+            <li key={i} className="flex gap-3 text-[15px] leading-7 text-muted-foreground">
+              <span aria-hidden className="mt-3 size-1 shrink-0 rounded-full bg-border" />
+              <span>{formatInline(item, `${id}-${i}`)}</span>
+            </li>
+          ))}
+        </ul>
+      );
+
+    // Set apart because these are the sentences people most need to actually
+    // read — limitations, carve-outs, and things that could surprise them.
+    case "note":
+      return (
+        <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-[15px] leading-7 text-foreground">
+          {formatInline(block.text, id)}
+        </div>
+      );
+
+    case "table":
+      return (
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <table className="w-full min-w-[34rem] border-collapse text-left text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                {block.head.map((h, i) => (
+                  <th key={i} className="py-2 pr-4 align-bottom font-semibold text-foreground">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {block.rows.map((row, r) => (
+                <tr key={r} className="border-b border-border/60 last:border-0">
+                  {row.map((cell, c) => (
+                    <td
+                      key={c}
+                      className={
+                        c === 0
+                          ? "py-3 pr-4 align-top font-medium text-foreground"
+                          : "py-3 pr-4 align-top leading-6 text-muted-foreground"
+                      }
+                    >
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+  }
+}
+
+export default function PrivacyPolicyPage() {
+  return (
+    <main className="py-10 sm:py-14">
+      <div className="mx-auto max-w-2xl">
+        <header className="space-y-5 border-b border-border pb-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 font-bold tracking-tight transition-opacity hover:opacity-90"
+          >
+            <div className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
+              <Coins className="size-4.5" />
+            </div>
+            <span className="text-base font-semibold">PickMe</span>
+          </Link>
+
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Privacy Policy</h1>
+            <p className="text-[15px] leading-7 text-muted-foreground">
+              For the PickMe app for iPhone and the MoneyTalks web hub.
+            </p>
+          </div>
+
+          <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
+            <dt className="font-medium text-foreground">Effective</dt>
+            <dd className="text-muted-foreground">{EFFECTIVE_DATE}</dd>
+            <dt className="font-medium text-foreground">Published by</dt>
+            <dd className="text-muted-foreground">{PUBLISHER}</dd>
+            <dt className="font-medium text-foreground">Contact</dt>
+            <dd>
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="underline decoration-border underline-offset-4 transition-colors hover:decoration-foreground"
+              >
+                {CONTACT_EMAIL}
+              </a>
+            </dd>
+          </dl>
+        </header>
+
+        <nav aria-label="Contents" className="border-b border-border py-6">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Contents
+          </h2>
+          <ol className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
+            {SECTIONS.map((section, i) => (
+              <li key={section.id} className="text-sm">
+                <a
+                  href={`#${section.id}`}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <span className="tabular-nums">{i + 1}.</span> {section.title}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+
+        <div className="divide-y divide-border">
+          {SECTIONS.map((section, i) => (
+            <section key={section.id} id={section.id} className="scroll-mt-20 py-8">
+              <h2 className="mb-4 text-xl font-bold tracking-tight">
+                <span className="mr-2 tabular-nums text-muted-foreground">{i + 1}.</span>
+                {section.title}
+              </h2>
+              <div className="space-y-4">
+                {section.blocks.map((block, b) => (
+                  <BlockView key={b} block={block} id={`${section.id}-${b}`} />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+
+        <footer className="border-t border-border pt-8 text-sm text-muted-foreground">
+          <p>
+            The long-form working document behind this policy, including the notes reconciling it
+            against what the code actually does, is maintained alongside the source. If you find a
+            statement on this page that the software contradicts, that is a bug worth reporting to{" "}
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
+              className="underline decoration-border underline-offset-4 transition-colors hover:decoration-foreground"
+            >
+              {CONTACT_EMAIL}
+            </a>
+            .
+          </p>
+        </footer>
+      </div>
+    </main>
+  );
+}

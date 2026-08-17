@@ -3,7 +3,16 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 // Cron handlers authenticate their bearer token with cronAuth; Clerk sessions
 // are intentionally unavailable to Vercel Cron.
-const isPublicRoute = createRouteMatcher(["/", "/login(.*)", "/api/health", "/api/cron(.*)"]);
+// /privacy must resolve signed out: App Store Connect requires a reachable
+// privacy policy URL, and PickMe links to it from Settings on unauthenticated
+// devices.
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/login(.*)",
+  "/privacy",
+  "/api/health",
+  "/api/cron(.*)",
+]);
 // This is not public: POST /api/v1/wallet-events independently requires an
 // installation-scoped token which is hashed at rest. The Wallet Shortcut cannot
 // hold a Clerk browser session, so Clerk must not intercept this one route.

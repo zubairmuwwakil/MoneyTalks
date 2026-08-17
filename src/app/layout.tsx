@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Nav } from "@/components/nav";
+import { SiteFooter } from "@/components/site-footer";
 import { SwRegister } from "@/components/sw-register";
 import "./globals.css";
 
@@ -20,9 +21,10 @@ export default function RootLayout({
         <body className="min-h-full bg-background text-foreground antialiased selection:bg-foreground selection:text-background">
           <SwRegister />
           <Nav />
-          <div className="mx-auto max-w-5xl px-4 pb-24 sm:px-6 sm:pb-12 sm:pt-2">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6 sm:pt-2">
             {children}
           </div>
+          <SiteFooter />
         </body>
       </html>
     </ClerkProvider>
