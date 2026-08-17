@@ -232,6 +232,17 @@ const tHash = createHash("sha256").update(token).digest("hex");
       expect(createdData().amountRaw).toBe("0");
     });
 
+    it("accepts the transaction as a JSON string (dictionary-as-text from Shortcuts)", async () => {
+      mockAuthedNoDups();
+      const res = await POST(mockReq(basePayload({
+        transaction: JSON.stringify({ merchantRaw: "Starbucks", amount: "$6.42", cardRaw: "Amex Cobalt" }),
+      })));
+      expect(res.status).toBe(200);
+      expect(createdData()).toMatchObject({
+        merchantRaw: "Starbucks", amountRaw: "6.42", cardRaw: "Amex Cobalt",
+      });
+    });
+
     it("parses a location that arrives as a JSON string with numeric-string coords", async () => {
       mockAuthedNoDups();
       await POST(mockReq(basePayload({

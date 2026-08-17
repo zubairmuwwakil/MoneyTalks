@@ -6,6 +6,7 @@ The v1 spec (`docs/superpowers/specs/2026-08-14-moneytalks-design.md`) is fully 
 
 | Idea | What it is | Deferred from |
 |---|---|---|
+| Statement earnings counterfactual | "What this statement earned vs. what your wallet's best cards would have earned" — a missed-value report over an uploaded statement. Shipped in Phase 5 as the statement analyzer (`cards/analyzer/`), deleted with the frozen card engine in `b3451ba`, never rebuilt on the PickMe contract. Natural sequel to statement reconciliation: matched `StatementLine` rows already carry amount, category, and card used, and the cards-twin engine can score the counterfactual per line | Phase-1 card-engine freeze; regression found in the 2026-08-17 shipped-claims audit |
 | Demo mode | A showcase instance seeded with the fictional test fixtures so visitors (e.g., recruiters) can click around the live app without seeing real data | Spec §9; noted when the repo went portfolio-public |
 | Benefits calendar + ICS export | Card credit resets, free-night expiries, prepayment windows, and bill due dates as a calendar feed the phone subscribes to | CardPilot P1 / bills spec extras — never scheduled into a phase |
 | Due-date reminders | Email or push N days before due dates, prioritizing pileup months | Bills spec extra #6; PWA install landed in Phase 5 but notifications did not |

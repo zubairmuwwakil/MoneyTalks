@@ -36,15 +36,35 @@ const envelopeSchema = z.object({
   eventId: z.string().min(1),
   capturedAt: z.string().min(1),
   timezone: z.string().nullable().optional(),
-  transaction: z.object({
-    merchantRaw: z.string(),
-    transactionNameRaw: z.unknown().optional(),
-    amount: z.unknown().optional(),
-    currency: z.unknown().optional(),
-    cardRaw: z.unknown().optional(),
-  }),
+  transaction: z.unknown(),
   location: z.unknown().optional(),
 });
+
+const transactionSchema = z.object({
+  merchantRaw: z.string(),
+  transactionNameRaw: z.unknown().optional(),
+  amount: z.unknown().optional(),
+  currency: z.unknown().optional(),
+  cardRaw: z.unknown().optional(),
+});
+
+// Shortcuts can only nest a dictionary variable into another dictionary as
+// text, which renders it as a JSON string — accept that shape too, exactly
+// like location.
+function parseTransaction(raw: unknown):
+  | { ok: true; data: z.infer<typeof transactionSchema> }
+  | { ok: false; error: z.ZodError } {
+  let candidate: unknown = raw;
+  if (typeof raw === "string" && raw.trim() !== "") {
+    try {
+      candidate = JSON.parse(raw.trim());
+    } catch {
+      // fall through; schema validation below reports the failure
+    }
+  }
+  const parsed = transactionSchema.safeParse(candidate);
+  return parsed.success ? { ok: true, data: parsed.data } : { ok: false, error: parsed.error };
+}
 
 function optionalString(v: unknown): string | null {
   if (typeof v !== "string" || v === "") return null;
@@ -139,6 +159,9 @@ export function parseWalletCapturePayload(rawBody: unknown): WalletCaptureParseR
   if (!parsed.success) return { ok: false, error: parsed.error };
   const env = parsed.data;
 
+  const transaction = parseTransaction(env.transaction);
+  if (!transaction.ok) return { ok: false, error: transaction.error };
+
   const capturedTimezone =
     env.timezone != null && IANAZone.isValidZone(env.timezone) ? env.timezone : null;
 
@@ -152,11 +175,11 @@ export function parseWalletCapturePayload(rawBody: unknown): WalletCaptureParseR
       capturedAt: parseCapturedAt(env.capturedAt, capturedTimezone),
       capturedAtRaw: env.capturedAt,
       capturedTimezone,
-      merchantRaw: env.transaction.merchantRaw,
-      transactionNameRaw: optionalString(env.transaction.transactionNameRaw),
-      amount: toDecimalString(env.transaction.amount),
-      currency: optionalString(env.transaction.currency),
-      cardRaw: optionalString(env.transaction.cardRaw),
+      merchantRaw: transaction.data.merchantRaw,
+      transactionNameRaw: optionalString(transaction.data.transactionNameRaw),
+      amount: toDecimalString(transaction.data.amount),
+      currency: optionalString(transaction.data.currency),
+      cardRaw: optionalString(transaction.data.cardRaw),
       ...parseLocation(env.location),
     },
   };
