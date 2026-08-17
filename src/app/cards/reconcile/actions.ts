@@ -5,6 +5,7 @@ import { z } from "zod";
 import { mapRows, parseCsv, type ColumnMapping } from "@/engine/csv";
 import {
   coverageForLines,
+  PROPOSED_STATUSES,
   reconcileStatementLines,
   type CapturedPurchase,
   type ReconciledStatementLine,
@@ -19,17 +20,17 @@ import { IMPORT_LIMITS } from "@/lib/validation/investments";
 
 export type StatementReviewLine = Pick<
   ReconciledStatementLine,
-  "id" | "date" | "amountMinor" | "description" | "status" | "matchedMerchant" | "toleranceMinor"
+  "id" | "date" | "amountMinor" | "description" | "status" | "matchedMerchant" | "observedMinor"
 >;
 
 export type StatementPreview = {
   ok: true;
   matchedLines: number;
-  tolerantLines: number;
+  proposedLines: number;
   eligibleLines: number;
   percentage: number;
   ambiguousLines: number;
-  /** Every line that still wants a human: unmatched, ambiguous, tolerant, rejected. */
+  /** Every line that still wants a human: unmatched, ambiguous, proposed, rejected. */
   reviewLines: StatementReviewLine[];
 };
 export type StatementPreviewFailure = { ok: false; error: string };
@@ -164,7 +165,7 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
     const status = applyUserDecision(line.status, persistedStatus.get(lineHashes[index]));
     if (status === line.status) return line;
     return status === "rejected"
-      ? { ...line, status, matchedCandidateId: undefined, matchedMerchant: undefined, toleranceMinor: undefined }
+      ? { ...line, status, matchedCandidateId: undefined, matchedMerchant: undefined, observedMinor: undefined }
       : { ...line, status };
   });
   const coverage = coverageForLines(reconciled);
@@ -250,8 +251,8 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
     ambiguousLines: reconciled.filter((line) => line.status === "ambiguous").length,
     reviewLines: reconciled
       .filter((line) => line.status !== "matched" && line.status !== "excluded")
-      .map(({ id, date, amountMinor, description, status, matchedMerchant, toleranceMinor }) => ({
-        id, date, amountMinor, description, status, matchedMerchant, toleranceMinor,
+      .map(({ id, date, amountMinor, description, status, matchedMerchant, observedMinor }) => ({
+        id, date, amountMinor, description, status, matchedMerchant, observedMinor,
       })),
   };
 }
@@ -295,22 +296,23 @@ export async function addStatementLineAsPurchase(input: unknown): Promise<{ ok: 
   return { ok: true, alreadyExists: false };
 }
 
-const tolerantDecisionInput = manualPurchaseInput.extend({
+const proposedDecisionInput = manualPurchaseInput.extend({
   decision: z.enum(["confirm", "reject"]),
 });
 
 /**
- * Settles a tolerant match. Confirming promotes the line to a real match and
- * lets it flip the wallet event to RECONCILED — the step `previewStatement`
- * deliberately withholds. Rejecting drops the candidate link and returns the
- * line to the add-as-purchase flow. Either way the stored status outranks the
- * engine on the next upload, so the decision sticks.
+ * Settles a proposed match — a tipped amount or a settled pre-auth hold.
+ * Confirming promotes the line to a real match and lets it flip the wallet event
+ * to RECONCILED, the step `previewStatement` deliberately withholds. Rejecting
+ * drops the candidate link and returns the line to the add-as-purchase flow.
+ * Either way the stored status outranks the engine on the next upload, so the
+ * decision sticks.
  */
-export async function resolveTolerantMatch(
+export async function resolveProposedMatch(
   input: unknown,
 ): Promise<{ ok: true; status: "matched" | "rejected" } | StatementPreviewFailure> {
   const userId = await requireUserId();
-  const parsed = tolerantDecisionInput.safeParse(input);
+  const parsed = proposedDecisionInput.safeParse(input);
   if (!parsed.success) return { ok: false, error: "That statement line is invalid." };
   const card = await ownedCard(userId, parsed.data.cardId);
   if (!card) return { ok: false, error: "Card not found." };
@@ -326,7 +328,9 @@ export async function resolveTolerantMatch(
     select: { id: true, status: true, purchaseId: true, walletEventId: true },
   });
   if (!line) return { ok: false, error: "Reconcile this statement again before resolving the match." };
-  if (line.status !== "matched-tolerant") return { ok: false, error: "That line is no longer awaiting a decision." };
+  if (!PROPOSED_STATUSES.some((status) => status === line.status)) {
+    return { ok: false, error: "That line is no longer awaiting a decision." };
+  }
 
   if (parsed.data.decision === "reject") {
     await prisma.statementLine.update({

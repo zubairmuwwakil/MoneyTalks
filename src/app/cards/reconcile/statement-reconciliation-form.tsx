@@ -6,7 +6,7 @@ import { formatMinorUnits } from "@/engine/money";
 import {
   addStatementLineAsPurchase,
   previewStatement,
-  resolveTolerantMatch,
+  resolveProposedMatch,
   type StatementPreview,
   type StatementReviewLine,
 } from "./actions";
@@ -22,10 +22,26 @@ const action =
 const STATUS_LABEL: Record<string, string> = {
   matched: "Matched",
   "matched-tolerant": "Tip tolerance",
+  "matched-preauth": "Pre-auth hold",
   ambiguous: "Ambiguous",
   unmatched: "Unmatched",
   rejected: "Not a match",
 };
+
+const isProposed = (status: string) => status === "matched-tolerant" || status === "matched-preauth";
+
+/**
+ * Says what the amounts actually did, so the user can rule on the match without
+ * opening the transaction: a tip was added after the tap, or the statement
+ * settled below the amount that was authorized.
+ */
+function proposalDetail(line: StatementReviewLine, currency: CardOption["currency"]): string | null {
+  if (line.observedMinor == null || !line.matchedMerchant) return null;
+  const delta = line.amountMinor - line.observedMinor;
+  return line.status === "matched-preauth"
+    ? `${line.matchedMerchant} authorized ${formatMinorUnits(line.observedMinor, currency)} · statement settled ${formatMinorUnits(-delta, currency)} lower`
+    : `${line.matchedMerchant} captured ${formatMinorUnits(line.observedMinor, currency)} · ${formatMinorUnits(delta, currency)} more on the statement`;
+}
 
 export function StatementReconciliationForm({ cards, contractCards }: { cards: CardOption[]; contractCards: ContractCardOption[] }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -88,7 +104,7 @@ export function StatementReconciliationForm({ cards, contractCards }: { cards: C
   function decideLine(line: StatementReviewLine, decision: "confirm" | "reject") {
     const card = selectedCard;
     if (!card) return;
-    runOnLine(line, () => resolveTolerantMatch({
+    runOnLine(line, () => resolveProposedMatch({
       cardId: card.id, date: line.date, amountMinor: line.amountMinor, description: line.description, decision,
     }), decision === "confirm" ? "matched" : "rejected");
   }
@@ -146,7 +162,7 @@ export function StatementReconciliationForm({ cards, contractCards }: { cards: C
         <section className="space-y-4 rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Capture coverage</p><p className="mt-1 text-3xl font-bold tabular-nums">{preview.percentage}%</p><p className="mt-1 text-xs text-muted-foreground">{preview.matchedLines} matched / {preview.eligibleLines} purchase lines</p></div>
-            <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">{preview.tolerantLines} awaiting tip review · {preview.ambiguousLines} ambiguous · payments and credits excluded</div>
+            <div className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">{preview.proposedLines} awaiting review · {preview.ambiguousLines} ambiguous · payments and credits excluded</div>
           </div>
           {preview.reviewLines.length > 0 ? (
             <div className="overflow-x-auto rounded-lg border border-border/80">
@@ -165,9 +181,9 @@ export function StatementReconciliationForm({ cards, contractCards }: { cards: C
                         <td className="px-3 py-2 tabular-nums text-muted-foreground align-top">{line.date}</td>
                         <td className="px-3 py-2 align-top">
                           <span className="font-medium">{line.description}</span>
-                          {status === "matched-tolerant" && line.matchedMerchant ? (
+                          {isProposed(status) ? (
                             <span className="mt-0.5 block text-[11px] font-normal text-muted-foreground">
-                              {line.matchedMerchant} captured {formatMinorUnits(line.amountMinor - (line.toleranceMinor ?? 0), currency)} · {formatMinorUnits(line.toleranceMinor ?? 0, currency)} more on the statement
+                              {proposalDetail(line, currency)}
                             </span>
                           ) : null}
                         </td>
@@ -176,7 +192,7 @@ export function StatementReconciliationForm({ cards, contractCards }: { cards: C
                         <td className="px-3 py-2 text-right align-top">
                           {outcome === "added" ? <span className="text-[11px] font-semibold text-muted-foreground">Added</span>
                             : outcome === "matched" ? <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">Confirmed</span>
-                            : status === "matched-tolerant" ? (
+                            : isProposed(status) ? (
                               <div className="inline-flex gap-1.5">
                                 <button type="button" disabled={busy} onClick={() => decideLine(line, "confirm")} className={`${action} border-emerald-600/40 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400`}><Check className="size-3" />{busy ? "Saving…" : "Same purchase"}</button>
                                 <button type="button" disabled={busy} onClick={() => decideLine(line, "reject")} className={action}><X className="size-3" />Not a match</button>

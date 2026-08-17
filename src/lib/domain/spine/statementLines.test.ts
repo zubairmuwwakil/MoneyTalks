@@ -29,6 +29,12 @@ describe("applyUserDecision", () => {
     expect(applyUserDecision("matched-tolerant", "rejected")).toBe("rejected");
   });
 
+  it("protects a decision on a pre-auth hold the same way as one on a tip", () => {
+    expect(applyUserDecision("matched-preauth", "matched")).toBe("matched");
+    expect(applyUserDecision("matched-preauth", "rejected")).toBe("rejected");
+    expect(applyUserDecision("matched-preauth", null)).toBe("matched-preauth");
+  });
+
   it("takes the fresh result for a line no user has ruled on", () => {
     expect(applyUserDecision("matched-tolerant", "matched-tolerant")).toBe("matched-tolerant");
     expect(applyUserDecision("matched-tolerant", "unmatched")).toBe("matched-tolerant");

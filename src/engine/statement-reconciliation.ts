@@ -18,17 +18,25 @@ export type CapturedPurchase = {
 export type ReconciliationStatus =
   | "matched"
   | "matched-tolerant"
+  | "matched-preauth"
   | "unmatched"
   | "ambiguous"
   | "excluded"
   | "rejected";
 
+/** Amount-approximate matches: persisted with their link, but never acted on unconfirmed. */
+export const PROPOSED_STATUSES = ["matched-tolerant", "matched-preauth"] as const;
+
 export type ReconciledStatementLine = StatementLine & {
   status: ReconciliationStatus;
   matchedCandidateId?: string;
   matchedMerchant?: string;
-  /** Statement amount minus candidate amount; set on tolerant matches only. */
-  toleranceMinor?: number;
+  /**
+   * The candidate's own amount. The difference from the line is the story:
+   * positive means a tip was added after the tap, negative means the statement
+   * settled below an authorization hold.
+   */
+  observedMinor?: number;
 };
 
 /**
@@ -50,6 +58,20 @@ export const STATEMENT_TOLERANCE_RATIO = 0.25;
  * any similarity, because amount + date already identify them.
  */
 export const TOLERANT_MERCHANT_SIMILARITY_MIN = 0.5;
+
+/**
+ * A settled pre-authorization runs the other way: Wallet captures the hold a
+ * pump or hotel authorized, and the statement posts what was actually spent —
+ * BELOW the observation. No band can express this ($100 authorized, $47.30
+ * settled is a 53% drop), so the amount is dropped from the test entirely and
+ * merchant identity carries the whole burden of proof. Hence a floor high
+ * enough to demand equality or containment rather than mere token overlap.
+ *
+ * This does not catch the $1.00 verification probe some pumps authorize, where
+ * the capture bears no relation to the settled amount at all. That needs a rule
+ * about the probe's shape, not about proximity.
+ */
+export const PREAUTH_MERCHANT_SIMILARITY_MIN = 0.9;
 
 const DATE_WINDOW_DAYS = 3;
 
@@ -151,14 +173,51 @@ function bestCandidate(
 }
 
 /**
+ * Each pass is a way a statement amount can legitimately differ from what was
+ * observed. Order is load-bearing and is why this is a table rather than three
+ * ad-hoc blocks: a purchase is explained by the strongest available story, and
+ * a later pass may only claim a line no earlier pass could account for.
+ *
+ * As the amount test weakens down the list, the other gates tighten to
+ * compensate — merchant evidence rises, and rival candidates stop being
+ * tie-broken and start being refused outright.
+ */
+const MATCH_PASSES: ReadonlyArray<{
+  status: "matched" | "matched-tolerant" | "matched-preauth";
+  amountFits: (candidateAmountMinor: number, lineAmountMinor: number) => boolean;
+  minSimilarity: number;
+  uniqueness: "tie-break" | "strict";
+}> = [
+  {
+    status: "matched",
+    amountFits: (candidate, line) => candidate === line,
+    minSimilarity: 0,
+    uniqueness: "tie-break",
+  },
+  {
+    status: "matched-tolerant",
+    amountFits: (candidate, line) => candidate < line && candidate >= minimumTolerantAmountMinor(line),
+    minSimilarity: TOLERANT_MERCHANT_SIMILARITY_MIN,
+    uniqueness: "strict",
+  },
+  {
+    status: "matched-preauth",
+    amountFits: (candidate, line) => candidate > line,
+    minSimilarity: PREAUTH_MERCHANT_SIMILARITY_MIN,
+    uniqueness: "strict",
+  },
+];
+
+/**
  * Matches an upload without database access. Candidates are consumed only for
  * decisive matches, preventing one captured purchase from covering two lines.
  *
- * Runs in two passes so exact amounts win GLOBALLY, not merely per line: a
- * single pass would let an early line's tolerant match consume the very capture
- * a later line matches to the cent, and the outcome would depend on row order.
- * Ambiguity is terminal — a line with rival exact candidates is not retried
- * against a looser rule, because loosening cannot break the tie it already lost.
+ * Every pass runs across the WHOLE upload before the next begins, so an exact
+ * amount always wins over an approximate one regardless of row order — a single
+ * interleaved pass would let an early tipped line consume the very capture a
+ * later line matches to the cent. Ambiguity is terminal: a line with rival
+ * candidates is not retried against a looser rule, because loosening cannot
+ * break a tie it has already lost.
  */
 export function reconcileStatementLines(
   lines: StatementLine[],
@@ -170,70 +229,49 @@ export function reconcileStatementLines(
     isExcludedStatementLine(line) ? { ...line, status: "excluded" } : { ...line, status: "unmatched" },
   );
 
-  resolved.forEach((line, index) => {
-    if (line.status === "excluded") return;
-    const outcome = bestCandidate(line, candidates, consumed, aliases, (c, l) => c === l, 0, "tie-break");
-    if (outcome === null) return;
-    if (outcome === "ambiguous") {
-      resolved[index] = { ...line, status: "ambiguous" };
-      return;
-    }
-    consumed.add(outcome.candidate.id);
-    resolved[index] = {
-      ...line,
-      status: "matched",
-      matchedCandidateId: outcome.candidate.id,
-      matchedMerchant: outcome.candidate.merchant,
-    };
-  });
-
-  resolved.forEach((line, index) => {
-    if (line.status !== "unmatched") return;
-    const outcome = bestCandidate(
-      line,
-      candidates,
-      consumed,
-      aliases,
-      (candidateAmount, lineAmount) =>
-        candidateAmount < lineAmount && candidateAmount >= minimumTolerantAmountMinor(lineAmount),
-      TOLERANT_MERCHANT_SIMILARITY_MIN,
-      "strict",
-    );
-    if (outcome === null) return;
-    if (outcome === "ambiguous") {
-      resolved[index] = { ...line, status: "ambiguous" };
-      return;
-    }
-    consumed.add(outcome.candidate.id);
-    resolved[index] = {
-      ...line,
-      status: "matched-tolerant",
-      matchedCandidateId: outcome.candidate.id,
-      matchedMerchant: outcome.candidate.merchant,
-      toleranceMinor: line.amountMinor - outcome.candidate.amountMinor,
-    };
-  });
+  for (const pass of MATCH_PASSES) {
+    resolved.forEach((line, index) => {
+      if (line.status !== "unmatched") return;
+      const outcome = bestCandidate(
+        line, candidates, consumed, aliases, pass.amountFits, pass.minSimilarity, pass.uniqueness,
+      );
+      if (outcome === null) return;
+      if (outcome === "ambiguous") {
+        resolved[index] = { ...line, status: "ambiguous" };
+        return;
+      }
+      consumed.add(outcome.candidate.id);
+      resolved[index] = {
+        ...line,
+        status: pass.status,
+        matchedCandidateId: outcome.candidate.id,
+        matchedMerchant: outcome.candidate.merchant,
+        observedMinor: outcome.candidate.amountMinor,
+      };
+    });
+  }
 
   return resolved;
 }
 
 /**
- * Coverage counts exact matches only. Tolerant matches are reported alongside
- * rather than folded in, so a stored CoverageReport keeps meaning the same thing
- * before and after this rule shipped; a confirmed tolerant match becomes
- * "matched" and joins the headline number then.
+ * Coverage counts exact matches only. Proposals are reported alongside rather
+ * than folded in, so a stored CoverageReport keeps meaning the same thing before
+ * and after these rules shipped; a confirmed proposal becomes "matched" and
+ * joins the headline number then.
  */
 export function coverageForLines(lines: ReconciledStatementLine[]): {
   matchedLines: number;
-  tolerantLines: number;
+  proposedLines: number;
   eligibleLines: number;
   percentage: number;
 } {
   const eligibleLines = lines.filter((line) => line.status !== "excluded");
   const matchedLines = eligibleLines.filter((line) => line.status === "matched").length;
+  const proposed: ReadonlySet<string> = new Set(PROPOSED_STATUSES);
   return {
     matchedLines,
-    tolerantLines: eligibleLines.filter((line) => line.status === "matched-tolerant").length,
+    proposedLines: eligibleLines.filter((line) => proposed.has(line.status)).length,
     eligibleLines: eligibleLines.length,
     percentage: eligibleLines.length === 0 ? 0 : Math.round((matchedLines / eligibleLines.length) * 100),
   };

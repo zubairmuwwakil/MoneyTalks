@@ -83,3 +83,51 @@ describe("previewStatement currency gate", () => {
     expect(await reviewStatus()).toBe("matched-tolerant");
   });
 });
+
+describe("previewStatement pre-auth proposals", () => {
+  // $47.30 settled against a $100.00 hold captured at the pump.
+  const FUEL_CSV = "Date,Description,Amount\n2026-08-18,PETRO-CANADA,47.30\n";
+
+  function fuelUpload() {
+    const data = statementUpload();
+    data.set("file", new File([FUEL_CSV], "statement.csv", { type: "text/csv" }));
+    return data;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.creditCard.findFirst).mockResolvedValue({
+      id: "card-1", currency: "CAD", contractCardId: "amex-cobalt",
+    } as never);
+    vi.mocked(prisma.cardAlias.findMany).mockResolvedValue([{ rawString: "Amex Cobalt" }] as never);
+    vi.mocked(prisma.purchase.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.merchantAlias.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.statementLine.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.$transaction).mockResolvedValue([] as never);
+    vi.mocked(prisma.walletEvent.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: "we-1", eventId: "wevt-1", merchantRaw: "Petro-Canada",
+          amountRaw: new Prisma.Decimal(100), currencyRaw: "CAD",
+          capturedAt: new Date("2026-08-18T00:00:00Z"),
+        },
+      ] as never)
+      .mockResolvedValueOnce([{ id: "we-1", purchaseId: "purchase-1" }] as never);
+  });
+
+  it("persists the hold's candidate link on the statement line", async () => {
+    await previewStatement(fuelUpload());
+    expect(prisma.statementLine.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          status: "matched-preauth", walletEventId: "we-1", purchaseId: "purchase-1",
+        }),
+      }),
+    );
+  });
+
+  it("does not reconcile the wallet event behind an unconfirmed hold", async () => {
+    await previewStatement(fuelUpload());
+    expect(prisma.walletEvent.updateMany).not.toHaveBeenCalled();
+  });
+});

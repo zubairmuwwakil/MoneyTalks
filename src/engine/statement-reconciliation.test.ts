@@ -59,7 +59,7 @@ describe("reconcileStatementLines tip tolerance", () => {
     const [line] = reconcileStatementLines([dinner(5850)], [capture(5000)]);
     expect(line.status).toBe("matched-tolerant");
     expect(line.matchedCandidateId).toBe("wallet-keg");
-    expect(line.toleranceMinor).toBe(850);
+    expect(line.observedMinor).toBe(5000); // the $58.50 line carries an $8.50 tip
   });
 
   it("accepts a candidate exactly on the 25% floor and rejects the cent below it", () => {
@@ -67,11 +67,14 @@ describe("reconcileStatementLines tip tolerance", () => {
     expect(reconcileStatementLines([dinner(5000)], [capture(3749)])[0].status).toBe("unmatched");
   });
 
-  it("never matches a candidate above the line, because tips only add", () => {
+  it("never explains a candidate above the line as a tip", () => {
     // A $40.00 line against a $50.00 capture: the statement settled BELOW what
-    // was observed, which a tip cannot explain.
+    // was observed, which a tip cannot explain. Since the pre-auth pass shipped
+    // this is classified as a hold instead of going unmatched — but it must
+    // never be sold to the user as a tip.
     const [line] = reconcileStatementLines([dinner(4000)], [capture(5000)]);
-    expect(line.status).toBe("unmatched");
+    expect(line.status).not.toBe("matched-tolerant");
+    expect(line.status).toBe("matched-preauth");
   });
 
   it("marks two in-tolerance candidates ambiguous rather than guessing", () => {
@@ -106,6 +109,51 @@ describe("reconcileStatementLines tip tolerance", () => {
         { id: "wallet-tipped", date: "2026-08-18", amountMinor: 5100, merchant: "The Keg Steakhouse", source: "wallet" },
       ]),
     );
-    expect(coverage).toEqual({ matchedLines: 1, tolerantLines: 1, eligibleLines: 2, percentage: 50 });
+    expect(coverage).toEqual({ matchedLines: 1, proposedLines: 1, eligibleLines: 2, percentage: 50 });
+  });
+});
+
+describe("reconcileStatementLines pre-authorization holds", () => {
+  const pump = (amountMinor: number, description = "PETRO-CANADA"): StatementLine => ({
+    id: "statement-fuel", date: "2026-08-18", amountMinor, description,
+  });
+  const hold = (amountMinor: number, merchant = "Petro-Canada", id = "wallet-hold"): CapturedPurchase => ({
+    id, date: "2026-08-18", amountMinor, merchant, source: "wallet",
+  });
+
+  it("matches a settled fuel line to the hold that was captured at the pump", () => {
+    // Wallet captures the authorization ($100 hold); the statement settles at
+    // what was actually pumped, BELOW the observation.
+    const [line] = reconcileStatementLines([pump(4730)], [hold(10000)]);
+    expect(line.status).toBe("matched-preauth");
+    expect(line.matchedCandidateId).toBe("wallet-hold");
+    expect(line.observedMinor).toBe(10000);
+  });
+
+  it("demands near-exact merchant identity, since the amount proves nothing", () => {
+    // Same brand, different service — not evidence of the same purchase.
+    const [line] = reconcileStatementLines([pump(2000, "ESSO GAS BAR")], [hold(6000, "Esso Car Wash")]);
+    expect(line.status).toBe("unmatched");
+  });
+
+  it("marks two candidates above the line ambiguous rather than guessing", () => {
+    const [line] = reconcileStatementLines([pump(4730)], [hold(10000, "Petro-Canada", "hold-a"), hold(12000, "Petro-Canada", "hold-b")]);
+    expect(line.status).toBe("ambiguous");
+  });
+
+  it("prefers a tip explanation over a hold when both are available", () => {
+    const [line] = reconcileStatementLines([pump(5000)], [hold(4600, "Petro-Canada", "tip"), hold(6000, "Petro-Canada", "held")]);
+    expect(line.status).toBe("matched-tolerant");
+    expect(line.matchedCandidateId).toBe("tip");
+  });
+
+  it("keeps holds out of coverage and counts them as proposals", () => {
+    const coverage = coverageForLines(
+      reconcileStatementLines(
+        [{ ...pump(4730), id: "line-hold" }, { ...pump(2500), id: "line-exact" }],
+        [hold(10000), hold(2500, "Petro-Canada", "wallet-exact")],
+      ),
+    );
+    expect(coverage).toEqual({ matchedLines: 1, proposedLines: 1, eligibleLines: 2, percentage: 50 });
   });
 });

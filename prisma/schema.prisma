@@ -316,7 +316,8 @@ model StatementLine {
   date        DateTime
   description String
   amountMinor Int
-  // matched | matched-tolerant | unmatched | ambiguous | excluded | rejected.
+  // matched | matched-tolerant | matched-preauth | unmatched | ambiguous |
+  // excluded | rejected.
   // As of the latest upload, except where the user settled a tolerant match:
   // "matched" (confirmed) and "rejected" survive re-uploads of the same line.
   status      String
