@@ -314,7 +314,9 @@ model StatementLine {
   date        DateTime
   description String
   amountMinor Int
-  // matched | unmatched | ambiguous | excluded — as of the latest upload.
+  // matched | matched-tolerant | unmatched | ambiguous | excluded | rejected.
+  // As of the latest upload, except where the user settled a tolerant match:
+  // "matched" (confirmed) and "rejected" survive re-uploads of the same line.
   status      String
   purchaseId  String?
   purchase    Purchase?  @relation(fields: [purchaseId], references: [id], onDelete: SetNull)

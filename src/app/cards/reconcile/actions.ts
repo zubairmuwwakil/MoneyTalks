@@ -10,20 +10,27 @@ import {
   type ReconciledStatementLine,
 } from "@/engine/statement-reconciliation";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
-import { statementLineHash, parseCandidateId } from "@/lib/domain/spine/statementLines";
+import { applyUserDecision, purchaseIdsToReconcile, statementLineHash, parseCandidateId } from "@/lib/domain/spine/statementLines";
 import { walletAmountMinor } from "@/lib/domain/wallet/amount";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { csvMappingInput } from "@/lib/validation/csv-import";
 import { IMPORT_LIMITS } from "@/lib/validation/investments";
 
+export type StatementReviewLine = Pick<
+  ReconciledStatementLine,
+  "id" | "date" | "amountMinor" | "description" | "status" | "matchedMerchant" | "toleranceMinor"
+>;
+
 export type StatementPreview = {
   ok: true;
   matchedLines: number;
+  tolerantLines: number;
   eligibleLines: number;
   percentage: number;
   ambiguousLines: number;
-  unmatchedLines: Array<Pick<ReconciledStatementLine, "id" | "date" | "amountMinor" | "description" | "status">>;
+  /** Every line that still wants a human: unmatched, ambiguous, tolerant, rejected. */
+  reviewLines: StatementReviewLine[];
 };
 export type StatementPreviewFailure = { ok: false; error: string };
 
@@ -126,7 +133,27 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
         merchant: event.merchantRaw ?? "", source: "wallet" as const,
       })),
   ];
-  const reconciled = reconcileStatementLines(statementLines, candidates, aliases);
+  const computed = reconcileStatementLines(statementLines, candidates, aliases);
+  const lineHashes = computed.map((line) =>
+    statementLineHash({ cardId: card.id, date: line.date, description: line.description, amountMinor: line.amountMinor }),
+  );
+  const persistedStatus = new Map(
+    (
+      await prisma.statementLine.findMany({
+        where: { userId, lineHash: { in: lineHashes } },
+        select: { lineHash: true, status: true },
+      })
+    ).map((row) => [row.lineHash, row.status]),
+  );
+  // Re-uploading a statement must not take back a tolerance decision the user
+  // already made, so a stored confirm or reject outranks a fresh tolerant guess.
+  const reconciled: ReconciledStatementLine[] = computed.map((line, index) => {
+    const status = applyUserDecision(line.status, persistedStatus.get(lineHashes[index]));
+    if (status === line.status) return line;
+    return status === "rejected"
+      ? { ...line, status, matchedCandidateId: undefined, matchedMerchant: undefined, toleranceMinor: undefined }
+      : { ...line, status };
+  });
   const coverage = coverageForLines(reconciled);
 
   // A re-upload replaces the compact result for each covered month. Because raw
@@ -150,14 +177,16 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
       : []
     ).map((event) => [event.id, event.purchaseId]),
   );
-  const matchedPurchaseIds = [
-    ...new Set(
-      parsedMatches.flatMap((m) => {
-        const resolved = m.purchaseId ?? (m.walletEventId ? walletEventPurchase.get(m.walletEventId) : null);
-        return resolved ? [resolved] : [];
-      }),
-    ),
-  ];
+  const resolvedLines = reconciled.map((line, index) => {
+    const match = parsedMatches[index];
+    return {
+      line,
+      lineHash: lineHashes[index],
+      walletEventId: match.walletEventId,
+      purchaseId: match.purchaseId ?? (match.walletEventId ? walletEventPurchase.get(match.walletEventId) ?? null : null),
+    };
+  });
+  const matchedPurchaseIds = purchaseIdsToReconcile(resolvedLines.map(({ line, purchaseId }) => ({ status: line.status, purchaseId })));
 
   await prisma.$transaction([
     prisma.creditCard.update({ where: { id: card.id }, data: { contractCardId: cardParsed.data.contractCardId } }),
@@ -181,23 +210,14 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
 
   // Line upserts run in chunks so a 500-line statement never becomes one
   // giant transaction (Neon-friendly); each upsert is idempotent by hash.
-  const lineUpserts = reconciled.map((line, index) => {
-      const match = parsedMatches[index];
-      const purchaseId =
-        match.purchaseId ?? (match.walletEventId ? walletEventPurchase.get(match.walletEventId) ?? null : null);
-      const lineHash = statementLineHash({
-        cardId: card.id,
-        date: line.date,
-        description: line.description,
-        amountMinor: line.amountMinor,
-      });
+  const lineUpserts = resolvedLines.map(({ line, lineHash, purchaseId, walletEventId }) => {
       const shared = {
         date: new Date(`${line.date}T00:00:00.000Z`),
         description: line.description,
         amountMinor: line.amountMinor,
         status: line.status,
         purchaseId,
-        walletEventId: match.walletEventId,
+        walletEventId,
       };
       return prisma.statementLine.upsert({
         where: { userId_lineHash: { userId, lineHash } },
@@ -215,9 +235,11 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
     ok: true,
     ...coverage,
     ambiguousLines: reconciled.filter((line) => line.status === "ambiguous").length,
-    unmatchedLines: reconciled
-      .filter((line) => line.status === "unmatched" || line.status === "ambiguous")
-      .map(({ id, date, amountMinor, description, status }) => ({ id, date, amountMinor, description, status })),
+    reviewLines: reconciled
+      .filter((line) => line.status !== "matched" && line.status !== "excluded")
+      .map(({ id, date, amountMinor, description, status, matchedMerchant, toleranceMinor }) => ({
+        id, date, amountMinor, description, status, matchedMerchant, toleranceMinor,
+      })),
   };
 }
 
@@ -258,4 +280,73 @@ export async function addStatementLineAsPurchase(input: unknown): Promise<{ ok: 
   revalidatePath("/purchases");
   revalidatePath("/cards/reconcile");
   return { ok: true, alreadyExists: false };
+}
+
+const tolerantDecisionInput = manualPurchaseInput.extend({
+  decision: z.enum(["confirm", "reject"]),
+});
+
+/**
+ * Settles a tolerant match. Confirming promotes the line to a real match and
+ * lets it flip the wallet event to RECONCILED — the step `previewStatement`
+ * deliberately withholds. Rejecting drops the candidate link and returns the
+ * line to the add-as-purchase flow. Either way the stored status outranks the
+ * engine on the next upload, so the decision sticks.
+ */
+export async function resolveTolerantMatch(
+  input: unknown,
+): Promise<{ ok: true; status: "matched" | "rejected" } | StatementPreviewFailure> {
+  const userId = await requireUserId();
+  const parsed = tolerantDecisionInput.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "That statement line is invalid." };
+  const card = await ownedCard(userId, parsed.data.cardId);
+  if (!card) return { ok: false, error: "Card not found." };
+
+  const lineHash = statementLineHash({
+    cardId: card.id,
+    date: parsed.data.date,
+    description: parsed.data.description,
+    amountMinor: parsed.data.amountMinor,
+  });
+  const line = await prisma.statementLine.findUnique({
+    where: { userId_lineHash: { userId, lineHash } },
+    select: { id: true, status: true, purchaseId: true, walletEventId: true },
+  });
+  if (!line) return { ok: false, error: "Reconcile this statement again before resolving the match." };
+  if (line.status !== "matched-tolerant") return { ok: false, error: "That line is no longer awaiting a decision." };
+
+  if (parsed.data.decision === "reject") {
+    await prisma.statementLine.update({
+      where: { id: line.id },
+      data: { status: "rejected", purchaseId: null, walletEventId: null },
+    });
+    revalidatePath("/cards/reconcile");
+    return { ok: true, status: "rejected" };
+  }
+
+  // An un-promoted wallet event has no purchase yet; the line keeps its event
+  // link and inherits the purchase when that event promotes.
+  const purchaseId =
+    line.purchaseId ??
+    (line.walletEventId
+      ? (await prisma.walletEvent.findFirst({
+          where: { id: line.walletEventId, userId },
+          select: { purchaseId: true },
+        }))?.purchaseId ?? null
+      : null);
+
+  await prisma.$transaction([
+    prisma.statementLine.update({ where: { id: line.id }, data: { status: "matched", purchaseId } }),
+    ...(purchaseId
+      ? [
+          prisma.walletEvent.updateMany({
+            where: { userId, purchaseId, processingStatus: "NORMALIZED" },
+            data: { processingStatus: "RECONCILED" },
+          }),
+        ]
+      : []),
+  ]);
+  revalidatePath("/cards");
+  revalidatePath("/cards/reconcile");
+  return { ok: true, status: "matched" };
 }

@@ -13,13 +13,45 @@ export type CapturedPurchase = {
   source: "purchase" | "wallet";
 };
 
-export type ReconciliationStatus = "matched" | "unmatched" | "ambiguous" | "excluded";
+// "matched-tolerant" is an amount-approximate match awaiting a user decision;
+// "rejected" is only ever set by that decision, never by this engine.
+export type ReconciliationStatus =
+  | "matched"
+  | "matched-tolerant"
+  | "unmatched"
+  | "ambiguous"
+  | "excluded"
+  | "rejected";
 
 export type ReconciledStatementLine = StatementLine & {
   status: ReconciliationStatus;
   matchedCandidateId?: string;
   matchedMerchant?: string;
+  /** Statement amount minus candidate amount; set on tolerant matches only. */
+  toleranceMinor?: number;
 };
+
+/**
+ * A statement line may exceed the amount actually observed at the till: tips are
+ * added after the tap, and a settled pre-auth posts higher than it authorized.
+ * The tolerance is therefore ONE-SIDED — a candidate may sit up to 25% below the
+ * line, never above. A line of $58.50 accepts a $50.00 capture (a 17% tip); the
+ * band is measured against the line, so it absorbs tips up to ~33% of the bill.
+ *
+ * Note this cannot catch the opposite shape — a gas pre-auth captured at $100
+ * that settles at $40 leaves the statement BELOW the observation. Widening the
+ * band in that direction would match almost anything, so those stay unmatched.
+ */
+export const STATEMENT_TOLERANCE_RATIO = 0.25;
+
+/**
+ * Tolerant matches trade away amount certainty, so they have to buy it back with
+ * merchant evidence. Exact matches keep their historical behaviour of accepting
+ * any similarity, because amount + date already identify them.
+ */
+export const TOLERANT_MERCHANT_SIMILARITY_MIN = 0.5;
+
+const DATE_WINDOW_DAYS = 3;
 
 export type MerchantAliases = ReadonlyMap<string, string> | Readonly<Record<string, string>>;
 
@@ -77,9 +109,56 @@ export function isExcludedStatementLine(line: Pick<StatementLine, "amountMinor" 
   return line.amountMinor <= 0 || CREDIT_OR_PAYMENT.test(line.description);
 }
 
+type ScoredCandidate = { candidate: CapturedPurchase; similarity: number; dateDistance: number };
+
+/** The lowest candidate amount a line will accept; ceil keeps odd amounts decidable. */
+export function minimumTolerantAmountMinor(lineAmountMinor: number): number {
+  return Math.ceil(lineAmountMinor * (1 - STATEMENT_TOLERANCE_RATIO));
+}
+
+function bestCandidate(
+  line: StatementLine,
+  candidates: CapturedPurchase[],
+  consumed: Set<string>,
+  aliases: MerchantAliases | undefined,
+  amountFits: (candidateAmountMinor: number, lineAmountMinor: number) => boolean,
+  minSimilarity: number,
+  /** "tie-break" resolves rivals by score; "strict" refuses to pick among any rivals. */
+  uniqueness: "tie-break" | "strict",
+): ScoredCandidate | "ambiguous" | null {
+  const eligible = candidates
+    .filter((candidate) =>
+      !consumed.has(candidate.id) &&
+      amountFits(candidate.amountMinor, line.amountMinor) &&
+      dateDistanceDays(candidate.date, line.date) <= DATE_WINDOW_DAYS,
+    )
+    .map((candidate) => ({
+      candidate,
+      similarity: merchantSimilarity(line.description, candidate.merchant, aliases),
+      dateDistance: dateDistanceDays(candidate.date, line.date),
+    }))
+    .filter((entry) => entry.similarity >= minSimilarity);
+
+  if (eligible.length === 0) return null;
+  if (uniqueness === "strict" && eligible.length > 1) return "ambiguous";
+
+  eligible.sort((a, b) => b.similarity - a.similarity || a.dateDistance - b.dateDistance || a.candidate.id.localeCompare(b.candidate.id));
+  const winner = eligible[0];
+  const tied = eligible.filter(
+    (entry) => entry.similarity === winner.similarity && entry.dateDistance === winner.dateDistance,
+  );
+  return tied.length > 1 ? "ambiguous" : winner;
+}
+
 /**
  * Matches an upload without database access. Candidates are consumed only for
  * decisive matches, preventing one captured purchase from covering two lines.
+ *
+ * Runs in two passes so exact amounts win GLOBALLY, not merely per line: a
+ * single pass would let an early line's tolerant match consume the very capture
+ * a later line matches to the cent, and the outcome would depend on row order.
+ * Ambiguity is terminal — a line with rival exact candidates is not retried
+ * against a looser rule, because loosening cannot break the tie it already lost.
  */
 export function reconcileStatementLines(
   lines: StatementLine[],
@@ -87,45 +166,74 @@ export function reconcileStatementLines(
   aliases?: MerchantAliases,
 ): ReconciledStatementLine[] {
   const consumed = new Set<string>();
+  const resolved: ReconciledStatementLine[] = lines.map((line) =>
+    isExcludedStatementLine(line) ? { ...line, status: "excluded" } : { ...line, status: "unmatched" },
+  );
 
-  return lines.map((line) => {
-    if (isExcludedStatementLine(line)) return { ...line, status: "excluded" };
-
-    const eligible = candidates
-      .filter((candidate) =>
-        !consumed.has(candidate.id) &&
-        candidate.amountMinor === line.amountMinor &&
-        dateDistanceDays(candidate.date, line.date) <= 3,
-      )
-      .map((candidate) => ({
-        candidate,
-        similarity: merchantSimilarity(line.description, candidate.merchant, aliases),
-        dateDistance: dateDistanceDays(candidate.date, line.date),
-      }));
-
-    if (eligible.length === 0) return { ...line, status: "unmatched" };
-    eligible.sort((a, b) => b.similarity - a.similarity || a.dateDistance - b.dateDistance || a.candidate.id.localeCompare(b.candidate.id));
-    const winner = eligible[0];
-    const tied = eligible.filter(
-      (entry) => entry.similarity === winner.similarity && entry.dateDistance === winner.dateDistance,
-    );
-    if (tied.length > 1) return { ...line, status: "ambiguous" };
-
-    consumed.add(winner.candidate.id);
-    return {
+  resolved.forEach((line, index) => {
+    if (line.status === "excluded") return;
+    const outcome = bestCandidate(line, candidates, consumed, aliases, (c, l) => c === l, 0, "tie-break");
+    if (outcome === null) return;
+    if (outcome === "ambiguous") {
+      resolved[index] = { ...line, status: "ambiguous" };
+      return;
+    }
+    consumed.add(outcome.candidate.id);
+    resolved[index] = {
       ...line,
       status: "matched",
-      matchedCandidateId: winner.candidate.id,
-      matchedMerchant: winner.candidate.merchant,
+      matchedCandidateId: outcome.candidate.id,
+      matchedMerchant: outcome.candidate.merchant,
     };
   });
+
+  resolved.forEach((line, index) => {
+    if (line.status !== "unmatched") return;
+    const outcome = bestCandidate(
+      line,
+      candidates,
+      consumed,
+      aliases,
+      (candidateAmount, lineAmount) =>
+        candidateAmount < lineAmount && candidateAmount >= minimumTolerantAmountMinor(lineAmount),
+      TOLERANT_MERCHANT_SIMILARITY_MIN,
+      "strict",
+    );
+    if (outcome === null) return;
+    if (outcome === "ambiguous") {
+      resolved[index] = { ...line, status: "ambiguous" };
+      return;
+    }
+    consumed.add(outcome.candidate.id);
+    resolved[index] = {
+      ...line,
+      status: "matched-tolerant",
+      matchedCandidateId: outcome.candidate.id,
+      matchedMerchant: outcome.candidate.merchant,
+      toleranceMinor: line.amountMinor - outcome.candidate.amountMinor,
+    };
+  });
+
+  return resolved;
 }
 
-export function coverageForLines(lines: ReconciledStatementLine[]): { matchedLines: number; eligibleLines: number; percentage: number } {
+/**
+ * Coverage counts exact matches only. Tolerant matches are reported alongside
+ * rather than folded in, so a stored CoverageReport keeps meaning the same thing
+ * before and after this rule shipped; a confirmed tolerant match becomes
+ * "matched" and joins the headline number then.
+ */
+export function coverageForLines(lines: ReconciledStatementLine[]): {
+  matchedLines: number;
+  tolerantLines: number;
+  eligibleLines: number;
+  percentage: number;
+} {
   const eligibleLines = lines.filter((line) => line.status !== "excluded");
   const matchedLines = eligibleLines.filter((line) => line.status === "matched").length;
   return {
     matchedLines,
+    tolerantLines: eligibleLines.filter((line) => line.status === "matched-tolerant").length,
     eligibleLines: eligibleLines.length,
     percentage: eligibleLines.length === 0 ? 0 : Math.round((matchedLines / eligibleLines.length) * 100),
   };
