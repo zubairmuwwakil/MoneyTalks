@@ -65,6 +65,7 @@ export default async function SettingsPage({
         <div className="mt-3 flex flex-wrap gap-2 text-sm">
           <Link href="/settings/notifications" className="rounded-full border px-3 py-1 hover:bg-muted">Notifications & email</Link>
           <Link href="/settings/wallet" className="rounded-full border px-3 py-1 hover:bg-muted">Apple Wallet</Link>
+          <Link href="/settings/merchants" className="rounded-full border px-3 py-1 hover:bg-muted">Merchants</Link>
           <Link href="/settings/automation" className="rounded-full border px-3 py-1 hover:bg-muted">Email automation</Link>
           <Link href="/settings/privacy" className="rounded-full border px-3 py-1 hover:bg-muted">Privacy</Link>
         </div>
