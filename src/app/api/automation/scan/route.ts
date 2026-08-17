@@ -110,6 +110,8 @@ export async function POST(req: NextRequest) {
   const since = new Date();
   since.setUTCDate(since.getUTCDate() - (Number.isFinite(days) ? days : 90));
 
+  let scanError: string | null = null;
+
   try {
     const messages = await listRecentRawGmailMessages(gmail, {
       since,
@@ -453,6 +455,11 @@ export async function POST(req: NextRequest) {
         }
       }
     }
+  } catch (error) {
+    // Surface the real upstream failure (e.g. "Gmail API ... is disabled")
+    // instead of an opaque 500 that reads as an empty scan.
+    scanError = error instanceof Error ? error.message : String(error);
+    console.error(`[scan] failed for ${userId}:`, scanError);
   } finally {
     await prisma.emailConnection.updateMany({
       where: { userId },
@@ -460,6 +467,10 @@ export async function POST(req: NextRequest) {
     });
     // Refreshed tokens must be durably stored before the function returns.
     await flushTokens();
+  }
+
+  if (scanError) {
+    return NextResponse.json({ error: `Scan failed: ${scanError}` }, { status: 502 });
   }
 
   return NextResponse.json({
