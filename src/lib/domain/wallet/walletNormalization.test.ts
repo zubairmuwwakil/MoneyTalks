@@ -6,7 +6,7 @@ import { processWalletEvents } from "./walletNormalization";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     walletEvent: { findMany: vi.fn() },
-    merchantAlias: { findUnique: vi.fn() },
+    merchantAlias: { findUnique: vi.fn(), create: vi.fn() },
     cardAlias: { findUnique: vi.fn() },
     $transaction: vi.fn(),
   },
@@ -99,6 +99,35 @@ describe("processWalletEvents", () => {
     });
     expect(tx.walletEvent.update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ purchaseId: "purch-gmail" }),
+    }));
+  });
+
+  it("auto-creates a merchant alias on first sighting so events can promote", async () => {
+    const event = {
+      id: "evt-3", userId: "user-1", eventId: "wevt_3",
+      merchantRaw: "Blue Bottle Coffee", cardRaw: null,
+      amountRaw: new Prisma.Decimal("5.00"), currencyRaw: "CAD",
+      capturedAt: new Date("2026-08-16T22:25:31Z"),
+    };
+    vi.mocked(prisma.walletEvent.findMany)
+      .mockResolvedValueOnce([event] as any)
+      .mockResolvedValueOnce([]);
+    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.merchantAlias.create).mockResolvedValue({ normalizedName: "Blue Bottle Coffee", category: null } as any);
+    tx.purchase.findFirst.mockResolvedValue(null);
+    tx.purchase.findMany.mockResolvedValue([]);
+    tx.purchase.create.mockResolvedValue({ id: "purch-2" });
+    tx.ownerStateRecord.findUnique.mockResolvedValue(null);
+    tx.creditCard.findMany.mockResolvedValue([]);
+
+    const processed = await processWalletEvents();
+
+    expect(processed).toBe(1);
+    expect(prisma.merchantAlias.create).toHaveBeenCalledWith({
+      data: { rawString: "Blue Bottle Coffee", normalizedName: "Blue Bottle Coffee" },
+    });
+    expect(tx.purchase.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ merchant: "Blue Bottle Coffee", category: null }),
     }));
   });
 });

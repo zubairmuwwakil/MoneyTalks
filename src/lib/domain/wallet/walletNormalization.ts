@@ -14,9 +14,25 @@ export async function processWalletEvents() {
   for (const event of events) {
     if (!event.merchantRaw) continue;
 
-    const merchantAlias = await prisma.merchantAlias.findUnique({
+    let merchantAlias = await prisma.merchantAlias.findUnique({
       where: { rawString: event.merchantRaw },
     });
+    if (!merchantAlias) {
+      // First sighting anywhere: seed the global alias with the raw string
+      // itself (Apple's merchant field is already a display name) and no
+      // category — categorization stays deliberately unresolved, but the
+      // event can promote instead of sitting OBSERVED forever.
+      try {
+        merchantAlias = await prisma.merchantAlias.create({
+          data: { rawString: event.merchantRaw, normalizedName: event.merchantRaw.trim() },
+        });
+      } catch {
+        // Concurrent run created it (rawString is unique) — use theirs.
+        merchantAlias = await prisma.merchantAlias.findUnique({
+          where: { rawString: event.merchantRaw },
+        });
+      }
+    }
 
     const cardAlias = event.cardRaw
       ? await prisma.cardAlias.findUnique({

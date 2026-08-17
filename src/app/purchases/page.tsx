@@ -2,13 +2,22 @@ import { requireUserId } from "@/lib/require-user";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/utils/calendarEvents";
+import { purchaseLocalDateTime } from "@/lib/utils/purchaseTime";
 
 export default async function PurchasesInboxPage() {
   const userId = await requireUserId();
 
   const purchases = await prisma.purchase.findMany({
     where: { userId },
-    include: { returns: true },
+    include: {
+      returns: true,
+      walletEvents: {
+        select: { capturedAt: true, capturedTimezone: true, feedbackWarning: true },
+        orderBy: { capturedAt: "asc" },
+        take: 1,
+      },
+      emailTransactions: { select: { id: true }, take: 1 },
+    },
     orderBy: { purchasedAt: "desc" },
     take: 200,
   });
@@ -24,7 +33,7 @@ export default async function PurchasesInboxPage() {
           <div className="space-y-1">
             <p className="text-[11px] uppercase tracking-[0.26em] text-cyan-100">Purchases</p>
             <h1 className="font-display text-4xl text-white">Purchases Inbox</h1>
-            <p className="text-sm text-slate-200/80">Unified purchase proof feed from Gmail and uploads.</p>
+            <p className="text-sm text-slate-200/80">Every purchase, from tap to receipt, in one record.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Link className="pill-link" href="/receipts/upload">
@@ -40,15 +49,40 @@ export default async function PurchasesInboxPage() {
         <div className="space-y-3">
           {purchases.map((p) => {
             const returnStatus = p.returns[0]?.status ?? null;
+            const wallet = p.walletEvents[0] ?? null;
+            const seenByEmail = p.emailTransactions.length > 0 || p.source === "GMAIL" || p.source === "UPLOAD";
+            const seenByWallet = wallet != null || p.source === "WALLET";
+            const local = purchaseLocalDateTime(
+              wallet?.capturedAt ?? p.purchasedAt,
+              wallet?.capturedTimezone,
+            );
+            // A wallet tap is an exact instant; email/manual dates are only day-accurate.
+            const when = wallet ? local.toFormat("MMM d, yyyy · h:mm a") : local.toFormat("MMM d, yyyy");
             return (
               <Link key={p.id} href={`/purchases/${p.id}`} className="block">
                 <div className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <div className="text-sm font-semibold text-slate-900">{p.merchant}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-900">{p.merchant}</span>
+                        {wallet?.feedbackWarning ? (
+                          <span title={wallet.feedbackWarning} className="text-xs">⚠️</span>
+                        ) : null}
+                      </div>
                       <div className="text-xs text-slate-500">
-                        {p.purchasedAt.toISOString().slice(0, 10)}
+                        {when}
                         {p.orderNumber ? ` · Order ${p.orderNumber}` : ""}
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {seenByWallet ? (
+                          <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-medium text-cyan-700">Wallet</span>
+                        ) : null}
+                        {seenByEmail ? (
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Receipt</span>
+                        ) : null}
+                        {p.possibleDuplicateOfId ? (
+                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">Possible duplicate</span>
+                        ) : null}
                       </div>
                     </div>
                     <div className="text-right">
@@ -57,9 +91,7 @@ export default async function PurchasesInboxPage() {
                       ) : null}
                       {returnStatus ? (
                         <div className="text-xs text-slate-500">Return: {returnStatus}</div>
-                      ) : (
-                        <div className="text-xs text-slate-400">No return</div>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>

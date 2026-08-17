@@ -2,6 +2,8 @@
 
 One line per settled decision, newest first. Agents: check here before treating any question as open; add a line whenever the owner ratifies something in chat.
 
+- 2026-08-17 — MerchantAlias rows auto-create on first sighting (normalizedName = raw string, category null/unresolved) so wallet events promote without manual SQL; curation improves aliases later. CardAlias mapping is user-driven via /settings/wallet.
+- 2026-08-17 — Transactions experience lives at /purchases (upgraded in place, not a new route): clean rows show purchase-local time (capturedTimezone-aware) + source badges; detail shows observations, raw Apple strings, location with Maps link, verdict.
 - 2026-08-17 — Cross-source merge: observations (WalletEvent/EmailTransaction) link to one canonical Purchase; exact = amount + 72h window + merchant-compatible → enrich, never duplicate; amount+time alone → `possibleDuplicateOfId` flag, never a silent merge; cap accrual keyed `purchase:{id}` for exactly-once across sources (closes a latent double-count).
 
 - 2026-08-17 — Working mode: agents proceed autonomously; discussion reserved for high-ROI / hard-to-reverse decisions, batched into one question set; token-conscious.
