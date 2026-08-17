@@ -59,10 +59,22 @@ function toDecimalString(v: unknown): string | null {
     return String(v);
   }
   if (typeof v === "string") {
-    const trimmed = v.trim();
-    if (!/^-?\d+(\.\d+)?$/.test(trimmed)) return null;
-    if (Math.abs(Number(trimmed)) >= MAX_AMOUNT_MAGNITUDE) return null;
-    return trimmed;
+    // Shortcuts renders currency per device locale: "$6.42", "CA$1,234.56",
+    // fr-CA "1 234,56 $". Strip symbols/spaces, then disambiguate the comma:
+    // alongside a period it's a thousands separator; alone before 1-2 digits
+    // it's a decimal comma; otherwise thousands.
+    let s = v
+      .replace(/[$€£¥]|CA\$|US\$|CAD|USD/gi, "")
+      .replace(/[\s  ]/g, "")
+      .trim();
+    if (s.includes(",")) {
+      if (s.includes(".")) s = s.replace(/,/g, "");
+      else if (/^-?\d+,\d{1,2}$/.test(s)) s = s.replace(",", ".");
+      else s = s.replace(/,/g, "");
+    }
+    if (!/^-?\d+(\.\d+)?$/.test(s)) return null;
+    if (Math.abs(Number(s)) >= MAX_AMOUNT_MAGNITUDE) return null;
+    return s;
   }
   return null;
 }

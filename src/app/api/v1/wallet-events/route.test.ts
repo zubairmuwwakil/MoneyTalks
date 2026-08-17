@@ -196,6 +196,25 @@ const tHash = createHash("sha256").update(token).digest("hex");
       expect(createdData().amountRaw).toBe("6.42");
     });
 
+    it("absorbs locale-formatted currency strings from Shortcuts", async () => {
+      const cases: Array<[string, string]> = [
+        ["$6.42", "6.42"],
+        ["CA$1,234.56", "1234.56"],
+        ["6,42 $", "6.42"], // fr-CA decimal comma
+        ["1 234,56 $", "1234.56"], // fr-CA with space thousands
+        ["US$20.00", "20.00"],
+      ];
+      for (const [input, expected] of cases) {
+        vi.resetAllMocks();
+        vi.mocked(prisma.walletEvent.create).mockResolvedValue({ id: "evt-created" } as any);
+        vi.mocked(prisma.walletEvent.update).mockResolvedValue({} as any);
+        vi.mocked(prisma.creditCard.findMany).mockResolvedValue([] as any);
+        mockAuthedNoDups();
+        await POST(mockReq(basePayload({}, { amount: input })));
+        expect(createdData().amountRaw, `input: ${input}`).toBe(expected);
+      }
+    });
+
     it("treats empty-string optional fields as missing, never zero", async () => {
       mockAuthedNoDups();
       await POST(mockReq(basePayload({}, { amount: "", currency: "", cardRaw: "", transactionNameRaw: "" })));
