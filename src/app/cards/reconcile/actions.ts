@@ -10,6 +10,7 @@ import {
   type ReconciledStatementLine,
 } from "@/engine/statement-reconciliation";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
+import { statementLineHash, parseCandidateId } from "@/lib/domain/spine/statementLines";
 import { walletAmountMinor } from "@/lib/domain/wallet/amount";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -135,6 +136,29 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
     const month = line.date.slice(0, 7);
     byMonth.set(month, [...(byMonth.get(month) ?? []), line]);
   }
+  // Statement lines are the third observation source: persist each line and
+  // link matches to the canonical purchase. Un-promoted wallet matches
+  // resolve through the event's purchase link once it exists.
+  const parsedMatches = reconciled.map((line) => parseCandidateId(line.matchedCandidateId));
+  const matchedWalletEventIds = parsedMatches.flatMap((m) => (m.walletEventId ? [m.walletEventId] : []));
+  const walletEventPurchase = new Map(
+    (matchedWalletEventIds.length > 0
+      ? await prisma.walletEvent.findMany({
+          where: { id: { in: matchedWalletEventIds }, userId },
+          select: { id: true, purchaseId: true },
+        })
+      : []
+    ).map((event) => [event.id, event.purchaseId]),
+  );
+  const matchedPurchaseIds = [
+    ...new Set(
+      parsedMatches.flatMap((m) => {
+        const resolved = m.purchaseId ?? (m.walletEventId ? walletEventPurchase.get(m.walletEventId) : null);
+        return resolved ? [resolved] : [];
+      }),
+    ),
+  ];
+
   await prisma.$transaction([
     prisma.creditCard.update({ where: { id: card.id }, data: { contractCardId: cardParsed.data.contractCardId } }),
     ...[...byMonth.entries()].map(([month, lines]) => {
@@ -145,6 +169,39 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
         create: { userId, cardId: card.id, month, matchedLines: result.matchedLines, eligibleLines: result.eligibleLines },
       });
     }),
+    ...reconciled.map((line, index) => {
+      const match = parsedMatches[index];
+      const purchaseId =
+        match.purchaseId ?? (match.walletEventId ? walletEventPurchase.get(match.walletEventId) ?? null : null);
+      const lineHash = statementLineHash({
+        cardId: card.id,
+        date: line.date,
+        description: line.description,
+        amountMinor: line.amountMinor,
+      });
+      const shared = {
+        date: new Date(`${line.date}T00:00:00.000Z`),
+        description: line.description,
+        amountMinor: line.amountMinor,
+        status: line.status,
+        purchaseId,
+        walletEventId: match.walletEventId,
+      };
+      return prisma.statementLine.upsert({
+        where: { userId_lineHash: { userId, lineHash } },
+        create: { userId, cardId: card.id, lineHash, ...shared },
+        update: shared,
+      });
+    }),
+    // The statement confirmed these charges posted: observed → reconciled.
+    ...(matchedPurchaseIds.length > 0
+      ? [
+          prisma.walletEvent.updateMany({
+            where: { userId, purchaseId: { in: matchedPurchaseIds }, processingStatus: "NORMALIZED" },
+            data: { processingStatus: "RECONCILED" },
+          }),
+        ]
+      : []),
   ]);
   revalidatePath("/cards");
   revalidatePath("/cards/reconcile");
@@ -174,11 +231,24 @@ export async function addStatementLineAsPurchase(input: unknown): Promise<{ ok: 
     select: { id: true },
   });
   if (existing) return { ok: true, alreadyExists: true };
-  await prisma.purchase.create({
+  const created = await prisma.purchase.create({
     data: {
       userId, source: "MANUAL", merchant: parsed.data.description, totalCents: parsed.data.amountMinor,
       currency: card.currency, purchasedAt: start, paymentMethod: card.contractCardId,
     },
+  });
+  // Link the persisted statement line to the purchase it just became.
+  await prisma.statementLine.updateMany({
+    where: {
+      userId,
+      lineHash: statementLineHash({
+        cardId: card.id,
+        date: parsed.data.date,
+        description: parsed.data.description,
+        amountMinor: parsed.data.amountMinor,
+      }),
+    },
+    data: { purchaseId: created.id, status: "matched" },
   });
   revalidatePath("/purchases");
   revalidatePath("/cards/reconcile");

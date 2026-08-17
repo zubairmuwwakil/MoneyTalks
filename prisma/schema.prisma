@@ -24,6 +24,7 @@ model User {
   capAccruals     CapAccrual[]
   ownerStateRecord OwnerStateRecord?
   cardAliases    CardAlias[]
+  statementLines StatementLine[]
   sessions       Session[]
   authenticators Authenticator[]
   financialAccounts FinancialAccount[]
@@ -295,13 +296,40 @@ model CreditCard {
   updatedAt      DateTime   @updatedAt
   state          CardState?
   coverageReports CoverageReport[]
+  statementLines  StatementLine[]
 
   @@unique([userId, nickname])
   @@index([userId, contractCardId])
 }
 
-// A compact, durable result of an in-memory statement reconciliation. Raw
-// statement lines are deliberately never retained after the upload response.
+// The third observation source: the only one that sees physical-card
+// purchases. Persisted since 2026-08-17 (complete-record posture — lines were
+// previously ephemeral); lineHash makes re-uploads idempotent.
+model StatementLine {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId      String
+  card        CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  date        DateTime
+  description String
+  amountMinor Int
+  // matched | unmatched | ambiguous | excluded — as of the latest upload.
+  status      String
+  purchaseId  String?
+  purchase    Purchase?  @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  // Un-promoted wallet event this line matched (no FK; the event promotes later).
+  walletEventId String?
+  lineHash    String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([userId, lineHash])
+  @@index([userId, date])
+  @@index([purchaseId])
+}
+
+// A compact, durable result of a statement reconciliation snapshot.
 model CoverageReport {
   id             String     @id @default(cuid())
   userId         String
@@ -515,6 +543,7 @@ model Purchase {
   returns     ReturnItem[]
   walletEvents      WalletEvent[]
   emailTransactions EmailTransaction[]
+  statementLines    StatementLine[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

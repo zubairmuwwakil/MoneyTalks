@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/utils/calendarEvents";
 import { requireUserId } from "@/lib/require-user";
 import { purchaseLocalDateTime } from "@/lib/utils/purchaseTime";
+import DuplicateResolution from "./DuplicateResolution";
 
 export default async function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const userId = await requireUserId();
@@ -44,7 +45,12 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
 
   const returnItem = purchase.returns[0] ?? null;
   const wallet = purchase.walletEvents[0] ?? null;
-  const local = purchaseLocalDateTime(wallet?.capturedAt ?? purchase.purchasedAt, wallet?.capturedTimezone);
+  const pref = await prisma.notificationPreference.findUnique({
+    where: { userId },
+    select: { timezone: true },
+  });
+  const homeZone = pref?.timezone ?? null;
+  const local = purchaseLocalDateTime(wallet?.capturedAt ?? purchase.purchasedAt, wallet?.capturedTimezone, homeZone);
   const whenFull = wallet
     ? `${local.toFormat("cccc, MMM d, yyyy · h:mm:ss a")} ${local.toFormat("ZZZZ")}`
     : local.toFormat("cccc, MMM d, yyyy");
@@ -103,6 +109,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
             {flaggedTwin.merchant} · {formatMoney(flaggedTwin.totalCents ?? undefined, flaggedTwin.currency)}
           </Link>{" "}
           — amount and time matched, but the merchant names differ, so it was kept separate.
+          <DuplicateResolution purchaseId={purchase.id} />
         </div>
       ) : null}
 
@@ -148,7 +155,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Email receipt</span>
                 {email.purchasedAt ? (
-                  <span className="text-slate-600">{purchaseLocalDateTime(email.purchasedAt).toFormat("MMM d · h:mm a")}</span>
+                  <span className="text-slate-600">{purchaseLocalDateTime(email.purchasedAt, null, homeZone).toFormat("MMM d · h:mm a")}</span>
                 ) : null}
               </div>
               <div className="mt-1.5 space-y-0.5 text-xs text-slate-500">

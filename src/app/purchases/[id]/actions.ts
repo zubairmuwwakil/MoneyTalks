@@ -1,0 +1,90 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireUserId } from "@/lib/require-user";
+import { reverseCapAccrual } from "@/lib/spine/cap-usage";
+
+const idInput = z.string().min(1);
+
+// User confirmed a flagged near-match IS the same purchase: fold the flagged
+// row into its canonical counterpart — observations, items, attachments, and
+// returns move over; gaps fill; the duplicate row disappears.
+export async function mergeDuplicatePurchase(purchaseIdRaw: unknown) {
+  const userId = await requireUserId();
+  const parsed = idInput.safeParse(purchaseIdRaw);
+  if (!parsed.success) return { ok: false as const, error: "invalid input" };
+  const flaggedId = parsed.data;
+
+  const targetId = await prisma.$transaction(async (tx) => {
+    const flagged = await tx.purchase.findFirst({
+      where: { id: flaggedId, userId },
+      select: {
+        id: true, possibleDuplicateOfId: true, source: true, purchasedAt: true,
+        paymentMethod: true, category: true, orderNumber: true, totalCents: true,
+      },
+    });
+    if (!flagged?.possibleDuplicateOfId) return null;
+    const target = await tx.purchase.findFirst({
+      where: { id: flagged.possibleDuplicateOfId, userId },
+    });
+    if (!target) return null;
+
+    await tx.walletEvent.updateMany({ where: { purchaseId: flagged.id }, data: { purchaseId: target.id } });
+    await tx.emailTransaction.updateMany({ where: { purchaseId: flagged.id }, data: { purchaseId: target.id } });
+    await tx.statementLine.updateMany({ where: { purchaseId: flagged.id }, data: { purchaseId: target.id } });
+    await tx.purchaseItem.updateMany({ where: { purchaseId: flagged.id }, data: { purchaseId: target.id } });
+    await tx.purchaseAttachment.updateMany({ where: { purchaseId: flagged.id }, data: { purchaseId: target.id } });
+    await tx.returnItem.updateMany({ where: { purchaseId: flagged.id }, data: { purchaseId: target.id } });
+
+    // Fill gaps only; a wallet-sourced duplicate contributes the tap instant.
+    await tx.purchase.update({
+      where: { id: target.id },
+      data: {
+        paymentMethod: target.paymentMethod ?? flagged.paymentMethod ?? undefined,
+        category: target.category ?? flagged.category ?? undefined,
+        orderNumber: target.orderNumber ?? flagged.orderNumber ?? undefined,
+        totalCents: target.totalCents ?? flagged.totalCents ?? undefined,
+        ...(flagged.source === "WALLET" ? { purchasedAt: flagged.purchasedAt } : {}),
+      },
+    });
+
+    // The same real dollars must not count against caps twice: if both rows
+    // accrued, reverse the duplicate's accrual and keep the canonical one.
+    const [targetAccrual, flaggedAccrual] = await Promise.all([
+      tx.capAccrual.findUnique({ where: { sourceKey: `purchase:${target.id}` } }),
+      tx.capAccrual.findUnique({ where: { sourceKey: `purchase:${flagged.id}` } }),
+    ]);
+    if (targetAccrual && flaggedAccrual) {
+      await reverseCapAccrual(tx, `purchase:${flagged.id}`);
+    }
+
+    await tx.purchase.updateMany({
+      where: { userId, possibleDuplicateOfId: flagged.id },
+      data: { possibleDuplicateOfId: target.id },
+    });
+    await tx.purchase.delete({ where: { id: flagged.id } });
+    return target.id;
+  });
+
+  if (!targetId) return { ok: false as const, error: "not mergeable" };
+  revalidatePath("/purchases");
+  redirect(`/purchases/${targetId}`);
+}
+
+// User confirmed they are different purchases: clear the flag.
+export async function keepSeparatePurchase(purchaseIdRaw: unknown) {
+  const userId = await requireUserId();
+  const parsed = idInput.safeParse(purchaseIdRaw);
+  if (!parsed.success) return { ok: false as const, error: "invalid input" };
+
+  await prisma.purchase.updateMany({
+    where: { id: parsed.data, userId, possibleDuplicateOfId: { not: null } },
+    data: { possibleDuplicateOfId: null },
+  });
+  revalidatePath(`/purchases/${parsed.data}`);
+  revalidatePath("/purchases");
+  return { ok: true as const };
+}

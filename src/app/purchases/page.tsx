@@ -7,6 +7,12 @@ import { purchaseLocalDateTime } from "@/lib/utils/purchaseTime";
 export default async function PurchasesInboxPage() {
   const userId = await requireUserId();
 
+  const pref = await prisma.notificationPreference.findUnique({
+    where: { userId },
+    select: { timezone: true },
+  });
+  const homeZone = pref?.timezone ?? null;
+
   const purchases = await prisma.purchase.findMany({
     where: { userId },
     include: {
@@ -55,6 +61,7 @@ export default async function PurchasesInboxPage() {
             const local = purchaseLocalDateTime(
               wallet?.capturedAt ?? p.purchasedAt,
               wallet?.capturedTimezone,
+              homeZone,
             );
             // A wallet tap is an exact instant; email/manual dates are only day-accurate.
             const when = wallet ? local.toFormat("MMM d, yyyy · h:mm a") : local.toFormat("MMM d, yyyy");

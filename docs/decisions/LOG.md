@@ -2,6 +2,9 @@
 
 One line per settled decision, newest first. Agents: check here before treating any question as open; add a line whenever the owner ratifies something in chat.
 
+- 2026-08-17 — Statement lines are persisted (`StatementLine`, idempotent by line hash), reversing the earlier ephemeral-by-design choice per complete-record posture; matched lines link to canonical purchases and flip NORMALIZED wallet events to RECONCILED. Unmatched lines stay user-promoted (existing add-as-purchase flow), never auto-created.
+- 2026-08-17 — Duplicate resolution is user-confirmed on the purchase page: merge folds observations into the canonical row and reverses the duplicate's cap accrual only when both accrued; "keep separate" clears the flag.
+- 2026-08-17 — Home timezone = NotificationPreference.timezone (editable at /settings/notifications, now routed); wallet capturedTimezone still wins when present.
 - 2026-08-17 — MerchantAlias rows auto-create on first sighting (normalizedName = raw string, category null/unresolved) so wallet events promote without manual SQL; curation improves aliases later. CardAlias mapping is user-driven via /settings/wallet.
 - 2026-08-17 — Transactions experience lives at /purchases (upgraded in place, not a new route): clean rows show purchase-local time (capturedTimezone-aware) + source badges; detail shows observations, raw Apple strings, location with Maps link, verdict.
 - 2026-08-17 — Cross-source merge: observations (WalletEvent/EmailTransaction) link to one canonical Purchase; exact = amount + 72h window + merchant-compatible → enrich, never duplicate; amount+time alone → `possibleDuplicateOfId` flag, never a silent merge; cap accrual keyed `purchase:{id}` for exactly-once across sources (closes a latent double-count).

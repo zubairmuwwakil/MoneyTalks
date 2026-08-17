@@ -62,6 +62,12 @@ export default async function SettingsPage({
         <p className="text-sm text-muted-foreground">
           Configure your personal residency, tax filing status, registered account room, and income sources.
         </p>
+        <div className="mt-3 flex flex-wrap gap-2 text-sm">
+          <Link href="/settings/notifications" className="rounded-full border px-3 py-1 hover:bg-muted">Notifications & email</Link>
+          <Link href="/settings/wallet" className="rounded-full border px-3 py-1 hover:bg-muted">Apple Wallet</Link>
+          <Link href="/settings/automation" className="rounded-full border px-3 py-1 hover:bg-muted">Email automation</Link>
+          <Link href="/settings/privacy" className="rounded-full border px-3 py-1 hover:bg-muted">Privacy</Link>
+        </div>
       </div>
 
       <form action={submitProfile} className="space-y-6">
