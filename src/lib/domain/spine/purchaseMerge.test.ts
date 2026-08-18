@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { merchantsCompatible, scoreCandidate } from "./purchaseMerge";
+import { describe, it, expect, vi } from "vitest";
+import { findMatchingPurchase, merchantsCompatible, scoreCandidate } from "./purchaseMerge";
 
 const base = {
   userId: "user-1",
@@ -9,10 +9,12 @@ const base = {
   incomingSource: "WALLET" as const,
 };
 
-function candidate(overrides: Partial<{ merchant: string; totalCents: number | null; purchasedAt: Date }> = {}) {
+function candidate(overrides: Partial<{ merchant: string; totalCents: number | null; currency: string | null; purchasedAt: Date }> = {}) {
   return {
+    id: "purchase-1",
     merchant: "Starbucks",
     totalCents: 642,
+    currency: "CAD",
     purchasedAt: new Date("2026-08-16T22:00:00Z"),
     ...overrides,
   };
@@ -29,6 +31,40 @@ describe("merchantsCompatible", () => {
   it("rejects unrelated merchants and empty strings", () => {
     expect(merchantsCompatible("Starbucks", "Tim Hortons")).toBe(false);
     expect(merchantsCompatible("", "Starbucks")).toBe(false);
+  });
+});
+
+describe("findMatchingPurchase currency compatibility", () => {
+  it("does not rewrite an unknown incoming currency to CAD in the query", async () => {
+    const findMany = vi.fn(async (_args: unknown) => [candidate()]);
+
+    await findMatchingPurchase({ purchase: { findMany } } as never, { ...base, currency: null });
+
+    const query = findMany.mock.calls[0]?.[0] as { where: { currency?: unknown } } | undefined;
+    expect(query?.where.currency).toBeUndefined();
+  });
+
+  it("rejects contradictory known currencies even if the database returns the row", async () => {
+    const findMany = vi.fn(async () => [candidate({ currency: "CAD" })]);
+
+    const result = await findMatchingPurchase({ purchase: { findMany } } as never, {
+      ...base,
+      currency: "USD",
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it("can merge an unknown observation into a matching known-currency purchase", async () => {
+    const known = candidate({ currency: "CAD" });
+    const findMany = vi.fn(async () => [known]);
+
+    const result = await findMatchingPurchase({ purchase: { findMany } } as never, {
+      ...base,
+      currency: null,
+    });
+
+    expect(result).toEqual({ purchase: known, confidence: "exact" });
   });
 });
 

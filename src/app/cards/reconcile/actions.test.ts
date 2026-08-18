@@ -78,9 +78,9 @@ describe("previewStatement currency gate", () => {
     expect(await reviewStatus()).toBe("unmatched");
   });
 
-  it("treats a capture with no currency as the storage default, not a wildcard", async () => {
+  it("refuses a capture with unknown currency against a CAD statement line", async () => {
     vi.mocked(prisma.walletEvent.findMany).mockResolvedValue(capture(null) as never);
-    expect(await reviewStatus()).toBe("matched-tolerant");
+    expect(await reviewStatus()).toBe("unmatched");
   });
 });
 

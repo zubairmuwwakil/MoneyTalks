@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { scheduleRefundChecks, scheduleRefundOverdueOnce, scheduleReturnDeadlineSoon, scheduleReturnDelivered } from "@/lib/domain/notifications/eventNotificationScheduler";
 import { refreshShipmentTimeline, setRefundReceived, syncRefundExpectation } from "@/lib/domain/shipping/tracking";
 import { canTransition, type ReturnStatus } from "@/engine/returns/transitions";
+import { normalizeCurrencyCode } from "@/lib/utils/currency";
 // avoid importing prisma enums directly; use string unions matching schema
 
 function addDaysUTC(base: Date, days: number) {
@@ -29,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     store?: string;
     itemNote?: string | null;
     amountCents?: number | null;
-    currency?: string;
+    currency?: string | null;
     purchaseDate?: Date;
     returnWindowDays?: number;
     returnBy?: Date;
@@ -46,7 +47,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (typeof body.store === "string") data.store = body.store;
   if (typeof body.itemNote === "string" || body.itemNote === null) data.itemNote = body.itemNote;
   if (typeof body.amountCents === "number" || body.amountCents === null) data.amountCents = body.amountCents;
-  if (typeof body.currency === "string") data.currency = body.currency;
+  if (typeof body.currency === "string" || body.currency === null) {
+    data.currency = typeof body.currency === "string" ? normalizeCurrencyCode(body.currency) : null;
+  }
 
   if (typeof body.purchaseDate === "string") {
     const pd = new Date(body.purchaseDate);

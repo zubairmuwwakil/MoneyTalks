@@ -3,13 +3,14 @@ import { requireUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/utils/calendarEvents";
 import ReturnsBoard from "./ui/ReturnsBoard";
+import { normalizeCurrencyCode } from "@/lib/utils/currency";
 
 type ReturnRow = {
   id: string;
   store: string;
   itemNote: string | null;
   amountCents: number | null;
-  currency: string;
+  currency: string | null;
   purchaseDate: Date;
   returnBy: Date;
   returnWindowDays: number;
@@ -61,11 +62,16 @@ export default async function ReturnsPage({ searchParams }: { searchParams: Prom
     refunded: returns.filter(r => r.status === "REFUNDED").length,
     inProgress: returns.filter(r => r.status !== "REFUNDED").length,
     totalRefunded: returns
-      .filter(r => r.status === "REFUNDED")
+      .filter(r => r.status === "REFUNDED" && normalizeCurrencyCode(r.currency) === "CAD")
       .reduce((sum, r) => sum + (r.refundAmountCents ?? 0), 0),
     potentialRefunds: returns
-      .filter(r => r.status !== "REFUNDED")
+      .filter(r => r.status !== "REFUNDED" && normalizeCurrencyCode(r.currency) === "CAD")
       .reduce((sum, r) => sum + (r.amountCents ?? 0), 0),
+    unconverted: returns.filter(
+      r =>
+        normalizeCurrencyCode(r.currency) !== "CAD" &&
+        (r.refundAmountCents != null || r.amountCents != null),
+    ).length,
   };
 
   // eslint-disable-next-line react-hooks/purity
@@ -121,12 +127,12 @@ export default async function ReturnsPage({ searchParams }: { searchParams: Prom
           <Link href="/returns?bucket=refunded" className="rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-400/15 to-emerald-500/10 p-4 transition hover:-translate-y-0.5 hover:border-emerald-300/60">
             <p className="text-[11px] uppercase tracking-[0.24em] text-emerald-100">Refunded</p>
             <p className="mt-1 font-display text-2xl text-white">{stats.refunded}</p>
-            <p className="text-xs text-emerald-100">Received {formatMoney(stats.totalRefunded, "CAD")}</p>
+            <p className="text-xs text-emerald-100">Known CAD received {formatMoney(stats.totalRefunded, "CAD")}</p>
           </Link>
           <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-400/20 to-emerald-500/10 p-4">
             <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-100">Potential refunds</p>
             <p className="mt-1 font-display text-2xl text-white">{formatMoney(stats.potentialRefunds, "CAD")}</p>
-            <p className="text-xs text-cyan-100">Across active items</p>
+            <p className="text-xs text-cyan-100">Known CAD across active items</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Focus</p>

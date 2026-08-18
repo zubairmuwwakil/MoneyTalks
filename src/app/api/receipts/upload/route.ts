@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
+import { normalizeCurrencyCode } from "@/lib/utils/currency";
 import { parseReceiptUpload } from "@/lib/domain/receipts/uploadedReceiptParser";
 import { storeReceiptAttachment } from "@/lib/domain/receipts/receiptAttachmentStorage";
 import crypto from "crypto";
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
       userId,
       merchant: parsed.merchant,
       totalCents: parsed.amountCents ?? null,
-      currency: (parsed.currency ?? "CAD").toUpperCase(),
+      currency: normalizeCurrencyCode(parsed.currency),
       purchasedAt: new Date(parsed.purchaseDate + "T00:00:00.000Z"),
       orderNumber: null,
       paymentMethod: null,
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
     update: {
       merchant: parsed.merchant,
       totalCents: parsed.amountCents ?? null,
-      currency: (parsed.currency ?? "CAD").toUpperCase(),
+      currency: normalizeCurrencyCode(parsed.currency),
       purchasedAt: new Date(parsed.purchaseDate + "T00:00:00.000Z"),
     },
   });
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest) {
       status: "NEW",
       merchant: parsed.merchant,
       amountCents: parsed.amountCents ?? null,
-      currency: (parsed.currency ?? "CAD").toUpperCase(),
+      currency: normalizeCurrencyCode(parsed.currency),
       detectedDate: new Date(parsed.purchaseDate + "T00:00:00.000Z"),
       confidence: parsed.confidence,
       reasons: parsed.reasons,

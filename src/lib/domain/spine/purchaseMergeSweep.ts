@@ -1,6 +1,7 @@
 import type { Prisma, PurchaseSource } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
+  currenciesCompatible,
   orderedPurchasePair,
   scoreCandidate,
   type IncomingObservation,
@@ -21,7 +22,7 @@ type SweepPurchase = {
   userId: string;
   merchant: string;
   totalCents: number | null;
-  currency: string;
+  currency: string | null;
   purchasedAt: Date;
   createdAt: Date;
   source: PurchaseSource;
@@ -74,10 +75,6 @@ function pairKey(a: string, b: string): string {
   return `${pair.purchaseLowId}\u0000${pair.purchaseHighId}`;
 }
 
-function normalizedCurrency(value: string | null | undefined): string {
-  return value?.trim().toUpperCase() || "CAD";
-}
-
 function bestOlderMatch(
   newer: SweepPurchase,
   purchases: SweepPurchase[],
@@ -101,7 +98,7 @@ function bestOlderMatch(
       candidate.source === newer.source ||
       candidate.possibleDuplicateOfId != null ||
       comparePurchaseAge(candidate, newer) >= 0 ||
-      normalizedCurrency(candidate.currency) !== normalizedCurrency(newer.currency)
+      !currenciesCompatible(candidate.currency, newer.currency)
     ) {
       return [];
     }

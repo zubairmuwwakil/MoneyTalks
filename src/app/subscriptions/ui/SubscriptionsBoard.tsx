@@ -191,7 +191,7 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
                               className="w-32 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm text-slate-100"
                             />
                           ) : (
-                            <span>{formatMoney(item.amountCents, item.currency ?? "CAD")}</span>
+                            <span>{formatMoney(item.amountCents, item.currency)}</span>
                           )}
                           {isEditing ? (
                             <input

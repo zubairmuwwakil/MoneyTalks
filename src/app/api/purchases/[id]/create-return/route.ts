@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { scheduleReturnDeadlineSoon } from "@/lib/domain/notifications/eventNotificationScheduler";
 
 export const runtime = "nodejs";
@@ -49,7 +48,7 @@ export async function POST(
     refundSlaDays: 14,
     refundType: "ORIGINAL",
     refundAmountCents: null,
-  } as unknown as Prisma.ReturnItemCreateInput;
+  };
 
   const createdReturn = await prisma.returnItem.create({ data });
 

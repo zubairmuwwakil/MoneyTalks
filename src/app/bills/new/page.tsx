@@ -3,8 +3,17 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Receipt } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createBill } from "@/app/bills/actions";
+import type { Catalogue } from "@/engine/cards-twin";
+import { billSpendCategoryOptions } from "@/lib/domain/bills/cardForBill";
+import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { requireUserId } from "@/lib/require-user";
 import { BillFormFields } from "./form-fields";
+
+// Same module-level-singleton + cast precedent as src/app/bills/page.tsx —
+// the catalogue JSON never changes at runtime, so the option list is
+// derived once at module load, not per request.
+const catalogue = cardCatalogue as unknown as Catalogue;
+const spendCategoryOptions = billSpendCategoryOptions(catalogue);
 
 export default async function NewBillPage({
   searchParams,
@@ -55,7 +64,7 @@ export default async function NewBillPage({
         </CardHeader>
         <CardContent>
           <form action={submit} className="space-y-4">
-            <BillFormFields />
+            <BillFormFields spendCategoryOptions={spendCategoryOptions} />
             <div className="pt-2">
               <button
                 type="submit"

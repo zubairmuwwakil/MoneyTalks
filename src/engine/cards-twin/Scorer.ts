@@ -90,7 +90,7 @@ export const Scorer = {
     const grossAspirational = Scorer.valueCad(units, card.program.programId, ownerState.valuationsCad, state, 'aspirational');
 
     let fxCost = 0.0;
-    const currency = purchase.currency ?? 'CAD';
+    const currency = purchase.currency;
     if (currency !== 'CAD') {
       const fx = RuleMatcher.activeFxRule(card, asOf);
       if (fx) {

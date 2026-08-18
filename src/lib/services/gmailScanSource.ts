@@ -12,6 +12,33 @@ export function hasGmailReadScope(scope: string | null | undefined): boolean {
   return GMAIL_READ_SCOPES.some((s) => scope.includes(s));
 }
 
+// Receipt-shaped subject terms, used to catch senders Gmail does not file
+// under its own purchases category.
+const RECEIPT_TERMS = [
+  "receipt",
+  "invoice",
+  '"order confirmation"',
+  '"your order"',
+  '"order number"',
+  '"payment received"',
+  '"payment confirmation"',
+  "statement",
+];
+
+/**
+ * Narrow the scan to mail that could plausibly be a receipt.
+ *
+ * The first real scan ran an unfiltered `after:<ts>` and pulled 100 messages
+ * of which ~95 were newsletters. Excluding the promotions and social tabs
+ * removes bulk marketing outright; the rest is Gmail's own purchases
+ * classification plus explicit receipt wording in the subject.
+ */
+export function buildReceiptQuery(since: Date): string {
+  const after = `after:${Math.floor(since.getTime() / 1000)}`;
+  const subjectTerms = `subject:(${RECEIPT_TERMS.join(" OR ")})`;
+  return `${after} -category:promotions -category:social (category:purchases OR ${subjectTerms})`;
+}
+
 export type RawGmailMessage = {
   messageId: string;
   raw: Buffer;
@@ -53,25 +80,34 @@ function addressFrom(headerText: string | null): string | null {
 
 export async function listRecentRawGmailMessages(
   gmail: GmailLike,
-  opts: { since: Date; max: number }
+  opts: { since: Date; max: number } | { messageIds: readonly string[] }
 ): Promise<RawGmailMessage[]> {
-  const ids: string[] = [];
-  const q = `after:${Math.floor(opts.since.getTime() / 1000)}`;
+  let ids: string[];
 
-  let pageToken: string | undefined;
-  do {
-    const res = await gmail.users.messages.list({
-      userId: "me",
-      q,
-      maxResults: Math.min(opts.max - ids.length, 100),
-      pageToken,
-    });
-    for (const m of res.data.messages ?? []) {
-      if (m.id) ids.push(m.id);
-      if (ids.length >= opts.max) break;
-    }
-    pageToken = res.data.nextPageToken ?? undefined;
-  } while (pageToken && ids.length < opts.max);
+  if ("messageIds" in opts) {
+    // Reprocessing must address the rows already in our database directly.
+    // Running today's receipt query again could omit legacy messages that an
+    // older, broader scan ingested — precisely the rows reprocessing repairs.
+    ids = [...new Set(opts.messageIds)];
+  } else {
+    ids = [];
+    const q = buildReceiptQuery(opts.since);
+
+    let pageToken: string | undefined;
+    do {
+      const res = await gmail.users.messages.list({
+        userId: "me",
+        q,
+        maxResults: Math.min(opts.max - ids.length, 100),
+        pageToken,
+      });
+      for (const m of res.data.messages ?? []) {
+        if (m.id) ids.push(m.id);
+        if (ids.length >= opts.max) break;
+      }
+      pageToken = res.data.nextPageToken ?? undefined;
+    } while (pageToken && ids.length < opts.max);
+  }
 
   const messages: RawGmailMessage[] = [];
   for (const id of ids) {

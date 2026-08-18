@@ -254,11 +254,20 @@ model Bill {
   schedule           Json // [{from, to?, amountMinor, note?}] — validated by zod
   prepaymentMonthDay String? // "03-15" — enables the mortgage-prepayment reminder rule
   interestRatePct    Decimal? // enables the rough interest-saved estimate
+  // Pinned engine spend category (e.g. "streaming", "memberships") — wins
+  // over the derived Bill.category -> engine-category mapping. Null falls
+  // back to the derived table (src/lib/domain/bills/cardForBill.ts).
+  spendCategory      String?
+  // The CreditCard the user has chosen to pay this bill with. Nullable so a
+  // card can be deleted without deleting the bill it was allocated to.
+  paymentCardId      String?
+  paymentCard        CreditCard? @relation(fields: [paymentCardId], references: [id], onDelete: SetNull)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   payments           Payment[]
 
   @@unique([userId, name])
+  @@index([paymentCardId])
 }
 
 model Payment {
@@ -299,6 +308,7 @@ model CreditCard {
   state          CardState?
   coverageReports CoverageReport[]
   statementLines  StatementLine[]
+  bills           Bill[]
 
   @@unique([userId, nickname])
   @@index([userId, contractCardId])
@@ -430,7 +440,7 @@ model ReturnItem {
   store            String
   itemNote         String?
   amountCents      Int?
-  currency         String       @default("CAD")
+  currency         String?
   purchaseDate     DateTime
   returnWindowDays Int          @default(30)
   returnBy         DateTime
@@ -529,7 +539,7 @@ model Purchase {
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   merchant      String
   totalCents    Int?
-  currency      String         @default("CAD")
+  currency      String?
   purchasedAt   DateTime
   orderNumber   String?
   paymentMethod String?
@@ -586,7 +596,7 @@ model PurchaseItem {
   title       String
   qty         Int?
   priceCents  Int?
-  currency    String  @default("CAD")
+  currency    String?
 
   purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
@@ -665,7 +675,7 @@ model AutomationSuggestion {
 
   merchant     String
   amountCents  Int?
-  currency     String   @default("CAD")
+  currency     String?
   detectedDate DateTime
 
   confidence String
@@ -688,7 +698,7 @@ model DetectedItem {
   type          DetectedItemType
   merchant      String
   amountCents   Int?
-  currency      String             @default("CAD")
+  currency      String?
   date          DateTime
   confidence    String
   sourceEmailId String?
@@ -721,7 +731,7 @@ model EmailTransaction {
   purchasedAt DateTime?
   orderId     String?
   totalCents  Int?
-  currency    String    @default("CAD")
+  currency    String?
   items       Json?
   rawSource   String
   parserError String?

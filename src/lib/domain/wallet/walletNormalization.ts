@@ -3,6 +3,7 @@ import { applyCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
 import { walletAmountMinor } from "./amount";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { findMatchingPurchase } from "@/lib/domain/spine/purchaseMerge";
+import { normalizeCurrencyCode } from "@/lib/utils/currency";
 
 export async function processWalletEvents() {
   const events = await prisma.walletEvent.findMany({
@@ -44,6 +45,7 @@ export async function processWalletEvents() {
       // Normalize & promote to spine
       await prisma.$transaction(async (tx) => {
         const amountMinor = walletAmountMinor(event.amountRaw);
+        const eventCurrency = normalizeCurrencyCode(event.currencyRaw);
         let spine = await tx.purchase.findFirst({
           where: { userId: event.userId, source: "WALLET", sourceEventId: event.eventId }
         });
@@ -72,6 +74,7 @@ export async function processWalletEvents() {
                 purchasedAt: event.capturedAt,
                 paymentMethod: match.purchase.paymentMethod ?? cardAlias?.cardId ?? undefined,
                 category: match.purchase.category ?? merchantAlias.category ?? undefined,
+                currency: match.purchase.currency ?? eventCurrency,
               },
             });
           } else {
@@ -82,7 +85,7 @@ export async function processWalletEvents() {
                 sourceEventId: event.eventId,
                 merchant: merchantAlias.normalizedName,
                 totalCents: amountMinor,
-                currency: event.currencyRaw || "CAD",
+                currency: eventCurrency,
                 purchasedAt: event.capturedAt,
                 paymentMethod: cardAlias?.cardId || undefined,
                 category: merchantAlias.category,
@@ -93,7 +96,12 @@ export async function processWalletEvents() {
         }
 
         const ownerState = await ensureOwnerStateRecord(tx, event.userId);
-        if (ownerState && event.amountRaw != null && cardAlias) {
+        if (
+          ownerState &&
+          event.amountRaw != null &&
+          cardAlias &&
+          normalizeCurrencyCode(spine.currency) === "CAD"
+        ) {
           // Keyed on the canonical purchase: whichever source resolves first
           // accrues; CapAccrual.sourceKey uniqueness blocks a second source
           // from double-counting the same real dollars.
@@ -104,7 +112,7 @@ export async function processWalletEvents() {
             category: merchantAlias.category,
             merchantBrand: merchantAlias.normalizedName,
             amountMinor: walletAmountMinor(event.amountRaw)!,
-            currency: event.currencyRaw || "CAD",
+            currency: spine.currency,
             occurredAt: event.capturedAt,
           }, ownerState.stateData);
         }

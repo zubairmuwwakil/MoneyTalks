@@ -1,22 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
-import { parsePurchaseFromRawGmailMessage } from "@/lib/domain/receipts/gmailPurchaseParser";
-import { storeReceiptAttachment } from "@/lib/domain/receipts/receiptAttachmentStorage";
+import { classifyReceiptEmail, hasPurchaseEvidence } from "@/lib/domain/receipts/receiptEvidence";
+import { processRawGmailMessage } from "@/lib/domain/receipts/gmailReceiptProcessing";
 import { getAuthedGmail } from "@/lib/services/gmailClient";
 import { hasGmailReadScope, listRecentRawGmailMessages } from "@/lib/services/gmailScanSource";
 import type { Prisma } from "@prisma/client";
 import crypto from "crypto";
-import { applyCapAccrual } from "@/lib/spine/cap-usage";
-import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
-import { findMatchingPurchase } from "@/lib/domain/spine/purchaseMerge";
+import { normalizeCurrencyCode } from "@/lib/utils/currency";
 
 type TrackingHit = { trackingNumber: string; carrier?: string };
-
-function bufferToBase64Url(buf: Buffer) {
-  const b64 = buf.toString("base64");
-  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
 
 function detectTrackingNumbers(text: string): TrackingHit[] {
   const hits = new Map<string, TrackingHit>();
@@ -52,15 +45,6 @@ function detectTrackingNumbers(text: string): TrackingHit[] {
   }
 
   return Array.from(hits.values());
-}
-
-function guessSuggestionType(merchant: string, subject?: string | null) {
-  const s = (subject ?? "").toLowerCase();
-  const m = merchant.toLowerCase();
-
-  if (s.includes("bill") || s.includes("statement") || s.includes("invoice")) return "BILL";
-  if (m.includes("netflix") || m.includes("spotify") || s.includes("subscription") || s.includes("renewal")) return "SUBSCRIPTION";
-  return "RETURN";
 }
 
 function hashSnippet(input: string) {
@@ -121,225 +105,44 @@ export async function POST(req: NextRequest) {
     fetched = messages.length;
 
     for (const msg of messages) {
-      let tx = await prisma.emailTransaction.findUnique({
-        where: { userId_provider_messageId: { userId, provider: "GMAIL", messageId: msg.messageId } },
+      const processedMessage = await processRawGmailMessage(prisma, {
+        userId,
+        message: msg,
+        mode: "scan",
       });
-      let purchase: Awaited<ReturnType<typeof parsePurchaseFromRawGmailMessage>> | null = null;
-      const decoded = msg.raw.toString("utf8");
-      let trackingHits: TrackingHit[] = [];
+      const { parsedPurchase, parserError } = processedMessage;
+      const tx = processedMessage.transaction;
 
-      if (!tx) {
-        trackingHits = detectTrackingNumbers(decoded);
-
-        let parserError: string | null = null;
-        try {
-          purchase = await parsePurchaseFromRawGmailMessage({ messageId: msg.messageId, raw: bufferToBase64Url(msg.raw) });
-          parsed++;
-        } catch (error) {
-          parserError = error instanceof Error ? error.message : String(error);
-          console.error(`Parser error for message ${msg.messageId}:`, parserError);
-          purchase = {
-            messageId: msg.messageId,
-            merchant: "Parse Failed",
-            rawSource: "text",
-            fromEmail: msg.from ?? undefined,
-            subject: msg.subject ?? undefined,
-            purchasedAt: msg.internalDate ?? undefined,
-            orderId: undefined,
-            totalCents: undefined,
-            currency: "CAD",
-            items: undefined,
-          };
-        }
-
-        tx = await prisma.emailTransaction.upsert({
-          where: { userId_provider_messageId: { userId, provider: "GMAIL", messageId: msg.messageId } },
-          create: {
-            userId,
-            provider: "GMAIL",
-            messageId: msg.messageId,
-            merchant: purchase!.merchant,
-            fromEmail: purchase!.fromEmail ?? null,
-            subject: purchase!.subject ?? null,
-            purchasedAt: purchase!.purchasedAt ?? msg.internalDate ?? null,
-            orderId: purchase!.orderId ?? null,
-            totalCents: purchase!.totalCents ?? null,
-            currency: (purchase!.currency ?? "CAD").toUpperCase(),
-            items: purchase!.items ?? undefined,
-            rawSource: purchase!.rawSource,
-            parserError,
-          },
-          update: {
-            merchant: purchase!.merchant,
-            fromEmail: purchase!.fromEmail ?? null,
-            subject: purchase!.subject ?? null,
-            purchasedAt: purchase!.purchasedAt ?? msg.internalDate ?? null,
-            orderId: purchase!.orderId ?? null,
-            totalCents: purchase!.totalCents ?? null,
-            currency: (purchase!.currency ?? "CAD").toUpperCase(),
-            items: purchase!.items ?? undefined,
-            rawSource: purchase!.rawSource,
-            parserError,
-          },
-        });
-
-        const attachments = (purchase as unknown as { attachments?: { filename: string; mimetype?: string; content: Buffer }[] }).attachments;
-        if (attachments && attachments.length > 0) {
-          for (const attachment of attachments) {
-            if (attachment.mimetype && (attachment.mimetype.startsWith("image/") || attachment.mimetype === "application/pdf")) {
-              const storagePath = await storeReceiptAttachment({
-                userId,
-                scopeId: tx.id,
-                filename: attachment.filename,
-                content: attachment.content,
-                contentType: attachment.mimetype,
-              });
-              await prisma.receiptDocument.create({
-                data: {
-                  userId,
-                  emailTransactionId: tx.id,
-                  filename: attachment.filename,
-                  contentType: attachment.mimetype,
-                  storagePath,
-                  sizeBytes: attachment.content.length,
-                },
-              });
-            }
-          }
-        }
-
-        transactionsUpserted++;
+      if (parserError) {
+        console.error(`Parser error for message ${msg.messageId}:`, parserError);
       } else {
+        parsed++;
+      }
+
+      // The decoded body — never the raw MIME, whose base64 and
+      // quoted-printable bytes defeat every one of these regexes.
+      const body = parsedPurchase.textBody ?? "";
+      const trackingHits: TrackingHit[] = detectTrackingNumbers(body);
+
+      if (processedMessage.transactionAction === "created") {
+        transactionsUpserted++;
+      } else if (processedMessage.transactionAction === "skipped") {
         already++;
       }
 
-      if (tx) {
-        // Resolve the canonical purchase: previously linked observation first,
-        // then this source's own key, then a cross-source match, else create.
-        let purchase = tx.purchaseId
-          ? await prisma.purchase.findUnique({ where: { id: tx.purchaseId } })
-          : await prisma.purchase.findUnique({
-              where: { userId_sourceEmailId: { userId, sourceEmailId: msg.messageId } },
-            });
-
-        if (purchase && purchase.source === "GMAIL") {
-          purchase = await prisma.purchase.update({
-            where: { id: purchase.id },
-            data: {
-              merchant: tx.merchant,
-              totalCents: tx.totalCents ?? null,
-              currency: (tx.currency ?? "CAD").toUpperCase(),
-              purchasedAt: tx.purchasedAt ?? msg.internalDate ?? new Date(),
-              orderNumber: tx.orderId ?? null,
-            },
-          });
-        } else if (!purchase) {
-          const observedAt = tx.purchasedAt ?? msg.internalDate ?? new Date();
-          const match = tx.totalCents != null
-            ? await findMatchingPurchase(prisma, {
-                userId,
-                amountMinor: tx.totalCents,
-                observedAt,
-                currency: tx.currency,
-                merchantCandidates: [tx.merchant],
-                incomingSource: "GMAIL",
-              })
-            : null;
-
-          if (match?.confidence === "exact") {
-            // Same real purchase, first seen by Wallet — enrich, don't duplicate.
-            purchase = await prisma.purchase.update({
-              where: { id: match.purchase.id },
-              data: { orderNumber: match.purchase.orderNumber ?? tx.orderId ?? undefined },
-            });
-          } else {
-            purchase = await prisma.purchase.create({
-              data: {
-                userId,
-                merchant: tx.merchant,
-                totalCents: tx.totalCents ?? null,
-                currency: (tx.currency ?? "CAD").toUpperCase(),
-                purchasedAt: observedAt,
-                orderNumber: tx.orderId ?? null,
-                paymentMethod: null,
-                source: "GMAIL",
-                sourceEmailId: msg.messageId,
-                possibleDuplicateOfId: match?.purchase.id ?? null,
-              },
-            });
-          }
-        }
-
-        if (tx.purchaseId !== purchase.id) {
-          await prisma.emailTransaction.update({
-            where: { id: tx.id },
-            data: { purchaseId: purchase.id },
-          });
-        }
-
-        // Email purchases only accrue once a card and category have been
-        // resolved. Unknown classifications deliberately remain unaccrued.
-        const resolvedCardId = purchase.paymentMethod;
-        const resolvedCategory = purchase.category;
-        const resolvedAmountMinor = purchase.totalCents;
-        if (resolvedCardId && resolvedCategory && resolvedAmountMinor != null) {
-          await prisma.$transaction(async (tx) => {
-            const ownerState = await ensureOwnerStateRecord(tx, userId);
-            if (!ownerState) return;
-            await applyCapAccrual(tx, {
-              sourceKey: `purchase:${purchase.id}`,
-              userId,
-              cardId: resolvedCardId,
-              category: resolvedCategory,
-              merchantBrand: purchase.merchant,
-              amountMinor: resolvedAmountMinor,
-              currency: purchase.currency,
-              occurredAt: purchase.purchasedAt,
-            }, ownerState.stateData);
-          });
-        }
-
-        if (Array.isArray(tx.items)) {
-          await prisma.purchaseItem.deleteMany({ where: { purchaseId: purchase.id } });
-          const items = (tx.items as Array<{ name?: string; quantity?: number; price?: number }>).map((it) => ({
-            purchaseId: purchase.id,
-            title: String(it.name ?? "Item"),
-            qty: typeof it.quantity === "number" ? Math.max(1, Math.round(it.quantity)) : null,
-            priceCents: typeof it.price === "number" ? Math.round(it.price * 100) : null,
-            currency: (tx.currency ?? "CAD").toUpperCase(),
-          }));
-          if (items.length > 0) {
-            await prisma.purchaseItem.createMany({ data: items });
-          }
-        }
-
-        const docs = await prisma.receiptDocument.findMany({
-          where: { emailTransactionId: tx.id },
-          select: { storagePath: true, contentType: true },
-        });
-
-        if (docs.length > 0) {
-          await prisma.purchaseAttachment.createMany({
-            data: docs.map((doc) => ({
-              purchaseId: purchase.id,
-              storageKey: doc.storagePath,
-              mime: doc.contentType ?? null,
-              sha256: null,
-              sourceEmailId: msg.messageId,
-            })),
-            skipDuplicates: true,
-          });
-        }
-      }
-
-      const suggestionType = tx ? guessSuggestionType(tx.merchant, tx.subject) : null;
+      // Null means "no purchase signal at all" — the honest answer for
+      // marketing mail, which previously fell through to RETURN.
+      const suggestionType = tx ? classifyReceiptEmail(tx.subject, body) : null;
+      // A suggestion needs something concrete behind it: money, an order id,
+      // or a tracking number.
+      const actionable = hasPurchaseEvidence(parsedPurchase) || trackingHits.length > 0;
 
       const existingSuggestion = await prisma.automationSuggestion.findUnique({
         where: { userId_primaryMessageId: { userId, primaryMessageId: msg.messageId } },
       });
 
       const allowSuggestion = (() => {
-        if (!suggestionType) return false;
+        if (!suggestionType || !actionable) return false;
         if (scanMode === "ALL") return true;
         if (scanMode === "SUBSCRIPTIONS_ONLY") return suggestionType === "SUBSCRIPTION";
         if (scanMode === "RECEIPTS_ONLY") return suggestionType === "RETURN" || suggestionType === "BILL";
@@ -393,7 +196,7 @@ export async function POST(req: NextRequest) {
             status: "NEW",
             merchant: tx.merchant,
             amountCents: tx.totalCents ?? null,
-            currency: tx.currency ?? "CAD",
+            currency: normalizeCurrencyCode(tx.currency),
             detectedDate: detected,
             confidence: "MEDIUM",
             reasons: [`Built from transaction (${tx.rawSource})`],
@@ -406,7 +209,7 @@ export async function POST(req: NextRequest) {
       }
 
       const allowDetected = (() => {
-        if (!suggestionType) return false;
+        if (!suggestionType || !actionable) return false;
         if (scanMode === "ALL") return true;
         if (scanMode === "SUBSCRIPTIONS_ONLY") return suggestionType === "SUBSCRIPTION";
         if (scanMode === "RECEIPTS_ONLY") return suggestionType === "BILL";
@@ -415,12 +218,12 @@ export async function POST(req: NextRequest) {
 
       if (tx && suggestionType && allowDetected) {
         const detectedDate = tx.purchasedAt ?? new Date();
-        const snippetSource = `${tx.subject ?? ""}\n${decoded.slice(0, 400)}`;
+        const snippetSource = `${tx.subject ?? ""}\n${body.slice(0, 400)}`;
         const snippetHash = hashSnippet(snippetSource);
 
         let detectedType: "TRIAL" | "RENEWAL" | "BILL" | null = null;
         if (suggestionType === "SUBSCRIPTION") {
-          detectedType = detectSubscriptionItem(tx.subject, decoded);
+          detectedType = detectSubscriptionItem(tx.subject, body);
         } else if (suggestionType === "BILL") {
           detectedType = "BILL";
         }
@@ -443,7 +246,7 @@ export async function POST(req: NextRequest) {
                 type: detectedType,
                 merchant: tx.merchant,
                 amountCents: tx.totalCents ?? null,
-                currency: (tx.currency ?? "CAD").toUpperCase(),
+                currency: normalizeCurrencyCode(tx.currency),
                 date: detectedDate,
                 confidence: "MEDIUM",
                 sourceEmailId: msg.messageId,

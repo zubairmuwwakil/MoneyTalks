@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { formatCurrencyCodeAmount } from "@/lib/utils/currency";
 
 type DetectedType = "TRIAL" | "RENEWAL" | "BILL";
 
@@ -22,7 +23,7 @@ type Subscription = {
 
 function money(cents?: number | null, currency?: string | null) {
   if (typeof cents !== "number") return null;
-  return `${currency ?? "CAD"} ${(cents / 100).toFixed(2)}`;
+  return formatCurrencyCodeAmount(cents, currency);
 }
 
 export default function DetectedInbox() {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { ValueEventType } from "@prisma/client";
+import { normalizeCurrencyCode } from "@/lib/utils/currency";
 
 export const runtime = "nodejs";
 
@@ -46,13 +47,14 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  if (action === "CANCEL" && typeof item.amountCents === "number") {
+  const currency = normalizeCurrencyCode(item.currency);
+  if (action === "CANCEL" && typeof item.amountCents === "number" && currency) {
     await prisma.valueEvent.create({
       data: {
         userId,
         type: ValueEventType.AVOIDED_RENEWAL,
         amountCents: item.amountCents,
-        currency: item.currency ?? "CAD",
+        currency,
         occurredAt: new Date(),
         sourceId: item.id,
         isEstimated: false,
@@ -60,5 +62,8 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    valueRecorded: action === "CANCEL" && typeof item.amountCents === "number" && currency != null,
+  });
 }

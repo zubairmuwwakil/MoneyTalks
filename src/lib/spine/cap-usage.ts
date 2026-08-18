@@ -1,6 +1,7 @@
 import { RuleMatcher } from "@/engine/cards-twin/RuleMatcher";
 import type { Cap, Catalogue, OwnerState, PurchaseContext } from "@/engine/cards-twin/models";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
+import { normalizeCurrencyCode } from "@/lib/utils/currency";
 
 export const LEDGER_TIME_ZONE = "America/Toronto";
 const USD_PER_CAD = 0.73;
@@ -10,6 +11,7 @@ type LedgerTransaction = {
     findUnique(args: unknown): Promise<{ id: string; userId: string; cardId: string; capId: string; periodKey: string; usedMinor: number; reversedAt: Date | null } | null>;
     create(args: unknown): Promise<unknown>;
     update(args: unknown): Promise<unknown>;
+    delete(args: unknown): Promise<unknown>;
   };
   capUsageLedger: {
     upsert(args: unknown): Promise<unknown>;
@@ -82,6 +84,10 @@ function asOfDate(asOf: Date): string {
 /** Resolve exactly the RuleMatcher result the checkout engine would use. */
 export function resolveCapAccrual(source: CapUsageSource, ownerStateData: unknown, catalogue = cardCatalogue as unknown as Catalogue): ResolvedCapAccrual | null {
   if (!Number.isSafeInteger(source.amountMinor) || source.amountMinor <= 0) return null;
+  // amountMinor is explicitly a CAD-denominated input to the twin. Until a
+  // source supplies an FX-converted CAD amount, unknown/foreign minor units
+  // cannot honestly move a CAD or USD-equivalent cap ledger.
+  if (normalizeCurrencyCode(source.currency) !== "CAD") return null;
   const ownerState = ownerStateData as OwnerState;
   const card = catalogue.cards.find((candidate) => candidate.cardId === source.cardId);
   if (!card || !ownerState?.cardStates) return null;
@@ -90,7 +96,7 @@ export function resolveCapAccrual(source: CapUsageSource, ownerStateData: unknow
   const purchase: PurchaseContext = {
     // The purchase spine stores amountMinor as the CAD amount used by the twin.
     amountCad: source.amountMinor / 100,
-    currency: source.currency ?? "CAD",
+    currency: "CAD",
     category: source.category || "unknown",
     merchantBrand: source.merchantBrand ?? undefined,
   };
@@ -144,6 +150,30 @@ export async function applyCapAccrual(tx: LedgerTransaction, source: CapUsageSou
     update: { usedMinor: { increment: resolved.usedMinor } },
   });
   return resolved;
+}
+
+/**
+ * Remove an accrual whose source projection was corrected. Unlike a terminal
+ * reversal, deleting the idempotency row deliberately permits later explicit
+ * evidence to accrue the canonical purchase again.
+ */
+export async function removeCapAccrual(tx: LedgerTransaction, sourceKey: string): Promise<boolean> {
+  const accrual = await tx.capAccrual.findUnique({ where: { sourceKey } });
+  if (!accrual || accrual.reversedAt) return false;
+
+  await tx.capUsageLedger.update({
+    where: {
+      userId_cardId_capId_periodKey: {
+        userId: accrual.userId,
+        cardId: accrual.cardId,
+        capId: accrual.capId,
+        periodKey: accrual.periodKey,
+      },
+    },
+    data: { usedMinor: { decrement: accrual.usedMinor } },
+  });
+  await tx.capAccrual.delete({ where: { id: accrual.id } });
+  return true;
 }
 
 /** Reverse only an applied source; repeated reversal requests are a no-op. */

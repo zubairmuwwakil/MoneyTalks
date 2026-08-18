@@ -10,7 +10,7 @@ type ReturnItem = {
   store: string;
   itemNote: string | null;
   amountCents: number | null;
-  currency: string;
+  currency: string | null;
   purchaseDate: string;
   returnBy: string;
   returnWindowDays: number;
@@ -32,6 +32,7 @@ type Stats = {
   inProgress: number;
   totalRefunded: number;
   potentialRefunds: number;
+  unconverted: number;
 };
 
 type StageKey = "to_ship" | "in_transit" | "delivered" | "refund_overdue";
@@ -71,7 +72,7 @@ function normalizeReturn(r: Partial<ReturnItem>): ReturnItem {
     store: r.store ?? "",
     itemNote: r.itemNote ?? null,
     amountCents: r.amountCents ?? null,
-    currency: r.currency ?? "CAD",
+    currency: r.currency ?? null,
     purchaseDate: toIso(r.purchaseDate),
     returnBy: toIso(r.returnBy),
     returnWindowDays: r.returnWindowDays ?? 30,
@@ -241,6 +242,7 @@ export default function ReturnsBoard({
           </div>
           <div className="text-xs text-slate-400">
             {stats.inProgress} active · {stats.refunded} refunded · Potential {formatMoney(stats.potentialRefunds, "CAD")}
+            {stats.unconverted > 0 ? ` · ${stats.unconverted} amount${stats.unconverted === 1 ? "" : "s"} unconverted` : ""}
           </div>
         </div>
       </div>

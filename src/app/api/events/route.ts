@@ -19,7 +19,7 @@ export interface CalendarEvent {
   date: string;
   title: string;
   amountCents?: number;
-  currency: string;
+  currency: string | null;
   source: {
     kind: "subscription" | "return";
     sourceId: string;

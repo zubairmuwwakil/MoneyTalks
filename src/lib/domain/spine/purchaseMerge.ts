@@ -11,8 +11,9 @@ export interface IncomingObservation {
   userId: string;
   amountMinor: number;
   observedAt: Date;
-  // ISO code; null/undefined falls back to CAD, matching storage defaults.
-  // Without this filter, USD 20.00 and CAD 20.00 could wrongly merge.
+  // ISO code. Unknown is compatible with a known observation (the latter can
+  // enrich the canonical purchase), but two contradictory known codes cannot
+  // refer to the same numeric amount.
   currency?: string | null;
   // Ordered by quality: normalized merchant first, raw string fallback.
   merchantCandidates: string[];
@@ -38,12 +39,26 @@ export function merchantsCompatible(a: string, b: string): boolean {
   return ca === cb || ca.includes(cb) || cb.includes(ca);
 }
 
+function normalizedCurrency(value: string | null | undefined): string | null {
+  return value?.trim().toUpperCase() || null;
+}
+
+export function currenciesCompatible(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
+  const left = normalizedCurrency(a);
+  const right = normalizedCurrency(b);
+  return left == null || right == null || left === right;
+}
+
 export function scoreCandidate(
-  candidate: Pick<Purchase, "merchant" | "totalCents" | "purchasedAt">,
+  candidate: Pick<Purchase, "merchant" | "totalCents" | "currency" | "purchasedAt">,
   incoming: IncomingObservation,
   windowHours = MATCH_WINDOW_HOURS,
 ): MatchConfidence | null {
   if (candidate.totalCents == null || candidate.totalCents !== incoming.amountMinor) return null;
+  if (!currenciesCompatible(candidate.currency, incoming.currency)) return null;
   const hoursApart =
     Math.abs(candidate.purchasedAt.getTime() - incoming.observedAt.getTime()) / 3_600_000;
   if (hoursApart > windowHours) return null;
@@ -64,12 +79,20 @@ export async function findMatchingPurchase(
   incoming: IncomingObservation,
 ): Promise<{ purchase: Purchase; confidence: MatchConfidence } | null> {
   const windowMs = MATCH_WINDOW_HOURS * 3_600_000;
+  const incomingCurrency = normalizedCurrency(incoming.currency);
   const candidates = await db.purchase.findMany({
     where: {
       userId: incoming.userId,
       source: { not: incoming.incomingSource },
       totalCents: incoming.amountMinor,
-      currency: { equals: incoming.currency?.trim() || "CAD", mode: "insensitive" },
+      ...(incomingCurrency
+        ? {
+            OR: [
+              { currency: null },
+              { currency: { equals: incomingCurrency, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
       purchasedAt: {
         gte: new Date(incoming.observedAt.getTime() - windowMs),
         lte: new Date(incoming.observedAt.getTime() + windowMs),

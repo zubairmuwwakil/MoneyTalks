@@ -72,7 +72,7 @@ export const RuleMatcher = {
 
   matches(p: Predicate, purchase: PurchaseContext, state: CardState): boolean {
     if (p.country && p.country !== (purchase.country || 'CA')) return false;
-    if (p.currency && p.currency !== (purchase.currency || 'CAD')) return false;
+    if (p.currency && p.currency !== purchase.currency) return false;
     if (p.channels && !p.channels.includes(purchase.channel || 'cardPresent')) return false;
     if (p.merchantExclude && purchase.merchantBrand && p.merchantExclude.includes(purchase.merchantBrand)) return false;
     if (p.merchantInclude) {

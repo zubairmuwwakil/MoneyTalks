@@ -16,7 +16,7 @@ export type CalendarEvent = {
   date: string;
   title: string;
   amountCents?: number;
-  currency?: string;
+  currency?: string | null;
   billStatus?: "DUE" | "PAID";
   autopay?: boolean;
   monthKey?: string;
@@ -27,13 +27,19 @@ export type CalendarEvent = {
 };
 
 
-export function formatMoney(amountCents?: number, currency = "CAD") {
+export function formatMoney(amountCents: number | undefined, currency: string | null) {
   if (amountCents == null) return "";
-  return new Intl.NumberFormat("en-CA", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amountCents / 100);
+  const code = currency?.trim().toUpperCase();
+  if (!code) return `${(amountCents / 100).toFixed(2)} (currency unknown)`;
+  try {
+    return new Intl.NumberFormat("en-CA", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 2,
+    }).format(amountCents / 100);
+  } catch {
+    return `${code} ${(amountCents / 100).toFixed(2)}`;
+  }
 }
 
 export function ymKey(d: Date) {

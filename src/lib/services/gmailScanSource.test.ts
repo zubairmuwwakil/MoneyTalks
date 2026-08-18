@@ -1,6 +1,6 @@
 import { it, expect } from "vitest";
 
-import { hasGmailReadScope, listRecentRawGmailMessages } from "./gmailScanSource";
+import { buildReceiptQuery, hasGmailReadScope, listRecentRawGmailMessages } from "./gmailScanSource";
 
 // The exact scope string observed in prod when the user skips the Gmail
 // checkbox on Google's granular-consent screen: profile-only, no mail access.
@@ -71,7 +71,7 @@ it("lists messages since the cutoff and maps raw content, headers, and dates", a
   const since = new Date("2026-05-19T00:00:00.000Z");
   const messages = await listRecentRawGmailMessages(gmail, { since, max: 200 });
 
-  expect(listCalls[0]?.q).toBe(`after:${Math.floor(since.getTime() / 1000)}`);
+  expect(listCalls[0]?.q).toBe(buildReceiptQuery(since));
   expect(getCalls).toEqual([{ userId: "me", id: "m1", format: "raw" }]);
 
   expect(messages).toHaveLength(1);
@@ -102,4 +102,29 @@ it("skips messages whose raw body is missing", async () => {
   const messages = await listRecentRawGmailMessages(gmail, { since: new Date(0), max: 10 });
 
   expect(messages.map((m) => m.messageId)).toEqual(["ok"]);
+});
+
+it("re-fetches selected stored message ids without applying the new receipt query", async () => {
+  const raw = Buffer.from(mimeMessage("Legacy marketing-shaped mail", "old@example.com")).toString("base64url");
+  const { gmail, listCalls, getCalls } = fakeGmail([[{ id: "legacy-1", raw }]]);
+
+  const messages = await listRecentRawGmailMessages(gmail, { messageIds: ["legacy-1"] });
+
+  expect(listCalls).toEqual([]);
+  expect(getCalls).toEqual([{ userId: "me", id: "legacy-1", format: "raw" }]);
+  expect(messages.map((m) => m.messageId)).toEqual(["legacy-1"]);
+});
+
+it("narrows the Gmail query to receipt-shaped mail", () => {
+  const since = new Date("2026-05-19T00:00:00.000Z");
+  const q = buildReceiptQuery(since);
+
+  // Bounded by the scan window...
+  expect(q).toContain(`after:${Math.floor(since.getTime() / 1000)}`);
+  // ...restricted to Gmail's own purchases classification plus receipt words...
+  expect(q).toContain("category:purchases");
+  expect(q).toContain("order confirmation");
+  // ...and explicitly excluding the bulk marketing that polluted the first scan.
+  expect(q).toContain("-category:promotions");
+  expect(q).toContain("-category:social");
 });

@@ -43,6 +43,13 @@ export const billCore = z.object({
   notes: optional(z.string().trim().max(500)),
   prepaymentMonthDay: optional(z.string().regex(/^\d{2}-\d{2}$/, "MM-DD, e.g. 03-15")),
   interestRatePct: optional(z.coerce.number().positive().max(30)),
+  // Pinned engine spend category (e.g. "streaming") — an explicit override
+  // of the derived Bill.category mapping. Only loosely shaped here (a
+  // non-empty string); membership in the catalogue's real vocabulary is
+  // checked against `billSpendCategoryOptions` where the catalogue is in
+  // scope (src/app/bills/actions.ts), not here — this module stays engine-
+  // agnostic, matching its existing "field-level validators" scope.
+  spendCategory: optional(z.string().trim().min(1).max(80)),
 });
 
 export const billImportEntry = billCore.extend({

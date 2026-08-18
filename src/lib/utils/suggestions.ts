@@ -35,7 +35,7 @@ export type Suggestion = {
   type: SuggestionType;
   merchant: string;
   amountCents?: number;
-  currency: "CAD";
+  currency: string | null;
   detectedDate: string; // YYYY-MM-DD
   confidence: SuggestionConfidence;
   reasons: string[];

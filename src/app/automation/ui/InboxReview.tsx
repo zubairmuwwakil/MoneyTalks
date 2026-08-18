@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { formatCurrencyCodeAmount } from "@/lib/utils/currency";
 
 type SuggestionType = "RETURN" | "SUBSCRIPTION" | "BILL";
 type SuggestionStatus = "NEW" | "CONFIRMED" | "IGNORED";
@@ -10,7 +11,7 @@ type UiSuggestion = {
   type: SuggestionType;
   merchant: string;
   amountCents?: number;
-  currency: string;
+  currency: string | null;
   detectedDate: string; // YYYY-MM-DD
   confidence: "HIGH" | "MEDIUM" | "LOW";
   reasons: string[];
@@ -24,13 +25,13 @@ type Edits = Record<
   {
     merchant: string;
     type: SuggestionType;
+    currency: string;
   }
 >;
 
-function money(cents?: number, currency?: string) {
+function money(cents?: number, currency?: string | null) {
   if (typeof cents !== "number") return null;
-  const val = (cents / 100).toFixed(2);
-  return `${currency ?? "CAD"} ${val}`;
+  return formatCurrencyCodeAmount(cents, currency);
 }
 
 export default function InboxReview() {
@@ -56,6 +57,7 @@ export default function InboxReview() {
         initial[s.id] = {
           merchant: s.merchant ?? "",
           type: s.type ?? "RETURN",
+          currency: s.currency ?? "",
         };
       }
       setEdits(initial);
@@ -78,7 +80,7 @@ export default function InboxReview() {
   function setEdit(id: string, patch: Partial<Edits[string]>) {
     setEdits((prev) => ({
       ...prev,
-      [id]: { ...(prev[id] ?? { merchant: "", type: "RETURN" }), ...patch },
+      [id]: { ...(prev[id] ?? { merchant: "", type: "RETURN", currency: "" }), ...patch },
     }));
   }
 
@@ -100,7 +102,7 @@ export default function InboxReview() {
     const e = edits[id];
     setBusyId(id);
     try {
-      await fetch("/api/automation/suggestions", {
+      const res = await fetch("/api/automation/suggestions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -109,9 +111,15 @@ export default function InboxReview() {
           draft: {
             merchant: e?.merchant,
             type: e?.type,
+            currency: e?.currency.trim() || null,
           },
         }),
       });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        setError(payload?.error ?? "Could not confirm suggestion");
+        return;
+      }
       await load();
     } finally {
       setBusyId(null);
@@ -119,14 +127,14 @@ export default function InboxReview() {
   }
 
   if (loading) return <div className="rounded-2xl border bg-white/80 p-6 text-sm text-slate-600">Loading…</div>;
-  if (error) return <div className="rounded-2xl border bg-rose-50 p-6 text-sm text-rose-700">{error}</div>;
-
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border bg-white/80 p-6 shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">Inbox Review</h1>
         <p className="text-sm text-slate-600">Scans last 90 days. Nothing is created until you confirm.</p>
       </div>
+
+      {error ? <div className="rounded-2xl border bg-rose-50 p-4 text-sm text-rose-700">{error}</div> : null}
 
       {newSuggestions.length === 0 ? (
         <div className="rounded-2xl border bg-white/80 p-4 text-sm text-slate-600">
@@ -135,7 +143,7 @@ export default function InboxReview() {
       ) : (
         <div className="space-y-3">
           {newSuggestions.map((s) => {
-            const e = edits[s.id] ?? { merchant: s.merchant, type: s.type };
+            const e = edits[s.id] ?? { merchant: s.merchant, type: s.type, currency: s.currency ?? "" };
             const disabled = busyId === s.id;
 
             return (
@@ -174,7 +182,7 @@ export default function InboxReview() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   <div className="space-y-1">
                     <div className="text-xs font-semibold text-slate-500">Merchant</div>
                     <input
@@ -196,6 +204,17 @@ export default function InboxReview() {
                       <option value="SUBSCRIPTION">Subscription</option>
                       <option value="BILL">Bill</option>
                     </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-xs font-semibold text-slate-500">Currency</div>
+                    <input
+                      className="w-full rounded-xl border px-3 py-2 text-sm uppercase"
+                      value={e.currency}
+                      onChange={(ev) => setEdit(s.id, { currency: ev.target.value.toUpperCase() })}
+                      placeholder="Unknown — enter CAD, USD…"
+                      maxLength={3}
+                    />
                   </div>
                 </div>
 

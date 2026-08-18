@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyCapAccrual, capPeriodKey, resolveCapAccrual, reverseCapAccrual } from "./cap-usage";
+import { applyCapAccrual, capPeriodKey, removeCapAccrual, resolveCapAccrual, reverseCapAccrual } from "./cap-usage";
 
 const ownerState = (cardStates: Record<string, unknown>) => ({ cardStates });
 
@@ -31,6 +31,10 @@ function memoryLedger() {
       update: async (args: unknown) => {
         const { where, data } = args as { where: { id: string }; data: { reversedAt: Date } };
         for (const accrual of accruals.values()) if (accrual.id === where.id) accrual.reversedAt = data.reversedAt;
+      },
+      delete: async (args: unknown) => {
+        const id = (args as { where: { id: string } }).where.id;
+        for (const [sourceKey, accrual] of accruals) if (accrual.id === id) accruals.delete(sourceKey);
       },
     },
     capUsageLedger: {
@@ -68,13 +72,17 @@ describe("cap usage", () => {
     expect(capPeriodKey({ period: "accountYear", anchor: "ownerState.scotiaAccountYearAnchorMonth" }, state, new Date("2026-04-01T16:00:00.000Z"))).toBe("2026-04");
   });
 
-  it("merges multiple matching rules into their shared cap", () => {
+  it("merges matching CAD rules into their shared cap", () => {
     const state = ownerState({ "rogers-red-we": { rogersEligibleServiceLinked: true, rogersAccountAnniversaryMonth: 8 } });
     const cad = resolveCapAccrual(source({ sourceKey: "wallet:cad", cardId: "rogers-red-we", category: "unknown", currency: "CAD" }), state);
-    const usd = resolveCapAccrual(source({ sourceKey: "wallet:usd", cardId: "rogers-red-we", category: "unknown", currency: "USD" }), state);
     expect(cad?.capId).toBe("rogers-enhanced-accountYear");
-    expect(usd?.capId).toBe("rogers-enhanced-accountYear");
     expect(cad?.periodKey).toBe("2026-08");
+  });
+
+  it("does not accrue an amount whose CAD value is unknown", () => {
+    const state = ownerState({ "amex-cobalt": {} });
+    expect(resolveCapAccrual(source({ currency: null }), state)).toBeNull();
+    expect(resolveCapAccrual(source({ currency: "USD" }), state)).toBeNull();
   });
 
   it("is idempotent and decrements only once when a WalletEvent reverses", async () => {
@@ -88,6 +96,19 @@ describe("cap usage", () => {
     await reverseCapAccrual(memory.tx as never, "wallet:event-1");
     await reverseCapAccrual(memory.tx as never, "wallet:event-1");
     expect(memory.totals.get(key)).toBe(0);
+  });
+
+  it("removes a stale projection accrual so explicit evidence can accrue again", async () => {
+    const memory = memoryLedger();
+    const state = ownerState({ "amex-cobalt": {} });
+    const key = memory.ledgerKey({ userId: "user-1", cardId: "amex-cobalt", capId: "cobalt-eats-monthly", periodKey: "2026-08" });
+
+    await applyCapAccrual(memory.tx as never, source(), state);
+    expect(await removeCapAccrual(memory.tx as never, "wallet:event-1")).toBe(true);
+    expect(memory.totals.get(key)).toBe(0);
+
+    await applyCapAccrual(memory.tx as never, source(), state);
+    expect(memory.totals.get(key)).toBe(12_345);
   });
 
   it("converts a USD-measured cap using the twin's 0.73 fallback", () => {

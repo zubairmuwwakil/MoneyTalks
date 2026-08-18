@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { ValueEventType } from "@prisma/client";
+import { normalizeCurrencyCode } from "@/lib/utils/currency";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,10 @@ export async function POST(req: NextRequest) {
   if (typeof amountCents !== "number" || !Number.isFinite(amountCents) || amountCents <= 0) {
     return NextResponse.json({ error: "amountCents must be a positive number" }, { status: 400 });
   }
+  const currencyCode = typeof currency === "string" ? normalizeCurrencyCode(currency) : null;
+  if (!currencyCode) {
+    return NextResponse.json({ error: "currency is required" }, { status: 400 });
+  }
 
   const occurredDate = occurredAt ? new Date(occurredAt) : new Date();
   if (Number.isNaN(occurredDate.getTime())) {
@@ -36,7 +41,7 @@ export async function POST(req: NextRequest) {
         userId,
         type,
         amountCents: Math.round(amountCents),
-        currency: typeof currency === "string" && currency.length ? currency : "CAD",
+        currency: currencyCode,
         occurredAt: occurredDate,
         sourceId: typeof sourceId === "string" && sourceId.length ? sourceId : null,
         isEstimated: Boolean(isEstimated),

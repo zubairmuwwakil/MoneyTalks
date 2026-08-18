@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { scheduleReturnDeadlineSoon, scheduleReturnDelivered } from "@/lib/domain/notifications/eventNotificationScheduler";
 import { refreshShipmentTimeline, syncRefundExpectation } from "@/lib/domain/shipping/tracking";
 import { canTransition, type ReturnStatus } from "@/engine/returns/transitions";
+import { normalizeCurrencyCode } from "@/lib/utils/currency";
 
 function addDaysUTC(base: Date, days: number) {
   const d = new Date(base);
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
     store,
     itemNote,
     amountCents,
-    currency = "CAD",
+    currency,
     purchaseDate,
     returnWindowDays = 30,
     returnBy,
@@ -97,7 +98,7 @@ export async function POST(req: NextRequest) {
       store,
       itemNote: itemNote ?? null,
       amountCents: typeof amountCents === "number" ? amountCents : null,
-      currency,
+      currency: typeof currency === "string" ? normalizeCurrencyCode(currency) : null,
       purchaseDate: pd,
       returnWindowDays: windowDays,
       returnBy: rb,

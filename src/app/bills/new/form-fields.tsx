@@ -6,7 +6,12 @@ const input =
   "flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-sm shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring";
 const label = "block text-xs font-medium text-foreground mb-1";
 
-export function BillFormFields() {
+export interface SpendCategoryOption {
+  value: string;
+  label: string;
+}
+
+export function BillFormFields({ spendCategoryOptions }: { spendCategoryOptions: SpendCategoryOption[] }) {
   const [type, setType] = useState("MONTHLY");
   const [anchor, setAnchor] = useState("");
   const [dayOfMonth, setDayOfMonth] = useState("1");
@@ -52,6 +57,21 @@ export function BillFormFields() {
             <option>USD</option>
             <option>JMD</option>
           </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className={label} htmlFor="bill-spend-category">Spend category (optional)</label>
+          <select id="bill-spend-category" name="spendCategory" defaultValue="" className={input}>
+            <option value="">Auto (from category)</option>
+            {spendCategoryOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Pin the exact reward category (e.g. streaming vs. a gym membership) instead of relying on the
+            general category above — useful when &quot;{`Subscriptions`}&quot; is too coarse to pick a card correctly.
+          </p>
         </div>
       </div>
 

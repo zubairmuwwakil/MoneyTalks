@@ -52,6 +52,22 @@ function sumCents(arr: number[]): number {
   return arr.reduce((acc, v) => acc + v, 0);
 }
 
+export function convertMinorIfKnown(
+  amountCents: number | null,
+  currency: string | null,
+  displayCurrency: Currency,
+  rates: FxRateInput[],
+): number | null {
+  if (amountCents == null || !currency) return null;
+  try {
+    return convertMinor(amountCents, currency as Currency, displayCurrency, rates);
+  } catch {
+    // Missing FX is missing information, not permission to relabel the raw
+    // number as the display currency.
+    return null;
+  }
+}
+
 export async function computeValueSummary(
   userId: string,
   opts?: { horizonDays?: number; displayCurrency?: string }
@@ -101,27 +117,26 @@ export async function computeValueSummary(
     asOf: r.asOf.toISOString(),
   }));
 
-  const safeConvert = (amountCents: number | null, currency: string): number | null => {
-    if (amountCents === null || amountCents === undefined) return null;
-    try {
-      return convertMinor(amountCents, currency as Currency, displayCurrency, rates);
-    } catch {
-      return amountCents; // Fallback
-    }
-  };
+  const safeConvert = (amountCents: number | null, currency: string | null) =>
+    convertMinorIfKnown(amountCents, currency, displayCurrency, rates);
 
   const savedEvents: ValueEventDTO[] = valueEvents
     .filter(ev => ev.type !== ValueEventType.REFUND_RECEIVED)
-    .map(ev => ({
-      id: ev.id,
-      label: ev.sourceId ? `${ev.type.replace("_", " ")}` : ev.type,
-      type: ev.type,
-      amountCents: safeConvert(ev.amountCents, ev.currency) ?? 0,
-      currency: displayCurrency,
-      occurredAt: ev.occurredAt.toISOString(),
-      isEstimated: ev.isEstimated,
-      sourceId: ev.sourceId,
-    }));
+    .flatMap(ev => {
+      const converted = safeConvert(ev.amountCents, ev.currency);
+      return converted == null
+        ? []
+        : [{
+            id: ev.id,
+            label: ev.sourceId ? `${ev.type.replace("_", " ")}` : ev.type,
+            type: ev.type,
+            amountCents: converted,
+            currency: displayCurrency,
+            occurredAt: ev.occurredAt.toISOString(),
+            isEstimated: ev.isEstimated,
+            sourceId: ev.sourceId,
+          }];
+    });
 
   const savedConfirmed = sumCents(savedEvents.filter(ev => !ev.isEstimated).map(ev => ev.amountCents));
   const savedEstimated = sumCents(savedEvents.filter(ev => ev.isEstimated).map(ev => ev.amountCents));
@@ -130,12 +145,14 @@ export async function computeValueSummary(
   valueEvents
     .filter(ev => ev.type === ValueEventType.REFUND_RECEIVED)
     .forEach(ev => {
+      const converted = safeConvert(ev.amountCents, ev.currency);
+      if (converted == null) return;
       const key = ev.sourceId ? `ve-${ev.sourceId}` : ev.id;
       recoveredMap.set(key, {
         id: ev.id,
         label: "Refund received",
         type: ev.type,
-        amountCents: safeConvert(ev.amountCents, ev.currency) ?? 0,
+        amountCents: converted,
         currency: displayCurrency,
         occurredAt: ev.occurredAt.toISOString(),
         isEstimated: ev.isEstimated,
@@ -148,11 +165,13 @@ export async function computeValueSummary(
     .forEach(r => {
       const key = `return-${r.id}`;
       if (recoveredMap.has(key)) return;
+      const converted = safeConvert(r.refundAmountCents ?? r.amountCents ?? 0, r.currency);
+      if (converted == null) return;
       recoveredMap.set(key, {
         id: key,
         label: r.store,
         type: ValueEventType.REFUND_RECEIVED,
-        amountCents: safeConvert(r.refundAmountCents ?? r.amountCents ?? 0, r.currency) ?? 0,
+        amountCents: converted,
         currency: displayCurrency,
         occurredAt: r.refundedDate!.toISOString(),
         isEstimated: false,

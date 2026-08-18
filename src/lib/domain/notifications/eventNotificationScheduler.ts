@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import type { NotificationType, Prisma } from "@prisma/client";
+import { formatCurrencyCodeAmount } from "@/lib/utils/currency";
 
 // ---------- date helpers (UTC day buckets) ----------
 function startOfDayUTC(d: Date) {
@@ -99,7 +100,7 @@ export async function scheduleSubscriptionRenewalSoon(args: {
   const scheduledFor = computeScheduledFor(today, eventDay, leadDays);
 
   const eventISO = isoDateOnly(eventDay);
-  const amt = args.amountCents != null ? `${args.currency ?? "CAD"} ${(args.amountCents / 100).toFixed(2)}` : "";
+  const amt = args.amountCents != null ? formatCurrencyCodeAmount(args.amountCents, args.currency) : "";
 
   const title = args.name;
   const body = `Renews on ${eventISO}${amt ? ` · ${amt}` : ""} · (${leadDays} days)`;
@@ -157,7 +158,7 @@ export async function scheduleReturnDeadlineSoon(args: {
   const scheduledFor = computeScheduledFor(today, eventDay, leadDays);
 
   const eventISO = isoDateOnly(eventDay);
-  const amt = args.amountCents != null ? `${args.currency ?? "CAD"} ${(args.amountCents / 100).toFixed(2)}` : "";
+  const amt = args.amountCents != null ? formatCurrencyCodeAmount(args.amountCents, args.currency) : "";
 
   const title = `${args.store}${args.itemNote ? ` — ${args.itemNote}` : ""}`;
   const body = `Return by ${eventISO}${amt ? ` · ${amt}` : ""} · (${leadDays} days)`;
@@ -222,7 +223,7 @@ export async function scheduleBillDueSoon(args: {
     const scheduledFor = computeScheduledFor(today, dueDay, leadDays);
     const dueISO = isoDateOnly(dueDay);
 
-    const amt = args.amountCents != null ? `${args.currency ?? "CAD"} ${(args.amountCents / 100).toFixed(2)}` : "amount unknown";
+    const amt = args.amountCents != null ? formatCurrencyCodeAmount(args.amountCents, args.currency) : "amount unknown";
     const title = args.name;
     const body = `Due on ${dueISO} · ${amt} · (${leadDays} days)`;
 

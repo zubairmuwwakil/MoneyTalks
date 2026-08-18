@@ -5,6 +5,7 @@ import { scheduleBillDueSoon, scheduleReturnDeadlineSoon, scheduleReturnDelivere
 import { refreshShipmentTimeline, syncRefundExpectation } from "@/lib/domain/shipping/tracking";
 import { canTransition, type ReturnStatus } from "@/engine/returns/transitions";
 import type { Prisma } from "@prisma/client";
+import { normalizeCurrencyCode } from "@/lib/utils/currency";
 
 export const runtime = "nodejs";
 
@@ -99,7 +100,12 @@ export async function POST(req: NextRequest) {
     | "SUBSCRIPTION"
     | "BILL";
   const merchant = (mergedDraft.merchant ?? s.merchant) as string;
-  const currency = String(mergedDraft.currency ?? s.currency ?? "CAD").toUpperCase();
+  const currencyInput = Object.prototype.hasOwnProperty.call(mergedDraft, "currency")
+    ? mergedDraft.currency
+    : s.currency;
+  const currency = typeof currencyInput === "string"
+    ? normalizeCurrencyCode(currencyInput)
+    : null;
 
   const amountCents =
     toCents(mergedDraft.amountCents) ??
@@ -216,6 +222,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (type === "SUBSCRIPTION") {
+    if (!currency) {
+      return NextResponse.json({ error: "Choose a currency before creating a subscription." }, { status: 400 });
+    }
     const renewalDateStr = String(mergedDraft.renewalDate ?? "").slice(0, 10);
     if (!renewalDateStr) {
       return NextResponse.json({ error: "Subscription requires draft.renewalDate (YYYY-MM-DD)" }, { status: 400 });
@@ -261,6 +270,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (type === "BILL") {
+    if (!currency) {
+      return NextResponse.json({ error: "Choose a currency before creating a bill." }, { status: 400 });
+    }
     const dueDayOfMonth = Number.isFinite(Number(mergedDraft.dueDayOfMonth))
       ? Math.min(28, Math.max(1, Number(mergedDraft.dueDayOfMonth)))
       : 1;

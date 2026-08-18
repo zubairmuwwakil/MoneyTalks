@@ -3,7 +3,12 @@ import path from "node:path";
 
 export default defineConfig({
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      // `server-only` throws on import outside a React Server Component;
+      // unit tests import server modules directly, so stub it out.
+      "server-only": path.resolve(__dirname, "./test/server-only-stub.ts"),
+    },
   },
   test: {
     include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],

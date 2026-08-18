@@ -10,7 +10,7 @@ export default async function ReceiptBrowserPage() {
     merchant: string;
     subject: string | null;
     totalCents: number | null;
-    currency: string;
+    currency: string | null;
     purchasedAt: Date | null;
     items: unknown;
     orderId: string | null;

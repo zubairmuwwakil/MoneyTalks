@@ -17,6 +17,8 @@ export type Purchase = {
   currency?: string;
   items?: PurchaseItem[];
   rawSource: "jsonld" | "pdf" | "text";
+  /** Decoded text body, so callers never re-parse raw MIME themselves. */
+  textBody?: string;
 };
 
 const JsonLd = z.union([z.record(z.string(), z.unknown()), z.array(z.unknown())]);
@@ -134,31 +136,111 @@ function extractFromJsonLd(html: string): Partial<Purchase> | null {
   return null;
 }
 
-function extractTotalFromText(text: string): { totalCents?: number; currency?: string } {
-  const money = /(?:USD|CAD|EUR|GBP|\$|CA\$)\s?([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{2})?)/gi;
-  const totalLine = /(grand\s+total|order\s+total|total)\b[^\n]{0,120}/i;
+/**
+ * Convert HTML to text while preserving block boundaries.
+ *
+ * cheerio's .text() concatenates across elements, which turned a real receipt
+ * into a single 2057-character line and made line-based extraction impossible.
+ * Inserting breaks around block-level tags first keeps table cells — where
+ * receipt labels and amounts live — on separate lines.
+ */
+export function htmlToText(html: string): string {
+  const withBreaks = html
+    .replace(/<\s*br[^>]*>/gi, "\n")
+    .replace(/<\s*\/(p|div|tr|td|th|li|table|h[1-6])\s*>/gi, "$&\n")
+    .replace(/<\s*(p|div|tr|td|th|li|h[1-6])[^>]*>/gi, "\n$&");
 
+  const $ = cheerio.load(withBreaks);
+  $("script, style, head").remove();
+
+  return $.root()
+    .text()
+    .replace(/\u00a0/g, " ")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/[ \t]+/g, " ").trim())
+    .filter((line) => line.length > 0)
+    .join("\n");
+}
+
+// Receipt wording that introduces an order/reference number.
+const ORDER_NUMBER = /\b(?:order|receipt|invoice|confirmation)\b[^\n]{0,20}?(?:number|no\.?|#)\s*:?\s*([A-Za-z0-9][A-Za-z0-9-]{2,24})/i;
+
+/** Pull an order/reference number out of receipt wording, if one is stated. */
+export function extractOrderNumber(subject: string | null | undefined, body: string | null | undefined): string | undefined {
+  for (const source of [subject ?? "", body ?? ""]) {
+    const m = source.match(ORDER_NUMBER);
+    // Require a digit: "Order confirmation" must not yield "confirmation".
+    if (m && /[0-9]/.test(m[1])) return m[1];
+  }
+  return undefined;
+}
+
+// A currency code may sit before its own symbol ("CAD $42.99"), so allow it.
+const MONEY = /(?:USD|CAD|EUR|GBP|Can\$|CA\$|\$)\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]{2})?)/gi;
+
+// Lines that name the payable figure outright beat a bare "total".
+const STRONG_TOTAL = /\b(grand\s+total|order\s+total|total\s+(paid|charged|due)|amount\s+(paid|charged|due)|total\s+amount)\b/i;
+const WEAK_TOTAL = /\btotal\b/i;
+
+// Money quoted in a non-payable framing: promotional savings, list prices,
+// loyalty balances. "Total savings: $500" must never outbid "Order total: $42.99".
+const NON_PAYABLE = /\b(saving|savings|saved|save|discount|rewards?|points|coupon|credit|value|retail|msrp|was|off)\b/i;
+
+export function extractTotalFromText(text: string): { totalCents?: number; currency?: string } {
   const lines = text.split(/\r?\n/);
+
   let best: { totalCents?: number; currency?: string } = {};
+  let bestScore = 0;
 
-  for (const line of lines) {
-    if (!totalLine.test(line)) continue;
-    const matches = [...line.matchAll(money)];
-
-    for (const m of matches) {
-      const rawAmt = m[1].replace(/,/g, "");
-      const amt = Number(rawAmt);
+  const consider = (line: string, score: number) => {
+    for (const m of line.matchAll(MONEY)) {
+      const amt = Number(m[1].replace(/,/g, ""));
       if (!Number.isFinite(amt)) continue;
 
-      const curToken = (m[0].match(/USD|CAD|EUR|GBP|CA\$/i)?.[0] ?? "").toUpperCase();
-      const currency =
-        curToken === "CA$" ? "CAD" :
-        curToken === "USD" ? "USD" :
-        curToken === "CAD" ? "CAD" :
-        curToken || undefined;
+      const curToken = (m[0].match(/USD|CAD|EUR|GBP|CA\$|Can\$/i)?.[0] ?? "").toUpperCase();
+      // A bare "$" is ambiguous between CAD and USD; leave it unresolved
+      // rather than asserting one.
+      const currency = curToken === "CA$" || curToken === "CAN$" ? "CAD" : curToken || undefined;
 
       const cents = Math.round(amt * 100);
-      if (!best.totalCents || cents > best.totalCents) best = { totalCents: cents, currency };
+      if (score > bestScore || cents > (best.totalCents ?? 0)) {
+        best = { totalCents: cents, currency };
+        bestScore = score;
+      }
+    }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const strong = STRONG_TOTAL.test(line);
+    if (!strong && !WEAK_TOTAL.test(line)) continue;
+    if (NON_PAYABLE.test(line)) continue;
+
+    const score = strong ? 2 : 1;
+    if (score < bestScore) continue;
+
+    if (MONEY.test(line)) {
+      MONEY.lastIndex = 0;
+      consider(line, score);
+      continue;
+    }
+    MONEY.lastIndex = 0;
+
+    // HTML tables put the label in one cell and the amount in the next, so
+    // the figure lands on a following line.
+    for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
+      const next = lines[j];
+      if (!next.trim()) continue;
+      if (NON_PAYABLE.test(next)) break;
+      MONEY.lastIndex = 0;
+      if (MONEY.test(next)) {
+        MONEY.lastIndex = 0;
+        consider(next, score);
+        break;
+      }
+      MONEY.lastIndex = 0;
+      // Another label before any amount: this one had no figure attached.
+      if (STRONG_TOTAL.test(next) || WEAK_TOTAL.test(next)) break;
     }
   }
 
@@ -198,7 +280,10 @@ export async function parsePurchaseFromRawGmailMessage(params: {
   const merchant = normalizeMerchant(from, subject);
 
   const html = typeof parsed.html === "string" ? parsed.html : undefined;
-  const text = parsed.text ?? "";
+  // Some senders ship a degraded text/plain part that omits the amount
+  // entirely (observed on real receipts), so search both representations
+  // rather than trusting whichever one happens to exist.
+  const text = [parsed.text ?? "", html ? htmlToText(html) : ""].filter(Boolean).join("\n");
 
   const base: Purchase = {
     messageId: params.messageId,
@@ -207,6 +292,7 @@ export async function parsePurchaseFromRawGmailMessage(params: {
     subject,
     purchasedAt: parsed.date ?? undefined,
     rawSource: "text",
+    textBody: text,
   };
 
   const jsonLdHit = html ? extractFromJsonLd(html) : null;
@@ -222,5 +308,6 @@ export async function parsePurchaseFromRawGmailMessage(params: {
   if (pdfHit) return { ...base, ...pdfHit };
 
   const txtHit = extractTotalFromText(text);
-  return { ...base, ...txtHit, rawSource: "text" as const };
+  const orderId = extractOrderNumber(subject, text);
+  return { ...base, ...txtHit, orderId, rawSource: "text" as const };
 }

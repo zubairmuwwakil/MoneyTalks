@@ -7,6 +7,7 @@ import * as path from "path";
 import { RecommendationEngine, PurchaseContext, OwnerState, Catalogue } from "@/engine/cards-twin";
 import { parseWalletCapturePayload } from "@/lib/domain/wallet/capturePayload";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
+import { normalizeCurrencyCode } from "@/lib/utils/currency";
 
 function loadCatalogue(): Catalogue {
   const p = path.resolve(process.cwd(), "contracts/card-catalogue.json");
@@ -73,6 +74,7 @@ export async function POST(req: Request) {
 
   const processingStatus = fuzzyDup ? "POSSIBLE_DUPLICATE" : "OBSERVED";
   const assumedCurrency = data.currency == null;
+  const currency = normalizeCurrencyCode(data.currency);
 
   // Resolve identities up front when the alias tables already know them, so
   // the stored record is complete at capture time. The async pipeline still
@@ -100,7 +102,7 @@ export async function POST(req: Request) {
       merchantRaw: data.merchantRaw,
       transactionNameRaw: data.transactionNameRaw,
       amountRaw: data.amount,
-      currencyRaw: data.currency,
+      currencyRaw: currency,
       cardRaw: data.cardRaw,
       merchantNormalized: merchantAlias?.normalizedName ?? null,
       resolvedCardId: cardAlias?.cardId ?? null,
@@ -121,13 +123,13 @@ export async function POST(req: Request) {
   try {
     const ownerStateRecord = await ensureOwnerStateRecord(prisma, installation.userId);
 
-    if (ownerStateRecord && cardAlias && merchantAlias && amountNumber != null) {
+    if (ownerStateRecord && cardAlias && merchantAlias && amountNumber != null && currency === "CAD") {
       // Category is unknown at capture time; the engine falls back to base
       // earn until async categorization improves the record.
       const ownerState = ownerStateRecord.stateData as unknown as OwnerState;
       const purchaseContext: PurchaseContext = {
         amountCad: amountNumber,
-        currency: data.currency || "CAD",
+        currency,
         category: "unknown",
         merchantBrand: merchantAlias.normalizedName,
       };

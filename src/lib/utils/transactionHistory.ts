@@ -6,7 +6,7 @@ export interface TransactionRecord {
   date: Date;
   title: string;
   amount: number;
-  currency: string;
+  currency: string | null;
   type: "payment" | "refund" | "pending";
   notes?: string | null;
   status: string;

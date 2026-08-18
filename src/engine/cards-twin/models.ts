@@ -160,7 +160,7 @@ export interface OwnerState {
 
 export interface PurchaseContext {
   amountCad: number;
-  currency?: string;
+  currency: string;
   usdEquivalent?: number;
   category: string;
   mcc?: number;

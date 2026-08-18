@@ -67,7 +67,8 @@ function dateWindow(dates: string[]) {
  * at all. The storage default mirrors walletNormalization and purchaseMerge.
  */
 function billedIn(currency: string | null | undefined, cardCurrency: string): boolean {
-  return (currency?.trim() || "CAD").toUpperCase() === cardCurrency.toUpperCase();
+  const observed = currency?.trim().toUpperCase();
+  return Boolean(observed && observed === cardCurrency.trim().toUpperCase());
 }
 
 async function ownedCard(userId: string, cardId: string) {
