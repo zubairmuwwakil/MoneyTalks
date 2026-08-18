@@ -59,3 +59,84 @@ The wedge's delivery mechanism changes from "open app → pick card" to an ambie
 - **D2 (Phase 4 — launch shape).** TestFlight external testing + manual waitlist for the web hub; full App Store submission is Phase 5, informed by tester data. Google restricted-scope OAuth verification explicitly deferred (testing-mode caps suffice at this scale). External-tester invites gate on the Phase-3 dogfood week's numbers.
 - **D3 (Phase 4 — catalogue).** Launch with the 10 sourced-and-verified cards + an in-app "request your card" flow; expansion is demand-driven and holds the issuer-confirmed sourcing bar. No open card editor (quality moat).
 - **A6 (new — honesty invariant).** The feedback loop inherits the measurement discipline unchanged: estimates labeled, misses attributed honestly (including "we recommended wrong"), eligibility-gated metrics, `nil` over flattery. Roadmap note (not v1): card-*acquisition* recommendations via PortfolioAnalyzer's counterfactual run in reverse (add-a-card marginal value) — the question affiliate sites can't answer honestly.
+
+---
+
+# Amendment E — Four-product ecosystem (ratified 2026-08-18)
+
+Scope widens from three repos to four: `marketdata`/MarketLens joins
+`MoneyTalks`, `PickMe`, `return-saas`. Amends decisions 1, 6, 9 and D1; adds E1–E5.
+
+- **E1 (supersedes D1 — brand).** The consumer brand is **not** PickMe. The
+  unifier takes a **new consumer name (TBD)**; PickMe, Looply, and MarketLens keep
+  their own identities as distinct products. D1's compound-App-Store-listing
+  rationale ("PickMe: Card Copilot", ASO differentiation from the ride-hail apps)
+  is retired along with its accepted costs. *Why:* the four-sensor story is a
+  deliberate product and portfolio asset; collapsing it under one existing
+  sub-product's name destroys the narrative and mis-sizes the unifier. **Knock-on:**
+  D1's CIPO Nice 9/36/42 clearance transfers to the new name and must clear before
+  public launch; D2's TestFlight/waitlist copy and D3's catalogue framing update
+  once the name is chosen. Rename stays cheap until public App Store launch.
+  **Open item, not deferred:** the name itself. Criteria live in
+  `docs/ECOSYSTEM-NARRATIVE.md` § Rebrand requirement.
+
+- **E2 (amends 6 and 9 — investments enter v1).** Investment tracking is **in v1**,
+  sourced from MarketLens. *Why:* seeing investments tracked is a core reason the
+  command center is worth opening, and it does **not** require real-time data —
+  daily/latest pricing suffices, which is exactly the line between MarketLens and
+  what the unifier needs. Decision 6's "investments out of v1" and decision 9's
+  "no investment tracking on the path to the wedge" are amended to this extent
+  **only**. Still out: net worth, cash-flow forecasting, bank aggregation, paid
+  tiers. Decision 9's remaining "don't do" list stands unchanged.
+
+- **E3 (new — MarketLens in scope).** `marketdata` is the fourth scoped repo and the
+  single owner of market data and investment analytics (OHLCV, indicators,
+  corporate actions, calendar, quality). **The unifier consumes MarketLens and
+  never re-implements market data.** MarketLens does not grow personal-finance
+  features — it does not own purchases, cards, or the complete financial picture.
+  It gets its first `CLAUDE.md` and is bound by this record from today.
+  Describe its pricing as **daily/latest, never real-time**, unless the
+  infrastructure changes (honesty invariant, A6).
+
+- **E4 (new — Yahoo provider inside MarketLens).** MarketLens gains a
+  Yahoo-sourced `YahooDailyProvider` implementing the existing
+  `MarketDataProvider` interface (`fetchDailyCandles` + `sourceName`), alongside
+  `AlphaVantageDailyProvider`. *Why:* Alpha Vantage's free tier cannot serve
+  arbitrary per-user holdings; Yahoo's effective headroom can. Placed **inside**
+  MarketLens rather than called directly from the unifier, so market data keeps
+  exactly one owner — the same failure decision 2 was written against, after
+  MoneyTalks re-implemented conditional card rates PickMe already had within one
+  three-day window. Per-candle provenance rides the existing `sourceName()`.
+  - **Accepted risks, recorded not hidden (A6):** Yahoo's terms do not sanction
+    this access; the endpoints break periodically (the 2023 cookie/crumb change
+    broke every wrapper for weeks). Accepted at this scale, revisit before any
+    paid tier or material user growth.
+  - **Invariant:** portfolio valuation **never hard-depends on a live fetch**.
+    Cache last-known price, label staleness, fail closed rather than fabricate a
+    number — the same rule as the FX cron of 2026-08-18, where an empty fetch
+    returns 502 and leaves existing rates untouched.
+  - **Deferred, named:** MarketLens needs a latest-quote path for a *dynamic*
+    per-user holdings set; its model today is fixed-watchlist daily ingestion.
+    Design item, not decided here.
+
+- **E5 (new — document precedence).** Three document layers, one order:
+  `LOG.md` > this record > `ECOSYSTEM.md`/`ECOSYSTEM-NARRATIVE.md` — **except**
+  the ecosystem docs win on *identity* (names, brands, capability ownership, the
+  story). The narrative authorizes **no work**; its feature lists are positioning,
+  and horizon buckets in `ECOSYSTEM.md` govern what may be proposed. On any
+  conflict outside identity: **stop and ask. Do not average the documents.**
+  `ECOSYSTEM.md` is mirrored into all four repos and carries a sync stamp;
+  edit the canonical MoneyTalks copy and run `scripts/sync-ecosystem.sh`.
+
+## Consequences of Amendment E
+
+- **MoneyTalks:** is the unifier, consumer name TBD. Investment tracking is now
+  buildable, consuming MarketLens. Everything else in decision 6's v1 surface
+  stands.
+- **PickMe:** unchanged as the canonical card engine; it is no longer the
+  consumer brand of the whole product.
+- **return-saas:** unchanged (B1 — portfolio demo, no feature work). Its
+  `CLAUDE.md` clarifies that "Looply" is the retired product name while the
+  email-intelligence capability now lives in the hub.
+- **marketdata:** enters the system. First `CLAUDE.md`, bound by this record,
+  `YahooDailyProvider` authorized per E4.
