@@ -7,6 +7,7 @@ import {
   Coins,
   CreditCard,
   Bell,
+  CalendarDays,
   LayoutDashboard,
   Receipt,
   ShoppingBag,
@@ -25,6 +26,7 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/investments", label: "Investments", icon: TrendingUp },
   { href: "/bills", label: "Bills", icon: Receipt },
   { href: "/cards", label: "Cards", icon: CreditCard },
