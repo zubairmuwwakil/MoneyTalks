@@ -224,7 +224,15 @@ That upgrade is **blocked on the catalogue sync guardrail below**, because addin
 - Schema differs by one line: PickMe's `programId` enum gained 8 values.
 - **Both files declare `catalogueVersion: 1.0`.** This is the root failure — the version field cannot distinguish the two, so neither side can detect staleness.
 
-**Cause:** the contract spec's task (b) specified "a copy script (`scripts/sync-contracts.sh` in MoneyTalks) and a CI step that fails on drift." The vendored copy was created; the script and the check were not. PickMe built the identical guardrail internally (`ContractsSyncTests.swift`, whose doc comment names the MoneyTalks check as its twin) and it was never carried across the repo boundary.
+**Cause — a guardrail that checks the wrong invariant.** Task (b) *was* built: `scripts/sync-contracts.sh` and `src/lib/contracts/contracts.test.ts` both exist, and CI runs the test. It has been green throughout the drift, because:
+
+1. **The manifest is self-referential.** `sync-contracts.sh` copies from PickMe and then regenerates `MANIFEST.json` by hashing **the destination files it just wrote**. The manifest therefore always describes the local vendored copy. Nothing in MoneyTalks records what PickMe's files contained.
+2. **The check can only detect local tampering.** `contracts.test.ts` compares vendored bytes against that self-derived manifest. It fails if someone hand-edits `MoneyTalks/contracts/`; it cannot fail when PickMe's canonical file changes, because it never looks at PickMe.
+3. **The script cannot run in CI.** It reads a local sibling path (`../PickMe/contracts`), and GitHub Actions checks out a single repo.
+
+The test's own doc comment asserts it fails "whether the vendored file changed or PickMe's did." The second half is false. This is the harder failure mode than an unbuilt guardrail: a check that exists, passes, is documented as verifying freshness, and actually verifies only integrity.
+
+PickMe's internal `ContractsSyncTests.swift` does not have this flaw — it compares two files that both exist in its own checkout, so there is a real second party to the comparison. The pattern broke precisely where the second party lives in another repo.
 
 **Consequence:** re-syncing is not a file copy. `src/lib/contracts/cardCatalogue.ts:57` hard-codes the closed 6-value `programId` enum, so PickMe's current catalogue fails validation on the first Scene+ card.
 
@@ -233,12 +241,16 @@ That upgrade is **blocked on the catalogue sync guardrail below**, because addin
 | # | Change | Repo |
 |---|---|---|
 | 1 | `programId` becomes an **open vocabulary** (`z.string()`), matching Swift's `programId: String` and the rule the loader already applies to `family` / `kind` | MoneyTalks |
-| 2 | `scripts/sync-contracts.sh` pulls the canonical files from PickMe's public raw URLs at a pinned tag | MoneyTalks |
-| 3 | `contracts/MANIFEST.json` records the pinned tag, each file's sha256, and the vendored `catalogueVersion` | MoneyTalks |
-| 4 | CI step fails on any mismatch between vendored files and the manifest, message: "re-sync from PickMe" | MoneyTalks |
+| 2 | `MANIFEST.json` gains an `_upstream` block recording the PickMe **git ref + commit sha** synced from, and the upstream sha256 of each file — so the record has a second party | MoneyTalks |
+| 3 | `sync-contracts.sh` accepts a **git ref** and fetches from PickMe's public raw URLs (default: local sibling path, for offline work), and writes `_upstream` from the *source* bytes rather than the destination | MoneyTalks |
+| 4 | New CI job **fetches PickMe's current `main`** and fails if any file's sha differs from `_upstream`, message: "catalogue is stale — run scripts/sync-contracts.sh" | MoneyTalks |
 | 5 | `catalogueVersion` bumps **MINOR** when cards are added; MAJOR stays reserved for breaking shape changes | PickMe |
 | 6 | Re-sync to bring MoneyTalks to the current 20-card catalogue | MoneyTalks |
 
+The existing `contracts.test.ts` integrity check is **kept as-is** — catching local tampering is genuinely useful and it is correct at that job. Item 4 is a *separate* job with a different failure mode, because the two questions are different: "has our copy been edited?" needs no network; "is our copy current?" cannot be answered without one.
+
 Item 1 is what stops this recurring: with an open vocabulary, a new loyalty program never breaks the MoneyTalks build again. Items 2–4 make staleness impossible to miss rather than impossible to happen — deliberately, per the contract spec's "manual-plus-guardrail on purpose."
+
+**Accepted cost:** MoneyTalks CI turns red when PickMe adds a card, until someone re-syncs. That is the intended behaviour — the whole failure being fixed is that drift was silent.
 
 Unification via a shared package or monorepo was considered and declined: the vendored-copy approach is already ratified, and "monorepo mechanics and timing" is a deliberate deferral in the decision record.
