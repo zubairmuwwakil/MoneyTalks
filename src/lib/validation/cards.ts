@@ -157,6 +157,16 @@ export const cardImportEntry = z
   dueDay: z.coerce.number().int().min(1).max(28).optional(),
   aprPct: z.coerce.number().min(0).max(50).optional(),
   annualFee: dollarAmount({ min: 0 }).default(0),
+  // Recurring month-day the annual fee posts on. Unlike statementDay/dueDay
+  // (capped at 28 because issuers set those themselves), this is a real
+  // anniversary — a card opened on Mar 31 renews on Mar 31 — so days 29-31 are
+  // accepted and resolved against the actual month by clampDayToMonth at read
+  // time. See src/lib/cards/feeSchedule.ts.
+  feeMonthDay: z
+    .string()
+    .regex(/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, "Use MM-DD, e.g. 03-15")
+    .nullish(),
+  feeCancelGraceDays: z.coerce.number().int().min(0).max(180).default(30),
   rewards: cardRewardsInput,
 })
   .superRefine((entry, ctx) => {

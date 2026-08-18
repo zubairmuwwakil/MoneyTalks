@@ -68,7 +68,9 @@ model CreditCard {
 
 Both are additive and nullable-or-defaulted, so existing rows need no backfill.
 
-**Validation:** `feeMonthDay` matches `^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$`. `feeCancelGraceDays` is an integer in `0..180`. Day-of-month values that overflow a given month (e.g. `02-31`) are accepted at write time and resolved at read time by `clampDayToMonth` — the same tolerance `statementDay` / `dueDay` already have.
+**Validation:** `feeMonthDay` matches `^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$`. `feeCancelGraceDays` is an integer in `0..180`. Day-of-month values that overflow a given month (e.g. `02-31`) are accepted at write time and resolved at read time by `clampDayToMonth`.
+
+Note this is *deliberately different* from `statementDay` / `dueDay`, which are capped at **28** in `cardImportEntry` — an earlier draft of this spec wrongly cited them as precedent for overflow tolerance. That cap is right for them (the issuer chooses those days and avoids 29–31) and wrong here: a fee anniversary is a real calendar date, and a card opened on Mar 31 renews on Mar 31. Days 29–31 must be storable and resolved per-month at read time.
 
 ## 5. Domain module — `src/lib/cards/feeSchedule.ts`
 
@@ -97,7 +99,9 @@ Given `feeMonthDay = "03-15"`, `feeCancelGraceDays = 30`, effective fee $150:
 | Mar 15 – Apr 14 | `DECISION_WINDOW` | "Cancel by Apr 14 to get $150 back" |
 | Apr 15 | `UPCOMING` | next cycle: Mar 15, 2027 |
 
-Algorithm: resolve the anniversary in the current year via `clampDayToMonth`; if `anniversary + graceDays < today`, resolve it in the next year instead.
+**Algorithm** (corrected during implementation): resolve the anniversary for **each of `thisYear - 1`, `thisYear`, `thisYear + 1`** via `clampDayToMonth`, and return the first whose `cancelBy >= today`.
+
+The previous year is not optional. A grace window can cross New Year — `feeMonthDay: "12-20"` with 30 days runs to Jan 19 — so on Jan 5 the live cycle is anchored to *last* year's anniversary. The originally specified algorithm ("resolve in the current year; if the window has closed, use next year") skips that case and would jump to the following December, hiding the deadline during the two weeks it matters most. Covered by the New Year tests in `feeSchedule.test.ts`.
 
 ### 5.2 Returns `null` when
 

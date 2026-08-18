@@ -311,6 +311,15 @@ model CreditCard {
   dueDay         Int?
   aprPct         Decimal?
   annualFeeMinor Int        @default(0)
+  // Recurring month-day the annual fee posts on ("03-15"), matching the
+  // Bill.prepaymentMonthDay precedent. Null means the user has not told us —
+  // no calendar events, no reminders, no guessing. Days 29-31 are allowed and
+  // clamped to the real month at read time (src/lib/cards/feeSchedule.ts).
+  feeMonthDay    String?
+  // Days after the fee posts during which cancelling still recovers it.
+  // Per-card because issuers differ; the default is the common case, not a
+  // guarantee, and the UI labels it as the user's own input.
+  feeCancelGraceDays Int    @default(30)
   // The scoring-contract identity used by Wallet capture aliases. This is
   // intentionally separate from this user's CreditCard.id.
   contractCardId String?
