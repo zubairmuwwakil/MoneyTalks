@@ -29,3 +29,51 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx vitest run src/engine/cards-twin/fixtures.test.ts
+
+  # Answers a different question than the `test` job's contracts.test.ts:
+  # that one checks "has our vendored copy been edited?" (no network needed,
+  # runs against MANIFEST.json's flat file->sha entries). This one checks "is
+  # our vendored copy still current with PickMe?" — which cannot be answered
+  # without fetching PickMe. Before the `_upstream` field existed on
+  # MANIFEST.json, nothing here could tell the two questions apart: the old
+  # manifest only ever recorded the local copy's own hash, so this comparison
+  # was structurally impossible. See §12 of
+  # docs/superpowers/specs/2026-08-18-annual-fee-renewal-calendar-design.md.
+  #
+  # Expected to go red whenever PickMe adds/edits a contract file ahead of a
+  # MoneyTalks re-sync — that is the point: staleness used to be silent.
+  contracts-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare vendored contracts against PickMe main
+        run: |
+          set -euo pipefail
+          FILES=(
+            "card-catalogue.json"
+            "benefits-catalogue.json"
+            "engine-fixtures.json"
+            "schema/card-catalogue.schema.json"
+            "schema/benefits-catalogue.schema.json"
+            "schema/engine-fixtures.schema.json"
+          )
+          RAW_BASE="https://raw.githubusercontent.com/zubairmuwwakil/PickMe/main/contracts"
+          stale=0
+          for f in "${FILES[@]}"; do
+            upstream_sha="$(curl -fsSL "$RAW_BASE/$f" | sha256sum | awk '{print $1}')"
+            recorded_sha="$(jq -r --arg f "$f" '._upstream.files[$f] // empty' contracts/MANIFEST.json)"
+            if [ -z "$recorded_sha" ]; then
+              echo "::error::contracts/MANIFEST.json _upstream.files has no entry for $f"
+              stale=1
+              continue
+            fi
+            if [ "$upstream_sha" != "$recorded_sha" ]; then
+              echo "::error::$f has drifted from PickMe main (recorded $recorded_sha, upstream $upstream_sha)"
+              stale=1
+            fi
+          done
+          if [ "$stale" -ne 0 ]; then
+            echo "catalogue is stale — run scripts/sync-contracts.sh"
+            exit 1
+          fi
+          echo "contracts are current with PickMe main"

@@ -155,7 +155,14 @@ export const Scorer = {
           : valuations.cro.defaultHeldRiskFactor;
         return units * factor;
       }
-      default: return units * valuations.cashBack.cadPerDollar;
+      case 'cashback': return units * valuations.cashBack.cadPerDollar;
+      // An unrecognised loyalty program is worth NOTHING, matching Swift's
+      // Scorer.swift `default: return 0.0`. Falling through to the cashback
+      // rate instead valued unknown points as dollars 1:1, which made every
+      // card in an unfamiliar program look like a top-tier cashback card and
+      // win recommendations it should never win. Invisible until the
+      // catalogue grew past the programs owner-state has valuations for.
+      default: return 0;
     }
   }
 };

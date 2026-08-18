@@ -87,7 +87,7 @@ export const RuleMatcher = {
         case 'recurring':
           return purchase.recurringIndicator === true;
         case 'ownerSelectedTangerineCategory':
-          return state.selectedCategories?.includes(purchase.category) ?? false;
+          return RuleMatcher.matchesTangerineSelection(purchase, state);
         default:
           const selfOrParents = [purchase.category, ...(categoryParents[purchase.category] || [])];
           if (!selfOrParents.includes(category)) return false;
@@ -97,6 +97,29 @@ export const RuleMatcher = {
           return true;
       }
     });
+  },
+
+  /**
+   * Faithful port of Swift's RuleMatcher.matchesTangerineSelection. The twin
+   * previously did a flat `selectedCategories.includes(purchase.category)`,
+   * which missed three of Swift's four match paths — most importantly the
+   * `recurring` selection, so a recurring purchase in an unselected category
+   * (an insurance premium, say) never matched and Tangerine silently dropped
+   * out of the ranking.
+   */
+  matchesTangerineSelection(purchase: PurchaseContext, state: CardState): boolean {
+    if (state.selectedCategories === undefined) return false;
+    const selected = new Set(state.selectedCategories);
+    const purchaseCategories = [purchase.category, ...(categoryParents[purchase.category] || [])];
+
+    if (purchaseCategories.some(category => selected.has(category))) return true;
+    if (purchase.recurringIndicator && selected.has('recurring')) return true;
+    if ((purchase.currency ?? 'CAD').toUpperCase() !== 'CAD' && selected.has('foreignCurrency')) return true;
+
+    // Backward compatibility for owner-state files that used Tangerine's
+    // label-shaped id before the setup screen adopted the engine's canonical
+    // `lodging` category.
+    return purchaseCategories.includes('lodging') && selected.has('hotelMotel');
   },
 
   rawEarn(earn: Earn): number {

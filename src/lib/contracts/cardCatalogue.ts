@@ -19,6 +19,15 @@ import benefitsCatalogueRaw from "../../../contracts/benefits-catalogue.json";
  * how a newer writer's benefit kind stays readable by an older consumer.
  * `verificationStatus` is CLOSED — an unknown value is a hard decode failure in
  * Swift, so accepting one here would mask a real contract break.
+ *
+ * `program.programId` follows the same open-vocabulary rule as `family` /
+ * `kind`: Swift's `Program.programId` is a plain `String`
+ * (CatalogueModels.swift), not a closed enum, so a new loyalty program added
+ * to PickMe's catalogue must stay readable here too. It was previously a
+ * 6-value `z.enum`, which made every new programId a hard MoneyTalks build
+ * break the moment PickMe's catalogue synced (discovered 2026-08-18 — see
+ * docs/superpowers/specs/2026-08-18-annual-fee-renewal-calendar-design.md
+ * §12.1).
  */
 
 // Every nested object in card-catalogue.schema.json declares
@@ -54,7 +63,7 @@ const feeSchema = annotatedObject({
 });
 
 const programSchema = annotatedObject({
-  programId: z.enum(["amexMembershipRewards", "marriottBonvoy", "mbnaRewards", "ctMoney", "cro", "cashback"]),
+  programId: z.string().min(1),
   unit: z.string(),
 });
 

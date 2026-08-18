@@ -98,7 +98,7 @@
       "patternProperties": { "^_": {} },
       "properties": {
         "programId": {
-          "enum": ["amexMembershipRewards", "marriottBonvoy", "mbnaRewards", "ctMoney", "cro", "cashback"],
+          "enum": ["amexMembershipRewards", "marriottBonvoy", "mbnaRewards", "ctMoney", "cro", "cashback", "scenePlus", "aeroplan", "rbcAvion", "tdRewards", "bmoRewards", "aventura", "nbcRewards", "pcOptimum"],
           "description": "Engine-defined valuation dispatch key — Scorer.valueCad switches on this string against OwnerState.valuationsCad. A new programId requires an engine code change, not just a catalogue edit."
         },
         "unit": { "type": "string", "examples": ["point", "cad", "ctDollar", "cro"] }
