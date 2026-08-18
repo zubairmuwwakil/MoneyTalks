@@ -12,7 +12,7 @@ import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
-import { billFormInput, scheduleEntryInput } from "@/lib/validation/bills";
+import { billFormInput, cadenceInput, scheduleEntryInput } from "@/lib/validation/bills";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -317,6 +317,48 @@ export async function deleteBill(formData: FormData): Promise<ActionResult> {
   return { ok: true };
 }
 
+export async function setBillCadence(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const rawCadenceJson = formData.get("cadenceJson");
+  let parsedCadence;
+
+  if (typeof rawCadenceJson === "string" && rawCadenceJson.trim() !== "") {
+    try {
+      parsedCadence = cadenceInput.safeParse(JSON.parse(rawCadenceJson));
+    } catch {
+      return { ok: false, error: "Invalid cadence JSON format." };
+    }
+  } else {
+    const type = String(formData.get("cadenceType") ?? formData.get("type") ?? "");
+    const rawObj: Record<string, unknown> = { type };
+    if (type === "MONTHLY") {
+      rawObj.dayOfMonth = formData.get("dayOfMonth");
+      const startsFrom = formData.get("startsFrom");
+      if (startsFrom && String(startsFrom).trim() !== "") rawObj.startsFrom = startsFrom;
+    } else {
+      rawObj.anchor = formData.get("anchor");
+    }
+    parsedCadence = cadenceInput.safeParse(rawObj);
+  }
+
+  if (!parsedCadence.success) {
+    return fail(parsedCadence.error.issues[0]?.message ?? "Invalid cadence parameters");
+  }
+
+  try {
+    const bill = await ownedBill(userId, String(formData.get("billId") ?? ""));
+    await prisma.bill.update({ where: { id: bill.id }, data: { cadence: asJson(parsedCadence.data) } });
+    revalidatePath(`/bills/${bill.id}`);
+    revalidatePath("/bills");
+    revalidatePath("/bills/forecast");
+    revalidatePath("/bills/month");
+    revalidatePath("/");
+  } catch (e) {
+    return fail(e);
+  }
+  return { ok: true };
+}
+
 export async function addScheduleEntry(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const parsed = scheduleEntryInput.safeParse(Object.fromEntries(formData));
@@ -326,6 +368,10 @@ export async function addScheduleEntry(formData: FormData): Promise<ActionResult
     const schedule = [...(bill.schedule as unknown as ScheduleEntry[]), parsed.data];
     await prisma.bill.update({ where: { id: bill.id }, data: { schedule: asJson(schedule) } });
     revalidatePath(`/bills/${bill.id}`);
+    revalidatePath("/bills");
+    revalidatePath("/bills/forecast");
+    revalidatePath("/bills/month");
+    revalidatePath("/");
   } catch (e) {
     return fail(e);
   }
@@ -341,6 +387,10 @@ export async function removeScheduleEntry(formData: FormData): Promise<ActionRes
     if (schedule.length === 0) return { ok: false, error: "A bill needs at least one schedule entry" };
     await prisma.bill.update({ where: { id: bill.id }, data: { schedule: asJson(schedule) } });
     revalidatePath(`/bills/${bill.id}`);
+    revalidatePath("/bills");
+    revalidatePath("/bills/forecast");
+    revalidatePath("/bills/month");
+    revalidatePath("/");
   } catch (e) {
     return fail(e);
   }

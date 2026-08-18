@@ -40,7 +40,7 @@ export function amountOn(schedule: ScheduleEntry[], date: string): number | null
     (s) => s.from <= date && (s.to === undefined || date <= s.to),
   );
   if (candidates.length === 0) return null;
-  return candidates.sort((a, b) => (a.from < b.from ? 1 : -1))[0].amountMinor;
+  return candidates.sort((a, b) => b.from.localeCompare(a.from))[0].amountMinor;
 }
 
 function monthsBetween(from: string, to: string): number {

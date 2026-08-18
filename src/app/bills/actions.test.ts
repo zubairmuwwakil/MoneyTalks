@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { allocateRecommendedCard, setBillPaymentRail } from "./actions";
+import { allocateRecommendedCard, setBillCadence, setBillPaymentRail } from "./actions";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { revalidatePath } from "next/cache";
@@ -221,6 +221,55 @@ describe("setBillPaymentRail", () => {
 
   it("refuses a rail outside the known vocabulary and writes nothing", async () => {
     const result = await setBillPaymentRail(form({ paymentRail: "interac" }));
+    expect(result.ok).toBe(false);
+    expect(prisma.bill.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("setBillCadence", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(requireUserId).mockResolvedValue("user-1");
+    vi.mocked(prisma.bill.findFirst).mockResolvedValue({ id: "bill-1", userId: "user-1" } as never);
+    vi.mocked(prisma.bill.update).mockResolvedValue({} as never);
+  });
+
+  it("updates monthly cadence with day of month via cadenceJson", async () => {
+    const fd = new FormData();
+    fd.set("billId", "bill-1");
+    fd.set("cadenceJson", JSON.stringify({ type: "MONTHLY", dayOfMonth: 18 }));
+
+    const result = await setBillCadence(fd);
+    expect(result).toEqual({ ok: true });
+    expect(prisma.bill.update).toHaveBeenCalledWith({
+      where: { id: "bill-1" },
+      data: { cadence: { type: "MONTHLY", dayOfMonth: 18 } },
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/bills/bill-1");
+    expect(revalidatePath).toHaveBeenCalledWith("/bills");
+    expect(revalidatePath).toHaveBeenCalledWith("/bills/forecast");
+    expect(revalidatePath).toHaveBeenCalledWith("/bills/month");
+  });
+
+  it("updates biweekly cadence with anchor date", async () => {
+    const fd = new FormData();
+    fd.set("billId", "bill-1");
+    fd.set("cadenceJson", JSON.stringify({ type: "BIWEEKLY", anchor: "2026-08-18" }));
+
+    const result = await setBillCadence(fd);
+    expect(result).toEqual({ ok: true });
+    expect(prisma.bill.update).toHaveBeenCalledWith({
+      where: { id: "bill-1" },
+      data: { cadence: { type: "BIWEEKLY", anchor: "2026-08-18" } },
+    });
+  });
+
+  it("rejects invalid day of month (> 31)", async () => {
+    const fd = new FormData();
+    fd.set("billId", "bill-1");
+    fd.set("cadenceJson", JSON.stringify({ type: "MONTHLY", dayOfMonth: 32 }));
+
+    const result = await setBillCadence(fd);
     expect(result.ok).toBe(false);
     expect(prisma.bill.update).not.toHaveBeenCalled();
   });

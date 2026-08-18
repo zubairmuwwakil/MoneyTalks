@@ -6,11 +6,13 @@ import {
   deleteBill,
   markPaid,
   removeScheduleEntry,
+  setBillCadence,
   setBillPaymentCard,
   setBillPaymentRail,
   setBillSpendCategory,
   unmarkPaid,
 } from "@/app/bills/actions";
+import { CadenceForm } from "./cadence-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Catalogue, OwnerState } from "@/engine/cards-twin";
@@ -293,6 +295,13 @@ export default async function BillDetailPage({
     redirect(`/bills/${id}`);
   }
 
+  async function submitSetCadence(formData: FormData) {
+    "use server";
+    const result = await setBillCadence(formData);
+    if (!result.ok) redirect(billErrorPath(id, "cadence", result.error));
+    redirect(`/bills/${id}`);
+  }
+
   async function submitSetPaymentRail(formData: FormData) {
     "use server";
     const result = await setBillPaymentRail(formData);
@@ -306,6 +315,15 @@ export default async function BillDetailPage({
     if (!result.ok) redirect(billErrorPath(id, "paymentCard", result.error));
     redirect(`/bills/${id}`);
   }
+
+  const cadenceSummary =
+    def.cadence.type === "MONTHLY"
+      ? `Monthly (day ${def.cadence.dayOfMonth})`
+      : def.cadence.type === "BIWEEKLY"
+        ? `Biweekly (anchor ${def.cadence.anchor})`
+        : def.cadence.type === "QUARTERLY"
+          ? `Quarterly (anchor ${def.cadence.anchor})`
+          : `Annual (anchor ${def.cadence.anchor})`;
 
   return (
     <main className="space-y-8 py-6 sm:py-8">
@@ -327,7 +345,7 @@ export default async function BillDetailPage({
             {bill.variable ? <Badge variant="info">variable</Badge> : null}
           </div>
           <p className="text-sm text-muted-foreground">
-            {bill.category}
+            {bill.category} · {cadenceSummary}
             {bill.payee ? ` · ${bill.payee}` : ""} · {bill.currency}
             {bill.autopay ? " · autopay" : ""}
             {bill.variable ? " · variable" : ""}
@@ -462,11 +480,27 @@ export default async function BillDetailPage({
         </div>
       </section>
 
+      {/* Payment Cadence Section */}
+      <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+        <h2 className="text-base font-semibold tracking-tight">Payment cadence</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Controls the recurring payment due dates generated in the forecast and 12-month checklist.
+        </p>
+        <div className="mt-4">
+          <CadenceForm
+            billId={bill.id}
+            initialCadence={def.cadence}
+            action={submitSetCadence}
+            error={errorForm === "cadence" ? error : undefined}
+          />
+        </div>
+      </section>
+
       {/* Amount Schedule Section */}
       <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
         <h2 className="text-base font-semibold tracking-tight">Amount schedule</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Define stepped pricing over time for leases, mortgage rate resets, or promo periods.
+          Define pricing amounts and promo/discount steps over time. (Payment dates are determined by the Cadence above).
         </p>
 
         <ul className="mt-4 divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
