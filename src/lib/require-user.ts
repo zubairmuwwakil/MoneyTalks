@@ -80,6 +80,11 @@ export async function getSessionUserId(): Promise<string | null> {
   return user?.id ?? null;
 }
 
+export async function getOptionalUser(): Promise<{ id: string; email: string | null } | null> {
+  const user = await resolveUser();
+  return user ? { id: user.id, email: user.email } : null;
+}
+
 // Account deletion is the one caller that needs both identities at once: the local row to
 // cascade and the Clerk user to remove. Resolving them together keeps the route from
 // re-entering `auth()` and racing its own deletion.

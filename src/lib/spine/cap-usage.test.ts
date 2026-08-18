@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applyCapAccrual, capPeriodKey, removeCapAccrual, resolveCapAccrual, reverseCapAccrual } from "./cap-usage";
+import type { FxRateInput } from "@/engine/fx";
+import { applyCapAccrual, capPeriodKey, removeCapAccrual, resolveCapAccrual, resolveCapAccrualOutcome, reverseCapAccrual } from "./cap-usage";
 
 const ownerState = (cardStates: Record<string, unknown>) => ({ cardStates });
 
@@ -118,5 +119,74 @@ describe("cap usage", () => {
       amountMinor: 200_000,
     }), ownerState({ "cryptocom-royal-indigo": { cryptoLevelUpProActive: true } }));
     expect(accrual).toMatchObject({ capId: "crypto-monthly-usd", usedMinor: 146_000 });
+  });
+});
+
+describe("foreign-currency accrual", () => {
+  const rates: FxRateInput[] = [{ base: "USD", quote: "CAD", rate: 1.37, asOf: "2026-08-10T00:00:00.000Z" }];
+
+  it("converts a USD purchase into the CAD ledger", () => {
+    // Dropping non-CAD spend under-counts the ledger, so the engine can
+    // recommend a card whose cap is nearer exhaustion than we believe.
+    const accrual = resolveCapAccrual(
+      source({ currency: "USD", amountMinor: 10_000 }),
+      ownerState({ "amex-cobalt": {} }),
+      undefined,
+      rates,
+    );
+
+    expect(accrual?.usedMinor).toBe(13_700);
+  });
+
+  it("records the rate it used, so an accrual can be audited later", () => {
+    const accrual = resolveCapAccrual(
+      source({ currency: "USD", amountMinor: 10_000 }),
+      ownerState({ "amex-cobalt": {} }),
+      undefined,
+      rates,
+    );
+
+    expect(accrual).toMatchObject({
+      sourceAmountMinor: 10_000,
+      sourceCurrency: "USD",
+      fxRate: 1.37,
+    });
+    expect(accrual?.fxRateAsOf).toEqual(new Date("2026-08-10T00:00:00.000Z"));
+  });
+
+  it("leaves a native CAD accrual unconverted and unstamped", () => {
+    const accrual = resolveCapAccrual(source(), ownerState({ "amex-cobalt": {} }), undefined, rates);
+
+    expect(accrual).toMatchObject({ usedMinor: 12_345, sourceCurrency: "CAD", fxRate: null });
+    expect(accrual?.fxRateAsOf).toBeNull();
+  });
+
+  it("refuses to accrue a foreign purchase with no rate on file", () => {
+    // Fail closed: an unconverted foreign amount must never enter a CAD ledger.
+    expect(resolveCapAccrual(source({ currency: "EUR" }), ownerState({ "amex-cobalt": {} }), undefined, rates)).toBeNull();
+  });
+
+  it("still refuses an unknown currency even when rates exist", () => {
+    expect(resolveCapAccrual(source({ currency: null }), ownerState({ "amex-cobalt": {} }), undefined, rates)).toBeNull();
+  });
+
+  it("names why an accrual was skipped instead of failing silently", () => {
+    const state = ownerState({ "amex-cobalt": {} });
+
+    expect(resolveCapAccrualOutcome(source({ currency: null }), state, undefined, rates)).toMatchObject({ skipped: "unknown-currency" });
+    expect(resolveCapAccrualOutcome(source({ currency: "EUR" }), state, undefined, rates)).toMatchObject({ skipped: "missing-fx-rate" });
+    expect(resolveCapAccrualOutcome(source(), state, undefined, rates)).toMatchObject({ accrual: { usedMinor: 12_345 } });
+  });
+
+  it("uses an inverse rate when only CAD->USD is on file", () => {
+    const inverse: FxRateInput[] = [{ base: "CAD", quote: "USD", rate: 0.73, asOf: "2026-08-10T00:00:00.000Z" }];
+    const accrual = resolveCapAccrual(
+      source({ currency: "USD", amountMinor: 7_300 }),
+      ownerState({ "amex-cobalt": {} }),
+      undefined,
+      inverse,
+    );
+
+    expect(accrual?.usedMinor).toBe(10_000);
   });
 });

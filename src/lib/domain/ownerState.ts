@@ -43,20 +43,124 @@ export function defaultOwnerState(contractCardIds: string[]): OwnerState | null 
 }
 
 type OwnerStateDb = Pick<Prisma.TransactionClient, "ownerStateRecord" | "creditCard">;
+type OwnerStateRecordRow = NonNullable<Awaited<ReturnType<OwnerStateDb["ownerStateRecord"]["findUnique"]>>>;
 
-// Lazy provisioning at every read site: returns the existing record, creates
-// a default one when the user has contract-linked cards, or null when there
-// is nothing to score with yet (no cards → recommendations stay "unknown").
-export async function ensureOwnerStateRecord(db: OwnerStateDb, userId: string) {
-  const existing = await db.ownerStateRecord.findUnique({ where: { userId } });
-  if (existing) return existing;
-
+async function fetchContractCardIds(db: OwnerStateDb, userId: string): Promise<string[]> {
   const cards = await db.creditCard.findMany({
     where: { userId, contractCardId: { not: null } },
     orderBy: { createdAt: "asc" },
     select: { contractCardId: true },
   });
-  const state = defaultOwnerState(cards.map((c) => c.contractCardId!));
+  return cards.map((c) => c.contractCardId!);
+}
+
+// Minimal structural check on persisted JSON — deliberately shallow. The
+// only fields this module ever reads or writes are ownedCardIds/defaultCardId;
+// everything else (switchThreshold, valuationsCad, cardStates, carry,
+// ownerStateVersion) is passed through untouched, so it's never validated
+// here. Anything that fails this check is treated as unusable, the same
+// "absent, not crashing" posture src/lib/security/emailConnectionSecrets.ts
+// takes for an undecryptable credential.
+function extractOwnedIds(stateData: Prisma.JsonValue): { ownedCardIds: string[]; defaultCardId: string } | null {
+  if (stateData === null || typeof stateData !== "object" || Array.isArray(stateData)) return null;
+  const { ownedCardIds, defaultCardId } = stateData as Record<string, unknown>;
+  if (!Array.isArray(ownedCardIds) || !ownedCardIds.every((id) => typeof id === "string")) return null;
+  if (typeof defaultCardId !== "string") return null;
+  return { ownedCardIds: ownedCardIds as string[], defaultCardId };
+}
+
+/**
+ * Reconciles a previously-persisted OwnerStateRecord's `ownedCardIds` against
+ * the user's *current* contract-linked CreditCard rows.
+ *
+ * This is an additive UNION, not a resync, and that asymmetry is deliberate —
+ * do not "simplify" it into recomputing ownedCardIds from CreditCard rows:
+ *
+ *   - A CreditCard.contractCardId we can see is proof the card is owned:
+ *     safe to add.
+ *   - The ABSENCE of a matching CreditCard row is NOT proof the card is
+ *     unowned. The iOS app (PUT /api/spine/owner-state) writes
+ *     `ownedCardIds` straight from its wallet picker, and an iOS-only user
+ *     can have a fully populated owner state with zero web CreditCard rows.
+ *     Dropping any stored id we can't currently back with a web row would
+ *     silently wipe that user's wallet and every recommendation on it.
+ *
+ * An addition is provable from data we can see; a removal never is. So ids
+ * only ever get added here, never removed.
+ *
+ * `defaultCardId` is kept a member of the (possibly widened) set: if the
+ * stored default fell outside it — corrupt or legacy data — it's repointed
+ * to the first id deterministically. A still-valid default is left alone.
+ */
+async function reconcileOwnedCards(db: OwnerStateDb, record: OwnerStateRecordRow): Promise<OwnerStateRecordRow> {
+  const parsed = extractOwnedIds(record.stateData);
+  if (!parsed) {
+    console.warn(`[ownerState] unusable stateData for user ${record.userId}; skipping reconciliation`);
+    return record;
+  }
+
+  const contractCardIds = await fetchContractCardIds(db, record.userId);
+
+  const seen = new Set<string>();
+  const ownedCardIds: string[] = [];
+  for (const id of parsed.ownedCardIds) {
+    if (!seen.has(id)) {
+      seen.add(id);
+      ownedCardIds.push(id);
+    }
+  }
+  for (const id of contractCardIds) {
+    if (!seen.has(id)) {
+      seen.add(id);
+      ownedCardIds.push(id);
+    }
+  }
+
+  // Repoint only if the stored default fell outside the union — never
+  // gratuitously move a default that's still valid.
+  const defaultCardId = seen.has(parsed.defaultCardId) ? parsed.defaultCardId : ownedCardIds[0];
+
+  const idsUnchanged =
+    ownedCardIds.length === parsed.ownedCardIds.length &&
+    ownedCardIds.every((id, i) => id === parsed.ownedCardIds[i]);
+  if (idsUnchanged && defaultCardId === parsed.defaultCardId) {
+    return record; // Nothing to add, no drift to repair — skip the write.
+  }
+
+  const nextStateData = {
+    ...(record.stateData as Record<string, unknown>),
+    ownedCardIds,
+    defaultCardId,
+  };
+
+  // Optimistic concurrency, not a transaction: `updateMany` filtered on the
+  // `updatedAt` we read doubles as a version token (Prisma manages
+  // `@updatedAt` on every write, so no schema change needed). If another
+  // writer — a concurrent reconciliation pass from a simultaneous request,
+  // or an iOS PUT replacing the whole state — landed first, this simply
+  // matches zero rows instead of throwing or clobbering their write. Either
+  // way we re-read and hand back whatever is current: this function is
+  // idempotent (it recomputes the union fresh every call), so a lost race
+  // here just means the next read repeats the reconciliation and converges,
+  // rather than corrupting anything now.
+  await db.ownerStateRecord.updateMany({
+    where: { userId: record.userId, updatedAt: record.updatedAt },
+    data: { stateData: nextStateData as unknown as Prisma.InputJsonValue },
+  });
+  const latest = await db.ownerStateRecord.findUnique({ where: { userId: record.userId } });
+  return latest ?? record;
+}
+
+// Lazy provisioning at every read site: returns the existing record (after
+// reconciling it — see reconcileOwnedCards above), creates a default one
+// when the user has contract-linked cards, or null when there is nothing to
+// score with yet (no cards → recommendations stay "unknown").
+export async function ensureOwnerStateRecord(db: OwnerStateDb, userId: string) {
+  const existing = await db.ownerStateRecord.findUnique({ where: { userId } });
+  if (existing) return reconcileOwnedCards(db, existing);
+
+  const contractCardIds = await fetchContractCardIds(db, userId);
+  const state = defaultOwnerState(contractCardIds);
   if (!state) return null;
 
   try {

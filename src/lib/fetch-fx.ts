@@ -1,4 +1,10 @@
-const VALET_URL = "https://www.bankofcanada.ca/valet/observations/FXUSDCAD/json?recent=1";
+const VALET_BASE = "https://www.bankofcanada.ca/valet/observations";
+const VALET_URL = `${VALET_BASE}/FXUSDCAD/json?recent=1`;
+
+/** Currencies the Bank of Canada publishes a direct CAD pair for. */
+export const SUPPORTED_FX_CURRENCIES = ["USD", "EUR", "GBP"] as const;
+
+export type CadRate = { base: string; quote: "CAD"; rate: number; asOf: string };
 
 /**
  * Extracts the most recent {rate, asOf} pair from a Bank of Canada Valet
@@ -37,5 +43,49 @@ export async function fetchUsdCadRate(): Promise<{ rate: number; asOf: string } 
     return parseValetObservation(await res.json(), "FXUSDCAD");
   } catch {
     return null;
+  }
+}
+
+/**
+ * Map a multi-series Valet payload to CAD-quoted rates. A currency the payload
+ * omits is skipped rather than failing the batch — one unavailable series must
+ * not cost us the rates that did arrive.
+ */
+export function parseValetRates(json: unknown, currencies: readonly string[]): CadRate[] {
+  const rates: CadRate[] = [];
+
+  for (const currency of currencies) {
+    // CAD->CAD is identity; the ledger never needs a rate for it.
+    if (currency === "CAD") continue;
+
+    const hit = parseValetObservation(json, `FX${currency}CAD`);
+    if (!hit) continue;
+
+    rates.push({ base: currency, quote: "CAD", rate: hit.rate, asOf: hit.asOf });
+  }
+
+  return rates;
+}
+
+/**
+ * Fetch every supported pair in one request. Like fetchUsdCadRate, no failure
+ * path throws: an unreachable or malformed source yields an empty list, which
+ * the caller treats exactly as "no rates available".
+ */
+export async function fetchCadRates(
+  currencies: readonly string[] = SUPPORTED_FX_CURRENCIES,
+): Promise<CadRate[]> {
+  const series = currencies.filter((c) => c !== "CAD").map((c) => `FX${c}CAD`);
+  if (series.length === 0) return [];
+
+  try {
+    const res = await fetch(`${VALET_BASE}/${series.join(",")}/json?recent=1`, {
+      signal: AbortSignal.timeout(8000),
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return parseValetRates(await res.json(), currencies);
+  } catch {
+    return [];
   }
 }

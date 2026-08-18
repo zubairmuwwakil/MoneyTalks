@@ -2,11 +2,18 @@ import { RuleMatcher } from "@/engine/cards-twin/RuleMatcher";
 import type { Cap, Catalogue, OwnerState, PurchaseContext } from "@/engine/cards-twin/models";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
+import { convertMinor, findFxRate, MissingFxRateError, type FxRateInput } from "@/engine/fx";
+import type { Currency } from "@/engine/money";
 
 export const LEDGER_TIME_ZONE = "America/Toronto";
 const USD_PER_CAD = 0.73;
 
 type LedgerTransaction = {
+  // Optional: absent in unit fixtures, present on a real Prisma client. When
+  // absent no rates are available, so foreign amounts fail closed.
+  fxRate?: {
+    findMany(args: unknown): Promise<{ base: string; quote: string; rate: unknown; asOf: Date }[]>;
+  };
   capAccrual: {
     findUnique(args: unknown): Promise<{ id: string; userId: string; cardId: string; capId: string; periodKey: string; usedMinor: number; reversedAt: Date | null } | null>;
     create(args: unknown): Promise<unknown>;
@@ -37,7 +44,25 @@ export type ResolvedCapAccrual = {
   capId: string;
   periodKey: string;
   usedMinor: number;
+  /** Provenance: what was observed, before any conversion. */
+  sourceAmountMinor: number;
+  sourceCurrency: string;
+  /**
+   * Effective multiplier applied to reach CAD, or null for native CAD. Stored
+   * so a ledger entry can be audited without re-deriving which rate was live.
+   */
+  fxRate: number | null;
+  fxRateAsOf: Date | null;
 };
+
+export type CapAccrualSkip =
+  | "not-accruable"
+  | "unknown-currency"
+  | "missing-fx-rate";
+
+export type CapAccrualOutcome =
+  | { accrual: ResolvedCapAccrual; skipped?: undefined }
+  | { accrual?: undefined; skipped: CapAccrualSkip };
 
 function datePartsInToronto(asOf: Date) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -81,49 +106,124 @@ function asOfDate(asOf: Date): string {
   return `${value("year")}-${value("month")}-${value("day")}`;
 }
 
-/** Resolve exactly the RuleMatcher result the checkout engine would use. */
-export function resolveCapAccrual(source: CapUsageSource, ownerStateData: unknown, catalogue = cardCatalogue as unknown as Catalogue): ResolvedCapAccrual | null {
-  if (!Number.isSafeInteger(source.amountMinor) || source.amountMinor <= 0) return null;
-  // amountMinor is explicitly a CAD-denominated input to the twin. Until a
-  // source supplies an FX-converted CAD amount, unknown/foreign minor units
-  // cannot honestly move a CAD or USD-equivalent cap ledger.
-  if (normalizeCurrencyCode(source.currency) !== "CAD") return null;
+/**
+ * Resolve the RuleMatcher result the checkout engine would use, naming the
+ * reason when nothing accrues.
+ *
+ * Foreign spend is converted into the CAD ledger using the user's own stored
+ * FX rates. Dropping it (the previous behaviour) under-counted the ledger, so
+ * the engine could recommend a card whose cap was nearer exhaustion than the
+ * ledger believed. Converting without a rate would be the opposite sin, so a
+ * missing rate still fails closed.
+ */
+export function resolveCapAccrualOutcome(
+  source: CapUsageSource,
+  ownerStateData: unknown,
+  catalogue = cardCatalogue as unknown as Catalogue,
+  rates: FxRateInput[] = [],
+): CapAccrualOutcome {
+  if (!Number.isSafeInteger(source.amountMinor) || source.amountMinor <= 0) return { skipped: "not-accruable" };
+
+  const currency = normalizeCurrencyCode(source.currency);
+  // An unidentified currency cannot be converted; it can only be guessed at.
+  if (!currency) return { skipped: "unknown-currency" };
+
+  let amountMinorCad = source.amountMinor;
+  let fxRate: number | null = null;
+  let fxRateAsOf: Date | null = null;
+
+  if (currency !== "CAD") {
+    // The engine's Currency union is the twin's contract scope; the ledger
+    // accepts any ISO code the user actually holds a rate for.
+    const from = currency as Currency;
+    const found = findFxRate(rates, from, "CAD");
+    if (!found) return { skipped: "missing-fx-rate" };
+
+    try {
+      amountMinorCad = convertMinor(source.amountMinor, from, "CAD", rates);
+    } catch (error) {
+      // A missing or corrupt rate must never silently become a CAD figure.
+      if (error instanceof MissingFxRateError || error instanceof RangeError) return { skipped: "missing-fx-rate" };
+      throw error;
+    }
+
+    fxRate = found.inverted ? 1 / found.rate.rate : found.rate.rate;
+    fxRateAsOf = new Date(found.rate.asOf);
+  }
+
   const ownerState = ownerStateData as OwnerState;
   const card = catalogue.cards.find((candidate) => candidate.cardId === source.cardId);
-  if (!card || !ownerState?.cardStates) return null;
+  if (!card || !ownerState?.cardStates) return { skipped: "not-accruable" };
 
   const cardState = ownerState.cardStates[source.cardId] ?? {};
   const purchase: PurchaseContext = {
-    // The purchase spine stores amountMinor as the CAD amount used by the twin.
-    amountCad: source.amountMinor / 100,
+    amountCad: amountMinorCad / 100,
     currency: "CAD",
     category: source.category || "unknown",
     merchantBrand: source.merchantBrand ?? undefined,
   };
   const resolution = RuleMatcher.resolve(card, purchase, ownerState, asOfDate(source.occurredAt));
-  if (resolution.type !== "applied" || !resolution.rule.capId) return null;
+  if (resolution.type !== "applied" || !resolution.rule.capId) return { skipped: "not-accruable" };
 
   const cap = card.caps.find((candidate) => candidate.capId === resolution.rule.capId);
-  if (!cap) return null; // Contract violation: never manufacture an undeclared cap.
+  if (!cap) return { skipped: "not-accruable" }; // Contract violation: never manufacture an undeclared cap.
   const periodKey = capPeriodKey(cap, cardState, source.occurredAt);
-  if (!periodKey) return null; // An unresolved account-year anchor cannot be guessed.
+  if (!periodKey) return { skipped: "not-accruable" }; // An unresolved account-year anchor cannot be guessed.
 
   return {
-    sourceKey: source.sourceKey,
-    userId: source.userId,
-    cardId: source.cardId,
-    capId: cap.capId,
-    periodKey,
-    // Matches Scorer's USD-cap fallback: amountCad * 0.73 when no explicit
-    // usdEquivalent was supplied by the purchase context.
-    usedMinor: cap.measure === "spendUsdEquivalent" ? Math.round(source.amountMinor * USD_PER_CAD) : source.amountMinor,
+    accrual: {
+      sourceKey: source.sourceKey,
+      userId: source.userId,
+      cardId: source.cardId,
+      capId: cap.capId,
+      periodKey,
+      // Matches Scorer's USD-cap fallback: amountCad * 0.73 when no explicit
+      // usdEquivalent was supplied by the purchase context.
+      usedMinor: cap.measure === "spendUsdEquivalent" ? Math.round(amountMinorCad * USD_PER_CAD) : amountMinorCad,
+      sourceAmountMinor: source.amountMinor,
+      sourceCurrency: currency,
+      fxRate,
+      fxRateAsOf,
+    },
   };
+}
+
+/** Resolve exactly the RuleMatcher result the checkout engine would use. */
+export function resolveCapAccrual(
+  source: CapUsageSource,
+  ownerStateData: unknown,
+  catalogue = cardCatalogue as unknown as Catalogue,
+  rates: FxRateInput[] = [],
+): ResolvedCapAccrual | null {
+  return resolveCapAccrualOutcome(source, ownerStateData, catalogue, rates).accrual ?? null;
 }
 
 /** Apply an accrual inside the caller's transaction. The source key is unique. */
 export async function applyCapAccrual(tx: LedgerTransaction, source: CapUsageSource, ownerStateData: unknown, catalogue = cardCatalogue as unknown as Catalogue): Promise<ResolvedCapAccrual | null> {
-  const resolved = resolveCapAccrual(source, ownerStateData, catalogue);
-  if (!resolved) return null;
+  const currency = normalizeCurrencyCode(source.currency);
+
+  // Only a foreign amount needs rates, so the common CAD path stays query-free.
+  let rates: FxRateInput[] = [];
+  if (currency && currency !== "CAD" && tx.fxRate) {
+    const rows = await tx.fxRate.findMany({ where: { userId: source.userId } });
+    rates = rows.map((row) => ({
+      base: row.base as Currency,
+      quote: row.quote as Currency,
+      rate: Number(row.rate),
+      asOf: row.asOf.toISOString(),
+    }));
+  }
+
+  const outcome = resolveCapAccrualOutcome(source, ownerStateData, catalogue, rates);
+  if (outcome.skipped) {
+    // "not-accruable" is the ordinary case (most spend matches no cap).
+    // A currency problem is a data gap and must be observable, not silent.
+    if (outcome.skipped !== "not-accruable") {
+      console.warn(`[cap-usage] no accrual for ${source.sourceKey}: ${outcome.skipped} (currency=${currency ?? "unknown"})`);
+    }
+    return null;
+  }
+  const resolved = outcome.accrual;
 
   const existing = await tx.capAccrual.findUnique({ where: { sourceKey: resolved.sourceKey } });
   if (existing) return null;

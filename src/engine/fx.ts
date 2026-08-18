@@ -20,6 +20,26 @@ function latest(rates: FxRateInput[], base: Currency, quote: Currency): FxRateIn
     .sort((a, b) => (a.asOf < b.asOf ? 1 : -1))[0];
 }
 
+/**
+ * The rate `convertMinor` would apply, exposed so callers that must record
+ * provenance stamp exactly the rate that was used rather than re-deriving it.
+ * `inverted` means the stored rate runs quote->base and was divided, not
+ * multiplied.
+ */
+export function findFxRate(
+  rates: FxRateInput[],
+  from: Currency,
+  to: Currency,
+): { rate: FxRateInput; inverted: boolean } | undefined {
+  const direct = latest(rates, from, to);
+  if (direct) return { rate: direct, inverted: false };
+
+  const inverse = latest(rates, to, from);
+  if (inverse) return { rate: inverse, inverted: true };
+
+  return undefined;
+}
+
 function validateRate(rate: number): void {
   if (!Number.isFinite(rate) || rate <= 0) {
     throw new RangeError(`rate must be a finite positive number, got ${rate}`);
@@ -45,17 +65,9 @@ export function convertMinor(
   }
   if (from === to) return amountMinor;
 
-  const direct = latest(rates, from, to);
-  if (direct) {
-    validateRate(direct.rate);
-    return roundSafe(amountMinor * direct.rate);
-  }
+  const found = findFxRate(rates, from, to);
+  if (!found) throw new MissingFxRateError(from, to);
 
-  const inverse = latest(rates, to, from);
-  if (inverse) {
-    validateRate(inverse.rate);
-    return roundSafe(amountMinor / inverse.rate);
-  }
-
-  throw new MissingFxRateError(from, to);
+  validateRate(found.rate.rate);
+  return roundSafe(found.inverted ? amountMinor / found.rate.rate : amountMinor * found.rate.rate);
 }

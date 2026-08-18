@@ -1,10 +1,19 @@
 import { expect, test } from "@playwright/test";
 
-test("unauthenticated visit to / redirects to login", async ({ page }) => {
+test("unauthenticated visit to / renders the marketing page", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveURL(/\/login/);
   await expect(
-    page.getByRole("textbox", { name: /email address or username/i }),
+    page.getByRole("heading", { name: /Personal Finance Command Center/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Request Early Beta Access/i }),
+  ).toBeVisible();
+});
+
+test("marketing page is publicly accessible", async ({ page }) => {
+  await page.goto("/marketing");
+  await expect(
+    page.getByRole("heading", { name: /Personal Finance Command Center/i }),
   ).toBeVisible();
 });
 

@@ -26,7 +26,8 @@ import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
 import { ALL_RULES, applyDismissals, evaluateRules } from "@/engine/rules";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateProfile } from "@/lib/profile";
-import { requireUser, requireUserId } from "@/lib/require-user";
+import { getOptionalUser } from "@/lib/require-user";
+import { MarketingContent } from "@/components/marketing/marketing-content";
 import { buildSnapshot } from "@/lib/snapshot";
 import { cn } from "@/lib/utils";
 
@@ -37,8 +38,11 @@ export default async function Home({
 }: {
   searchParams: Promise<{ ccy?: string; display?: string; fxOk?: string; fxError?: string }>;
 }) {
-  const user = await requireUser();
-  const userId = await requireUserId();
+  const user = await getOptionalUser();
+  if (!user) {
+    return <MarketingContent />;
+  }
+  const userId = user.id;
   const { ccy, display: displayParam, fxOk, fxError } = await searchParams;
   const ccyParam = ccy?.toUpperCase();
   const displayCurrencyParam = displayParam?.toUpperCase();

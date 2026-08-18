@@ -1085,6 +1085,12 @@ model CapAccrual {
   capId         String
   periodKey     String
   usedMinor     Int
+  // FX provenance. Nullable because accruals written before conversion
+  // existed cannot have their original currency recovered.
+  sourceAmountMinor Int?
+  sourceCurrency    String?
+  fxRate            Decimal?
+  fxRateAsOf        DateTime?
   reversedAt    DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

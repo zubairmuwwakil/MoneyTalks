@@ -14,6 +14,7 @@ Optional env:
   QSTASH_DIGEST_CRON   default: */15 * * * *
   QSTASH_NOTIFY_CRON   default: 0 * * * *
   QSTASH_PURCHASE_MERGE_CRON default: 30 3 * * *
+  QSTASH_FX_CRON       default: 0 11 * * *
 
 Run:
   npx dotenv -e .env.local -- npm run qstash:schedules`);
@@ -53,6 +54,14 @@ const schedules = [
     scheduleId: "moneytalks-purchase-merge",
     path: "/api/cron/purchase-merge",
     cron: process.env.QSTASH_PURCHASE_MERGE_CRON || "30 3 * * *",
+  },
+  {
+    name: "fx",
+    scheduleId: "moneytalks-fx",
+    path: "/api/cron/fx",
+    // 11:00 UTC / 07:00 ET: the Bank of Canada's previous-business-day rate is
+    // published well before this, and it lands before any daily summary runs.
+    cron: process.env.QSTASH_FX_CRON || "0 11 * * *",
   },
 ];
 
