@@ -62,6 +62,7 @@ function typePill(t: NotificationType) {
 export default function NotificationsClient() {
   const { data, mutate, isLoading } = useSWR("/api/notifications?limit=200", fetcher, { refreshInterval: 30000 });
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const notifications = useMemo<Notification[]>(() => data?.notifications ?? [], [data?.notifications]);
   const unread = notifications.filter(n => !n.readAt && !n.dismissedAt);
@@ -82,13 +83,21 @@ export default function NotificationsClient() {
   async function mark(ids: string[], action: "READ" | "UNREAD" | "DISMISS") {
     if (ids.length === 0) return;
     setBusy(true);
+    setError(null);
     try {
-      await fetch("/api/notifications", {
+      const res = await fetch("/api/notifications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, ids }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Failed to update notifications");
+        return;
+      }
       await mutate();
+    } catch (err: any) {
+      setError(err?.message ?? "Network error updating notifications");
     } finally {
       setBusy(false);
     }
@@ -111,6 +120,12 @@ export default function NotificationsClient() {
 
   return (
     <div className="space-y-4 text-slate-100">
+      {error ? (
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs font-medium text-rose-300" role="alert">
+          {error}
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm">
           <span className="rounded-full bg-white/10 px-3 py-1 text-white">Unread</span>

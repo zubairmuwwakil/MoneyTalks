@@ -1,13 +1,30 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/utils/calendarEvents";
 import { requireUserId } from "@/lib/require-user";
 import { purchaseLocalDateTime } from "@/lib/utils/purchaseTime";
 import DuplicateResolution from "./DuplicateResolution";
+import { createReturnForPurchase } from "./actions";
 
-export default async function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PurchaseDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ error?: string }>;
+}) {
   const userId = await requireUserId();
   const { id } = await params;
+  const { error } = (await searchParams) ?? {};
+
+  async function submitCreateReturn(formData: FormData) {
+    "use server";
+    const result = await createReturnForPurchase(formData);
+    if (result && !result.ok) {
+      redirect(`/purchases/${id}?error=${encodeURIComponent(result.error)}`);
+    }
+  }
 
   const purchase = await prisma.purchase.findFirst({
     where: { id, userId },
@@ -176,10 +193,18 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
         {returnItem ? (
           <div className="mt-2 text-sm text-slate-600">Return exists: {returnItem.status}</div>
         ) : (
-          <form action={`/api/purchases/${purchase.id}/create-return`} method="post" className="mt-3">
-            <button className="rounded-full border px-4 py-2 text-sm hover:bg-slate-50">Start a return</button>
+          <form action={submitCreateReturn} className="mt-3">
+            <input type="hidden" name="purchaseId" value={purchase.id} />
+            <button type="submit" className="rounded-full border px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer">
+              Start a return
+            </button>
           </form>
         )}
+        {error ? (
+          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs font-medium text-red-700" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
 
       {purchase.items.length > 0 ? (

@@ -90,6 +90,49 @@ export async function setBillSpendCategory(formData: FormData): Promise<ActionRe
 }
 
 /**
+ * Sets `Bill.paymentRail` (and its fee) — the eligibility dimension
+ * `cardForBill.ts`'s `resolveBillPaymentRail` gates on, orthogonal to the
+ * spend category pinned above. Editable after creation because the rail is
+ * usually discovered later, the first time the biller's payment page is
+ * actually opened.
+ *
+ * The fee is CLEARED whenever the rail isn't `card_via_third_party`: the
+ * domain layer only ever reads it for that rail, so a leftover value would
+ * be invisible-but-persisted state that reappears if the rail is switched
+ * back — a stale number the user never re-confirmed. A third-party rail with
+ * NO fee is stored as-is rather than rejected; `resolveBillPaymentRail`
+ * already declines to recommend and explains what's missing, which is more
+ * useful than blocking the edit.
+ */
+const PAYMENT_RAIL_VALUES = new Set(["unknown", "card", "pad", "card_via_third_party"]);
+
+export async function setBillPaymentRail(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const rail = String(formData.get("paymentRail") ?? "").trim();
+  const rawFee = String(formData.get("railFeePct") ?? "").trim();
+  if (!PAYMENT_RAIL_VALUES.has(rail)) {
+    return { ok: false, error: `Unrecognized payment rail "${rail}".` };
+  }
+  let railFeePct: number | null = null;
+  if (rail === "card_via_third_party" && rawFee !== "") {
+    const parsed = Number(rawFee);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+      return { ok: false, error: `"${rawFee}" is not a valid service fee percentage.` };
+    }
+    railFeePct = parsed;
+  }
+  try {
+    const bill = await ownedBill(userId, String(formData.get("billId") ?? ""));
+    await prisma.bill.update({ where: { id: bill.id }, data: { paymentRail: rail, railFeePct } });
+    revalidatePath(`/bills/${bill.id}`);
+    revalidatePath("/bills");
+  } catch (e) {
+    return fail(e);
+  }
+  return { ok: true };
+}
+
+/**
  * Sets (or clears) `Bill.paymentCardId` to any of the user's OWN cards —
  * the general "let the user set paymentCardId" capability. Does not require
  * the chosen card to be linked to the catalogue (`contractCardId` non-null):
@@ -164,7 +207,13 @@ export async function allocateRecommendedCard(formData: FormData): Promise<Actio
     const rec = recommendCardForBill(
       catalogue,
       ownerState,
-      { category: bill.category, currency: bill.currency, variable: bill.variable },
+      {
+        category: bill.category,
+        currency: bill.currency,
+        variable: bill.variable,
+        paymentRail: bill.paymentRail,
+        railFeePct: bill.railFeePct === null ? null : Number(bill.railFeePct),
+      },
       next ? { amountMinor: next.amountMinor } : null,
       fxRates,
       today,
@@ -174,15 +223,81 @@ export async function allocateRecommendedCard(formData: FormData): Promise<Actio
       return { ok: false, error: "No recommendation is available for this bill yet." };
     }
 
-    const card = await prisma.creditCard.findFirst({
+    // 1. Try finding a card already linked by contractCardId
+    let card = await prisma.creditCard.findFirst({
       where: { userId, contractCardId: rec.winner.cardId },
       select: { id: true },
     });
-    if (!card) return { ok: false, error: "Could not find the recommended card in your wallet." };
+
+    // 2. If not linked, check if user has a card with matching nickname/name and auto-link it
+    if (!card) {
+      const match = await prisma.creditCard.findFirst({
+        where: {
+          userId,
+          nickname: { equals: rec.winner.cardName, mode: "insensitive" },
+        },
+        select: { id: true, contractCardId: true },
+      });
+      if (match) {
+        card = match;
+        if (!match.contractCardId) {
+          await prisma.creditCard.update({
+            where: { id: match.id },
+            data: { contractCardId: rec.winner.cardId },
+          });
+        }
+      }
+    }
+
+    // 3. If still not found, auto-provision the card from the catalogue for this user
+    if (!card) {
+      const catCard = catalogue.cards.find((c) => c.cardId === rec.winner.cardId);
+      if (catCard) {
+        try {
+          const created = await prisma.creditCard.create({
+            data: {
+              userId,
+              nickname: catCard.officialName,
+              issuer: catCard.issuer,
+              network: catCard.network.toUpperCase(),
+              annualFeeMinor: Math.round((catCard.fee?.annualCad ?? 0) * 100),
+              contractCardId: catCard.cardId,
+              rewards: asJson({
+                baseRate: 1,
+                spendCategories: [],
+                credits: [],
+                conditions: [],
+              }),
+            },
+            select: { id: true },
+          });
+          card = created;
+        } catch {
+          const existing = await prisma.creditCard.findUnique({
+            where: { userId_nickname: { userId, nickname: catCard.officialName } },
+            select: { id: true, contractCardId: true },
+          });
+          if (existing) {
+            card = existing;
+            if (!existing.contractCardId) {
+              await prisma.creditCard.update({
+                where: { id: existing.id },
+                data: { contractCardId: catCard.cardId },
+              });
+            }
+          }
+        }
+      }
+    }
+
+    if (!card) return { ok: false, error: "Could not find or provision the recommended card in your wallet." };
 
     await prisma.bill.update({ where: { id: bill.id }, data: { paymentCardId: card.id } });
     revalidatePath(`/bills/${bill.id}`);
     revalidatePath("/bills");
+    revalidatePath("/cards");
+    revalidatePath("/settings/wallet");
+    revalidatePath("/");
   } catch (e) {
     return fail(e);
   }

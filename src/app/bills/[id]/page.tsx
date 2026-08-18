@@ -7,6 +7,7 @@ import {
   markPaid,
   removeScheduleEntry,
   setBillPaymentCard,
+  setBillPaymentRail,
   setBillSpendCategory,
   unmarkPaid,
 } from "@/app/bills/actions";
@@ -69,6 +70,7 @@ function BillCardRecommendationPanel({ rec }: { rec: BillRecommendationResult })
   }
 
   const { winner, runnerUp, isClose, gapCad, mcc, engineCategory, amountIsEstimate, mappingRationale, categorySource } = rec;
+  const { railFeeCad, netValueAfterFeeCad } = rec;
 
   return (
     <div className="mt-3 space-y-3">
@@ -91,6 +93,15 @@ function BillCardRecommendationPanel({ rec }: { rec: BillRecommendationResult })
           {gapCad !== null
             ? ` — ${winner.cardName} ahead by ${formatMinorUnits(Math.round(gapCad * 100), "CAD")}${isClose ? ", a close call" : ""}`
             : ""}
+        </p>
+      ) : null}
+
+      {railFeeCad > 0 ? (
+        <p className="text-xs text-muted-foreground">
+          Paid through a third-party service: {formatMinorUnits(Math.round(railFeeCad * 100), "CAD")} in fees comes
+          off {formatMinorUnits(Math.round(winner.netValueCad * 100), "CAD")} of rewards, so this occurrence is
+          worth {formatMinorUnits(Math.round(netValueAfterFeeCad * 100), "CAD")} more than paying it from a bank
+          account.
         </p>
       ) : null}
 
@@ -215,7 +226,13 @@ export default async function BillDetailPage({
   const cardRec = recommendCardForBill(
     catalogue,
     ownerState,
-    { category: bill.category, currency: bill.currency, variable: bill.variable },
+    {
+        category: bill.category,
+        currency: bill.currency,
+        variable: bill.variable,
+        paymentRail: bill.paymentRail,
+        railFeePct: bill.railFeePct === null ? null : Number(bill.railFeePct),
+      },
     upcoming[0] ? { amountMinor: upcoming[0].amountMinor } : null,
     fxRates,
     today,
@@ -273,6 +290,13 @@ export default async function BillDetailPage({
     "use server";
     const result = await setBillSpendCategory(formData);
     if (!result.ok) redirect(billErrorPath(id, "spendCategory", result.error));
+    redirect(`/bills/${id}`);
+  }
+
+  async function submitSetPaymentRail(formData: FormData) {
+    "use server";
+    const result = await setBillPaymentRail(formData);
+    if (!result.ok) redirect(billErrorPath(id, "paymentRail", result.error));
     redirect(`/bills/${id}`);
   }
 
@@ -345,6 +369,47 @@ export default async function BillDetailPage({
               </button>
             </form>
             {errorForm === "spendCategory" && error ? (
+              <p className="mt-2 text-xs font-medium text-red-600" role="alert">
+                {error}
+              </p>
+            ) : null}
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              How it can be paid
+            </p>
+            <form action={submitSetPaymentRail} className="flex flex-wrap items-center gap-2">
+              <input type="hidden" name="billId" value={bill.id} />
+              <select name="paymentRail" defaultValue={bill.paymentRail} className={`${inputStyle} max-w-64`}>
+                <option value="unknown">Not sure yet</option>
+                <option value="card">Credit card accepted directly</option>
+                <option value="pad">Bank account only (pre-authorized debit)</option>
+                <option value="card_via_third_party">Card only via a third-party service (fee)</option>
+              </select>
+              <input
+                type="number"
+                name="railFeePct"
+                step="0.01"
+                min="0"
+                max="100"
+                placeholder="Fee %"
+                defaultValue={bill.railFeePct === null ? "" : String(Number(bill.railFeePct))}
+                className={`${inputStyle} max-w-28`}
+                aria-label="Third-party service fee, percent"
+              />
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-border/80 bg-muted/60 px-3 text-xs font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
+              >
+                Save
+              </button>
+            </form>
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Decides whether a card can pay this bill at all — separate from its category. The fee applies
+              only to the third-party option, and without it no card is suggested.
+            </p>
+            {errorForm === "paymentRail" && error ? (
               <p className="mt-2 text-xs font-medium text-red-600" role="alert">
                 {error}
               </p>

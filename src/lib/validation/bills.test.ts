@@ -87,3 +87,40 @@ describe("calendar and range validation", () => {
     ).toBe(false);
   });
 });
+
+describe("payment rail", () => {
+  const base = {
+    name: "Durham Region Water",
+    category: "utilities" as const,
+    cadence: { type: "MONTHLY" as const, dayOfMonth: 15 },
+    schedule: [{ from: "2026-01-01", amount: 120.0 }],
+  };
+
+  it("defaults to unknown so an unrecorded rail keeps the old category behaviour", () => {
+    const parsed = billImportEntry.safeParse(base);
+    expect(parsed.success && parsed.data.paymentRail).toBe("unknown");
+  });
+
+  it("accepts each real rail value", () => {
+    for (const paymentRail of ["unknown", "card", "pad", "card_via_third_party"]) {
+      expect(billImportEntry.safeParse({ ...base, paymentRail }).success).toBe(true);
+    }
+  });
+
+  it("rejects a rail outside the known vocabulary", () => {
+    expect(billImportEntry.safeParse({ ...base, paymentRail: "interac" }).success).toBe(false);
+  });
+
+  it("treats a blank fee input as absent rather than as a free rail", () => {
+    const parsed = billImportEntry.safeParse({ ...base, paymentRail: "card_via_third_party", railFeePct: "" });
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.railFeePct).toBeUndefined();
+  });
+
+  it("parses a percentage fee and rejects a nonsensical one", () => {
+    const ok = billImportEntry.safeParse({ ...base, paymentRail: "card_via_third_party", railFeePct: "2.5" });
+    expect(ok.success && ok.data.railFeePct).toBe(2.5);
+    expect(billImportEntry.safeParse({ ...base, railFeePct: -1 }).success).toBe(false);
+    expect(billImportEntry.safeParse({ ...base, railFeePct: 101 }).success).toBe(false);
+  });
+});

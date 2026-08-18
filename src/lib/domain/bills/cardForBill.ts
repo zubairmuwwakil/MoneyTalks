@@ -61,6 +61,86 @@ export const REPRESENTATIVE_MCC: Readonly<Record<string, number>> = Object.freez
   grocery: 5411,
 });
 
+// --- Payment rail (can a card even pay this?) ------------------------------
+
+/**
+ * `Bill.paymentRail` answers a question `Bill.category` cannot: whether a
+ * credit card can touch this bill at all, and at what pass-through cost.
+ *
+ * The two are genuinely orthogonal, and collapsing them into `category`
+ * produced a confidently wrong answer. Durham Region water is a `utilities`
+ * bill — a recommendable category, mapped to householdUtilities/MCC 4814 —
+ * that accepts ONLY pre-authorized debit from a chequing/savings account.
+ * Category answers "what kind of spend is this" (needed to pick an earn
+ * rule); rail answers "can a card clear it" (needed to decide whether to
+ * recommend at all).
+ *
+ * `unknown` (the column default) defers to the historical
+ * `BILL_CATEGORY_MAPPING` behaviour verbatim, so bills whose rail nobody has
+ * recorded yet behave exactly as they did before this dimension existed.
+ * New behaviour only activates once a rail is actually on file.
+ */
+export type PaymentRail = "card" | "pad" | "card_via_third_party" | "unknown";
+
+export const PAYMENT_RAILS: readonly PaymentRail[] = Object.freeze([
+  "unknown",
+  "card",
+  "pad",
+  "card_via_third_party",
+] as const);
+
+export interface BillRailInput {
+  paymentRail?: string | null;
+  /** Third-party pass-through surcharge, as a percentage (2.5 = 2.5%). */
+  railFeePct?: number | null;
+}
+
+export type BillRailDecision =
+  /** No rail on file — fall back to the category table's assumption. */
+  | { gate: "defer-to-category" }
+  /** A card cannot honestly pay this, whatever the category would earn. */
+  | { gate: "blocked"; reason: "rail-not-card-payable" | "rail-fee-unknown"; rationale: string }
+  /** A card can pay this, at `feePct` pass-through cost (0 for a direct rail). */
+  | { gate: "allow"; rail: PaymentRail; feePct: number };
+
+/**
+ * Resolves the rail gate for a bill. Pure — no engine calls, no I/O.
+ *
+ * A `card_via_third_party` rail with no fee on file is BLOCKED rather than
+ * treated as free: the whole reason that rail is distinct from `card` is
+ * that it carries a surcharge, so assuming zero would reintroduce exactly
+ * the over-promise this module exists to prevent.
+ */
+export function resolveBillPaymentRail(bill: BillRailInput): BillRailDecision {
+  const rail = bill.paymentRail ?? "unknown";
+
+  switch (rail) {
+    case "pad":
+      return {
+        gate: "blocked",
+        reason: "rail-not-card-payable",
+        rationale:
+          "This biller only accepts pre-authorized debit from a chequing or savings account, so no credit card can pay it — there is no reward rate to compare.",
+      };
+    case "card":
+      return { gate: "allow", rail: "card", feePct: 0 };
+    case "card_via_third_party": {
+      const feePct = bill.railFeePct;
+      if (feePct === null || feePct === undefined || !Number.isFinite(feePct)) {
+        return {
+          gate: "blocked",
+          reason: "rail-fee-unknown",
+          rationale:
+            "This biller only takes a card through a third-party payment service, and no pass-through fee is on file — recommending a card would be guessing at the cost. Record the service's fee to get a real answer.",
+        };
+      }
+      return { gate: "allow", rail: "card_via_third_party", feePct };
+    }
+    default:
+      return { gate: "defer-to-category" };
+  }
+}
+
 // --- Bill.category -> engine category mapping ------------------------------
 
 export type BillCategoryDecision =
@@ -256,7 +336,7 @@ export function billSpendCategoryOptions(catalogue: Catalogue): SpendCategoryOpt
 
 // --- PurchaseContext construction -------------------------------------------
 
-export interface BillForContext {
+export interface BillForContext extends BillRailInput {
   category: string;
   currency: string;
   variable: boolean;
@@ -272,6 +352,19 @@ export type BillContextSkipReason =
   | "unmapped-category"
   | "override-mcc-unknown"
   | "fx-rate-unavailable";
+
+/**
+ * Every reason `recommendCardForBill` can decline. A superset of
+ * `BillContextSkipReason`: the rail verdicts are decided outside
+ * `buildBillPurchaseContext` — `rail-fee-exceeds-reward` in particular can
+ * only be reached AFTER scoring, since it compares the pass-through fee
+ * against what the winning card actually earns.
+ */
+export type BillSkipReason =
+  | BillContextSkipReason
+  | "rail-not-card-payable"
+  | "rail-fee-unknown"
+  | "rail-fee-exceeds-reward";
 
 export type BillContextResult =
   | {
@@ -377,7 +470,7 @@ export interface BillCardPick {
 export type BillRecommendationResult =
   | { status: "no-cards" }
   | { status: "no-upcoming-occurrence" }
-  | { status: "skipped"; reason: BillContextSkipReason; detail: string }
+  | { status: "skipped"; reason: BillSkipReason; detail: string }
   | { status: "engine-error"; detail: string }
   | {
       status: "recommended";
@@ -394,6 +487,12 @@ export type BillRecommendationResult =
       amountCad: number;
       amountIsEstimate: boolean;
       currency: string;
+      /** The rail this answer is valid for; "unknown" means nobody recorded one. */
+      paymentRail: PaymentRail;
+      /** Pass-through surcharge in CAD for this occurrence. 0 unless the rail is `card_via_third_party`. */
+      railFeeCad: number;
+      /** `winner.netValueCad - railFeeCad` — what paying by card is really worth here. */
+      netValueAfterFeeCad: number;
       recommendation: Recommendation;
     };
 
@@ -462,10 +561,28 @@ export function recommendCardForBill(
   // requirement: don't hedge it into a weak recommendation) always shows for
   // those categories, rather than being pre-empted by an unrelated "no
   // cards" or "no upcoming occurrence" result.
+  // The rail gate runs FIRST and for the same reason category exclusion did:
+  // "this biller cannot be paid by card" is a structural fact about the
+  // BILL, independent of the owner's wallet or the next due date. A PAD-only
+  // biller must say so rather than being pre-empted by "no cards on file".
+  const rail = resolveBillPaymentRail(bill);
+  if (rail.gate === "blocked") {
+    return { status: "skipped", reason: rail.reason, detail: rail.rationale };
+  }
+
   const decision = resolveBillSpendCategory(bill, opts);
-  if (!decision.recommend) {
+  // A rail that explicitly accepts a card overrides the category table's
+  // *chargeability* assumption — which is all the housing/debt exclusion
+  // ever was. Those categories still have no engine mapping of their own, so
+  // the bill scores as the MCC-agnostic "recurring" catch-all rather than a
+  // guessed bonus category (same reasoning as BILL_CATEGORY_MAPPING.other).
+  // An explicit spendCategory pin still outranks this fallback.
+  const railFallback =
+    !decision.recommend && decision.reason === "excluded-category" && rail.gate === "allow";
+  if (!decision.recommend && !railFallback) {
     return { status: "skipped", reason: decision.reason, detail: decision.rationale };
   }
+  const effectiveOpts = railFallback && !opts.override ? { ...opts, override: "recurring" } : opts;
 
   if (!ownerState || ownerState.ownedCardIds.length === 0) {
     return { status: "no-cards" };
@@ -474,7 +591,7 @@ export function recommendCardForBill(
     return { status: "no-upcoming-occurrence" };
   }
 
-  const built = buildBillPurchaseContext(bill, next, rates, opts);
+  const built = buildBillPurchaseContext(bill, next, rates, effectiveOpts);
   if (!built.ok) {
     return { status: "skipped", reason: built.reason, detail: built.detail };
   }
@@ -512,6 +629,24 @@ export function recommendCardForBill(
     isClose = !clears;
   }
 
+  // The pass-through fee is a flat cost on the OCCURRENCE, identical for
+  // every candidate card, so it can never reorder them — `isClose`, `gapCad`
+  // and every downstream allocation delta stay fee-invariant on purpose. All
+  // it can change is the go/no-go against simply paying from a bank account.
+  const feePct = rail.gate === "allow" ? rail.feePct : 0;
+  const railFeeCad = (feePct / 100) * built.context.amountCad;
+  const netValueAfterFeeCad = winner.netValueCad - railFeeCad;
+  if (railFeeCad > 0 && netValueAfterFeeCad <= 0) {
+    return {
+      status: "skipped",
+      reason: "rail-fee-exceeds-reward",
+      detail:
+        `Paying this by card costs a ${feePct}% third-party fee ($${railFeeCad.toFixed(2)}) but the best owned card ` +
+        `only earns $${winner.netValueCad.toFixed(2)} on it — $${Math.abs(netValueAfterFeeCad).toFixed(2)} worse than ` +
+        `paying it straight from a bank account. No honest card recommendation exists.`,
+    };
+  }
+
   return {
     status: "recommended",
     winner,
@@ -521,11 +656,16 @@ export function recommendCardForBill(
     engineCategory: built.engineCategory,
     mcc: built.mcc,
     mccAssumed: true,
-    mappingRationale: built.mappingRationale,
-    categorySource: built.categorySource,
+    mappingRationale: railFallback
+      ? `This bill's category has no card-chargeable mapping of its own, but its payment rail is recorded as card-payable — so it is scored as generic recurring spend (MCC-agnostic, never a guessed bonus category).`
+      : built.mappingRationale,
+    categorySource: railFallback ? "derived" : built.categorySource,
     amountCad: built.context.amountCad,
     amountIsEstimate: bill.variable,
     currency: built.context.currency,
+    paymentRail: rail.gate === "allow" ? rail.rail : "unknown",
+    railFeeCad,
+    netValueAfterFeeCad,
     recommendation,
   };
 }

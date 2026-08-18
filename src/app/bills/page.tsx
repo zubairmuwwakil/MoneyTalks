@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   AlertTriangle,
   CalendarDays,
@@ -51,7 +52,12 @@ function BillCardHint({ rec }: { rec: BillRecommendationResult }) {
   if (rec.status === "skipped") {
     return (
       <p className="text-[11px] italic text-muted-foreground">
-        {rec.reason === "excluded-category" ? rec.detail : `No card pick — ${rec.detail}`}
+        {rec.reason === "excluded-category" ||
+        rec.reason === "rail-not-card-payable" ||
+        rec.reason === "rail-fee-unknown" ||
+        rec.reason === "rail-fee-exceeds-reward"
+          ? rec.detail
+          : `No card pick — ${rec.detail}`}
       </p>
     );
   }
@@ -135,7 +141,7 @@ function BillAllocationSummaryBanner({ summary }: { summary: ReturnType<typeof s
   const asides: string[] = [];
   if (unallocatedCount > 0) asides.push(`${unallocatedCount} not yet allocated`);
   if (unscoreableCount > 0) asides.push(`${unscoreableCount} on a card not linked to the catalogue`);
-  if (excludedCount > 0) asides.push(`${excludedCount} excluded (housing/debt or otherwise unscoreable)`);
+  if (excludedCount > 0) asides.push(`${excludedCount} excluded (not card-payable or otherwise unscoreable)`);
 
   return (
     <div className="rounded-xl border border-border/80 bg-card px-4 py-3 shadow-2xs">
@@ -184,7 +190,12 @@ function toBillDef(b: {
   };
 }
 
-export default async function BillsPage() {
+export default async function BillsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+} = {}) {
+  const { error } = (await searchParams) ?? {};
   const userId = await requireUserId();
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
@@ -223,7 +234,13 @@ export default async function BillsPage() {
     const rec = recommendCardForBill(
       catalogue,
       ownerState,
-      { category: b.category, currency: b.currency, variable: b.variable },
+      {
+        category: b.category,
+        currency: b.currency,
+        variable: b.variable,
+        paymentRail: b.paymentRail,
+        railFeePct: b.railFeePct === null ? null : Number(b.railFeePct),
+      },
       next ? { amountMinor: next.amountMinor } : null,
       fxRates,
       today,
@@ -246,15 +263,12 @@ export default async function BillsPage() {
 
   const categories = [...new Set(bills.map((b) => b.category))].sort();
 
-  // A `<form action>` must be `(formData) => void | Promise<void>` —
-  // `allocateRecommendedCard` returns `Promise<ActionResult>` (same
-  // ActionResult convention every action in src/app/bills/actions.ts uses),
-  // so it's wrapped rather than passed directly. No redirect needed here
-  // (unlike the detail page's submit* wrappers): the action's own
-  // `revalidatePath` calls are enough to refresh this list.
   async function submitAllocateRecommended(formData: FormData) {
     "use server";
-    await allocateRecommendedCard(formData);
+    const result = await allocateRecommendedCard(formData);
+    if (!result.ok) {
+      redirect(`/bills?error=${encodeURIComponent(result.error)}`);
+    }
   }
 
   return (
@@ -288,6 +302,23 @@ export default async function BillsPage() {
           </Button>
         </div>
       </div>
+
+      {error ? (
+        <div
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          role="alert"
+        >
+          <span>{error}</span>
+          <Button
+            asChild
+            variant="outline"
+            size="xs"
+            className="shrink-0 border-destructive/30 bg-background text-destructive hover:bg-destructive/10"
+          >
+            <Link href="/settings/wallet">Link cards</Link>
+          </Button>
+        </div>
+      ) : null}
 
       {bills.length > 0 && hasCards ? <BillAllocationSummaryBanner summary={allocationSummary} /> : null}
 

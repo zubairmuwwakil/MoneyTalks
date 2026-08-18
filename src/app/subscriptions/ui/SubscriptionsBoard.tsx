@@ -34,6 +34,7 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
     cadence: "MONTHLY",
   });
   const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return data.filter(item => {
@@ -57,6 +58,7 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
 
   function startEdit(item: SubscriptionItem) {
     setEditingId(item.id);
+    setEditError(null);
     setDraft({
       name: item.name,
       amount: (item.amountCents / 100).toFixed(2),
@@ -68,9 +70,10 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
   async function save() {
     if (!editingId) return;
     setSaving(true);
+    setEditError(null);
     try {
       const amountCents = Math.round(Number(draft.amount) * 100);
-      await fetch(`/api/subscriptions/${editingId}`, {
+      const res = await fetch(`/api/subscriptions/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -80,6 +83,11 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
           cadence: draft.cadence,
         }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setEditError(data.error ?? "Failed to save subscription changes");
+        return;
+      }
       setData(prev =>
         prev.map(item =>
           item.id === editingId
@@ -88,6 +96,8 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
         )
       );
       setEditingId(null);
+    } catch (err: any) {
+      setEditError(err?.message ?? "Network error saving subscription");
     } finally {
       setSaving(false);
     }
@@ -208,30 +218,40 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
                         </div>
 
                         {isEditing ? (
-                          <div className="mt-2 flex items-center gap-2">
-                            <select
-                              value={draft.cadence}
-                              onChange={e => setDraft(d => ({ ...d, cadence: e.target.value as SubscriptionItem["cadence"] }))}
-                              className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm text-slate-100"
-                            >
-                              <option value="MONTHLY">Monthly</option>
-                              <option value="YEARLY">Annual</option>
-                              <option value="CUSTOM">Custom</option>
-                            </select>
-                            <button
-                              onClick={save}
-                              disabled={saving}
-                              className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-100 transition hover:border-emerald-200/50 hover:bg-white/10 disabled:opacity-60"
-                            >
-                              {saving ? "Saving…" : "Save"}
-                            </button>
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-100 transition hover:border-white/30 hover:bg-white/10"
-                            >
-                              Cancel
-                            </button>
-                          </div>
+                          <>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <select
+                                value={draft.cadence}
+                                onChange={e => setDraft(d => ({ ...d, cadence: e.target.value as SubscriptionItem["cadence"] }))}
+                                className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm text-slate-100"
+                              >
+                                <option value="MONTHLY">Monthly</option>
+                                <option value="YEARLY">Annual</option>
+                                <option value="CUSTOM">Custom</option>
+                              </select>
+                              <button
+                                onClick={save}
+                                disabled={saving}
+                                className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-100 transition hover:border-emerald-200/50 hover:bg-white/10 disabled:opacity-60 cursor-pointer"
+                              >
+                                {saving ? "Saving…" : "Save"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingId(null);
+                                  setEditError(null);
+                                }}
+                                className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-semibold text-slate-100 transition hover:border-white/30 hover:bg-white/10 cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                            {editError ? (
+                              <p className="mt-2 rounded-lg border border-rose-500/30 bg-rose-500/10 p-2 text-xs font-medium text-rose-300" role="alert">
+                                {editError}
+                              </p>
+                            ) : null}
+                          </>
                         ) : (
                           <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
                             <span>{item.notes ?? "No notes"}</span>

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -27,9 +27,20 @@ import { requireUserId } from "@/lib/require-user";
 const inputStyle =
   "flex h-8 rounded-lg border border-input bg-background px-2.5 py-1 text-xs shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring";
 
-export default async function CardDetailPage({ params }: { params: Promise<{ id: string }> }) {
+function cardErrorPath(cardId: string, form: string, message: string) {
+  return `/cards/${cardId}?errorForm=${form}&error=${encodeURIComponent(message)}`;
+}
+
+export default async function CardDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ error?: string; errorForm?: string }>;
+}) {
   const userId = await requireUserId();
   const { id } = await params;
+  const { error, errorForm } = (await searchParams) ?? {};
   const card = await prisma.creditCard.findFirst({ where: { id, userId }, include: { state: true } });
   if (!card) notFound();
 
@@ -64,27 +75,37 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
 
   async function toggleCreditAction(formData: FormData) {
     "use server";
-    await toggleCredit(formData);
+    const result = await toggleCredit(formData);
+    if (!result.ok) redirect(cardErrorPath(id, "credit", result.error));
+    redirect(`/cards/${id}`);
   }
 
   async function addCapUsageAction(formData: FormData) {
     "use server";
-    await addCapUsage(formData);
+    const result = await addCapUsage(formData);
+    if (!result.ok) redirect(cardErrorPath(id, "cap", result.error));
+    redirect(`/cards/${id}`);
   }
 
   async function toggleConditionAction(formData: FormData) {
     "use server";
-    await toggleCardCondition(formData);
+    const result = await toggleCardCondition(formData);
+    if (!result.ok) redirect(cardErrorPath(id, "condition", result.error));
+    redirect(`/cards/${id}`);
   }
 
   async function setRewardsEstimateAction(formData: FormData) {
     "use server";
-    await setRewardsEstimate(formData);
+    const result = await setRewardsEstimate(formData);
+    if (!result.ok) redirect(cardErrorPath(id, "estimate", result.error));
+    redirect(`/cards/${id}`);
   }
 
   async function deleteCardAction(formData: FormData) {
     "use server";
-    await deleteCard(formData);
+    const result = await deleteCard(formData);
+    if (!result.ok) redirect(cardErrorPath(id, "delete", result.error));
+    redirect("/cards/manage");
   }
 
   return (
@@ -185,6 +206,11 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
               </li>
             ))}
           </ul>
+          {errorForm === "condition" && error ? (
+            <p className="mt-2 text-xs font-medium text-red-600" role="alert">
+              {error}
+            </p>
+          ) : null}
         </section>
       ) : null}
 
@@ -255,6 +281,11 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
               );
             })}
           </ul>
+          {errorForm === "credit" && error ? (
+            <p className="mt-2 text-xs font-medium text-red-600" role="alert">
+              {error}
+            </p>
+          ) : null}
         </section>
       ) : null}
 
@@ -351,6 +382,11 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
               );
             })}
           </ul>
+          {errorForm === "cap" && error ? (
+            <p className="mt-3 text-xs font-medium text-red-600" role="alert">
+              {error}
+            </p>
+          ) : null}
         </section>
       ) : null}
 
@@ -375,6 +411,11 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
             Save ($)
           </button>
         </form>
+        {errorForm === "estimate" && error ? (
+          <p className="mt-3 text-xs font-medium text-red-600" role="alert">
+            {error}
+          </p>
+        ) : null}
       </section>
 
       {/* Delete Card */}
@@ -389,6 +430,11 @@ export default async function CardDetailPage({ params }: { params: Promise<{ id:
             <span>Delete card</span>
           </button>
         </form>
+        {errorForm === "delete" && error ? (
+          <p className="mt-3 text-xs font-medium text-red-600" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
     </main>
   );

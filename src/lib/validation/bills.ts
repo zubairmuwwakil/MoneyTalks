@@ -50,6 +50,18 @@ export const billCore = z.object({
   // scope (src/app/bills/actions.ts), not here — this module stays engine-
   // agnostic, matching its existing "field-level validators" scope.
   spendCategory: optional(z.string().trim().min(1).max(80)),
+  // How the bill can actually be paid — see resolveBillPaymentRail
+  // (src/lib/domain/bills/cardForBill.ts). "unknown" is the default so an
+  // unrecorded rail keeps deferring to the Bill.category assumption.
+  paymentRail: z.enum(["unknown", "card", "pad", "card_via_third_party"]).default("unknown"),
+  // Third-party pass-through surcharge, as a percentage (2.5 = 2.5%). Left
+  // deliberately UNCOUPLED from paymentRail here: a fee recorded against a
+  // non-third-party rail is inert (the domain layer only reads it for
+  // card_via_third_party), and a cross-field refine would turn billCore into
+  // a ZodEffects that `billImportEntry`/`investments.ts` can no longer
+  // `.extend()`. The consequential case — a third-party rail with NO fee —
+  // is enforced where it matters, by blocking the recommendation outright.
+  railFeePct: optional(z.coerce.number().min(0).max(100)),
 });
 
 export const billImportEntry = billCore.extend({

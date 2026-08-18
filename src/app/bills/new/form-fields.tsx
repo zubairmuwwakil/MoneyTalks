@@ -18,6 +18,7 @@ export function BillFormFields({ spendCategoryOptions }: { spendCategoryOptions:
   const [startsFrom, setStartsFrom] = useState("");
   const [from, setFrom] = useState("");
   const [amount, setAmount] = useState("");
+  const [paymentRail, setPaymentRail] = useState("unknown");
 
   const cadence =
     type === "MONTHLY"
@@ -73,6 +74,45 @@ export function BillFormFields({ spendCategoryOptions }: { spendCategoryOptions:
             general category above — useful when &quot;{`Subscriptions`}&quot; is too coarse to pick a card correctly.
           </p>
         </div>
+        <div className={paymentRail === "card_via_third_party" ? "" : "sm:col-span-2"}>
+          <label className={label} htmlFor="bill-payment-rail">How it can be paid</label>
+          <select
+            id="bill-payment-rail"
+            name="paymentRail"
+            value={paymentRail}
+            onChange={(e) => setPaymentRail(e.target.value)}
+            className={input}
+          >
+            <option value="unknown">Not sure yet</option>
+            <option value="card">Credit card accepted directly</option>
+            <option value="pad">Bank account only (pre-authorized debit)</option>
+            <option value="card_via_third_party">Card only via a third-party service (fee)</option>
+          </select>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Separate from the category above: it decides whether a card can pay this bill at all. Many
+            municipal water and property-tax accounts are bank-debit only, so no card recommendation is
+            honest for them.
+          </p>
+        </div>
+        {paymentRail === "card_via_third_party" ? (
+          <div>
+            <label className={label} htmlFor="bill-rail-fee-pct">Service fee (%)</label>
+            <input
+              id="bill-rail-fee-pct"
+              name="railFeePct"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              placeholder="e.g. 2.5"
+              className={input}
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Required for a recommendation — the fee is compared against what the card actually earns.
+              Left blank, no card is suggested rather than one that quietly loses you money.
+            </p>
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-4">

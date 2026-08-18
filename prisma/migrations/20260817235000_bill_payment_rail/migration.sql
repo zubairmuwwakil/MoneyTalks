@@ -1,0 +1,22 @@
+-- Payment rail: whether a credit card can pay a bill AT ALL, and at what
+-- pass-through cost. Previously inferred from Bill.category, which is a poor
+-- proxy — category answers "what kind of spend is this" (needed to pick an
+-- earn rule), not "can this clear a card network". The proxy produced a
+-- confidently wrong answer for PAD-only billers in recommendable categories
+-- (Durham Region water is `utilities` but accepts only pre-authorized debit
+-- from a chequing/savings account).
+--
+-- Both columns are additive and backwards-compatible: paymentRail defaults
+-- to 'unknown', which resolveBillPaymentRail
+-- (src/lib/domain/bills/cardForBill.ts) deliberately routes back through the
+-- historical BILL_CATEGORY_MAPPING behaviour. New behaviour activates only
+-- once a real rail is recorded, so no backfill is required and no existing
+-- bill changes its recommendation on deploy.
+--
+--   paymentRail — card | pad | card_via_third_party | unknown
+--   railFeePct  — surcharge percentage (2.5 = 2.5%), only meaningful for
+--     card_via_third_party. NULL there BLOCKS the recommendation rather than
+--     assuming the service is free: assuming zero would reintroduce exactly
+--     the over-promise this column exists to prevent.
+ALTER TABLE "Bill" ADD COLUMN "paymentRail" TEXT NOT NULL DEFAULT 'unknown';
+ALTER TABLE "Bill" ADD COLUMN "railFeePct" DECIMAL(65,30);

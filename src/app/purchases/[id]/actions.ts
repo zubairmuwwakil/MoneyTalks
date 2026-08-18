@@ -109,3 +109,64 @@ export async function keepSeparatePurchase(purchaseIdRaw: unknown) {
   revalidatePath("/purchases");
   return { ok: true as const };
 }
+
+// User initiated return for purchase
+export async function createReturnForPurchase(formData: FormData) {
+  const userId = await requireUserId();
+  const purchaseIdRaw = formData.get("purchaseId");
+  const parsed = idInput.safeParse(purchaseIdRaw);
+  if (!parsed.success) return { ok: false as const, error: "Invalid purchase ID" };
+
+  const purchase = await prisma.purchase.findFirst({
+    where: { id: parsed.data, userId },
+  });
+  if (!purchase) return { ok: false as const, error: "Purchase not found" };
+
+  const existingReturn = await prisma.returnItem.findFirst({
+    where: { purchaseId: purchase.id, userId },
+  });
+  if (existingReturn) return { ok: false as const, error: "A return already exists for this purchase" };
+
+  const purchaseDate = new Date(purchase.purchasedAt);
+  const returnBy = new Date(purchaseDate);
+  returnBy.setUTCDate(returnBy.getUTCDate() + 30);
+
+  const createdReturn = await prisma.returnItem.create({
+    data: {
+      userId,
+      purchaseId: purchase.id,
+      store: purchase.merchant,
+      itemNote: null,
+      amountCents: purchase.totalCents ?? null,
+      currency: purchase.currency,
+      purchaseDate,
+      returnWindowDays: 30,
+      returnBy,
+      dropoffDate: null,
+      refundedDate: null,
+      trackingNumber: null,
+      carrier: null,
+      deliveredAt: null,
+      refundExpectedAt: null,
+      refundSlaDays: 14,
+      refundType: "ORIGINAL",
+      refundAmountCents: null,
+    },
+  });
+
+  const { scheduleReturnDeadlineSoon } = await import("@/lib/domain/notifications/eventNotificationScheduler");
+  await scheduleReturnDeadlineSoon({
+    userId,
+    returnId: createdReturn.id,
+    store: createdReturn.store,
+    itemNote: createdReturn.itemNote,
+    returnBy: createdReturn.returnBy,
+    amountCents: createdReturn.amountCents,
+    currency: createdReturn.currency,
+    status: createdReturn.status,
+  });
+
+  revalidatePath("/returns");
+  revalidatePath(`/purchases/${purchase.id}`);
+  redirect("/returns");
+}

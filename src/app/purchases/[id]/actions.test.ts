@@ -1,17 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { reverseCapAccrual } from "@/lib/spine/cap-usage";
-import { keepSeparatePurchase, mergeDuplicatePurchase } from "./actions";
+import { createReturnForPurchase, keepSeparatePurchase, mergeDuplicatePurchase } from "./actions";
 
 vi.mock("@/lib/require-user", () => ({ requireUserId: vi.fn(async () => "user-1") }));
 vi.mock("@/lib/spine/cap-usage", () => ({ reverseCapAccrual: vi.fn() }));
+vi.mock("@/lib/domain/notifications/eventNotificationScheduler", () => ({
+  scheduleReturnDeadlineSoon: vi.fn(async () => {}),
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => {
     throw new Error(`REDIRECT:${url}`);
   }),
 }));
-vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: vi.fn() } }));
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    $transaction: vi.fn(),
+    purchase: { findFirst: vi.fn() },
+    returnItem: { findFirst: vi.fn(), create: vi.fn() },
+  },
+}));
 
 describe("mergeDuplicatePurchase", () => {
   const tx = {
@@ -105,5 +114,68 @@ describe("mergeDuplicatePurchase", () => {
       },
       data: { possibleDuplicateOfId: null },
     });
+  });
+});
+
+describe("createReturnForPurchase", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns error on missing purchaseId", async () => {
+    const formData = new FormData();
+    const res = await createReturnForPurchase(formData);
+    expect(res).toEqual({ ok: false, error: "Invalid purchase ID" });
+  });
+
+  it("returns error if purchase is not found", async () => {
+    vi.mocked(prisma.purchase.findFirst).mockResolvedValue(null);
+    const formData = new FormData();
+    formData.set("purchaseId", "pur-missing");
+    const res = await createReturnForPurchase(formData);
+    expect(res).toEqual({ ok: false, error: "Purchase not found" });
+  });
+
+  it("returns error if return already exists", async () => {
+    vi.mocked(prisma.purchase.findFirst).mockResolvedValue({
+      id: "pur-1",
+      userId: "user-1",
+      merchant: "Best Buy",
+      totalCents: 9900,
+      currency: "CAD",
+      purchasedAt: new Date("2026-08-01"),
+    } as any);
+    vi.mocked(prisma.returnItem.findFirst).mockResolvedValue({ id: "ret-1" } as any);
+
+    const formData = new FormData();
+    formData.set("purchaseId", "pur-1");
+    const res = await createReturnForPurchase(formData);
+    expect(res).toEqual({ ok: false, error: "A return already exists for this purchase" });
+  });
+
+  it("creates return and redirects to /returns", async () => {
+    vi.mocked(prisma.purchase.findFirst).mockResolvedValue({
+      id: "pur-1",
+      userId: "user-1",
+      merchant: "Best Buy",
+      totalCents: 9900,
+      currency: "CAD",
+      purchasedAt: new Date("2026-08-01"),
+    } as any);
+    vi.mocked(prisma.returnItem.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.returnItem.create).mockResolvedValue({
+      id: "ret-1",
+      userId: "user-1",
+      store: "Best Buy",
+      itemNote: null,
+      returnBy: new Date("2026-08-31"),
+      amountCents: 9900,
+      currency: "CAD",
+      status: "OPEN",
+    } as any);
+
+    const formData = new FormData();
+    formData.set("purchaseId", "pur-1");
+    await expect(createReturnForPurchase(formData)).rejects.toThrow("REDIRECT:/returns");
   });
 });

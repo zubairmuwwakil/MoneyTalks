@@ -258,6 +258,18 @@ model Bill {
   // over the derived Bill.category -> engine-category mapping. Null falls
   // back to the derived table (src/lib/domain/bills/cardForBill.ts).
   spendCategory      String?
+  // How this bill can actually be PAID — orthogonal to `category`, which
+  // answers "what kind of spend is this" for earn-rule mapping. Collapsing
+  // the two produced a confidently wrong answer: Durham Region water is a
+  // `utilities` bill (a recommendable category) that only accepts
+  // pre-authorized debit. "unknown" defers to the category table's
+  // historical assumption, so existing rows behave exactly as before.
+  // See resolveBillPaymentRail in src/lib/domain/bills/cardForBill.ts.
+  paymentRail        String    @default("unknown") // card | pad | card_via_third_party | unknown
+  // Third-party pass-through surcharge as a percentage (2.5 = 2.5%). Only
+  // meaningful when paymentRail == "card_via_third_party"; null there blocks
+  // the recommendation rather than assuming the service is free.
+  railFeePct         Decimal?
   // The CreditCard the user has chosen to pay this bill with. Nullable so a
   // card can be deleted without deleting the bill it was allocated to.
   paymentCardId      String?

@@ -9,6 +9,7 @@ import {
   REPRESENTATIVE_MCC,
   buildBillPurchaseContext,
   recommendCardForBill,
+  resolveBillPaymentRail,
   resolveBillSpendCategory,
 } from "./cardForBill";
 
@@ -427,6 +428,193 @@ describe("recommendCardForBill against the real catalogue", () => {
     expect(result.status).toBe("recommended");
     if (result.status === "recommended") {
       expect(result.amountIsEstimate).toBe(true);
+    }
+  });
+});
+
+// --- Payment rail (eligibility) vs. category (earn rate) -------------------
+
+describe("resolveBillPaymentRail", () => {
+  it("defers to the category table when no rail is on file", () => {
+    expect(resolveBillPaymentRail({}).gate).toBe("defer-to-category");
+    expect(resolveBillPaymentRail({ paymentRail: "unknown" }).gate).toBe("defer-to-category");
+    expect(resolveBillPaymentRail({ paymentRail: null }).gate).toBe("defer-to-category");
+  });
+
+  it("blocks a PAD-only biller outright — a card cannot pay it at any reward rate", () => {
+    const decision = resolveBillPaymentRail({ paymentRail: "pad" });
+    expect(decision.gate).toBe("blocked");
+    if (decision.gate === "blocked") {
+      expect(decision.reason).toBe("rail-not-card-payable");
+      expect(decision.rationale.length).toBeGreaterThan(20);
+    }
+  });
+
+  it("allows a directly card-payable biller at zero fee", () => {
+    const decision = resolveBillPaymentRail({ paymentRail: "card" });
+    expect(decision.gate).toBe("allow");
+    if (decision.gate === "allow") expect(decision.feePct).toBe(0);
+  });
+
+  it("allows a third-party card rail at its stated fee", () => {
+    const decision = resolveBillPaymentRail({ paymentRail: "card_via_third_party", railFeePct: 2.5 });
+    expect(decision.gate).toBe("allow");
+    if (decision.gate === "allow") expect(decision.feePct).toBe(2.5);
+  });
+
+  it("blocks a third-party card rail whose fee is unknown rather than assuming it is free", () => {
+    const decision = resolveBillPaymentRail({ paymentRail: "card_via_third_party" });
+    expect(decision.gate).toBe("blocked");
+    if (decision.gate === "blocked") expect(decision.reason).toBe("rail-fee-unknown");
+  });
+});
+
+describe("rail gates recommendation independently of category", () => {
+  const state = defaultOwnerState(["mbna-rewards-we"])!;
+
+  // The bug this whole dimension exists to fix: Durham Region water is a
+  // `utilities` bill (a recommendable category) that only accepts
+  // pre-authorized debit from a chequing/savings account.
+  it("a PAD-only utilities bill is skipped, not handed a card it cannot use", () => {
+    const result = recommendCardForBill(
+      realCatalogue,
+      state,
+      { category: "utilities", currency: "CAD", variable: false, paymentRail: "pad" },
+      { amountMinor: 12000 },
+      noRates,
+      today,
+    );
+    expect(result.status).toBe("skipped");
+    if (result.status === "skipped") expect(result.reason).toBe("rail-not-card-payable");
+  });
+
+  it("a utilities bill with no rail on file still recommends exactly as before", () => {
+    const result = recommendCardForBill(
+      realCatalogue,
+      state,
+      { category: "utilities", currency: "CAD", variable: false },
+      { amountMinor: 12000 },
+      noRates,
+      today,
+    );
+    expect(result.status).toBe("recommended");
+  });
+
+  it("an explicitly card-payable housing bill is recommended despite the category exclusion", () => {
+    const result = recommendCardForBill(
+      realCatalogue,
+      state,
+      { category: "housing", currency: "CAD", variable: false, paymentRail: "card" },
+      { amountMinor: 45810 },
+      noRates,
+      today,
+    );
+    expect(result.status).toBe("recommended");
+    // Falls back to the MCC-agnostic catch-all: housing has no engine
+    // category of its own, and guessing one risks a false MCC-gated bonus.
+    if (result.status === "recommended") expect(result.engineCategory).toBe("recurring");
+  });
+
+  it("a housing bill with no rail on file is still excluded exactly as before", () => {
+    const result = recommendCardForBill(
+      realCatalogue,
+      state,
+      { category: "housing", currency: "CAD", variable: false },
+      { amountMinor: 45810 },
+      noRates,
+      today,
+    );
+    expect(result.status).toBe("skipped");
+    if (result.status === "skipped") expect(result.reason).toBe("excluded-category");
+  });
+});
+
+describe("third-party card rail fees are netted against the reward", () => {
+  const state = defaultOwnerState(["mbna-rewards-we"])!;
+  const amountMinor = 100000; // $1,000
+
+  function run(rail: { paymentRail?: string; railFeePct?: number }) {
+    return recommendCardForBill(
+      realCatalogue,
+      state,
+      { category: "utilities", currency: "CAD", variable: false, ...rail },
+      { amountMinor },
+      noRates,
+      today,
+    );
+  }
+
+  it("reports a zero fee and an unchanged net value on a direct card rail", () => {
+    const result = run({ paymentRail: "card" });
+    expect(result.status).toBe("recommended");
+    if (result.status === "recommended") {
+      expect(result.railFeeCad).toBe(0);
+      expect(result.netValueAfterFeeCad).toBeCloseTo(result.winner.netValueCad, 6);
+    }
+  });
+
+  it("subtracts the fee from the winner's net value when the reward still clears it", () => {
+    const baseline = run({ paymentRail: "card" });
+    expect(baseline.status).toBe("recommended");
+    if (baseline.status !== "recommended") return;
+
+    // Pick a fee small enough that the reward survives it.
+    const feePct = (baseline.winner.netValueCad / 1000) * 100 * 0.5;
+    const result = run({ paymentRail: "card_via_third_party", railFeePct: feePct });
+
+    expect(result.status).toBe("recommended");
+    if (result.status === "recommended") {
+      expect(result.railFeeCad).toBeCloseTo((feePct / 100) * 1000, 6);
+      expect(result.netValueAfterFeeCad).toBeCloseTo(baseline.winner.netValueCad - result.railFeeCad, 6);
+      expect(result.netValueAfterFeeCad).toBeGreaterThan(0);
+    }
+  });
+
+  it("refuses to recommend when the fee swallows the reward, and says so with real numbers", () => {
+    const baseline = run({ paymentRail: "card" });
+    expect(baseline.status).toBe("recommended");
+    if (baseline.status !== "recommended") return;
+
+    // A fee comfortably larger than any reward this catalogue can earn.
+    const feePct = (baseline.winner.netValueCad / 1000) * 100 * 2;
+    const result = run({ paymentRail: "card_via_third_party", railFeePct: feePct });
+
+    expect(result.status).toBe("skipped");
+    if (result.status === "skipped") {
+      expect(result.reason).toBe("rail-fee-exceeds-reward");
+      // The whole point of carrying the fee: the refusal is computed, not
+      // boilerplate — it must quote the actual dollars on both sides.
+      expect(result.detail).toMatch(/\$\d/);
+    }
+  });
+
+  it("a flat rail fee never reorders the candidates it is subtracted from", () => {
+    const twoCards = defaultOwnerState(["mbna-rewards-we", "amex-cobalt"])!;
+    const score = (railFeePct?: number) =>
+      recommendCardForBill(
+        realCatalogue,
+        twoCards,
+        {
+          category: "utilities",
+          currency: "CAD",
+          variable: false,
+          ...(railFeePct === undefined ? {} : { paymentRail: "card_via_third_party", railFeePct }),
+        },
+        { amountMinor },
+        noRates,
+        today,
+      );
+
+    const free = score();
+    const fee = score(0.1);
+    expect(free.status).toBe("recommended");
+    expect(fee.status).toBe("recommended");
+    if (free.status === "recommended" && fee.status === "recommended") {
+      expect(fee.winner.cardId).toBe(free.winner.cardId);
+      expect(fee.runnerUp?.cardId ?? null).toBe(free.runnerUp?.cardId ?? null);
+      // The gap between cards is fee-invariant — the fee hits every
+      // candidate identically, so allocation deltas must not move.
+      expect(fee.gapCad ?? 0).toBeCloseTo(free.gapCad ?? 0, 6);
     }
   });
 });
