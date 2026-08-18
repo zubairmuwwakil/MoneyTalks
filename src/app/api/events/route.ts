@@ -2,45 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { parseISODateParam } from "@/lib/utils/dateParams";
-
-type EventType =
-  | "RENEWAL"
-  | "TRIAL_END"
-  | "CANCELLED_SUBSCRIPTION"
-  | "RETURN_DEADLINE"
-  | "REFUND_CHECK"
-  | "REFUND_EXPECTED"
-  | "REFUNDED"
-  | "DELIVERED";
-
-export interface CalendarEvent {
-  id: string;
-  type: EventType;
-  date: string;
-  title: string;
-  amountCents?: number;
-  currency: string | null;
-  source: {
-    kind: "subscription" | "return";
-    sourceId: string;
-  };
-  purchaseDate?: string;
-  returnBy?: string;
-  trackingNumber?: string | null;
-  estimated?: boolean;
-}
+import { addDaysUTC, toISODateOnlyUTC } from "@/lib/utils/dates";
+import type { CalendarEvent } from "@/lib/utils/calendarEvents";
+import { buildBillEvents, buildCardFeeEvents, type BillSource } from "@/lib/domain/calendar/calendarSources";
+import type { CardDef, CardRewards } from "@/lib/cards/types";
+import type { FeeScheduleCard } from "@/lib/cards/feeSchedule";
+import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
 
 export const runtime = "nodejs";
-
-function addDaysUTC(d: Date, days: number) {
-  const out = new Date(d.getTime());
-  out.setUTCDate(out.getUTCDate() + days);
-  return out;
-}
-
-function toISODateOnlyUTC(d: Date) {
-  return d.toISOString().split("T")[0];
-}
 
 export async function GET(req: NextRequest) {
   const userId = await getSessionUserId();
@@ -58,7 +27,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const [activeSubs, cancelledSubs, returnItems, snoozedEvents] = await Promise.all([
+  const [activeSubs, cancelledSubs, returnItems, snoozedEvents, bills, billPayments, cards] = await Promise.all([
     prisma.subscription.findMany({
       where: {
         userId,
@@ -125,6 +94,28 @@ export async function GET(req: NextRequest) {
     prisma.snoozedEvent.findMany({
       where: { userId, snoozedUntil: { gt: now } },
       select: { eventId: true, snoozedUntil: true },
+    }),
+    prisma.bill.findMany({
+      where: { userId },
+      select: { id: true, name: true, currency: true, autopay: true, cadence: true, schedule: true },
+    }),
+    // Payment rows exist only for occurrences the user has marked paid, so
+    // this is a status lookup, not the source of due dates.
+    prisma.payment.findMany({
+      where: { bill: { userId }, dueDate: { gte: start, lt: end } },
+      select: { billId: true, dueDate: true, paidAt: true },
+    }),
+    prisma.creditCard.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        nickname: true,
+        network: true,
+        annualFeeMinor: true,
+        rewards: true,
+        feeMonthDay: true,
+        feeCancelGraceDays: true,
+      },
     }),
   ]);
 
@@ -247,6 +238,29 @@ export async function GET(req: NextRequest) {
       });
     }
   }
+
+  const billSources: BillSource[] = bills.map(b => ({
+    id: b.id,
+    name: b.name,
+    currency: b.currency,
+    autopay: b.autopay,
+    cadence: b.cadence as unknown as Cadence,
+    schedule: b.schedule as unknown as ScheduleEntry[],
+  }));
+  const feeCards: FeeScheduleCard[] = cards.map(c => ({
+    id: c.id,
+    nickname: c.nickname,
+    network: c.network as CardDef["network"],
+    annualFeeMinor: c.annualFeeMinor,
+    rewards: c.rewards as unknown as CardRewards,
+    feeMonthDay: c.feeMonthDay,
+    feeCancelGraceDays: c.feeCancelGraceDays,
+  }));
+
+  const startISO = toISODateOnlyUTC(start);
+  const endISO = toISODateOnlyUTC(end);
+  events.push(...buildBillEvents(billSources, billPayments, startISO, endISO));
+  events.push(...buildCardFeeEvents(feeCards, startISO, endISO, now));
 
   const snoozedMap = new Map(snoozedEvents.map(s => [s.eventId, s.snoozedUntil]));
   const activeEvents = events.filter(ev => {
