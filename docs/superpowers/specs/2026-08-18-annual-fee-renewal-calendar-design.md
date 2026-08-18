@@ -44,6 +44,7 @@ The route emits `TRIAL_END` events that the shared type says cannot exist, and b
 | Bill event source | `occurrencesBetween()` for dates, `Payment` rows for status | `Payment` rows are only created when the user marks a bill paid (`src/app/bills/actions.ts:363`) — there is no forward materialization. Cadence is therefore the source of *dates*; `Payment` supplies `billStatus: DUE \| PAID`. |
 | Calendar UI | Lean MoneyTalks-native rewrite consuming `/api/events` | Avoids importing 793 lines of unaudited code and Looply's visual identity into the hub being consolidated into. The `EventType` drift is evidence the ported pieces were not audited on arrival. |
 | PickMe | No code changes | The fee *amount* already exists there via the catalogue, and `PortfolioAnalyzer` already renders a keep/cancel verdict. The date is owner state, which syncs anyway. SRP holds (A5). |
+| Grace period, long term | User input now; **researched per-issuer catalogue field later** | The app genuinely does not know each issuer's refund window, so v1 asks and labels it as the user's own input (A6). The durable answer is a researched, issuer-confirmed `feeGraceDays` on the card catalogue, held to the D3 sourcing bar. Blocked on the catalogue sync guardrail — see §12. |
 | Zero-fee cards | Emit no events | A card whose effective fee is $0 has no decision to make. |
 
 ## 4. Schema
@@ -203,3 +204,41 @@ Five independently shippable chunks. 1–2 deliver the annual-fee ask on its own
 5. **Notifications.** `CARD_FEE_DECISION_SOON`, scheduler function, automation-route wiring.
 
 Chunk 3 is the only one with a blast radius beyond its own feature — it changes a shared type — so it lands on its own with the existing calendar tests green.
+
+---
+
+## 12. Related: the cancel-window grace period as catalogue data
+
+**Status:** direction agreed 2026-08-18, not scheduled. Depends on §12.1.
+
+`feeCancelGraceDays` is a user input in this spec because the app does not know each issuer's actual refund window. The durable answer is a researched, issuer-confirmed field on the card catalogue — the same sourcing bar decision D3 holds new cards to — with the per-card value taking precedence and the user input remaining as an override for cards the catalogue does not cover.
+
+That upgrade is **blocked on the catalogue sync guardrail below**, because adding a field to the catalogue requires both consumers to tolerate it, and today MoneyTalks' copy does not receive PickMe's changes at all.
+
+### 12.1 Catalogue drift (discovered 2026-08-18)
+
+`PickMe/contracts/` is canonical. `MoneyTalks/contracts/` is a vendored copy per `PickMe/docs/plans/2026-08-16-card-contract-spec.md` line 30. Measured state:
+
+- Shared cards: **10 of 10 byte-identical.** No semantic divergence; the engines cannot disagree about any card they both know.
+- MoneyTalks holds a **strict subset** — PickMe has grown to 20 cards.
+- Schema differs by one line: PickMe's `programId` enum gained 8 values.
+- **Both files declare `catalogueVersion: 1.0`.** This is the root failure — the version field cannot distinguish the two, so neither side can detect staleness.
+
+**Cause:** the contract spec's task (b) specified "a copy script (`scripts/sync-contracts.sh` in MoneyTalks) and a CI step that fails on drift." The vendored copy was created; the script and the check were not. PickMe built the identical guardrail internally (`ContractsSyncTests.swift`, whose doc comment names the MoneyTalks check as its twin) and it was never carried across the repo boundary.
+
+**Consequence:** re-syncing is not a file copy. `src/lib/contracts/cardCatalogue.ts:57` hard-codes the closed 6-value `programId` enum, so PickMe's current catalogue fails validation on the first Scene+ card.
+
+### 12.2 Agreed fix
+
+| # | Change | Repo |
+|---|---|---|
+| 1 | `programId` becomes an **open vocabulary** (`z.string()`), matching Swift's `programId: String` and the rule the loader already applies to `family` / `kind` | MoneyTalks |
+| 2 | `scripts/sync-contracts.sh` pulls the canonical files from PickMe's public raw URLs at a pinned tag | MoneyTalks |
+| 3 | `contracts/MANIFEST.json` records the pinned tag, each file's sha256, and the vendored `catalogueVersion` | MoneyTalks |
+| 4 | CI step fails on any mismatch between vendored files and the manifest, message: "re-sync from PickMe" | MoneyTalks |
+| 5 | `catalogueVersion` bumps **MINOR** when cards are added; MAJOR stays reserved for breaking shape changes | PickMe |
+| 6 | Re-sync to bring MoneyTalks to the current 20-card catalogue | MoneyTalks |
+
+Item 1 is what stops this recurring: with an open vocabulary, a new loyalty program never breaks the MoneyTalks build again. Items 2–4 make staleness impossible to miss rather than impossible to happen — deliberately, per the contract spec's "manual-plus-guardrail on purpose."
+
+Unification via a shared package or monorepo was considered and declined: the vendored-copy approach is already ratified, and "monorepo mechanics and timing" is a deliberate deferral in the decision record.
