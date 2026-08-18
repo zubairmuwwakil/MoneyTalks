@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addMonthsUTC, buildMonthGrid, gridRangeISO, startOfMonthUTC } from "./monthGrid";
+import { addMonthsUTC, buildMonthGrid, daysBetweenISO, gridRangeISO, startOfMonthUTC } from "./monthGrid";
 
 describe("startOfMonthUTC", () => {
   it("normalizes any day in the month to day 1 at UTC midnight", () => {
@@ -74,5 +74,27 @@ describe("gridRangeISO", () => {
     expect(start).toBe(cells[0].date.toISOString().slice(0, 10));
     const dayAfterLast = new Date(cells[41].date.getTime() + 86_400_000);
     expect(end).toBe(dayAfterLast.toISOString().slice(0, 10));
+  });
+});
+
+describe("daysBetweenISO", () => {
+  it("is zero for the same date", () => {
+    expect(daysBetweenISO("2026-03-15", "2026-03-15")).toBe(0);
+  });
+
+  it("is positive when the second date is later", () => {
+    expect(daysBetweenISO("2026-03-15", "2026-03-16")).toBe(1);
+  });
+
+  it("is negative when the second date is earlier", () => {
+    expect(daysBetweenISO("2026-03-16", "2026-03-15")).toBe(-1);
+  });
+
+  it("crosses a month boundary correctly", () => {
+    expect(daysBetweenISO("2026-02-27", "2026-03-01")).toBe(2);
+  });
+
+  it("crosses a year boundary correctly", () => {
+    expect(daysBetweenISO("2025-12-31", "2026-01-01")).toBe(1);
   });
 });

@@ -58,3 +58,14 @@ export function gridRangeISO(monthStart: Date): { start: string; end: string } {
   const last = cells[cells.length - 1].date;
   return { start: toISODateOnlyUTC(first), end: toISODateOnlyUTC(addDaysUTC(last, 1)) };
 }
+
+function parseISODateOnlyUTC(iso: string): Date {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+/** Whole days from `fromISO` to `toISO`; negative when `toISO` is earlier. */
+export function daysBetweenISO(fromISO: string, toISO: string): number {
+  const ms = parseISODateOnlyUTC(toISO).getTime() - parseISODateOnlyUTC(fromISO).getTime();
+  return Math.round(ms / 86_400_000);
+}
