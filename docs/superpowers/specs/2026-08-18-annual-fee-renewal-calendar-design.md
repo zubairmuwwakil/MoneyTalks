@@ -153,7 +153,8 @@ export async function scheduleCardFeeDecisionSoon(args: {
   - `cardfee:<cardId>:posts:<postsOnISO>:lead<n>`
   - `cardfee:<cardId>:cancel:<cancelByISO>:lead<n>`
 - `dismissStaleBySource` cleanup with `sourceIdStartsWith: "<cardId>:"`, matching `scheduleBillDueSoon`.
-- Fired from `src/app/api/automation/suggestions/route.ts` alongside the existing `scheduleBillDueSoon` call.
+- **Fired from `src/app/api/cron/notify/route.ts`** (corrected during implementation). The spec originally named `api/automation/suggestions/route.ts` alongside `scheduleBillDueSoon`, but that route is *suggestion-driven* — it schedules when a user confirms a detected bill or subscription, and nothing ever creates a card-fee suggestion. `cron/notify` is the actual periodic sweep and already drives four of the six existing schedulers.
+- The sweep passes **every** card, not a windowed slice: `currentFeeCycle` decides whether there is anything to say, and a card whose renewal date was just removed still needs a pass to clear its now-stale reminder.
 
 ## 8. UI
 

@@ -6,20 +6,15 @@ import {
   scheduleReturnDeadlineSoon,
   scheduleRefundChecks,
   scheduleRefundOverdueOnce,
+  scheduleCardFeeDecisionSoon,
 } from "@/lib/domain/notifications/eventNotificationScheduler";
+import { startOfDayUTC, addDaysUTC } from "@/lib/utils/dates";
+import type { FeeScheduleCard } from "@/lib/cards/feeSchedule";
+import type { CardDef, CardRewards } from "@/lib/cards/types";
 import { refreshShipmentTimeline } from "@/lib/domain/shipping/tracking";
 import { processWalletEvents } from "@/lib/domain/wallet/walletNormalization";
 
 export const runtime = "nodejs";
-
-function startOfDayUTC(d: Date) {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-}
-function addDaysUTC(d: Date, days: number) {
-  const out = new Date(d.getTime());
-  out.setUTCDate(out.getUTCDate() + days);
-  return out;
-}
 
 async function runNotifyCron(req: NextRequest) {
   if (!(await isAuthorizedCronRequest(req))) {
@@ -51,7 +46,7 @@ async function runNotifyCron(req: NextRequest) {
     polled++;
   }
 
-  const [subs, returns, refundCandidates] = await Promise.all([
+  const [subs, returns, refundCandidates, feeCards] = await Promise.all([
     prisma.subscription.findMany({
       where: { status: "ACTIVE", renewalDate: { gte: today, lt: horizon } },
       select: { id: true, userId: true, name: true, renewalDate: true, amountCents: true, currency: true },
@@ -71,6 +66,22 @@ async function runNotifyCron(req: NextRequest) {
         ],
       },
       select: { id: true, userId: true, store: true, dropoffDate: true, refundedDate: true, refundExpectedAt: true },
+    }),
+    // Every card, not a windowed slice: currentFeeCycle decides whether there
+    // is anything to say, and a card whose date was just removed still needs a
+    // sweep to clear its stale reminder.
+    prisma.creditCard.findMany({
+      select: {
+        id: true,
+        userId: true,
+        nickname: true,
+        network: true,
+        annualFeeMinor: true,
+        rewards: true,
+        currency: true,
+        feeMonthDay: true,
+        feeCancelGraceDays: true,
+      },
     }),
   ]);
 
@@ -93,6 +104,20 @@ async function runNotifyCron(req: NextRequest) {
       amountCents: s.amountCents,
       currency: s.currency,
     });
+  }
+
+  for (const c of feeCards) {
+    attempted++;
+    const card: FeeScheduleCard = {
+      id: c.id,
+      nickname: c.nickname,
+      network: c.network as CardDef["network"],
+      annualFeeMinor: c.annualFeeMinor,
+      rewards: c.rewards as unknown as CardRewards,
+      feeMonthDay: c.feeMonthDay,
+      feeCancelGraceDays: c.feeCancelGraceDays,
+    };
+    await scheduleCardFeeDecisionSoon({ userId: c.userId, card, currency: c.currency, today });
   }
 
   for (const r of returns) {

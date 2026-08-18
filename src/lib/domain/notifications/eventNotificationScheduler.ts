@@ -3,22 +3,16 @@
 import { prisma } from "@/lib/prisma";
 import type { NotificationType, Prisma } from "@prisma/client";
 import { formatCurrencyCodeAmount } from "@/lib/utils/currency";
+import { addDaysUTC, clampDayToMonth, startOfDayUTC } from "@/lib/utils/dates";
+import { computeScheduledFor, planCardFeeNotifications } from "./cardFeeNotifications";
+import { currentFeeCycle, type FeeScheduleCard } from "@/lib/cards/feeSchedule";
 
-// ---------- date helpers (UTC day buckets) ----------
-function startOfDayUTC(d: Date) {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-}
-function addDaysUTC(d: Date, days: number) {
-  const out = new Date(d.getTime());
-  out.setUTCDate(out.getUTCDate() + days);
-  return out;
-}
+// startOfDayUTC / addDaysUTC / clampDayToMonth now live in @/lib/utils/dates —
+// they were private here, in api/events/route.ts and in cards/feeSchedule.ts.
+// Duplicated helpers are how the EventType drift happened; consolidated as
+// each file gets touched.
 function isoDateOnly(d: Date) {
   return d.toISOString().slice(0, 10);
-}
-function clampDayToMonth(year: number, monthZero: number, day: number) {
-  const lastDay = new Date(Date.UTC(year, monthZero + 1, 0)).getUTCDate();
-  return Math.min(day, lastDay);
 }
 
 async function upsertNotification(args: {
@@ -72,12 +66,6 @@ async function dismissStaleBySource(args: {
   });
 }
 
-// ---------- scheduling primitives ----------
-function computeScheduledFor(todayUTC: Date, eventDayUTC: Date, leadDays: number) {
-  const notifyDay = startOfDayUTC(addDaysUTC(eventDayUTC, -leadDays));
-  // If user adds/edits late, don’t miss: schedule for today instead of the past
-  return notifyDay < todayUTC ? todayUTC : notifyDay;
-}
 
 // ---------- public APIs you call from your routes ----------
 export async function scheduleSubscriptionRenewalSoon(args: {
@@ -376,5 +364,74 @@ export async function scheduleReturnDelivered(args: {
     sourceKind: "return",
     sourceId: args.returnId,
     keepEventKeys: [eventKey],
+  });
+}
+
+/**
+ * The annual-fee decision reminder — the seventh scheduler, following the
+ * shape of the six above. Two notifications per cycle share one
+ * NotificationType and are told apart by eventKey: one ahead of the fee
+ * posting, one ahead of the deadline to cancel and recover it. The second is
+ * the one that matters.
+ *
+ * Reuses billLeadDays rather than adding a preference column; a fee decision
+ * has the same "act before a dated charge" character as a bill.
+ */
+export async function scheduleCardFeeDecisionSoon(args: {
+  userId: string;
+  card: FeeScheduleCard;
+  currency: string;
+  today?: Date;
+}) {
+  const today = startOfDayUTC(args.today ?? new Date());
+  const cycle = currentFeeCycle(args.card, today);
+
+  // No renewal date, or no effective fee after waivers — nothing to decide.
+  // Sweep away anything scheduled from a previous state (a date removed, a
+  // waiver switched on) rather than leaving an orphaned reminder.
+  if (!cycle) {
+    await dismissStaleBySource({
+      userId: args.userId,
+      sourceKind: "card",
+      sourceIdStartsWith: `${args.card.id}:`,
+      keepEventKeys: [],
+    });
+    return;
+  }
+
+  const pref = await prisma.notificationPreference.findUnique({
+    where: { userId: args.userId },
+    select: { billLeadDays: true },
+  });
+  const leadDays = pref?.billLeadDays ?? 2;
+
+  const plans = planCardFeeNotifications({
+    cardId: args.card.id,
+    nickname: args.card.nickname,
+    cycle,
+    leadDays,
+    today,
+    currency: args.currency,
+  });
+
+  for (const plan of plans) {
+    await upsertNotification({
+      userId: args.userId,
+      type: "CARD_FEE_DECISION_SOON",
+      title: plan.title,
+      body: plan.body,
+      eventDate: plan.eventDate,
+      scheduledFor: plan.scheduledFor,
+      sourceKind: "card",
+      sourceId: plan.sourceId,
+      eventKey: plan.eventKey,
+    });
+  }
+
+  await dismissStaleBySource({
+    userId: args.userId,
+    sourceKind: "card",
+    sourceIdStartsWith: `${args.card.id}:`,
+    keepEventKeys: plans.map((plan) => plan.eventKey),
   });
 }

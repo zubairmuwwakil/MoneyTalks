@@ -811,6 +811,7 @@ enum NotificationType {
   REFUND_CHECK_DUE
   REFUND_OVERDUE
   RETURN_DELIVERED
+  CARD_FEE_DECISION_SOON
 }
 
 enum NotificationChannel {
