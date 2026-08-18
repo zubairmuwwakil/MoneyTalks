@@ -68,3 +68,16 @@ export function currentFeeCycle(card: FeeScheduleCard, today: Date): FeeCycle | 
 
   return null;
 }
+
+const MS_PER_DAY = 86_400_000;
+
+/**
+ * Whole days until the moment that matters for this phase: the posting date
+ * while UPCOMING, the cancel deadline once inside the window. Zero means
+ * "today is the last day", never "already gone" — a closed window would have
+ * rolled the cycle forward.
+ */
+export function feeCycleDaysRemaining(cycle: FeeCycle, today: Date): number {
+  const target = cycle.phase === "UPCOMING" ? cycle.postsOn : cycle.cancelBy;
+  return Math.round((target.getTime() - startOfDayUTC(today).getTime()) / MS_PER_DAY);
+}

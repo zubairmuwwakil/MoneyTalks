@@ -9,7 +9,9 @@ import { addCapUsage, deleteCard, setRewardsEstimate, toggleCardCondition, toggl
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { FeeCycleNote } from "@/components/fee-cycle-note";
 import { creditsRealizedMinor, effectiveAnnualFeeMinor, type RedeemedCredit } from "@/lib/cards/fees";
+import { currentFeeCycle, type FeeScheduleCard } from "@/lib/cards/feeSchedule";
 import {
   activeBaseRateOverride,
   capForBaseRateOverride,
@@ -20,7 +22,7 @@ import {
   type CardDef,
   type CardRewards,
 } from "@/lib/cards/types";
-import { formatMinorUnits, minorToDollarInput } from "@/engine/money";
+import { formatMinorUnits, minorToDollarInput, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -49,14 +51,18 @@ export default async function CardDetailPage({
   const redeemed = (card.state?.creditsRedeemed as unknown as RedeemedCredit[]) ?? [];
   const usage = (card.state?.capsUsage as unknown as CapUsage[]) ?? [];
 
-  const def: CardDef = {
+  const def: FeeScheduleCard = {
     id: card.id,
     nickname: card.nickname,
     network: card.network as CardDef["network"],
     annualFeeMinor: card.annualFeeMinor,
+    feeMonthDay: card.feeMonthDay,
+    feeCancelGraceDays: card.feeCancelGraceDays,
     rewards,
   };
   const effectiveFee = effectiveAnnualFeeMinor(def);
+  const now = new Date();
+  const feeCycle = currentFeeCycle(def, now);
   const realizedMinor = creditsRealizedMinor(rewards.credits, redeemed, today) + (card.state?.rewardsEstimateMinor ?? 0);
   const netMinor = realizedMinor - effectiveFee;
   const capEntries = rewards.categoryRates.reduce<Array<{ id: string; cap: NonNullable<ReturnType<typeof capForRate>> }>>(
@@ -139,6 +145,17 @@ export default async function CardDetailPage({
             {card.lastFour ? ` - ...${card.lastFour}` : ""} - effective fee {formatMinorUnits(effectiveFee, "CAD")}/yr
             {effectiveFee !== card.annualFeeMinor ? ` (published ${formatMinorUnits(card.annualFeeMinor, "CAD")})` : ""}
           </p>
+          {feeCycle ? (
+            <FeeCycleNote cycle={feeCycle} today={now} currency={card.currency as Currency} className="mt-1 block" />
+          ) : effectiveFee > 0 && !card.feeMonthDay ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              No renewal date set —{" "}
+              <Link href={`/cards/${card.id}/edit`} className="underline underline-offset-2">
+                add one
+              </Link>{" "}
+              to see how long you have to cancel.
+            </p>
+          ) : null}
         </header>
       </div>
 

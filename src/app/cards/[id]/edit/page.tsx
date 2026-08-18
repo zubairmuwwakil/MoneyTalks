@@ -26,6 +26,8 @@ export default async function EditCardPage({ params }: { params: Promise<{ id: s
     dueDay: card.dueDay?.toString() ?? "",
     aprPct: card.aprPct?.toString() ?? "",
     annualFee: minorToDollarInput(card.annualFeeMinor),
+    feeMonthDay: card.feeMonthDay ?? "",
+    feeCancelGraceDays: card.feeCancelGraceDays.toString(),
     rewards: {
       pointValueCents: rewards.pointValueCents.toString(),
       fxFeePct: rewards.fxFeePct.toString(),

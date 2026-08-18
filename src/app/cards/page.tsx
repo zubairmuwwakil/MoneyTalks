@@ -3,8 +3,10 @@ import { CreditCard, FileSpreadsheet, Plus, Settings2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatMinorUnits } from "@/engine/money";
+import { formatMinorUnits, type Currency } from "@/engine/money";
+import { FeeCycleNote } from "@/components/fee-cycle-note";
 import { effectiveAnnualFeeMinor } from "@/lib/cards/fees";
+import { currentFeeCycle, type FeeScheduleCard } from "@/lib/cards/feeSchedule";
 import type { CardDef, CardRewards } from "@/lib/cards/types";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -17,13 +19,23 @@ export default async function CardsPage() {
     include: { coverageReports: { orderBy: { month: "desc" }, take: 1 } },
   });
 
-  const defs: CardDef[] = cards.map((c) => ({
+  const defs: FeeScheduleCard[] = cards.map((c) => ({
     id: c.id,
     nickname: c.nickname,
     network: c.network as CardDef["network"],
     annualFeeMinor: c.annualFeeMinor,
     rewards: c.rewards as unknown as CardRewards,
+    feeMonthDay: c.feeMonthDay,
+    feeCancelGraceDays: c.feeCancelGraceDays,
   }));
+
+  const today = new Date();
+  const cycles = defs.map((def) => currentFeeCycle(def, today));
+  // A card that charges a real fee but has no renewal date can't be counted
+  // down, and the field is worthless unfilled — so the prompt is the feature.
+  const missingRenewalDate = defs.filter(
+    (def, i) => cycles[i] === null && effectiveAnnualFeeMinor(def) > 0 && !def.feeMonthDay,
+  ).length;
 
   return (
     <main className="space-y-6 py-6 sm:py-8">
@@ -56,6 +68,14 @@ export default async function CardsPage() {
           </Button>
         </div>
       </div>
+
+      {missingRenewalDate > 0 ? (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-700 dark:text-amber-500">
+          {missingRenewalDate} card{missingRenewalDate === 1 ? "" : "s"} with an annual fee{" "}
+          {missingRenewalDate === 1 ? "has" : "have"} no renewal date set — add one to see how long
+          you have to cancel before it charges.
+        </p>
+      ) : null}
 
       {defs.length === 0 ? (
         <EmptyState
@@ -97,6 +117,9 @@ export default async function CardsPage() {
                   <span className="text-sm font-semibold tabular-nums text-muted-foreground">
                     fee {formatMinorUnits(effectiveAnnualFeeMinor(defs[i]), "CAD")}/yr
                   </span>
+                  {cycles[i] ? (
+                    <FeeCycleNote cycle={cycles[i]!} today={today} currency={c.currency as Currency} className="mt-1 block" />
+                  ) : null}
                   {c.coverageReports[0] ? (
                     <span className="mt-1 block text-xs tabular-nums text-muted-foreground">
                       capture coverage {c.coverageReports[0].eligibleLines === 0 ? "—" : `${Math.round((c.coverageReports[0].matchedLines / c.coverageReports[0].eligibleLines) * 100)}%`}

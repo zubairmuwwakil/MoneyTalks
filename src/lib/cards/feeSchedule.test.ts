@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentFeeCycle, type FeeScheduleCard } from "./feeSchedule";
+import { currentFeeCycle, feeCycleDaysRemaining, type FeeScheduleCard } from "./feeSchedule";
 import type { CardDef } from "./types";
 
 /** UTC midnight, so tests never depend on the machine's timezone. */
@@ -145,5 +145,27 @@ describe("currentFeeCycle — grace window sizes", () => {
   it("ignores the time of day on the caller's clock", () => {
     const lateInDay = new Date(Date.UTC(2026, 2, 15, 23, 59, 59));
     expect(currentFeeCycle(card(), lateInDay)!.phase).toBe("DECISION_WINDOW");
+  });
+});
+
+describe("feeCycleDaysRemaining", () => {
+  it("counts down to the posting date while UPCOMING", () => {
+    const cycle = currentFeeCycle(card(), utc(2026, 3, 3))!;
+    expect(feeCycleDaysRemaining(cycle, utc(2026, 3, 3))).toBe(12);
+  });
+
+  it("counts down to the cancel deadline once in the DECISION_WINDOW", () => {
+    const cycle = currentFeeCycle(card(), utc(2026, 3, 15))!;
+    expect(feeCycleDaysRemaining(cycle, utc(2026, 3, 15))).toBe(30);
+  });
+
+  it("returns zero on the last day to cancel", () => {
+    const cycle = currentFeeCycle(card(), utc(2026, 4, 14))!;
+    expect(feeCycleDaysRemaining(cycle, utc(2026, 4, 14))).toBe(0);
+  });
+
+  it("ignores the time of day", () => {
+    const cycle = currentFeeCycle(card(), utc(2026, 3, 3))!;
+    expect(feeCycleDaysRemaining(cycle, new Date(Date.UTC(2026, 2, 3, 18, 30)))).toBe(12);
   });
 });

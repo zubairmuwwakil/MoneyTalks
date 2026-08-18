@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useState, type Dispatch, type SetStateAction } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createCard, type CardFormState, updateCard } from "@/app/cards/actions";
@@ -65,6 +65,8 @@ export type CardFormValues = {
   dueDay: string;
   aprPct: string;
   annualFee: string;
+  feeMonthDay: string;
+  feeCancelGraceDays: string;
   rewards: {
     pointValueCents: string;
     fxFeePct: string;
@@ -95,6 +97,8 @@ const emptyCard: CardFormValues = {
   dueDay: "",
   aprPct: "",
   annualFee: "0.00",
+  feeMonthDay: "",
+  feeCancelGraceDays: "30",
   rewards: {
     pointValueCents: "1",
     fxFeePct: "0",
@@ -126,6 +130,11 @@ function toPayload(values: CardFormValues) {
     dueDay: optional(values.dueDay),
     aprPct: optional(values.aprPct),
     annualFee: values.annualFee,
+    feeMonthDay: optional(values.feeMonthDay),
+    // optional() so a blank field falls through to the schema default of 30
+    // rather than coercing "" to 0 — a zero-day window would silently mean
+    // "no time to cancel at all".
+    feeCancelGraceDays: optional(values.feeCancelGraceDays),
     rewards: {
       pointValueCents: values.rewards.pointValueCents,
       fxFeePct: values.rewards.fxFeePct,
@@ -163,6 +172,103 @@ function fieldError(state: CardFormState, path: string) {
 
 function ErrorText({ error, id }: { error?: string; id?: string }) {
   return error ? <p id={id} className="mt-1 text-xs font-medium text-red-600">{error}</p> : null;
+}
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/**
+ * Fee renewal timing. The month-day is split into two selects rather than a
+ * date picker because there is no year — this is a recurring anniversary, and
+ * offering a year would invite storing a date that goes stale.
+ *
+ * Days 29-31 are offered even though not every month has them: a card opened
+ * on the 31st really does renew on the 31st, and feeSchedule.ts clamps to the
+ * real month at read time.
+ */
+function FeeRenewalFields({
+  values,
+  setValues,
+  state,
+}: {
+  values: CardFormValues;
+  setValues: Dispatch<SetStateAction<CardFormValues>>;
+  state: CardFormState;
+}) {
+  const [month = "", day = ""] = values.feeMonthDay ? values.feeMonthDay.split("-") : [];
+
+  const setPart = (next: { month?: string; day?: string }) => {
+    const m = next.month ?? month;
+    const d = next.day ?? day;
+    setValues((current) => ({ ...current, feeMonthDay: m && d ? `${m}-${d}` : "" }));
+  };
+
+  return (
+    <div className="rounded-lg border border-border/80 bg-muted/20 p-4">
+      <p className="text-xs font-semibold text-foreground">Annual fee renewal</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        When the fee posts, so we can show you how long you have left to cancel. Leave blank if you
+        don&apos;t know it.
+      </p>
+      <div className="mt-3 grid gap-4 sm:grid-cols-3">
+        <label className={label}>
+          Month
+          <select
+            name="feeMonthDayMonth"
+            value={month}
+            onChange={(event) => setPart({ month: event.target.value })}
+            className={input}
+          >
+            <option value="">—</option>
+            {MONTHS.map((name, index) => (
+              <option key={name} value={String(index + 1).padStart(2, "0")}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={label}>
+          Day
+          <select
+            name="feeMonthDayDay"
+            value={day}
+            onChange={(event) => setPart({ day: event.target.value })}
+            className={input}
+          >
+            <option value="">—</option>
+            {Array.from({ length: 31 }, (_, index) => String(index + 1).padStart(2, "0")).map((d) => (
+              <option key={d} value={d}>
+                {Number(d)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={label}>
+          Cancel window (days)
+          <input
+            name="feeCancelGraceDays"
+            type="number"
+            min="0"
+            max="180"
+            value={values.feeCancelGraceDays}
+            onChange={(event) =>
+              setValues((current) => ({ ...current, feeCancelGraceDays: event.target.value }))
+            }
+            className={input}
+          />
+          <ErrorText error={fieldError(state, "feeCancelGraceDays")} />
+        </label>
+      </div>
+      <input type="hidden" name="feeMonthDay" value={values.feeMonthDay} />
+      <ErrorText error={fieldError(state, "feeMonthDay")} />
+      <p className="mt-2 text-xs text-muted-foreground">
+        Most issuers refund the fee if you cancel within about 30 days of it posting. Check your
+        cardholder agreement — this is your number, not one we can verify.
+      </p>
+    </div>
+  );
 }
 
 function newCreditId(credits: CreditForm[]): string {
@@ -337,6 +443,8 @@ export function CardForm({
             <ErrorText error={fieldError(state, "annualFee")} />
           </label>
         </div>
+
+        <FeeRenewalFields values={values} setValues={setValues} state={state} />
 
         <details className="rounded-lg border border-border/80 bg-muted/20 p-4">
           <summary className="cursor-pointer text-xs font-semibold text-foreground">Optional account details</summary>
