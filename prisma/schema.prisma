@@ -11,51 +11,52 @@ datasource db {
 // Financial accounts (Phase 1) must be modeled as "FinancialAccount".
 
 model User {
-  id             String          @id @default(cuid())
-  clerkId        String?         @unique
-  name           String?
-  email          String?         @unique
-  emailVerified  DateTime?
-  image          String?
-  accounts       Account[]
-  walletInstallations WalletInstallation[]
-  walletEvents    WalletEvent[]
-  capUsageLedgers CapUsageLedger[]
-  capAccruals     CapAccrual[]
-  ownerStateRecord OwnerStateRecord?
-  cardAliases    CardAlias[]
-  statementLines StatementLine[]
-  sessions       Session[]
-  authenticators Authenticator[]
-  financialAccounts FinancialAccount[]
-  fxRates          FxRate[]
-  profile          Profile?
-  alerts           Alert[]
-  bills            Bill[]
-  creditCards      CreditCard[]
-  coverageReports  CoverageReport[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  emailConnection        EmailConnection?
-  emailTransactions      EmailTransaction[]
-  receiptDocuments       ReceiptDocument[]
-  purchases              Purchase[]
+  id                          String                       @id @default(cuid())
+  clerkId                     String?                      @unique
+  name                        String?
+  email                       String?                      @unique
+  emailVerified               DateTime?
+  image                       String?
+  accounts                    Account[]
+  walletInstallations         WalletInstallation[]
+  walletEvents                WalletEvent[]
+  capUsageLedgers             CapUsageLedger[]
+  capAccruals                 CapAccrual[]
+  ownerStateRecord            OwnerStateRecord?
+  cardAliases                 CardAlias[]
+  statementLines              StatementLine[]
+  sessions                    Session[]
+  authenticators              Authenticator[]
+  financialAccounts           FinancialAccount[]
+  fxRates                     FxRate[]
+  providerCredentials         ProviderCredential[]
+  profile                     Profile?
+  alerts                      Alert[]
+  bills                       Bill[]
+  creditCards                 CreditCard[]
+  coverageReports             CoverageReport[]
+  createdAt                   DateTime                     @default(now())
+  updatedAt                   DateTime                     @updatedAt
+  emailConnection             EmailConnection?
+  emailTransactions           EmailTransaction[]
+  receiptDocuments            ReceiptDocument[]
+  purchases                   Purchase[]
   purchaseDuplicateDismissals PurchaseDuplicateDismissal[]
-  returnItems            ReturnItem[]
-  shipmentEvents         ShipmentEvent[]
-  refundCases            RefundCase[]
-  subscriptions          Subscription[]
-  subscriptionPayments   SubscriptionPayment[]
-  detectedItems          DetectedItem[]
-  automationSuggestions  AutomationSuggestion[]
-  receiptUploads         ReceiptUpload[]
-  notifications          Notification[]
-  notificationJobs       NotificationJob[]
-  notificationPreference NotificationPreference?
-  snoozedEvents          SnoozedEvent[]
-  valueEvents            ValueEvent[]
-  dataDeletionJobs       DataDeletionJob[]
-  cardRequests           CardRequest[]
+  returnItems                 ReturnItem[]
+  shipmentEvents              ShipmentEvent[]
+  refundCases                 RefundCase[]
+  subscriptions               Subscription[]
+  subscriptionPayments        SubscriptionPayment[]
+  detectedItems               DetectedItem[]
+  automationSuggestions       AutomationSuggestion[]
+  receiptUploads              ReceiptUpload[]
+  notifications               Notification[]
+  notificationJobs            NotificationJob[]
+  notificationPreference      NotificationPreference?
+  snoozedEvents               SnoozedEvent[]
+  valueEvents                 ValueEvent[]
+  dataDeletionJobs            DataDeletionJob[]
+  cardRequests                CardRequest[]
 }
 
 model Account {
@@ -144,8 +145,8 @@ model FinancialAccount {
   transactions Transaction[]
   snapshots    BalanceSnapshot[]
 
-  @@index([userId])
   @@unique([userId, name, institution])
+  @@index([userId])
 }
 
 model Holding {
@@ -159,8 +160,45 @@ model Holding {
   bookCostMinor   Int?
   lastPriceMinor  Int
   priceAsOf       DateTime
+  // ISO-4217 the price is quoted in. Null means unknown, which is NOT the same as
+  // the account currency: VFV.TO prices in CAD inside a USD account, and summing
+  // the two produces a confidently wrong total. Valuation refuses on a mismatch
+  // or an unknown rather than guessing.
+  priceCurrency   String?
+  // Which MarketLens provider supplied it (YAHOO, DEMO), or null for manual entry.
+  priceSource     String?
+  // FRESH / STALE / UNAVAILABLE as of the last refresh, so the UI can show a
+  // price's age without recomputing the exchange calendar.
+  priceStatus     String?
 
   @@unique([accountId, symbol])
+}
+
+/// A user's own upstream market-data credential (BYOK).
+///
+/// Stored here, encrypted, and never in MarketLens: MarketLens is a stateless
+/// shared provider and holding user credentials is exactly the personal-finance
+/// territory it is not allowed to grow into. The key is decrypted only to be put
+/// on a single outbound request header, and MarketLens uses it and forgets it.
+model ProviderCredential {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Provider source name as MarketLens knows it, e.g. ALPHAVANTAGE.
+  provider     String
+  /// AES-256-GCM envelope from secretCrypto — never a plaintext key.
+  encryptedKey String
+  label        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastUsedAt   DateTime?
+  /// Outcome the last time this key actually served a request (USER, or the
+  /// reason it did not), so a silently-dead key is visible instead of looking
+  /// like everything is fine while Yahoo quietly serves everything.
+  lastStatus   String?
+
+  @@unique([userId, provider])
+  @@index([userId])
 }
 
 model Transaction {
@@ -239,16 +277,16 @@ model Alert {
 // ---- Bills (Phase 3) ----
 
 model Bill {
-  id                 String    @id @default(cuid())
+  id                 String      @id @default(cuid())
   userId             String
-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   name               String
   category           String // housing | utilities | subscriptions | transport | debt | other
   payee              String?
   sourceAccountId    String? // informational link to a FinancialAccount
-  currency           String    @default("CAD")
-  autopay            Boolean   @default(false)
-  variable           Boolean   @default(false)
+  currency           String      @default("CAD")
+  autopay            Boolean     @default(false)
+  variable           Boolean     @default(false)
   notes              String?
   cadence            Json // {type: BIWEEKLY|MONTHLY|QUARTERLY|ANNUAL, ...} — validated by zod
   schedule           Json // [{from, to?, amountMinor, note?}] — validated by zod
@@ -265,7 +303,7 @@ model Bill {
   // pre-authorized debit. "unknown" defers to the category table's
   // historical assumption, so existing rows behave exactly as before.
   // See resolveBillPaymentRail in src/lib/domain/bills/cardForBill.ts.
-  paymentRail        String    @default("unknown") // card | pad | card_via_third_party | unknown
+  paymentRail        String      @default("unknown") // card | pad | card_via_third_party | unknown
   // Third-party pass-through surcharge as a percentage (2.5 = 2.5%). Only
   // meaningful when paymentRail == "card_via_third_party"; null there blocks
   // the recommendation rather than assuming the service is free.
@@ -274,8 +312,8 @@ model Bill {
   // card can be deleted without deleting the bill it was allocated to.
   paymentCardId      String?
   paymentCard        CreditCard? @relation(fields: [paymentCardId], references: [id], onDelete: SetNull)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
   payments           Payment[]
 
   @@unique([userId, name])
@@ -297,39 +335,39 @@ model Payment {
 // ---- Cards (Phase 4) ----
 
 model CreditCard {
-  id             String     @id @default(cuid())
-  userId         String
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nickname       String
-  issuer         String
-  network        String // VISA | MASTERCARD | AMEX
-  lastFour       String?
-  country        String     @default("CA")
-  currency       String     @default("CAD")
-  limitMinor     Int?
-  statementDay   Int?
-  dueDay         Int?
-  aprPct         Decimal?
-  annualFeeMinor Int        @default(0)
+  id                 String           @id @default(cuid())
+  userId             String
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nickname           String
+  issuer             String
+  network            String // VISA | MASTERCARD | AMEX
+  lastFour           String?
+  country            String           @default("CA")
+  currency           String           @default("CAD")
+  limitMinor         Int?
+  statementDay       Int?
+  dueDay             Int?
+  aprPct             Decimal?
+  annualFeeMinor     Int              @default(0)
   // Recurring month-day the annual fee posts on ("03-15"), matching the
   // Bill.prepaymentMonthDay precedent. Null means the user has not told us —
   // no calendar events, no reminders, no guessing. Days 29-31 are allowed and
   // clamped to the real month at read time (src/lib/cards/feeSchedule.ts).
-  feeMonthDay    String?
+  feeMonthDay        String?
   // Days after the fee posts during which cancelling still recovers it.
   // Per-card because issuers differ; the default is the common case, not a
   // guarantee, and the UI labels it as the user's own input.
-  feeCancelGraceDays Int    @default(30)
+  feeCancelGraceDays Int              @default(30)
   // The scoring-contract identity used by Wallet capture aliases. This is
   // intentionally separate from this user's CreditCard.id.
-  contractCardId String?
-  rewards        Json // validated rewards structure — see src/lib/validation/cards.ts
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  state          CardState?
-  coverageReports CoverageReport[]
-  statementLines  StatementLine[]
-  bills           Bill[]
+  contractCardId     String?
+  rewards            Json // validated rewards structure — see src/lib/validation/cards.ts
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  state              CardState?
+  coverageReports    CoverageReport[]
+  statementLines     StatementLine[]
+  bills              Bill[]
 
   @@unique([userId, nickname])
   @@index([userId, contractCardId])
@@ -339,26 +377,26 @@ model CreditCard {
 // purchases. Persisted since 2026-08-17 (complete-record posture — lines were
 // previously ephemeral); lineHash makes re-uploads idempotent.
 model StatementLine {
-  id          String     @id @default(cuid())
-  userId      String
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cardId      String
-  card        CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  date        DateTime
-  description String
-  amountMinor Int
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId        String
+  card          CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  date          DateTime
+  description   String
+  amountMinor   Int
   // matched | matched-tolerant | matched-preauth | unmatched | ambiguous |
   // excluded | rejected.
   // As of the latest upload, except where the user settled a tolerant match:
   // "matched" (confirmed) and "rejected" survive re-uploads of the same line.
-  status      String
-  purchaseId  String?
-  purchase    Purchase?  @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  status        String
+  purchaseId    String?
+  purchase      Purchase?  @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
   // Un-promoted wallet event this line matched (no FK; the event promotes later).
   walletEventId String?
-  lineHash    String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  lineHash      String
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   @@unique([userId, lineHash])
   @@index([userId, date])
@@ -367,16 +405,16 @@ model StatementLine {
 
 // A compact, durable result of a statement reconciliation snapshot.
 model CoverageReport {
-  id             String     @id @default(cuid())
-  userId         String
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cardId         String
-  card           CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  month          String     // transaction month: YYYY-MM
-  matchedLines   Int
-  eligibleLines  Int
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId        String
+  card          CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  month         String // transaction month: YYYY-MM
+  matchedLines  Int
+  eligibleLines Int
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   @@unique([cardId, month])
   @@index([userId, cardId, month])
@@ -431,22 +469,22 @@ enum ValueEventType {
 }
 
 model Subscription {
-  id          String              @id @default(cuid())
-  userId      String
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  amountCents Int
-  currency    String              @default("CAD")
-  renewalDate DateTime
-  cadence     SubscriptionCadence @default(MONTHLY)
-  status      SubscriptionStatus  @default(ACTIVE)
-  cancelUrl   String?
-  notes       String?
-  trialEndAt  DateTime?
-  cancelInstructions String?
+  id                  String              @id @default(cuid())
+  userId              String
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String
+  amountCents         Int
+  currency            String              @default("CAD")
+  renewalDate         DateTime
+  cadence             SubscriptionCadence @default(MONTHLY)
+  status              SubscriptionStatus  @default(ACTIVE)
+  cancelUrl           String?
+  notes               String?
+  trialEndAt          DateTime?
+  cancelInstructions  String?
   merchantCanonicalId String?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
   detectedItems DetectedItem[]
 
@@ -469,11 +507,11 @@ model ReturnItem {
 
   trackingNumber    String?
   carrier           String?
-  dropoffDate       DateTime? 
+  dropoffDate       DateTime?
   deliveredAt       DateTime?
-  refundExpectedAt  DateTime? 
-  refundedDate      DateTime? 
-  refundAmountCents Int? 
+  refundExpectedAt  DateTime?
+  refundedDate      DateTime?
+  refundAmountCents Int?
   refundSlaDays     Int       @default(14)
   refundType        String?   @default("ORIGINAL")
 
@@ -485,7 +523,7 @@ model ReturnItem {
   purchase       Purchase?       @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
 
   @@index([userId, returnBy])
-  @@index([userId, refundExpectedAt]) 
+  @@index([userId, refundExpectedAt])
 }
 
 enum EmailProvider {
@@ -555,42 +593,42 @@ model ReceiptUpload {
 }
 
 model Purchase {
-  id            String         @id @default(cuid())
-  userId        String
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  merchant      String
-  totalCents    Int?
-  currency      String?
-  purchasedAt   DateTime
-  orderNumber   String?
-  paymentMethod String?
+  id                    String         @id @default(cuid())
+  userId                String
+  user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchant              String
+  totalCents            Int?
+  currency              String?
+  purchasedAt           DateTime
+  orderNumber           String?
+  paymentMethod         String?
   // Canonical checkout category once the source has been resolved. A null
   // category remains deliberately unresolved rather than being guessed.
-  category      String?
-  source        PurchaseSource @default(GMAIL)
-  sourceEmailId String?
-  sourceEventId String?
+  category              String?
+  source                PurchaseSource @default(GMAIL)
+  sourceEmailId         String?
+  sourceEventId         String?
   // Conservative near-match (amount+time matched, merchant unclear). Plain
   // column, no FK — the flagged row must survive its counterpart's deletion.
   possibleDuplicateOfId String?
 
-  items       PurchaseItem[]
-  attachments PurchaseAttachment[]
-  returns     ReturnItem[]
-  walletEvents      WalletEvent[]
-  emailTransactions EmailTransaction[]
-  statementLines    StatementLine[]
+  items                     PurchaseItem[]
+  attachments               PurchaseAttachment[]
+  returns                   ReturnItem[]
+  walletEvents              WalletEvent[]
+  emailTransactions         EmailTransaction[]
+  statementLines            StatementLine[]
   duplicateDismissalsAsLow  PurchaseDuplicateDismissal[] @relation("DuplicateDismissalLow")
   duplicateDismissalsAsHigh PurchaseDuplicateDismissal[] @relation("DuplicateDismissalHigh")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([userId, sourceEmailId])
+  @@unique([userId, sourceEventId])
   @@index([userId, purchasedAt])
   @@index([purchasedAt])
   @@index([userId, merchant])
-  @@unique([userId, sourceEmailId])
-  @@unique([userId, sourceEventId])
 }
 
 // Durable, order-normalized record of a user's "keep separate" decision.
@@ -612,12 +650,12 @@ model PurchaseDuplicateDismissal {
 }
 
 model PurchaseItem {
-  id          String   @id @default(cuid())
-  purchaseId  String
-  title       String
-  qty         Int?
-  priceCents  Int?
-  currency    String?
+  id         String  @id @default(cuid())
+  purchaseId String
+  title      String
+  qty        Int?
+  priceCents Int?
+  currency   String?
 
   purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
@@ -625,7 +663,7 @@ model PurchaseItem {
 }
 
 model PurchaseAttachment {
-  id            String   @id @default(cuid())
+  id            String  @id @default(cuid())
   purchaseId    String
   storageKey    String
   mime          String?
@@ -637,8 +675,8 @@ model PurchaseAttachment {
 
   createdAt DateTime @default(now())
 
-  @@index([purchaseId])
   @@unique([purchaseId, storageKey])
+  @@index([purchaseId])
 }
 
 enum SuggestionStatus {
@@ -665,7 +703,7 @@ model EmailConnection {
   expiry       DateTime?
   scope        String?
   lastScanAt   DateTime?
-  scanMode     ScanMode     @default(ALL)
+  scanMode     ScanMode  @default(ALL)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -689,7 +727,7 @@ model AutomationSuggestion {
   user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   provider EmailProvider @default(GMAIL)
 
-  primaryMessageId String? 
+  primaryMessageId String?
 
   type   SuggestionType
   status SuggestionStatus @default(NEW)
@@ -713,19 +751,19 @@ model AutomationSuggestion {
 }
 
 model DetectedItem {
-  id            String             @id @default(cuid())
-  userId        String
-  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type          DetectedItemType
-  merchant      String
-  amountCents   Int?
-  currency      String?
-  date          DateTime
-  confidence    String
-  sourceEmailId String?
-  sourceEventId String?
+  id             String             @id @default(cuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           DetectedItemType
+  merchant       String
+  amountCents    Int?
+  currency       String?
+  date           DateTime
+  confidence     String
+  sourceEmailId  String?
+  sourceEventId  String?
   rawSnippetHash String
-  status        DetectedItemStatus @default(NEW)
+  status         DetectedItemStatus @default(NEW)
 
   subscriptionId String?
   subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
@@ -780,7 +818,7 @@ model ReceiptDocument {
 
   filename    String
   contentType String
-  storagePath String 
+  storagePath String
   sizeBytes   Int
 
   createdAt DateTime @default(now())
@@ -867,13 +905,13 @@ model NotificationJob {
   channel NotificationChannel
   status  NotificationJobStatus @default(PENDING)
 
-  sendAt    DateTime 
+  sendAt    DateTime
   attempts  Int       @default(0)
   lastError String?
   sentAt    DateTime?
 
   lockedAt DateTime?
-  lockId   String? 
+  lockId   String?
 
   notificationId String?
   notification   Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
@@ -889,17 +927,17 @@ model NotificationJob {
 }
 
 model NotificationPreference {
-  userId             String  @id
-  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emailDigestEnabled Boolean @default(false)
-  timezone           String  @default("America/Toronto")
-  digestHourLocal    Int     @default(9) 
-  windowDays         Int     @default(14)
-  subLeadDays        Int     @default(3)
-  returnLeadDays     Int     @default(2)
-  billLeadDays       Int     @default(2)
-  primaryEmail       String?
-  notifyOnDelivery   Boolean @default(true)
+  userId                String  @id
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailDigestEnabled    Boolean @default(false)
+  timezone              String  @default("America/Toronto")
+  digestHourLocal       Int     @default(9)
+  windowDays            Int     @default(14)
+  subLeadDays           Int     @default(3)
+  returnLeadDays        Int     @default(2)
+  billLeadDays          Int     @default(2)
+  primaryEmail          String?
+  notifyOnDelivery      Boolean @default(true)
   notifyOnRefundOverdue Boolean @default(true)
 
   createdAt DateTime @default(now())
@@ -925,30 +963,30 @@ model ShipmentEvent {
 }
 
 model RefundCase {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   userId            String
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  returnId          String   @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  returnId          String    @unique
   expectedAt        DateTime?
   receivedAt        DateTime?
   overdueNotifiedAt DateTime?
-  refundType        String?  @default("ORIGINAL")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  refundType        String?   @default("ORIGINAL")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   returnItem ReturnItem @relation("ReturnItemRefundCase", fields: [returnId], references: [id], onDelete: Cascade)
 }
 
 model ValueEvent {
-  id         String         @id @default(cuid())
-  userId     String
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type       ValueEventType
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        ValueEventType
   amountCents Int
-  currency   String         @default("CAD")
-  occurredAt DateTime
-  sourceId   String?
-  isEstimated Boolean       @default(false)
+  currency    String         @default("CAD")
+  occurredAt  DateTime
+  sourceId    String?
+  isEstimated Boolean        @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -980,29 +1018,29 @@ enum WalletEventProcessingStatus {
 }
 
 model WalletEvent {
-  id                     String                      @id @default(cuid())
-  userId                 String
-  user                   User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  walletInstallationId   String
-  walletInstallation     WalletInstallation          @relation(fields: [walletInstallationId], references: [id], onDelete: Cascade)
-  eventId                String                      @unique
-  source                 String
-  schemaVersion          Int
-  shortcutVersion        Int
-  capturedAt             DateTime
+  id                   String             @id @default(cuid())
+  userId               String
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  walletInstallationId String
+  walletInstallation   WalletInstallation @relation(fields: [walletInstallationId], references: [id], onDelete: Cascade)
+  eventId              String             @unique
+  source               String
+  schemaVersion        Int
+  shortcutVersion      Int
+  capturedAt           DateTime
   // The device's original timestamp string (offset preserved) and IANA zone —
   // capturedAt alone can't reproduce the wall-clock time the user experienced.
-  capturedAtRaw          String?
-  capturedTimezone       String?
-  uploadedAt             DateTime                    @default(now())
+  capturedAtRaw        String?
+  capturedTimezone     String?
+  uploadedAt           DateTime           @default(now())
 
-  merchantRaw            String?
-  transactionNameRaw     String?
-  amountRaw              Decimal?                    @db.Decimal(15, 4)
-  currencyRaw            String?
-  cardRaw                String?
-  merchantNormalized     String?
-  resolvedCardId         String?
+  merchantRaw        String?
+  transactionNameRaw String?
+  amountRaw          Decimal? @db.Decimal(15, 4)
+  currencyRaw        String?
+  cardRaw            String?
+  merchantNormalized String?
+  resolvedCardId     String?
 
   latitude               Float?
   longitude              Float?
@@ -1010,23 +1048,23 @@ model WalletEvent {
 
   // Payload as received, before any server interpretation. Lets improved
   // parsers re-read history and preserves fields the server didn't understand.
-  rawPayload             Json?
+  rawPayload Json?
 
-  assumedCurrency        Boolean                     @default(false)
+  assumedCurrency Boolean @default(false)
 
   // The synchronous capture verdict is retained so the iOS feedback log can show
   // what the server actually returned at tap time. Raw event fields remain immutable.
-  feedbackVerdict        String?
-  feedbackWarning        String?
+  feedbackVerdict String?
+  feedbackWarning String?
 
-  processingStatus       WalletEventProcessingStatus @default(OBSERVED)
+  processingStatus WalletEventProcessingStatus @default(OBSERVED)
 
   // Canonical purchase this observation fed (set at normalization).
-  purchaseId             String?
-  purchase               Purchase?                   @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  purchaseId String?
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
 
-  createdAt              DateTime                    @default(now())
-  updatedAt              DateTime                    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId, eventId])
   @@index([userId, capturedAt])
@@ -1059,9 +1097,9 @@ model CardAlias {
 }
 
 model OwnerStateRecord {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String @id @default(cuid())
+  userId    String @unique
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   stateData Json
 
   createdAt DateTime @default(now())
@@ -1087,23 +1125,23 @@ model CapUsageLedger {
 // One row per source event gives cap updates exactly-once semantics and retains
 // the delta required to reverse a WalletEvent after it has been normalized.
 model CapAccrual {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sourceKey     String   @unique
-  cardId        String
-  capId         String
-  periodKey     String
-  usedMinor     Int
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceKey         String    @unique
+  cardId            String
+  capId             String
+  periodKey         String
+  usedMinor         Int
   // FX provenance. Nullable because accruals written before conversion
   // existed cannot have their original currency recovered.
   sourceAmountMinor Int?
   sourceCurrency    String?
   fxRate            Decimal?
   fxRateAsOf        DateTime?
-  reversedAt    DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  reversedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([userId, cardId, capId, periodKey])
 }

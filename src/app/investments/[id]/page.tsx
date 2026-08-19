@@ -23,7 +23,7 @@ import { refreshPrices } from "@/app/actions/refresh";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { accountBalanceWithCurrency, holdingValueMinor } from "@/engine/balance";
+import { accountBalanceWithCurrency, holdingValueMinor, holdingsValuation } from "@/engine/balance";
 import { formatMinorUnits, minorToDollarInput, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -74,10 +74,19 @@ export default async function AccountDetailPage({
     snapshotInputs,
     currency,
   );
-  const holdingsValue = account.holdings.reduce(
-    (sum, h) => sum + holdingValueMinor(Number(h.quantity), h.lastPriceMinor),
-    0,
+  // Refuses to add prices quoted in different currencies. A TSX listing inside a
+  // USD account is genuinely not addable, so it is excluded and named rather than
+  // folded into a total that would be wrong with no outward sign of being wrong.
+  const valuation = holdingsValuation(
+    account.holdings.map((h) => ({
+      symbol: h.symbol,
+      quantity: Number(h.quantity),
+      lastPriceMinor: h.lastPriceMinor,
+      priceCurrency: h.priceCurrency,
+    })),
+    currency,
   );
+  const holdingsValue = valuation.valueMinor;
   const displayedTransactions = account.transactions.slice(0, 50);
 
   async function submitHolding(formData: FormData) {
@@ -307,21 +316,36 @@ export default async function AccountDetailPage({
       {/* Holdings Section — Header must be DIRECT child for E2E selector compatibility */}
       <section className="relative rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
         <h2 className="text-base font-semibold tracking-tight">Holdings</h2>
-        {account.type === "CRYPTO" ? (
-          <form action={refreshPrices} className="absolute right-5 top-5">
-            <input type="hidden" name="accountId" value={account.id} />
-            <button
-              type="submit"
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border/80 bg-background px-2.5 text-xs font-medium text-muted-foreground shadow-2xs hover:bg-muted hover:text-foreground cursor-pointer"
-              title="Best-effort: fetches live prices from CoinGecko. Manual entry always works."
-            >
-              <RefreshCw className="size-3" />
-              <span>↻ prices</span>
-            </button>
-          </form>
-        ) : null}
+        <form action={refreshPrices} className="absolute right-5 top-5">
+          <input type="hidden" name="accountId" value={account.id} />
+          <button
+            type="submit"
+            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border/80 bg-background px-2.5 text-xs font-medium text-muted-foreground shadow-2xs hover:bg-muted hover:text-foreground cursor-pointer"
+            title={
+              account.type === "CRYPTO"
+                ? "Best-effort: fetches spot prices from CoinGecko. Manual entry always works."
+                : "Fetches the latest daily close from MarketLens. Not real-time. Manual entry always works."
+            }
+          >
+            <RefreshCw className="size-3" />
+            <span>↻ prices</span>
+          </button>
+        </form>
         {pricesOk ? <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">✓ {pricesOk}</p> : null}
         {pricesError ? <p className="mt-2 text-xs font-medium text-red-600">{pricesError}</p> : null}
+        {valuation.excluded.length > 0 ? (
+          <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+            Not included in this account&apos;s total:{" "}
+            {valuation.excluded.map((e) => `${e.symbol} (priced in ${e.priceCurrency})`).join(", ")} — a price in
+            another currency cannot be added to a {currency} total without a conversion this page does not do.
+          </p>
+        ) : null}
+        {valuation.assumedCurrency.length > 0 ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Assumed to be in {currency} (entered before prices carried a currency):{" "}
+            {valuation.assumedCurrency.join(", ")}. Refreshing records the real one.
+          </p>
+        ) : null}
 
         <ul className="mt-4 divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
           {account.holdings.map((h) => (
@@ -333,12 +357,32 @@ export default async function AccountDetailPage({
                   </Badge>
                   <span className="font-medium text-foreground">{h.name}</span>
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">Domicile: {h.domicileCountry}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Domicile: {h.domicileCountry}
+                  {" · "}
+                  {h.priceSource ? `${h.priceSource} close ` : "entered "}
+                  {h.priceAsOf.toISOString().slice(0, 10)}
+                  {h.priceCurrency ? ` ${h.priceCurrency}` : ""}
+                  {h.priceStatus === "STALE" ? (
+                    <span className="ml-1 font-medium text-amber-700 dark:text-amber-400">· stale</span>
+                  ) : null}
+                </p>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-sm font-semibold tabular-nums text-foreground">
-                  {Number(h.quantity)} × {formatMinorUnits(h.lastPriceMinor, currency)} ={" "}
-                  {formatMinorUnits(holdingValueMinor(Number(h.quantity), h.lastPriceMinor), currency)}
+                  {h.priceCurrency && h.priceCurrency !== currency ? (
+                    // Shown in its own currency, never converted and never
+                    // relabelled as the account's — an unconverted number wearing
+                    // the wrong currency symbol is the error this guards against.
+                    <span className="text-amber-700 dark:text-amber-400">
+                      {Number(h.quantity)} × {h.lastPriceMinor / 100} {h.priceCurrency}
+                    </span>
+                  ) : (
+                    <>
+                      {Number(h.quantity)} × {formatMinorUnits(h.lastPriceMinor, currency)} ={" "}
+                      {formatMinorUnits(holdingValueMinor(Number(h.quantity), h.lastPriceMinor), currency)}
+                    </>
+                  )}
                 </span>
                 <form action={submitDeleteHolding}>
                   <input type="hidden" name="holdingId" value={h.id} />

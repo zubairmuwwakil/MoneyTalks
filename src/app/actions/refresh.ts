@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { fetchUsdCadRate } from "@/lib/fetch-fx";
 import { fetchCryptoPricesMinor } from "@/lib/fetch-prices";
+import { isMarketLensConfigured } from "@/lib/services/marketlens";
+import { refreshHoldingPrices } from "@/lib/domain/investments/refreshHoldingPrices";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -48,20 +50,18 @@ export async function refreshFxRates(formData: FormData): Promise<void> {
 }
 
 /**
- * Best-effort crypto price refresh for a single account's holdings.
- * Auto-fetch only ever attempts crypto (CoinGecko, in the account's
- * currency) — equity auto-fetch has no free, no-key, server-side source
- * (Stooq's CSV endpoint now 404s; see src/lib/fetch-prices.ts), so
- * non-crypto accounts get an explanatory status instead of a silent no-op.
- * Manual entry always works regardless of account type.
+ * Refreshes one account's holding prices.
  *
- * Fetches prices for every holding in a single batched CoinGecko request
- * (see fetchCryptoPricesMinor) rather than one request per holding: this
- * app deploys to Vercel Hobby, where serverless functions are capped at
- * 10 seconds, and a sequential per-holding loop with a 5s timeout each
- * could exceed that with just two unresolvable coins — killing the
- * function mid-loop after some holdings were written but before the
- * redirect ran.
+ * Two providers, split by what each actually owns. Equities go to MarketLens,
+ * the ecosystem's single owner of market data (E3) — this file must never grow
+ * its own equity price fetch. Crypto still uses CoinGecko directly, because
+ * MarketLens is equities-only until that capability is ported to it; that
+ * exception is recorded, not accidental.
+ *
+ * Every failure path leaves stored prices untouched and says so. A holding whose
+ * price could not be refreshed keeps its last-known value and is shown with its
+ * true age, which is the whole point: valuation must never hard-depend on a live
+ * fetch.
  */
 export async function refreshPrices(formData: FormData): Promise<void> {
   const userId = await requireUserId();
@@ -74,14 +74,69 @@ export async function refreshPrices(formData: FormData): Promise<void> {
   });
   if (!account) redirectWithStatus(path, "pricesError", "Account not found.");
 
-  if (account.type !== "CRYPTO") {
+  if (account.type === "CRYPTO") {
+    await refreshCryptoPrices(account, path);
+  }
+
+  if (!isMarketLensConfigured()) {
     redirectWithStatus(
       path,
       "pricesError",
-      "Price auto-fetch covers crypto accounts only; other holdings use manual entry.",
+      "Market data service is not configured (MARKETLENS_BASE_URL / MARKETLENS_API_KEY). Manual entry still works.",
     );
   }
 
+  const outcome = await refreshHoldingPrices(prisma, userId, { accountId });
+
+  revalidatePath(path);
+  revalidatePath("/");
+
+  if (outcome.reason === "no-holdings") {
+    redirectWithStatus(path, "pricesError", "This account has no holdings to price.");
+  }
+  if (outcome.reason === "fetch-failed") {
+    redirectWithStatus(
+      path,
+      "pricesError",
+      "Market data service unreachable. Existing prices are unchanged — they are shown with their real age.",
+    );
+  }
+
+  const sources = Object.entries(outcome.sources)
+    .map(([source, count]) => `${count} via ${source}`)
+    .join(", ");
+  const skippedNote = outcome.skipped.length
+    ? ` ${outcome.skipped.length} unchanged (${summarizeSkips(outcome.skipped)}).`
+    : "";
+
+  redirectWithStatus(
+    path,
+    "pricesOk",
+    `${outcome.updated} priced at the latest close${sources ? ` (${sources})` : ""}.${skippedNote}`,
+  );
+}
+
+/** Groups skip reasons so the message names causes rather than listing symbols. */
+function summarizeSkips(skipped: { reason: string }[]): string {
+  const counts = new Map<string, number>();
+  for (const skip of skipped) counts.set(skip.reason, (counts.get(skip.reason) ?? 0) + 1);
+  return Array.from(counts.entries())
+    .map(([reason, count]) => `${count} ${reason.replace(/-/g, " ")}`)
+    .join(", ");
+}
+
+/**
+ * Crypto auto-fetch via CoinGecko, batched into a single request.
+ *
+ * One request rather than one per holding because this deploys to a platform
+ * that caps serverless functions at ten seconds: a sequential loop with a 5s
+ * timeout each can exceed that with just two unresolvable coins, killing the
+ * function after some holdings were written but before the redirect ran.
+ */
+async function refreshCryptoPrices(
+  account: { id: string; currency: string; holdings: { id: string; symbol: string }[] },
+  path: string,
+): Promise<never> {
   const prices = await fetchCryptoPricesMinor(
     account.holdings.map((h) => h.symbol),
     account.currency,
@@ -97,7 +152,15 @@ export async function refreshPrices(formData: FormData): Promise<void> {
     }
     await prisma.holding.update({
       where: { id: holding.id },
-      data: { lastPriceMinor: price, priceAsOf: new Date() },
+      data: {
+        lastPriceMinor: price,
+        priceAsOf: new Date(),
+        // CoinGecko quotes in the currency we asked for, so this is known rather
+        // than assumed — and recording it keeps null meaning "manually entered".
+        priceCurrency: account.currency.toUpperCase(),
+        priceSource: "COINGECKO",
+        priceStatus: "FRESH",
+      },
     });
     updated += 1;
   }

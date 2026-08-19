@@ -15,6 +15,7 @@ Optional env:
   QSTASH_NOTIFY_CRON   default: 0 * * * *
   QSTASH_PURCHASE_MERGE_CRON default: 30 3 * * *
   QSTASH_FX_CRON       default: 0 11 * * *
+  QSTASH_PRICES_CRON   default: 0 2 * * *
 
 Run:
   npx dotenv -e .env.local -- npm run qstash:schedules`);
@@ -62,6 +63,14 @@ const schedules = [
     // 11:00 UTC / 07:00 ET: the Bank of Canada's previous-business-day rate is
     // published well before this, and it lands before any daily summary runs.
     cron: process.env.QSTASH_FX_CRON || "0 11 * * *",
+  },
+  {
+    name: "prices",
+    scheduleId: "moneytalks-prices",
+    path: "/api/cron/prices",
+    // 02:00 UTC = after the US close and after MarketLens' own 22:30 UTC sweep,
+    // so the hub reads prices MarketLens has already warmed rather than racing it.
+    cron: process.env.QSTASH_PRICES_CRON || "0 2 * * *",
   },
 ];
 

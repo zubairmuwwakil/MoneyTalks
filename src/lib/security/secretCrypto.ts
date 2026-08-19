@@ -1,4 +1,5 @@
-// Authenticated encryption for credentials held at rest (OAuth tokens).
+// Authenticated encryption for credentials held at rest (OAuth tokens, BYOK
+// provider keys).
 //
 // Envelope format:  encv1:<keyVersion>:<base64url(iv ‖ authTag ‖ ciphertext)>
 //
@@ -10,7 +11,11 @@
 
 import { createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from "node:crypto";
 
-export type SecretField = "accessToken" | "refreshToken";
+// "providerKey" is a user's own upstream market-data credential (BYOK). It joins
+// the OAuth fields here rather than getting its own crypto path so the (userId,
+// field) GCM binding keeps being constructed in exactly one place — a key lifted
+// from one row still cannot be replayed into another.
+export type SecretField = "accessToken" | "refreshToken" | "providerKey";
 export type SecretContext = { userId: string; field: SecretField };
 
 export type SecretCryptoCode =
