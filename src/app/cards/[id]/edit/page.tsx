@@ -77,7 +77,7 @@ export default async function EditCardPage({ params }: { params: Promise<{ id: s
   };
 
   return (
-    <main className="max-w-3xl space-y-6 py-6 sm:py-8">
+    <main className="max-w-5xl space-y-6 py-6 sm:py-8">
       <div>
         <Link
           href={`/cards/${card.id}`}
@@ -86,7 +86,7 @@ export default async function EditCardPage({ params }: { params: Promise<{ id: s
           <ArrowLeft className="size-3.5" />
           <span>Back to Card</span>
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Edit {card.nickname}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Edit {card.nickname}</h1>
         <p className="text-sm text-muted-foreground">
           Update card parameters, rewards multipliers, category bonuses, and credits.
         </p>

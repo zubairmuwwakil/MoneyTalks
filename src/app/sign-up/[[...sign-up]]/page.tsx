@@ -1,9 +1,9 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import { SignIn } from "@clerk/nextjs";
+import { SignUp } from "@clerk/nextjs";
 
-export default async function LoginPage() {
+export default async function SignUpAliasPage() {
   const { userId } = await auth();
   if (userId) redirect("/");
 
@@ -21,7 +21,7 @@ export default async function LoginPage() {
         </div>
 
         <div className="flex justify-center">
-          <SignIn signUpUrl="/signup" />
+          <SignUp signInUrl="/login" />
         </div>
       </div>
     </main>

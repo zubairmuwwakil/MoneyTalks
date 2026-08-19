@@ -195,6 +195,15 @@ const COMMANDS: CommandItem[] = [
 
   // Public & Info
   {
+    id: "pub-signup",
+    title: "Create Account / Sign Up",
+    description: "Register a new Inunity account and start setting up your command center",
+    category: "Public & Info",
+    href: "/signup",
+    icon: UserPlus,
+    keywords: ["signup", "sign up", "register", "create account", "join", "new account"],
+  },
+  {
     id: "pub-features",
     title: "Features & Architecture",
     description: "Learn about offline ambient copilot logic and privacy by construction",
@@ -219,7 +228,16 @@ const COMMANDS: CommandItem[] = [
     category: "Public & Info",
     href: "/privacy",
     icon: Shield,
-    keywords: ["privacy", "security", "encryption", "policy", "terms"],
+    keywords: ["privacy", "security", "encryption", "policy"],
+  },
+  {
+    id: "pub-terms",
+    title: "Terms of Service",
+    description: "Terms and conditions, disclaimers, and platform governing rules",
+    category: "Public & Info",
+    href: "/terms",
+    icon: FileText,
+    keywords: ["terms", "tos", "terms of service", "conditions", "legal", "rules", "disclaimer"],
   },
 ];
 

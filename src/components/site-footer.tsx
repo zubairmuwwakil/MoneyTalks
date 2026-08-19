@@ -15,6 +15,12 @@ export function SiteFooter() {
             Features
           </Link>
           <Link
+            href="/signup"
+            className="underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-foreground"
+          >
+            Sign Up
+          </Link>
+          <Link
             href="/waitlist"
             className="underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-foreground"
           >
@@ -31,6 +37,12 @@ export function SiteFooter() {
             className="underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-foreground"
           >
             Privacy Policy
+          </Link>
+          <Link
+            href="/terms"
+            className="underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-foreground"
+          >
+            Terms of Service
           </Link>
         </nav>
       </div>

@@ -214,7 +214,21 @@ export default function SupportPage() {
         {/* App Store & Developer Notes */}
         <footer className="border-t border-border pt-8 text-xs text-muted-foreground space-y-2">
           <p>
-            Inunity is built and maintained by Zubair Muwwakil. For legal, data protection, or regulatory inquiries under PIPEDA or Law 25, contact{" "}
+            Inunity is built and maintained by Zubair Muwwakil. Review our{" "}
+            <Link
+              href="/privacy"
+              className="underline decoration-border underline-offset-4 hover:decoration-foreground"
+            >
+              Privacy Policy
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/terms"
+              className="underline decoration-border underline-offset-4 hover:decoration-foreground"
+            >
+              Terms of Service
+            </Link>
+            . For legal, data protection, or regulatory inquiries under PIPEDA or Law 25, contact{" "}
             <a
               href={`mailto:${CONTACT_EMAIL}`}
               className="underline decoration-border underline-offset-4 hover:decoration-foreground"

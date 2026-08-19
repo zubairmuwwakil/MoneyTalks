@@ -7,7 +7,7 @@ export default async function NewCardPage() {
   await requireUserId();
 
   return (
-    <main className="max-w-3xl space-y-6 py-6 sm:py-8">
+    <main className="max-w-5xl space-y-6 py-6 sm:py-8">
       <div>
         <Link
           href="/cards"
@@ -16,9 +16,9 @@ export default async function NewCardPage() {
           <ArrowLeft className="size-3.5" />
           <span>Back to Wallet</span>
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Add card</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Add card</h1>
         <p className="text-sm text-muted-foreground">
-          Configure rewards, category multipliers, and conditions to maximize points and net value.
+          Autofill from popular card presets or configure custom reward multipliers, category spend caps, and annual fee schedules.
         </p>
       </div>
 

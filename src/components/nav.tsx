@@ -50,7 +50,7 @@ const secondaryLinks = [
 
 const publicLinks = [
   { href: "/marketing", label: "Features", icon: Sparkles },
-  { href: "/waitlist", label: "Waitlist", icon: UserPlus },
+  { href: "/signup", label: "Sign Up", icon: UserPlus },
   { href: "/privacy", label: "Privacy", icon: Shield },
 ] as const;
 
@@ -65,7 +65,9 @@ export function Nav() {
     pathname.startsWith("/marketing") ||
     pathname.startsWith("/waitlist") ||
     pathname.startsWith("/privacy") ||
-    pathname.startsWith("/login");
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/sign-up");
 
   const isSecondaryActive = secondaryLinks.some((l) => pathname.startsWith(l.href));
 
@@ -144,10 +146,10 @@ export function Nav() {
                 Sign in
               </Link>
               <Link
-                href="/waitlist"
+                href="/signup"
                 className="inline-flex h-7 items-center gap-1 rounded-md bg-foreground px-2.5 text-xs font-medium text-background"
               >
-                <span>Beta</span>
+                <span>Sign up</span>
                 <ArrowRight className="size-3" />
               </Link>
             </div>
@@ -307,10 +309,10 @@ export function Nav() {
                     Sign in
                   </Link>
                   <Link
-                    href="/waitlist"
+                    href="/signup"
                     className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-foreground px-3 text-xs font-semibold text-background shadow-2xs transition-all hover:bg-foreground/90"
                   >
-                    <span>Join Waitlist</span>
+                    <span>Sign up</span>
                     <ArrowRight className="size-3" />
                   </Link>
                 </div>
@@ -369,16 +371,16 @@ export function Nav() {
             </li>
             <li className="flex flex-1 items-stretch">
               <Link
-                href="/waitlist"
+                href="/signup"
                 className={cn(
                   "flex flex-1 flex-col items-center justify-center gap-1 py-1.5 text-center transition-colors",
-                  pathname.startsWith("/waitlist")
+                  pathname.startsWith("/signup") || pathname.startsWith("/sign-up")
                     ? "font-semibold text-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <UserPlus className="size-4" />
-                <span className="text-[10px] leading-none tracking-tight">Waitlist</span>
+                <span className="text-[10px] leading-none tracking-tight">Sign Up</span>
               </Link>
             </li>
             <li className="flex flex-1 items-stretch">

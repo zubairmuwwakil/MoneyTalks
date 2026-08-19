@@ -76,7 +76,7 @@ export function MarketingContent() {
       <section className="relative flex flex-col items-center text-center space-y-6 pt-4 pb-4 sm:pt-6 sm:pb-8">
         <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-muted/60 px-3.5 py-1 text-xs font-medium text-foreground">
           <Sparkles className="size-3.5 text-primary" />
-          <span>Inunity Early Access &amp; TestFlight Beta</span>
+          <span>Inunity Personal Finance &amp; Card Copilot</span>
         </div>
 
         <h1 className="max-w-4xl text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-foreground">
@@ -112,10 +112,10 @@ export function MarketingContent() {
           ) : (
             <>
               <Link
-                href="/waitlist"
+                href="/signup"
                 className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-foreground px-6 text-sm font-semibold text-background shadow-xs transition-all hover:bg-foreground/90 hover:shadow-md"
               >
-                <span>Request Early Beta Access</span>
+                <span>Get Started Free</span>
                 <ArrowRight className="size-4" />
               </Link>
               <Link
@@ -594,10 +594,10 @@ export function MarketingContent() {
       <section className="rounded-2xl border border-border bg-foreground text-background p-8 sm:p-12 text-center space-y-6 shadow-xl">
         <div className="space-y-2 max-w-xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Take command of your financial edge today
+            Start taking command of your financial edge today
           </h2>
           <p className="text-xs sm:text-sm text-background/80">
-            Join the invite-only beta to get TestFlight access for the ambient iOS card copilot and full access to the Inunity web command center.
+            Create your free account for full access to the Inunity web command center and ambient card copilot.
           </p>
         </div>
 
@@ -621,10 +621,10 @@ export function MarketingContent() {
           ) : (
             <>
               <Link
-                href="/waitlist"
+                href="/signup"
                 className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-background px-6 text-sm font-semibold text-foreground shadow-sm transition-all hover:bg-background/90"
               >
-                <span>Join Beta Waitlist</span>
+                <span>Get Started Free</span>
                 <ArrowRight className="size-4" />
               </Link>
               <Link
