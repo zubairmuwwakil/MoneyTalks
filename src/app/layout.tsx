@@ -6,7 +6,7 @@ import { SwRegister } from "@/components/sw-register";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PickMe Hub — Personal Finance Command Center",
+  title: "Inunity — Personal Finance Command Center",
   description: "Personal finance command center for multi-currency tracking, investments, cashflow forecasting, and tax compliance.",
 };
 
