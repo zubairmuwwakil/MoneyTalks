@@ -8,6 +8,15 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Inunity — Personal Finance Command Center",
   description: "Personal finance command center for multi-currency tracking, investments, cashflow forecasting, and tax compliance.",
+  icons: {
+    icon: [
+      { url: "/favicon-dark.png", media: "(prefers-color-scheme: dark)" },
+      { url: "/favicon-light.png", media: "(prefers-color-scheme: light)" },
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({

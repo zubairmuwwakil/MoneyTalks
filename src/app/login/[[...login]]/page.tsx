@@ -11,11 +11,11 @@ export default async function LoginPage() {
     <main className="flex min-h-[85vh] items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center text-center space-y-2">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-foreground text-background shadow-md">
-            <Coins className="size-6" />
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-foreground/10 text-foreground shadow-md overflow-hidden p-2">
+            <img src="/icon.svg" alt="Inunity" className="size-10" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">PickMe</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Inunity</h1>
             <p className="text-xs text-muted-foreground mt-0.5">Personal finance command center</p>
           </div>
         </div>

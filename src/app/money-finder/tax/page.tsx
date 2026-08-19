@@ -81,7 +81,7 @@ export default async function TaxChecklistPage() {
       </div>
 
       <footer className="rounded-xl border border-border/80 bg-muted/20 p-4 text-xs text-muted-foreground leading-relaxed">
-        PickMe flags that a form is likely required. It never files one, and this is not
+        Inunity flags that a form is likely required. It never files one, and this is not
         financial or tax advice. Cross-border filing has nuances this app does not model — confirm
         scope with a cross-border accountant before you file.
       </footer>

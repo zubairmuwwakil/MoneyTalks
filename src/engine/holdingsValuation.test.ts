@@ -74,4 +74,48 @@ describe("holdingsValuation", () => {
     expect(result.excluded).toHaveLength(0);
     expect(result.assumedPeg).toEqual(["BTC", "ETH"]);
   });
+
+  it("converts foreign currency holdings when FX rates are supplied", () => {
+    // 10 shares of TSLA at 336.87 USD (336870 cents USD) with USD/CAD rate 1.364 -> 459491 cents CAD
+    const fxRates = [
+      { base: "CAD" as const, quote: "USD" as const, rate: 0.7331, asOf: "2026-08-18T00:00:00Z" },
+    ];
+
+    const result = holdingsValuation(
+      [h("TSLA", 10, 33687, "USD"), h("XEQT.TO", 100, 4571, "CAD")],
+      "CAD",
+      fxRates,
+    );
+
+    // 10 * 33687 = 336870 USD cents. USD to CAD: 336870 / 0.7331 = 459514
+    // 100 * 4571 = 457100 CAD cents.
+    // Total = 457100 + 459514 = 916614 CAD cents.
+    expect(result.complete).toBe(true);
+    expect(result.excluded).toHaveLength(0);
+    expect(result.converted).toHaveLength(1);
+    expect(result.converted[0]).toMatchObject({
+      symbol: "TSLA",
+      originalPriceCurrency: "USD",
+      originalValueMinor: 336870,
+    });
+    expect(result.valueMinor).toBe(457100 + result.converted[0].convertedValueMinor);
+  });
+
+  it("falls back to excluded if no FX rate is available for foreign holding", () => {
+    const fxRates = [
+      { base: "CAD" as const, quote: "USD" as const, rate: 0.7331, asOf: "2026-08-18T00:00:00Z" },
+    ];
+
+    // GBP rate is missing, so GBP holding is excluded while USD holding is converted
+    const result = holdingsValuation(
+      [h("TSLA", 10, 33687, "USD"), h("ULVR.L", 5, 4500, "GBP")],
+      "CAD",
+      fxRates,
+    );
+
+    expect(result.complete).toBe(false);
+    expect(result.converted).toHaveLength(1);
+    expect(result.converted[0].symbol).toBe("TSLA");
+    expect(result.excluded).toEqual([{ symbol: "ULVR.L", priceCurrency: "GBP", reason: "currency-mismatch" }]);
+  });
 });

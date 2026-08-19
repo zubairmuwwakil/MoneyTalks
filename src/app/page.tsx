@@ -17,7 +17,7 @@ import { refreshFxRates } from "@/app/actions/refresh";
 import { NetWorthSparkline } from "@/components/net-worth-sparkline";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { accountBalanceWithCurrency } from "@/engine/balance";
+import { accountBalanceWithCurrency, holdingsValuation } from "@/engine/balance";
 import { billOccurrences } from "@/engine/billforecast";
 import { MissingFxRateError, type FxRateInput } from "@/engine/fx";
 import { formatMinorUnits, type Currency } from "@/engine/money";
@@ -55,7 +55,7 @@ export default async function Home({
   const [accounts, fxRates] = await Promise.all([
     prisma.financialAccount.findMany({
       where: { userId },
-      include: { transactions: true, snapshots: true },
+      include: { transactions: true, snapshots: true, holdings: true },
       orderBy: { name: "asc" },
     }),
     prisma.fxRate.findMany({ where: { userId } }),
@@ -84,7 +84,18 @@ export default async function Home({
       snapshots,
       a.currency,
     );
-    if (!balance.ok) {
+    const valuation = holdingsValuation(
+      a.holdings.map((h) => ({
+        symbol: h.symbol,
+        quantity: Number(h.quantity),
+        lastPriceMinor: h.lastPriceMinor,
+        priceCurrency: h.priceCurrency,
+      })),
+      a.currency,
+      rates,
+    );
+
+    if (!balance.ok && a.holdings.length === 0) {
       return {
         ok: false as const,
         id: a.id,
@@ -94,14 +105,18 @@ export default async function Home({
         error: balance.error,
       };
     }
+
+    const cashMinor = balance.ok ? balance.balanceMinor : 0;
+    const totalAccountMinor = cashMinor + valuation.valueMinor;
+
     return {
       ok: true as const,
       id: a.id,
       name: a.name,
       type: a.type as string,
       institution: a.institution,
-      currency: balance.currency as Currency,
-      balanceMinor: balance.balanceMinor,
+      currency: a.currency as Currency,
+      balanceMinor: totalAccountMinor,
     };
   });
   const unavailableRows = balanceRows.filter((row) => !row.ok);

@@ -126,6 +126,38 @@ export async function addHolding(formData: FormData): Promise<ActionResult> {
   return { ok: true };
 }
 
+import { parseDollarsToMinor } from "@/engine/money";
+
+export async function setCashBalance(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const accountId = String(formData.get("accountId") ?? "");
+  const cashStr = String(formData.get("cashBalance") ?? "").trim();
+  const parsedAmount = parseDollarsToMinor(cashStr);
+  if (parsedAmount === null) return { ok: false, error: "Invalid dollar amount" };
+
+  try {
+    const account = await ownedAccount(userId, accountId);
+    const now = new Date();
+    const snapshotDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), 0);
+    await prisma.balanceSnapshot.upsert({
+      where: { accountId_asOf: { accountId, asOf: snapshotDate } },
+      update: { balanceMinor: parsedAmount },
+      create: {
+        accountId,
+        balanceMinor: parsedAmount,
+        currency: account.currency,
+        asOf: snapshotDate,
+      },
+    });
+  } catch (e) {
+    return fail(e);
+  }
+  revalidatePath(`/investments/${accountId}`);
+  revalidatePath("/investments");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 export async function addTransaction(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const parsed = transactionInput.safeParse(Object.fromEntries(formData));
@@ -157,10 +189,60 @@ export async function addTransaction(formData: FormData): Promise<ActionResult> 
         data: { userId, ruleKey: "ROTH_OVERRIDE_LOG", entityRef: created.id },
       });
     }
+
+    // Smart sync with holdings table if trade ticker symbol and quantity are provided
+    const tradeSymbol = String(formData.get("symbol") ?? "").trim().toUpperCase();
+    const tradeQtyStr = String(formData.get("quantity") ?? "").trim();
+    const tradeQty = tradeQtyStr ? Number(tradeQtyStr) : 0;
+
+    if (tradeSymbol && Number.isFinite(tradeQty) && tradeQty > 0) {
+      const existingHolding = await prisma.holding.findUnique({
+        where: { accountId_symbol: { accountId, symbol: tradeSymbol } },
+      });
+
+      if (parsed.data.type === "BUY") {
+        const newQty = (existingHolding ? Number(existingHolding.quantity) : 0) + tradeQty;
+        const holdingData = {
+          name: existingHolding?.name || tradeSymbol,
+          domicileCountry: existingHolding?.domicileCountry || (account.country ? account.country.toUpperCase() : "CA"),
+          quantity: newQty,
+          lastPriceMinor: existingHolding?.lastPriceMinor ?? Math.round(parsed.data.amountMinor / tradeQty),
+          priceAsOf: new Date(parsed.data.date),
+          priceCurrency: existingHolding?.priceCurrency ?? account.currency,
+        };
+
+        await prisma.holding.upsert({
+          where: { accountId_symbol: { accountId, symbol: tradeSymbol } },
+          update: { quantity: newQty },
+          create: { ...holdingData, accountId, symbol: tradeSymbol },
+        });
+
+        if (isMarketLensConfigured()) {
+          try {
+            await refreshHoldingPrices(prisma, userId, { accountId });
+          } catch {
+            // best effort live price refresh
+          }
+        }
+      } else if (parsed.data.type === "SELL" && existingHolding) {
+        const newQty = Number(existingHolding.quantity) - tradeQty;
+        if (newQty <= 0) {
+          await prisma.holding.delete({
+            where: { accountId_symbol: { accountId, symbol: tradeSymbol } },
+          });
+        } else {
+          await prisma.holding.update({
+            where: { accountId_symbol: { accountId, symbol: tradeSymbol } },
+            data: { quantity: newQty },
+          });
+        }
+      }
+    }
   } catch (e) {
     return fail(e);
   }
   revalidatePath(`/investments/${accountId}`);
+  revalidatePath("/investments");
   revalidatePath("/");
   return { ok: true };
 }

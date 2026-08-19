@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Coins } from "lucide-react";
 import {
   SECTIONS,
   EFFECTIVE_DATE,
@@ -14,9 +13,9 @@ import {
 // reachable without signing in, and a policy nobody can read is not a policy.
 // The route is allowlisted in src/proxy.ts.
 export const metadata: Metadata = {
-  title: "Privacy Policy — PickMe",
+  title: "Privacy Policy — Inunity",
   description:
-    "How PickMe and the MoneyTalks web hub handle your information: what stays on your iPhone, what reaches the server, and how to delete either.",
+    "How Inunity handles your information: what stays on your iPhone, what reaches the server, and how to delete either.",
   alternates: { canonical: POLICY_URL },
 };
 
@@ -143,16 +142,16 @@ export default function PrivacyPolicyPage() {
             href="/"
             className="inline-flex items-center gap-2 font-bold tracking-tight transition-opacity hover:opacity-90"
           >
-            <div className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
-              <Coins className="size-4.5" />
+            <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden">
+              <img src="/icon.svg" alt="Inunity" className="size-6" />
             </div>
-            <span className="text-base font-semibold">PickMe</span>
+            <span className="text-base font-semibold">Inunity</span>
           </Link>
 
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Privacy Policy</h1>
             <p className="text-[15px] leading-7 text-muted-foreground">
-              For the PickMe app for iPhone and the MoneyTalks web hub.
+              For the Inunity app for iPhone and the Inunity web command center.
             </p>
           </div>
 

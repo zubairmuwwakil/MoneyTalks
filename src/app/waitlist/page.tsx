@@ -35,7 +35,7 @@ export default function WaitlistPage() {
     <div className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8 rounded-lg border p-8 shadow-sm">
         <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight">PickMe</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Inunity</h1>
           <p className="mt-2 text-sm text-gray-600">
             Join the invite-only beta. Enter your email to request access.
           </p>

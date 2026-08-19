@@ -16,6 +16,7 @@ import {
   deleteHolding,
   deleteSnapshot,
   deleteTransaction,
+  setCashBalance,
   updateAccount,
   updateTransaction,
 } from "@/app/investments/actions";
@@ -104,16 +105,10 @@ export default async function AccountDetailPage({
   const displayedTransactions = account.transactions.slice(0, 50);
 
   const totalBookCostMinor = account.holdings.reduce((sum, h) => sum + (h.bookCostMinor ?? 0), 0);
-  const holdingsWithCost = account.holdings.filter((h) => h.bookCostMinor !== null && h.bookCostMinor > 0);
-  const totalGainLossMinor =
-    holdingsWithCost.length > 0
-      ? holdingsWithCost.reduce((sum, h) => {
-          const val = convertedMap.has(h.symbol)
-            ? convertedMap.get(h.symbol)!.convertedValueMinor
-            : holdingValueMinor(Number(h.quantity), h.lastPriceMinor);
-          return sum + (val - (h.bookCostMinor ?? 0));
-        }, 0)
-      : null;
+  const holdingsWithBookCost = account.holdings.filter((h) => h.bookCostMinor !== null);
+  const totalGainLossMinor = holdingsWithBookCost.length > 0 && totalBookCostMinor > 0
+    ? holdingsValue - totalBookCostMinor
+    : null;
 
   async function submitHolding(formData: FormData) {
     "use server";
@@ -140,6 +135,13 @@ export default async function AccountDetailPage({
     "use server";
     const result = await addTransaction(formData);
     if (!result.ok) redirect(accountErrorPath(id, "transaction", result.error));
+    redirect(`/investments/${id}`);
+  }
+
+  async function submitSetCash(formData: FormData) {
+    "use server";
+    const result = await setCashBalance(formData);
+    if (!result.ok) redirect(accountErrorPath(id, "snapshot", result.error));
     redirect(`/investments/${id}`);
   }
 
@@ -226,17 +228,41 @@ export default async function AccountDetailPage({
                   ? formatMinorUnits(balance.balanceMinor + holdingsValue, currency)
                   : formatMinorUnits(holdingsValue, currency)}
               </p>
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span>
-                  Cash:{" "}
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <span>Cash:</span>
                   <strong className="font-semibold text-foreground">
                     {balance.ok ? formatMinorUnits(balance.balanceMinor, currency) : "Unavailable"}
                   </strong>
                   {balance.ok ? (
-                    <span className="text-muted-foreground/75 text-[11px] ml-1">
+                    <span className="text-muted-foreground/75 text-[11px]">
                       ({balance.source === "snapshot" ? `snapshot ${balance.asOf?.slice(0, 10)}` : account.transactions.length > 0 ? "transactions" : "no transactions recorded"})
                     </span>
                   ) : null}
+                  <details className="inline-block relative">
+                    <summary className="cursor-pointer text-[11px] font-medium text-foreground underline decoration-muted-foreground/50 underline-offset-2 hover:text-foreground/80 list-none ml-1">
+                      [Set cash]
+                    </summary>
+                    <div className="absolute left-0 top-6 z-20 w-56 rounded-lg border border-border/80 bg-popover p-2.5 shadow-md">
+                      <p className="text-[11px] text-muted-foreground mb-1.5">Update uninvested cash balance:</p>
+                      <form action={submitSetCash} className="flex items-center gap-1.5">
+                        <input type="hidden" name="accountId" value={account.id} />
+                        <input
+                          name="cashBalance"
+                          defaultValue={balance.ok ? minorToDollarInput(balance.balanceMinor) : "0.00"}
+                          placeholder="Cash ($)"
+                          required
+                          className="h-7 w-28 rounded border border-input bg-background px-2 text-xs"
+                        />
+                        <button
+                          type="submit"
+                          className="h-7 rounded bg-foreground px-2.5 text-[11px] font-semibold text-background hover:bg-foreground/90 cursor-pointer"
+                        >
+                          Save
+                        </button>
+                      </form>
+                    </div>
+                  </details>
                 </span>
                 {account.holdings.length > 0 ? (
                   <span>
@@ -419,7 +445,7 @@ export default async function AccountDetailPage({
                     {h.symbol}
                   </Badge>
                   <span className="font-medium text-foreground">{h.name}</span>
-                  {h.bookCostMinor && h.bookCostMinor > 0 && h.quantity > 0 ? (
+                  {h.bookCostMinor && h.bookCostMinor > 0 && Number(h.quantity) > 0 ? (
                     <HoldingSparkline
                       points={[
                         h.bookCostMinor / Number(h.quantity),
@@ -591,25 +617,57 @@ export default async function AccountDetailPage({
         <p className="mt-1 text-xs text-muted-foreground">
           Record contributions, withdrawals, dividends, buys, sells, or fees.
         </p>
-        <form action={submitTransaction} className="mt-4 grid max-w-2xl grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+        <form action={submitTransaction} className="mt-4 space-y-3 max-w-2xl text-sm">
           <input type="hidden" name="accountId" value={account.id} />
-          <select name="type" className={inputStyle}>
-            {TX_TYPES.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-          <input name="amount" placeholder="Amount ($)" required className={inputStyle} />
-          <input name="date" type="date" required className={inputStyle} />
-          <input name="description" placeholder="Description (optional)" className={inputStyle} />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Type</label>
+              <select name="type" className={inputStyle}>
+                {TX_TYPES.map((t) => (
+                  <option key={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Amount ($)</label>
+              <input name="amount" placeholder="e.g. 1000.00" required className={inputStyle} />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Date</label>
+              <input name="date" type="date" required className={inputStyle} />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Description (optional)</label>
+              <input name="description" placeholder="Notes" className={inputStyle} />
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-muted/30 p-2.5 border border-border/60">
+            <p className="text-[11px] font-medium text-muted-foreground mb-1.5">
+              Trade Auto-Sync (optional — for BUY / SELL to auto-update holdings):
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-muted-foreground block mb-0.5">Ticker Symbol</label>
+                <input name="symbol" placeholder="e.g. TSLA, XEQT.TO" className={inputStyle} />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground block mb-0.5">Shares / Quantity</label>
+                <input name="quantity" type="number" step="any" placeholder="e.g. 10" className={inputStyle} />
+              </div>
+            </div>
+          </div>
+
           {account.type === "ROTH_IRA" ? (
-            <label className="col-span-2 flex items-center gap-2 text-xs text-red-600 sm:col-span-4 font-medium">
+            <label className="flex items-center gap-2 text-xs text-red-600 font-medium">
               <input type="checkbox" name="confirmRoth" value="true" />
               I understand a contribution while Canadian-resident may permanently taint the Roth treaty election.
             </label>
           ) : null}
+
           <button
             type="submit"
-            className="col-span-2 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-xs hover:bg-foreground/90 sm:col-span-4 cursor-pointer"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-xs hover:bg-foreground/90 cursor-pointer"
           >
             <Plus className="size-3.5" />
             <span>Add transaction</span>

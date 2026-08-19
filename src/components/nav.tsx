@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import {
-  Coins,
   CreditCard,
   Bell,
   CalendarDays,
@@ -54,10 +53,10 @@ export function Nav() {
       {/* Mobile Top Header */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border/80 bg-background/90 px-4 backdrop-blur-md sm:hidden">
         <Link href="/" className="flex items-center gap-2 font-bold tracking-tight">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
-            <Coins className="size-4.5" />
+          <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden">
+            <img src="/icon.svg" alt="Inunity" className="size-6" />
           </div>
-          <span className="text-base font-semibold">PickMe</span>
+          <span className="text-base font-semibold">Inunity</span>
         </Link>
         {!isSignedIn && (
           <div className="flex items-center gap-2">
@@ -83,10 +82,10 @@ export function Nav() {
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2.5 font-bold tracking-tight transition-opacity hover:opacity-90">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background shadow-xs">
-                <Coins className="size-4.5" />
+              <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/10 text-foreground shadow-xs overflow-hidden">
+                <img src="/icon.svg" alt="Inunity" className="size-6" />
               </div>
-              <span className="text-base font-semibold tracking-tight">PickMe</span>
+              <span className="text-base font-semibold tracking-tight">Inunity</span>
             </Link>
 
             {isSignedIn ? (

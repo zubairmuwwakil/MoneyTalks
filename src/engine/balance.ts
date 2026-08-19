@@ -122,6 +122,9 @@ export function holdingValueMinor(quantity: number, lastPriceMinor: number): num
   return valueMinor;
 }
 
+import { convertMinor, type FxRateInput } from "./fx";
+import type { Currency } from "./money";
+
 /** One holding, as much of it as valuation needs. */
 export type HoldingForValuation = {
   symbol: string;
@@ -135,50 +138,58 @@ const USD_STABLECOINS = new Set(["USDT", "USDC", "BUSD", "FDUSD", "TUSD"]);
 
 export type ExcludedHolding = { symbol: string; priceCurrency: string; reason: "currency-mismatch" };
 
+export type ConvertedHolding = {
+  symbol: string;
+  originalPriceMinor: number;
+  originalPriceCurrency: string;
+  originalValueMinor: number;
+  convertedValueMinor: number;
+};
+
 export type HoldingsValuation = {
-  /** Total of the holdings that could honestly be added together. */
+  /** Total of the holdings that could honestly be added together (including converted positions). */
   valueMinor: number;
   currency: string;
   /** Holdings priced in a currency that is not the account's. Excluded from the
    *  total and returned so the caller is forced to disclose them. */
   excluded: ExcludedHolding[];
+  /** Holdings converted to the account currency via FX rates. */
+  converted: ConvertedHolding[];
   /** Holdings with no recorded price currency, counted in the total under the
    *  account's currency but flagged as an unverified assumption. */
   assumedCurrency: string[];
   /** Holdings priced in a USD stablecoin (USDT, USDC) counted in a USD account
    *  under the 1:1 peg assumption, stated rather than buried. */
   assumedPeg: string[];
-  /** True when every holding was priced in the account's own currency. */
+  /** True when every holding was priced in the account's own currency or successfully converted. */
   complete: boolean;
 };
 
 /**
- * Totals an account's holdings, refusing to add prices quoted in different
- * currencies.
+ * Totals an account's holdings, converting foreign currencies when FX rates are provided
+ * and refusing to add mismatched currencies when no rate is available.
  *
  * Previously every holding's price was implicitly the account's currency, which
  * held only while prices were typed in by hand. Sourcing them from a market-data
  * provider breaks it the first time a TSX symbol appears in a USD account: 189.70
- * CAD and 310.03 USD are not addable, and a total that adds them is wrong with no
- * outward sign of being wrong.
+ * CAD and 310.03 USD are not addable without conversion.
  *
- * A mismatch excludes that holding rather than failing the whole account — a user
- * with nine clean holdings and one foreign listing should still see nine — but the
- * exclusions come back with the total so the caller cannot present a partial sum
- * as a complete one.
+ * When FX rates are supplied, foreign holdings are converted to the account currency.
+ * When FX rates are missing or conversion fails, the holding is excluded rather than
+ * failing the whole account.
  *
  * A null price currency is a legacy manually-entered price, whose implicit
  * convention genuinely was "the account's currency". It counts, and is reported in
- * `assumedCurrency` so that assumption is stated rather than buried. Provider-
- * sourced prices are never written without a currency, so null cannot silently
- * mean "the provider did not say".
+ * `assumedCurrency` so that assumption is stated rather than buried.
  */
 export function holdingsValuation(
   holdings: HoldingForValuation[],
   accountCurrency: string,
+  rates?: FxRateInput[],
 ): HoldingsValuation {
   const normalizedAccount = accountCurrency.toUpperCase();
   const excluded: ExcludedHolding[] = [];
+  const converted: ConvertedHolding[] = [];
   const assumedCurrency: string[] = [];
   const assumedPeg: string[] = [];
   let valueMinor = 0;
@@ -188,6 +199,28 @@ export function holdingsValuation(
     if (priceCurrency !== null && priceCurrency !== normalizedAccount) {
       if (normalizedAccount === "USD" && USD_STABLECOINS.has(priceCurrency)) {
         assumedPeg.push(holding.symbol);
+      } else if (rates && rates.length > 0) {
+        try {
+          const rawHoldingValue = holdingValueMinor(holding.quantity, holding.lastPriceMinor);
+          const convertedMinor = convertMinor(
+            rawHoldingValue,
+            priceCurrency as Currency,
+            normalizedAccount as Currency,
+            rates,
+          );
+          valueMinor += convertedMinor;
+          converted.push({
+            symbol: holding.symbol,
+            originalPriceMinor: holding.lastPriceMinor,
+            originalPriceCurrency: priceCurrency,
+            originalValueMinor: rawHoldingValue,
+            convertedValueMinor: convertedMinor,
+          });
+          continue;
+        } catch {
+          excluded.push({ symbol: holding.symbol, priceCurrency, reason: "currency-mismatch" });
+          continue;
+        }
       } else {
         excluded.push({ symbol: holding.symbol, priceCurrency, reason: "currency-mismatch" });
         continue;
@@ -203,6 +236,7 @@ export function holdingsValuation(
     valueMinor,
     currency: normalizedAccount,
     excluded,
+    converted,
     assumedCurrency,
     assumedPeg,
     complete: excluded.length === 0,

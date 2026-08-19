@@ -1,0 +1,37 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="112" fill="#F8FAFC"/>
+  <defs>
+    <linearGradient id="swPickMe" x1="80" y1="180" x2="236" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="swMarket" x1="432" y1="180" x2="276" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="swLooply" x1="120" y1="280" x2="392" y2="390" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EA580C"/>
+      <stop offset="100%" stop-color="#E11D48"/>
+    </linearGradient>
+    <filter id="swShadow" x="30" y="30" width="452" height="452" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#0F172A" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#swShadow)">
+    <!-- Forewings -->
+    <path d="M 234 212 C 140 156, 76 196, 76 244 C 76 288, 148 276, 234 252 Z" fill="url(#swPickMe)"/>
+    <path d="M 278 212 C 372 156, 436 196, 436 244 C 436 288, 364 276, 278 252 Z" fill="url(#swMarket)"/>
+
+    <!-- Hindwings -->
+    <path d="M 234 276 C 154 304, 114 364, 166 388 C 218 410, 246 348, 246 348 Z" fill="url(#swLooply)"/>
+    <path d="M 278 276 C 358 304, 398 364, 346 388 C 294 410, 266 348, 266 348 Z" fill="url(#swLooply)"/>
+  </g>
+
+  <!-- Spine in Deep Slate Navy -->
+  <rect x="238" y="86" width="36" height="340" rx="18" fill="#0F172A"/>
+
+  <!-- Apex Node in Clean White & Cobalt -->
+  <circle cx="256" cy="112" r="10" fill="#F8FAFC"/>
+  <circle cx="256" cy="112" r="5" fill="#0284C7"/>
+</svg>

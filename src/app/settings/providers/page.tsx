@@ -140,7 +140,7 @@ export default async function ProviderKeysPage({
                 <input type="hidden" name="provider" value={provider} />
                 <div>
                   <label className={label} htmlFor={`key-${provider}`}>
-                    API key
+                    {provider === "QUESTRADE" ? "API key / Refresh token" : "API key"}
                   </label>
                   <input
                     id={`key-${provider}`}
@@ -148,9 +148,20 @@ export default async function ProviderKeysPage({
                     type="password"
                     autoComplete="off"
                     required
-                    placeholder={existing ? "Paste a new key to replace the stored one" : "Paste your key"}
+                    placeholder={
+                      existing
+                        ? "Paste a new key to replace the stored one"
+                        : provider === "QUESTRADE"
+                        ? "Paste your Questrade portal token"
+                        : "Paste your key"
+                    }
                     className={input}
                   />
+                  {provider === "QUESTRADE" ? (
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Questrade portal tokens are automatically exchanged for active OAuth credentials upon saving.
+                    </p>
+                  ) : null}
                 </div>
                 <div>
                   <label className={label} htmlFor={`label-${provider}`}>

@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   CheckCircle2,
-  Coins,
   CreditCard,
   Globe2,
   Lock,
@@ -23,7 +22,7 @@ export function MarketingContent() {
       <section className="relative flex flex-col items-center text-center space-y-6 pt-4 pb-4 sm:pt-6 sm:pb-8">
         <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-muted/60 px-3.5 py-1 text-xs font-medium text-foreground">
           <Sparkles className="size-3.5 text-primary" />
-          <span>PickMe Early Access &amp; TestFlight Beta</span>
+          <span>Inunity Early Access &amp; TestFlight Beta</span>
         </div>
 
         <h1 className="max-w-4xl text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-foreground">
@@ -76,10 +75,10 @@ export function MarketingContent() {
           <div className="overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/30 p-4 sm:p-6 shadow-xl text-left">
             <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
               <div className="flex items-center gap-2">
-                <div className="flex size-7 items-center justify-center rounded-lg bg-foreground text-background">
-                  <Coins className="size-4" />
+                <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden">
+                  <img src="/icon.svg" alt="Inunity" className="size-5" />
                 </div>
-                <span className="font-semibold text-sm">PickMe Command Surface</span>
+                <span className="font-semibold text-sm">Inunity Command Surface</span>
               </div>
               <Badge variant="outline" className="text-[11px] font-mono">
                 LIVE DEMO PREVIEW
@@ -409,7 +408,7 @@ export function MarketingContent() {
           <Badge variant="outline" className="text-xs font-semibold uppercase tracking-wider">
             Simple 3-Step Setup
           </Badge>
-          <h2 className="text-2xl font-bold tracking-tight sm:text-4xl">How PickMe Works</h2>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-4xl">How Inunity Works</h2>
         </div>
 
         <div className="grid gap-6 sm:grid-cols-3">
@@ -425,7 +424,7 @@ export function MarketingContent() {
             <span className="text-3xl font-extrabold text-muted-foreground/30">02</span>
             <h3 className="text-base font-semibold">Ambient Pick at Checkout</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              When standing at a register or shopping online, PickMe calculates the optimal card based on real category multipliers and caps.
+              When standing at a register or shopping online, Inunity calculates the optimal card based on real category multipliers and caps.
             </p>
           </div>
 
@@ -443,7 +442,7 @@ export function MarketingContent() {
       <section className="space-y-6 max-w-3xl mx-auto w-full">
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Frequently Asked Questions</h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">Everything you need to know about the PickMe hub and copilot.</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Everything you need to know about the Inunity hub and copilot.</p>
         </div>
 
         <div className="space-y-3">
@@ -455,7 +454,7 @@ export function MarketingContent() {
           </div>
 
           <div className="rounded-xl border border-border/70 bg-card p-5 space-y-2">
-            <h4 className="text-sm font-semibold">Does PickMe need my online banking credentials?</h4>
+            <h4 className="text-sm font-semibold">Does Inunity need my online banking credentials?</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Never. We do not use credential-scraping aggregators (like Plaid or Flinks). You maintain complete control of your data via manual entry, statement CSV import, and optional private email receipt ingestion.
             </p>
@@ -484,7 +483,7 @@ export function MarketingContent() {
             Take command of your financial edge today
           </h2>
           <p className="text-xs sm:text-sm text-background/80">
-            Join the invite-only beta to get TestFlight access for the ambient iOS card copilot and full access to the PickMe web command center.
+            Join the invite-only beta to get TestFlight access for the ambient iOS card copilot and full access to the Inunity web command center.
           </p>
         </div>
 

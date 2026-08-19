@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  Coins,
   Mail,
   HelpCircle,
   ShieldCheck,
@@ -13,10 +12,10 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Support & Help Center — PickMe",
+  title: "Support & Help Center — Inunity",
   description:
-    "Get help with PickMe and MoneyTalks: contact support, view setup guides for Apple Wallet shortcuts, submit card requests, and manage your data.",
-  alternates: { canonical: "https://moneytalks.zubairmuwwakil.com/support" },
+    "Get help with Inunity: contact support, view setup guides for Apple Wallet shortcuts, submit card requests, and manage your data.",
+  alternates: { canonical: "https://inunity.ca/support" },
 };
 
 export const dynamic = "force-static";
@@ -25,19 +24,19 @@ const CONTACT_EMAIL = "zmuwwakil1@gmail.com";
 
 const FAQS = [
   {
-    question: "What is PickMe and how does it work?",
+    question: "What is Inunity and how does it work?",
     answer:
-      "PickMe is your personal finance command center and payment optimizer. On your iPhone, it tells you which card in your wallet earns the highest rewards on the purchase you are about to make, accounting for merchant categories, bonus caps, and point valuations. On the web hub, it unifies your multi-currency investments, recurring bill forecasts, and cross-border tax compliance checks.",
+      "Inunity is your personal finance command center and payment optimizer. On your iPhone, it tells you which card in your wallet earns the highest rewards on the purchase you are about to make, accounting for merchant categories, bonus caps, and point valuations. On the web hub, it unifies your multi-currency investments, recurring bill forecasts, and cross-border tax compliance checks.",
   },
   {
     question: "How do I set up Apple Wallet automation?",
     answer:
-      "PickMe can automatically record transactions using an iOS Shortcut triggered when you tap with Apple Pay. You can generate and configure your installation token inside Settings under Apple Wallet. Transactions are captured securely without needing access to your bank login credentials.",
+      "Inunity can automatically record transactions using an iOS Shortcut triggered when you tap with Apple Pay. You can generate and configure your installation token inside Settings under Apple Wallet. Transactions are captured securely without needing access to your bank login credentials.",
   },
   {
     question: "Are my bank login credentials or card numbers stored?",
     answer:
-      "Never. Neither the iOS app nor the web server ever connects to your bank or card issuer. PickMe never asks for full card numbers, CVVs, PINs, or online banking passwords, and no screen in the product accepts them.",
+      "Never. Neither the iOS app nor the web server ever connects to your bank or card issuer. Inunity never asks for full card numbers, CVVs, PINs, or online banking passwords, and no screen in the product accepts them.",
   },
   {
     question: "What if my credit card is not listed in the catalogue?",
@@ -66,16 +65,16 @@ export default function SupportPage() {
             href="/"
             className="inline-flex items-center gap-2 font-bold tracking-tight transition-opacity hover:opacity-90"
           >
-            <div className="flex size-8 items-center justify-center rounded-lg bg-foreground text-background">
-              <Coins className="size-4.5" />
+            <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden">
+              <img src="/icon.svg" alt="Inunity" className="size-6" />
             </div>
-            <span className="text-base font-semibold">PickMe</span>
+            <span className="text-base font-semibold">Inunity</span>
           </Link>
 
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Support &amp; Help Center</h1>
             <p className="text-[15px] leading-7 text-muted-foreground">
-              Need assistance with PickMe or the MoneyTalks web hub? Contact our team, explore setup guides, or manage your account.
+              Need assistance with Inunity? Contact our team, explore setup guides, or manage your account.
             </p>
           </div>
         </header>
@@ -215,7 +214,7 @@ export default function SupportPage() {
         {/* App Store & Developer Notes */}
         <footer className="border-t border-border pt-8 text-xs text-muted-foreground space-y-2">
           <p>
-            PickMe is built and maintained by Zubair Muwwakil. For legal, data protection, or regulatory inquiries under PIPEDA or Law 25, contact{" "}
+            Inunity is built and maintained by Zubair Muwwakil. For legal, data protection, or regulatory inquiries under PIPEDA or Law 25, contact{" "}
             <a
               href={`mailto:${CONTACT_EMAIL}`}
               className="underline decoration-border underline-offset-4 hover:decoration-foreground"
@@ -227,10 +226,10 @@ export default function SupportPage() {
           <p>
             App Store Review Guideline 1.5 Support URL:{" "}
             <a
-              href="https://moneytalks.zubairmuwwakil.com/support"
+              href="https://inunity.ca/support"
               className="underline decoration-border underline-offset-4 hover:decoration-foreground"
             >
-              https://moneytalks.zubairmuwwakil.com/support
+              https://inunity.ca/support
             </a>
           </p>
         </footer>
