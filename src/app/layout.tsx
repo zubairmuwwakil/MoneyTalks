@@ -1,13 +1,47 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Nav } from "@/components/nav";
+import { CommandPalette } from "@/components/command-palette";
 import { SiteFooter } from "@/components/site-footer";
 import { SwRegister } from "@/components/sw-register";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Inunity — Personal Finance Command Center",
-  description: "Personal finance command center for multi-currency tracking, investments, cashflow forecasting, and tax compliance.",
+  title: {
+    default: "Inunity — Personal Finance Command Center",
+    template: "%s | Inunity",
+  },
+  description:
+    "Personal finance command center for multi-currency tracking, ambient card rewards copilot, cashflow forecasting, and cross-border tax compliance.",
+  applicationName: "Inunity",
+  authors: [{ name: "Inunity Team" }],
+  keywords: [
+    "Personal Finance",
+    "Credit Card Rewards",
+    "Amex Cobalt",
+    "Multi-Currency",
+    "Net Worth Tracker",
+    "Return Catch-Net",
+    "Cross-Border Tax",
+    "FBAR",
+    "PFIC",
+    "FHSA",
+  ],
+  openGraph: {
+    title: "Inunity — Personal Finance Command Center",
+    description:
+      "Max out rewards on every swipe, project 12-month bill cashflow, track multi-currency net worth, and catch cross-border compliance triggers.",
+    url: "https://inunity.ca",
+    siteName: "Inunity",
+    locale: "en_CA",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Inunity — Personal Finance Command Center",
+    description:
+      "Max out rewards on every swipe, project 12-month bill cashflow, and catch cross-border compliance triggers.",
+  },
   icons: {
     icon: [
       { url: "/favicon-dark.png", media: "(prefers-color-scheme: dark)" },
@@ -30,9 +64,17 @@ export default function RootLayout({
       signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/"
     >
-      <html lang="en" className="h-full">
+      <html lang="en" className="h-full" suppressHydrationWarning>
+        <head>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){try{var t=localStorage.getItem("inunity-theme");if(t==="dark"||((!t||t==="system")&&window.matchMedia("(prefers-color-scheme: dark)").matches)){document.documentElement.classList.add("dark")}else{document.documentElement.classList.remove("dark")}}catch(e){}})()`,
+            }}
+          />
+        </head>
         <body className="min-h-full bg-background text-foreground antialiased selection:bg-foreground selection:text-background">
           <SwRegister />
+          <CommandPalette />
           <Nav />
           <div className="mx-auto max-w-5xl px-4 sm:px-6 sm:pt-2">
             {children}

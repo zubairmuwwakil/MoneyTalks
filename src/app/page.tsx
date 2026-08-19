@@ -5,11 +5,14 @@ import {
   Calendar,
   CheckCircle2,
   ChevronRight,
+  CreditCard,
   Info,
   LogOut,
+  PlusCircle,
   RefreshCw,
   ShieldAlert,
   Sparkles,
+  UploadCloud,
   Wallet,
 } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
@@ -218,7 +221,7 @@ export default async function Home({
   const topAlerts = active.slice(0, 3);
 
   return (
-    <main className="space-y-8 py-6 sm:py-8">
+    <main className="space-y-6 py-6 sm:py-8">
       {/* Top Header / Account Status Bar */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -239,6 +242,74 @@ export default async function Home({
           </SignOutButton>
         </div>
       </header>
+
+      {/* Quick Action Strip */}
+      <section aria-label="Quick Actions" className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+        <Link
+          href="/cards/new"
+          className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/90 p-2.5 shadow-2xs transition-all hover:border-foreground/30 hover:bg-muted/40 hover:shadow-xs"
+        >
+          <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/5 text-foreground shrink-0">
+            <CreditCard className="size-3.5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-foreground truncate">+ Add Card</p>
+            <p className="text-[10px] text-muted-foreground truncate">Wallet copilot</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/receipts/upload"
+          className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/90 p-2.5 shadow-2xs transition-all hover:border-foreground/30 hover:bg-muted/40 hover:shadow-xs"
+        >
+          <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/5 text-foreground shrink-0">
+            <UploadCloud className="size-3.5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-foreground truncate">Upload Receipt</p>
+            <p className="text-[10px] text-muted-foreground truncate">Return catch-net</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/bills/new"
+          className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/90 p-2.5 shadow-2xs transition-all hover:border-foreground/30 hover:bg-muted/40 hover:shadow-xs"
+        >
+          <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/5 text-foreground shrink-0">
+            <Calendar className="size-3.5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-foreground truncate">+ Record Bill</p>
+            <p className="text-[10px] text-muted-foreground truncate">Cashflow forecast</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/investments/new"
+          className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/90 p-2.5 shadow-2xs transition-all hover:border-foreground/30 hover:bg-muted/40 hover:shadow-xs"
+        >
+          <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/5 text-foreground shrink-0">
+            <Wallet className="size-3.5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-foreground truncate">+ Add Account</p>
+            <p className="text-[10px] text-muted-foreground truncate">Native balances</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/money-finder"
+          className="hidden lg:flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/90 p-2.5 shadow-2xs transition-all hover:border-foreground/30 hover:bg-muted/40 hover:shadow-xs"
+        >
+          <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/5 text-foreground shrink-0">
+            <Sparkles className="size-3.5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-foreground truncate">Tax &amp; Rules</p>
+            <p className="text-[10px] text-muted-foreground truncate">24 checks active</p>
+          </div>
+        </Link>
+      </section>
 
       {/* Hero Net Worth Card */}
       <Card className="relative overflow-hidden border-border/90 bg-gradient-to-b from-card to-muted/20 shadow-xs">

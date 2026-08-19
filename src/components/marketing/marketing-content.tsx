@@ -1,4 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { useAuth } from "@clerk/nextjs";
 import {
   ArrowRight,
   CheckCircle2,
@@ -14,8 +19,57 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export function MarketingContent() {
+  const { isSignedIn } = useAuth();
+  const [selectedMerchant, setSelectedMerchant] = useState<"groceries" | "costco" | "dining" | "travel">("groceries");
+  const [selectedCcy, setSelectedCcy] = useState<"CAD" | "USD" | "JMD">("CAD");
+
+  const merchantScenarios = {
+    groceries: {
+      merchant: "Loblaw Companies / Groceries",
+      card: "Cobalt / PC Elite",
+      rate: "5.0x / 5% back",
+      advantage: "Advantage over baseline: +$24.50/mo on current grocery volume",
+      cap: "Cap status: 42% utilized",
+      rule: "Verified issuer rules",
+    },
+    costco: {
+      merchant: "Costco Wholesale Canada",
+      card: "Rogers Red World Elite",
+      rate: "3.0% cash back",
+      advantage: "Advantage over baseline: +$18.20/mo with auto-redemption",
+      cap: "No category cap",
+      rule: "Mastercard network pick",
+    },
+    dining: {
+      merchant: "Uber Eats & Local Restaurants",
+      card: "American Express Cobalt",
+      rate: "5.0x MR points (~7.5% ROI)",
+      advantage: "Advantage over baseline: +$31.00/mo vs 1% flat baseline",
+      cap: "Cap status: 68% utilized",
+      rule: "Dining MCC verified",
+    },
+    travel: {
+      merchant: "Air Canada / Flight Booking",
+      card: "Amex Platinum / Aeroplan VI",
+      rate: "3.0x points + Flight Delay Ins.",
+      advantage: "Advantage: +$140/yr net value after lounge credits",
+      cap: "Flight & baggage coverage",
+      rule: "Direct carrier booking",
+    },
+  };
+
+  const netWorthByCcy = {
+    CAD: { total: "$148,250", upcoming: "$1,240.00", cushion: "Safe ($5,000 target)" },
+    USD: { total: "$109,814", upcoming: "$918.00", cushion: "Safe ($3,700 target)" },
+    JMD: { total: "$17,048,750", upcoming: "$142,600.00", cushion: "Safe ($575k target)" },
+  };
+
+  const currentScenario = merchantScenarios[selectedMerchant];
+  const currentNw = netWorthByCcy[selectedCcy];
+
   return (
     <div className="flex flex-col space-y-20 py-6 sm:py-10">
       {/* Hero Section */}
@@ -27,7 +81,7 @@ export function MarketingContent() {
 
         <h1 className="max-w-4xl text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-foreground">
           The Personal Finance Command Center &amp;{" "}
-          <span className="bg-gradient-to-r from-foreground via-foreground/90 to-foreground/60 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-foreground via-foreground to-emerald-600 dark:to-emerald-400 bg-clip-text text-transparent">
             Ambient Card Copilot
           </span>
         </h1>
@@ -39,19 +93,39 @@ export function MarketingContent() {
 
         {/* Hero CTAs */}
         <div className="flex flex-col w-full sm:w-auto sm:flex-row items-center justify-center gap-3 pt-2">
-          <Link
-            href="/waitlist"
-            className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-foreground px-6 text-sm font-semibold text-background shadow-xs transition-all hover:bg-foreground/90 hover:shadow-md"
-          >
-            <span>Request Early Beta Access</span>
-            <ArrowRight className="size-4" />
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-border bg-background px-6 text-sm font-semibold text-foreground shadow-2xs transition-colors hover:bg-muted"
-          >
-            <span>Sign In to Hub</span>
-          </Link>
+          {isSignedIn ? (
+            <>
+              <Link
+                href="/"
+                className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-foreground px-6 text-sm font-semibold text-background shadow-xs transition-all hover:bg-foreground/90 hover:shadow-md"
+              >
+                <span>Open Command Center</span>
+                <ArrowRight className="size-4" />
+              </Link>
+              <Link
+                href="/settings"
+                className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-border bg-background px-6 text-sm font-semibold text-foreground shadow-2xs transition-colors hover:bg-muted"
+              >
+                <span>Settings &amp; Preferences</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/waitlist"
+                className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-foreground px-6 text-sm font-semibold text-background shadow-xs transition-all hover:bg-foreground/90 hover:shadow-md"
+              >
+                <span>Request Early Beta Access</span>
+                <ArrowRight className="size-4" />
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-border bg-background px-6 text-sm font-semibold text-foreground shadow-2xs transition-colors hover:bg-muted"
+              >
+                <span>Sign In to Hub</span>
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Quick Trust Badges */}
@@ -72,22 +146,48 @@ export function MarketingContent() {
 
         {/* Visual UI Preview Hero Banner */}
         <div className="w-full max-w-5xl pt-6">
+          {/* Merchant Simulator Tabs */}
+          <div className="flex flex-wrap items-center justify-center gap-1.5 pb-3">
+            <span className="text-xs font-medium text-muted-foreground mr-1">Test at register:</span>
+            {[
+              { key: "groceries", label: "🛒 Groceries (Loblaw)" },
+              { key: "costco", label: "📦 Wholesale (Costco)" },
+              { key: "dining", label: "🍔 Dining (Uber Eats)" },
+              { key: "travel", label: "✈️ Travel (Air Canada)" },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setSelectedMerchant(key as typeof selectedMerchant)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium transition-all cursor-pointer",
+                  selectedMerchant === key
+                    ? "bg-foreground text-background shadow-xs font-semibold"
+                    : "border border-border/80 bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div className="overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/30 p-4 sm:p-6 shadow-xl text-left">
             <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden">
-                  <img src="/icon.svg" alt="Inunity" className="size-5" />
+                  <Image src="/icon.svg" alt="Inunity" width={20} height={20} className="size-5" />
                 </div>
                 <span className="font-semibold text-sm">Inunity Command Surface</span>
               </div>
-              <Badge variant="outline" className="text-[11px] font-mono">
-                LIVE DEMO PREVIEW
-              </Badge>
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Live Surface Preview</span>
+              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
               {/* Card Recommendation Widget */}
-              <div className="flex flex-col justify-between rounded-xl border border-border/80 bg-background p-4 shadow-2xs">
+              <div className="flex flex-col justify-between rounded-xl border border-border/80 bg-background p-4 shadow-2xs transition-all duration-200">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -97,20 +197,20 @@ export function MarketingContent() {
                       Optimal Choice
                     </Badge>
                   </div>
-                  <p className="text-sm font-semibold text-foreground">Loblaw Companies / Groceries</p>
+                  <p className="text-sm font-semibold text-foreground">{currentScenario.merchant}</p>
                   <div className="rounded-lg bg-muted/50 p-2.5 space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium">Cobalt / PC Elite</span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">5.0x / 5% back</span>
+                      <span className="font-medium">{currentScenario.card}</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{currentScenario.rate}</span>
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      Advantage over baseline: +$24.50/mo on current grocery volume
+                      {currentScenario.advantage}
                     </p>
                   </div>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border/40 pt-2">
-                  <span>Cap status: 42% utilized</span>
-                  <span className="font-medium text-foreground">Verified issuer rules</span>
+                  <span>{currentScenario.cap}</span>
+                  <span className="font-medium text-foreground">{currentScenario.rule}</span>
                 </div>
               </div>
 
@@ -121,22 +221,36 @@ export function MarketingContent() {
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       Multi-Currency Net Worth
                     </span>
-                    <Badge variant="outline" className="text-[10px]">
-                      BoC FX Live
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      {(["CAD", "USD", "JMD"] as const).map((ccy) => (
+                        <button
+                          key={ccy}
+                          type="button"
+                          onClick={() => setSelectedCcy(ccy)}
+                          className={cn(
+                            "rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors cursor-pointer",
+                            selectedCcy === ccy
+                              ? "bg-foreground text-background font-bold"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          {ccy}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold tracking-tight tabular-nums">$148,250</span>
-                    <span className="text-xs font-medium text-muted-foreground">CAD</span>
+                    <span className="text-2xl font-bold tracking-tight tabular-nums">{currentNw.total}</span>
+                    <span className="text-xs font-medium text-muted-foreground">{selectedCcy}</span>
                   </div>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between text-muted-foreground">
                       <span>Upcoming Bills (14d)</span>
-                      <span className="font-semibold text-foreground">$1,240.00</span>
+                      <span className="font-semibold text-foreground">{currentNw.upcoming}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
                       <span>Cash Cushion</span>
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">Safe ($5,000 target)</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">{currentNw.cushion}</span>
                     </div>
                   </div>
                 </div>
@@ -488,19 +602,39 @@ export function MarketingContent() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link
-            href="/waitlist"
-            className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-background px-6 text-sm font-semibold text-foreground shadow-sm transition-all hover:bg-background/90"
-          >
-            <span>Join Beta Waitlist</span>
-            <ArrowRight className="size-4" />
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-background/20 bg-transparent px-6 text-sm font-semibold text-background transition-colors hover:bg-background/10"
-          >
-            <span>Sign In</span>
-          </Link>
+          {isSignedIn ? (
+            <>
+              <Link
+                href="/"
+                className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-background px-6 text-sm font-semibold text-foreground shadow-sm transition-all hover:bg-background/90"
+              >
+                <span>Open Command Center</span>
+                <ArrowRight className="size-4" />
+              </Link>
+              <Link
+                href="/settings"
+                className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-background/20 bg-transparent px-6 text-sm font-semibold text-background transition-colors hover:bg-background/10"
+              >
+                <span>Settings</span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/waitlist"
+                className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-background px-6 text-sm font-semibold text-foreground shadow-sm transition-all hover:bg-background/90"
+              >
+                <span>Join Beta Waitlist</span>
+                <ArrowRight className="size-4" />
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-background/20 bg-transparent px-6 text-sm font-semibold text-background transition-colors hover:bg-background/10"
+              >
+                <span>Sign In</span>
+              </Link>
+            </>
+          )}
         </div>
       </section>
     </div>
