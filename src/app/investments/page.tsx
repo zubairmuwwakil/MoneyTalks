@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Plus, TrendingUp, Upload } from "lucide-react";
+import { ChevronRight, KeyRound, Plus, TrendingUp, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -27,6 +27,12 @@ export default async function InvestmentsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2.5">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/settings/providers" className="flex items-center gap-1.5">
+              <KeyRound className="size-3.5" />
+              <span>Market data keys</span>
+            </Link>
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="/investments/import" className="flex items-center gap-1.5">
               <Upload className="size-3.5" />

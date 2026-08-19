@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { KeyRound, ShieldCheck, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -39,15 +40,23 @@ export default async function ProviderKeysPage({
   }
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6 lg:p-8">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Market data keys</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <main className="max-w-3xl space-y-6 py-6 sm:py-8">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+        <p className="text-sm text-muted-foreground">
           Bring your own market-data credential. When you supply one, your holdings are priced under your
-          own licence and your own quota instead of a shared source. Prices are{" "}
-          <span className="font-medium text-foreground">daily closes, not real-time</span>, either way.
+          own licence and quota. Prices are <span className="font-medium text-foreground">daily closes, not real-time</span>.
         </p>
-      </header>
+        <div className="mt-3 flex flex-wrap gap-2 text-sm">
+          <Link href="/settings" className="rounded-full border px-3 py-1 hover:bg-muted">Profile</Link>
+          <Link href="/settings/notifications" className="rounded-full border px-3 py-1 hover:bg-muted">Notifications &amp; email</Link>
+          <Link href="/settings/wallet" className="rounded-full border px-3 py-1 hover:bg-muted">Apple Wallet</Link>
+          <Link href="/settings/merchants" className="rounded-full border px-3 py-1 hover:bg-muted">Merchants</Link>
+          <span className="rounded-full bg-foreground px-3 py-1 text-background">Market data keys</span>
+          <Link href="/settings/automation" className="rounded-full border px-3 py-1 hover:bg-muted">Email automation</Link>
+          <Link href="/settings/privacy" className="rounded-full border px-3 py-1 hover:bg-muted">Privacy</Link>
+        </div>
+      </div>
 
       <Card>
         <CardHeader className="pb-3">

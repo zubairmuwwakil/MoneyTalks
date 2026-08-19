@@ -81,6 +81,7 @@ export default async function MerchantSettingsPage() {
           <Link href="/settings/notifications" className="rounded-full border px-3 py-1 hover:bg-muted">Notifications &amp; email</Link>
           <Link href="/settings/wallet" className="rounded-full border px-3 py-1 hover:bg-muted">Apple Wallet</Link>
           <span className="rounded-full bg-foreground px-3 py-1 text-background">Merchants</span>
+          <Link href="/settings/providers" className="rounded-full border px-3 py-1 hover:bg-muted">Market data keys</Link>
           <Link href="/settings/automation" className="rounded-full border px-3 py-1 hover:bg-muted">Email automation</Link>
           <Link href="/settings/privacy" className="rounded-full border px-3 py-1 hover:bg-muted">Privacy</Link>
         </div>
