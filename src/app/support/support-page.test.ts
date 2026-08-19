@@ -16,7 +16,7 @@ describe("Support Page", () => {
   it("provides reachable contact email and App Store support URL metadata", () => {
     const content = fs.readFileSync(pagePath, "utf-8");
     expect(content).toMatch(/zmuwwakil1@gmail\.com/);
-    expect(content).toMatch(/https:\/\/moneytalks\.zubairmuwwakil\.com\/support/);
+    expect(content).toMatch(/https:\/\/(inunity\.ca|moneytalks\.zubairmuwwakil\.com)\/support/);
   });
 
   it("includes essential self-service links and FAQ items", () => {

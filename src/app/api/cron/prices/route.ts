@@ -24,11 +24,9 @@ async function runPriceCron(req: NextRequest) {
     return NextResponse.json({ ok: false, reason: "not-configured", updated: 0 }, { status: 503 });
   }
 
-  // Only users who actually hold something priceable. Crypto is excluded in the
-  // refresh itself — MarketLens is equities-only until the crypto capability is
-  // ported to it.
+  // Only users who actually hold something priceable (equities or crypto).
   const users = await prisma.user.findMany({
-    where: { financialAccounts: { some: { type: { not: "CRYPTO" }, holdings: { some: {} } } } },
+    where: { financialAccounts: { some: { holdings: { some: {} } } } },
     select: { id: true },
   });
 
