@@ -68,7 +68,7 @@ Scope widens from three repos to four: `marketdata`/MarketLens joins
 `MoneyTalks`, `PickMe`, `return-saas`. Amends decisions 1, 6, 9 and D1; adds E1–E5.
 
 - **E1 (supersedes D1 — brand).** The consumer brand is **not** PickMe. The
-  unifier takes a **new consumer name (TBD)**; PickMe, Looply, and MarketLens keep
+  unifier takes a **new consumer name**; PickMe, Looply, and MarketLens keep
   their own identities as distinct products. D1's compound-App-Store-listing
   rationale ("PickMe: Card Copilot", ASO differentiation from the ride-hail apps)
   is retired along with its accepted costs. *Why:* the four-sensor story is a
@@ -77,8 +77,10 @@ Scope widens from three repos to four: `marketdata`/MarketLens joins
   D1's CIPO Nice 9/36/42 clearance transfers to the new name and must clear before
   public launch; D2's TestFlight/waitlist copy and D3's catalogue framing update
   once the name is chosen. Rename stays cheap until public App Store launch.
-  **Open item, not deferred:** the name itself. Criteria live in
-  `docs/ECOSYSTEM-NARRATIVE.md` § Rebrand requirement.
+  **RESOLVED 2026-08-18: the name is Inunity**, domain `inunity.ca` purchased.
+  Note for clearance: an unrelated software company (inunity.com — Textline,
+  Texting Base, Textedly) holds the name in classes 9/42; class 36 appears open.
+  The CIPO 9/36/42 search is still owner work and now has a known obstacle.
 
 - **E2 (amends 6 and 9 — investments enter v1).** Investment tracking is **in v1**,
   sourced from MarketLens. *Why:* seeing investments tracked is a core reason the
@@ -130,7 +132,7 @@ Scope widens from three repos to four: `marketdata`/MarketLens joins
 
 ## Consequences of Amendment E
 
-- **MoneyTalks:** is the unifier, consumer name TBD. Investment tracking is now
+- **MoneyTalks:** is Inunity, the unifier. Investment tracking is now
   buildable, consuming MarketLens. Everything else in decision 6's v1 surface
   stands.
 - **PickMe:** unchanged as the canonical card engine; it is no longer the
