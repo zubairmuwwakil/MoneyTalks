@@ -131,6 +131,8 @@ export type HoldingForValuation = {
   priceCurrency: string | null;
 };
 
+const USD_STABLECOINS = new Set(["USDT", "USDC", "BUSD", "FDUSD", "TUSD"]);
+
 export type ExcludedHolding = { symbol: string; priceCurrency: string; reason: "currency-mismatch" };
 
 export type HoldingsValuation = {
@@ -143,6 +145,9 @@ export type HoldingsValuation = {
   /** Holdings with no recorded price currency, counted in the total under the
    *  account's currency but flagged as an unverified assumption. */
   assumedCurrency: string[];
+  /** Holdings priced in a USD stablecoin (USDT, USDC) counted in a USD account
+   *  under the 1:1 peg assumption, stated rather than buried. */
+  assumedPeg: string[];
   /** True when every holding was priced in the account's own currency. */
   complete: boolean;
 };
@@ -175,13 +180,18 @@ export function holdingsValuation(
   const normalizedAccount = accountCurrency.toUpperCase();
   const excluded: ExcludedHolding[] = [];
   const assumedCurrency: string[] = [];
+  const assumedPeg: string[] = [];
   let valueMinor = 0;
 
   for (const holding of holdings) {
     const priceCurrency = holding.priceCurrency?.toUpperCase() ?? null;
     if (priceCurrency !== null && priceCurrency !== normalizedAccount) {
-      excluded.push({ symbol: holding.symbol, priceCurrency, reason: "currency-mismatch" });
-      continue;
+      if (normalizedAccount === "USD" && USD_STABLECOINS.has(priceCurrency)) {
+        assumedPeg.push(holding.symbol);
+      } else {
+        excluded.push({ symbol: holding.symbol, priceCurrency, reason: "currency-mismatch" });
+        continue;
+      }
     }
     if (priceCurrency === null) {
       assumedCurrency.push(holding.symbol);
@@ -194,6 +204,7 @@ export function holdingsValuation(
     currency: normalizedAccount,
     excluded,
     assumedCurrency,
+    assumedPeg,
     complete: excluded.length === 0,
   };
 }

@@ -62,4 +62,16 @@ describe("holdingsValuation", () => {
   it("returns a zero total with no holdings rather than failing", () => {
     expect(holdingsValuation([], "CAD")).toMatchObject({ valueMinor: 0, complete: true });
   });
+
+  it("counts USD-pegged stablecoins in a USD account and reports the peg assumption", () => {
+    const result = holdingsValuation(
+      [h("BTC", 1, 6200000, "USDT"), h("ETH", 2, 300000, "USDC"), h("AAPL", 5, 22000, "USD")],
+      "USD",
+    );
+
+    expect(result.valueMinor).toBe(6200000 + 600000 + 110000);
+    expect(result.complete).toBe(true);
+    expect(result.excluded).toHaveLength(0);
+    expect(result.assumedPeg).toEqual(["BTC", "ETH"]);
+  });
 });
