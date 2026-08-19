@@ -2,20 +2,20 @@
   "_upstream": {
     "repo": "https://github.com/zubairmuwwakil/PickMe",
     "ref": "main",
-    "commit": "6c9523313dcbc065728995e179822ba333c6a5b4",
+    "commit": "79aa4647b1ea817ba9add79738925efe07cdcd39",
     "files": {
-      "card-catalogue.json": "6dca7044fd3421dab9a25a4d814a96116faa2baa008d5ca5dfa3785dc2b64ef0",
-      "benefits-catalogue.json": "837e50b773add58dccacb1b7d8616a411240695423e2055bf6b5115e3628cba2",
+      "card-catalogue.json": "69354c8380c26397aba4a44effa3742f57b72edf7402a2de5cfc2fe7114a098e",
+      "benefits-catalogue.json": "08bf768f4c39f0f85a366f9182ce3a1fe82aa745ee6045eb711defc207c10c1d",
       "engine-fixtures.json": "ddf1ababa02cb855a6cf9a39ab3c271e0108509deb7374bd954cdb78b2c88c46",
-      "schema/card-catalogue.schema.json": "d4aef530d802995a286b27d5898db4fec3d70e841811cc095707d50fbf0dda5f",
+      "schema/card-catalogue.schema.json": "61472170d0278c47ee0a3af02a3bdf590eac99a25bb6243c48fcf4e2cc934efa",
       "schema/benefits-catalogue.schema.json": "055c498a1c78b2ad091f249cbbb50b99c5c20ebeda99fd17aff8113bcd502888",
       "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db"
     }
   },
-  "card-catalogue.json": "6dca7044fd3421dab9a25a4d814a96116faa2baa008d5ca5dfa3785dc2b64ef0",
-  "benefits-catalogue.json": "837e50b773add58dccacb1b7d8616a411240695423e2055bf6b5115e3628cba2",
+  "card-catalogue.json": "69354c8380c26397aba4a44effa3742f57b72edf7402a2de5cfc2fe7114a098e",
+  "benefits-catalogue.json": "08bf768f4c39f0f85a366f9182ce3a1fe82aa745ee6045eb711defc207c10c1d",
   "engine-fixtures.json": "ddf1ababa02cb855a6cf9a39ab3c271e0108509deb7374bd954cdb78b2c88c46",
-  "schema/card-catalogue.schema.json": "d4aef530d802995a286b27d5898db4fec3d70e841811cc095707d50fbf0dda5f",
+  "schema/card-catalogue.schema.json": "61472170d0278c47ee0a3af02a3bdf590eac99a25bb6243c48fcf4e2cc934efa",
   "schema/benefits-catalogue.schema.json": "055c498a1c78b2ad091f249cbbb50b99c5c20ebeda99fd17aff8113bcd502888",
   "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db"
 }

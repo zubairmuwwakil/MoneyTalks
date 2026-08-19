@@ -23,20 +23,29 @@ export const accountInput = z.object({
   isUSSitus: formBoolean,
 });
 
+const emptyToUndefined = (val: unknown) =>
+  typeof val === "string" && val.trim() === "" ? undefined : val;
+
 export const holdingInput = z
   .object({
     symbol: z.string().trim().min(1).max(20),
-    name: z.string().trim().min(1).max(80),
-    domicileCountry: countryCode,
+    name: z.preprocess(emptyToUndefined, z.string().trim().max(80).optional()),
+    domicileCountry: z.preprocess(
+      (val) => (typeof val === "string" && val.trim() ? val.trim().toUpperCase() : emptyToUndefined(val)),
+      countryCode.optional(),
+    ),
     quantity: z.coerce.number().positive().finite(),
-    bookCost: dollarAmount({ min: 0 }).optional(),
-    lastPrice: dollarAmount({ min: 0 }),
-    priceAsOf: isoDate,
+    bookCost: z.preprocess(emptyToUndefined, dollarAmount({ min: 0 }).optional()),
+    lastPrice: z.preprocess(emptyToUndefined, dollarAmount({ min: 0 }).optional()),
+    priceAsOf: z.preprocess(emptyToUndefined, isoDate.optional()),
   })
-  .transform(({ bookCost, lastPrice, ...rest }) => ({
+  .transform(({ name, domicileCountry, bookCost, lastPrice, priceAsOf, ...rest }) => ({
     ...rest,
+    name: name && name.length > 0 ? name : rest.symbol,
+    domicileCountry: domicileCountry ?? "CA",
     bookCostMinor: bookCost,
-    lastPriceMinor: lastPrice,
+    lastPriceMinor: lastPrice ?? 0,
+    priceAsOf: priceAsOf ?? new Date().toISOString().slice(0, 10),
   }));
 
 export const transactionInput = z

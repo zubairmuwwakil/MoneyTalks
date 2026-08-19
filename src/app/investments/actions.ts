@@ -11,6 +11,9 @@ import {
   transactionInput,
 } from "@/lib/validation/investments";
 
+import { isMarketLensConfigured } from "@/lib/services/marketlens";
+import { refreshHoldingPrices } from "@/lib/domain/investments/refreshHoldingPrices";
+
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 function fail(error: unknown): ActionResult {
@@ -28,7 +31,7 @@ function recordId(formData: FormData, field: string): string {
 async function ownedAccount(userId: string, accountId: string) {
   const account = await prisma.financialAccount.findFirst({
     where: { id: accountId, userId },
-    select: { id: true, currency: true, type: true },
+    select: { id: true, currency: true, type: true, country: true },
   });
   if (!account) throw new Error("Account not found");
   return account;
@@ -99,12 +102,23 @@ export async function addHolding(formData: FormData): Promise<ActionResult> {
   const parsed = holdingInput.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0]?.message);
   try {
-    await ownedAccount(userId, accountId);
+    const account = await ownedAccount(userId, accountId);
+    const holdingData = {
+      ...parsed.data,
+      domicileCountry: parsed.data.domicileCountry || (account.country ? account.country.toUpperCase() : "CA"),
+    };
     await prisma.holding.upsert({
       where: { accountId_symbol: { accountId, symbol: parsed.data.symbol } },
-      update: { ...parsed.data, priceAsOf: new Date(parsed.data.priceAsOf) },
-      create: { ...parsed.data, accountId, priceAsOf: new Date(parsed.data.priceAsOf) },
+      update: { ...holdingData, priceAsOf: new Date(holdingData.priceAsOf) },
+      create: { ...holdingData, accountId, priceAsOf: new Date(holdingData.priceAsOf) },
     });
+    if (isMarketLensConfigured()) {
+      try {
+        await refreshHoldingPrices(prisma, userId, { accountId });
+      } catch {
+        // Best effort live quote refresh on position addition
+      }
+    }
   } catch (e) {
     return fail(e);
   }

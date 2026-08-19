@@ -190,26 +190,40 @@ export default async function AccountDetailPage({
       {/* Balance Summary Hero */}
       <Card className="bg-gradient-to-b from-card to-muted/20">
         <CardContent className="p-5 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Current Balance
+                Total Account Value
               </p>
               <p className="mt-1 text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
-                {balance.ok ? formatMinorUnits(balance.balanceMinor, balance.currency as Currency) : "Balance unavailable"}
+                {balance.ok
+                  ? formatMinorUnits(balance.balanceMinor + holdingsValue, currency)
+                  : formatMinorUnits(holdingsValue, currency)}
               </p>
-              {balance.ok ? (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Source:{" "}
-                  <span className="font-medium text-foreground">
-                    {balance.source === "snapshot"
-                      ? `Balance snapshot as of ${balance.asOf?.slice(0, 10)} · ${balance.currency}`
-                      : "Derived calculation from transactions"}
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span>
+                  Cash:{" "}
+                  <strong className="font-semibold text-foreground">
+                    {balance.ok ? formatMinorUnits(balance.balanceMinor, currency) : "Unavailable"}
+                  </strong>
+                  {balance.ok ? (
+                    <span className="text-muted-foreground/75 text-[11px] ml-1">
+                      ({balance.source === "snapshot" ? `snapshot ${balance.asOf?.slice(0, 10)}` : "transactions"})
+                    </span>
+                  ) : null}
+                </span>
+                {account.holdings.length > 0 ? (
+                  <span>
+                    Holdings:{" "}
+                    <strong className="font-semibold text-foreground">
+                      {formatMinorUnits(holdingsValue, currency)}
+                    </strong>
                   </span>
-                </p>
-              ) : (
+                ) : null}
+              </div>
+              {!balance.ok && balance.error ? (
                 <p className="mt-1 text-sm font-medium text-red-600">{balance.error}</p>
-              )}
+              ) : null}
             </div>
 
             {account.holdings.length > 0 ? (
@@ -226,91 +240,101 @@ export default async function AccountDetailPage({
 
       {/* Account Details Form Section */}
       <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
-        <h2 className="text-base font-semibold tracking-tight">Account details</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Update account configuration, country domicile, or US-situs classification.
-        </p>
-        <form action={submitAccount} className="mt-4 grid max-w-2xl grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-          <input type="hidden" name="accountId" value={account.id} />
-          <div>
-            <label className="text-xs text-muted-foreground font-medium mb-1 block">Account name</label>
-            <input
-              name="name"
-              defaultValue={account.name}
-              required
-              aria-label="Account name"
-              className={inputStyle}
-            />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground font-medium mb-1 block">Institution</label>
-            <input
-              name="institution"
-              defaultValue={account.institution}
-              required
-              aria-label="Institution"
-              className={inputStyle}
-            />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground font-medium mb-1 block">Account type</label>
-            <select
-              name="type"
-              defaultValue={account.type}
-              required
-              aria-label="Account type"
-              className={inputStyle}
-            >
-              {ACCOUNT_TYPES.map((type) => (
-                <option key={type}>{type}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground font-medium mb-1 block">Country (2-letter)</label>
-            <input
-              name="country"
-              defaultValue={account.country}
-              required
-              pattern="[A-Z]{2}"
-              aria-label="Country"
-              className={inputStyle}
-            />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground font-medium mb-1 block">Currency</label>
-            <input
-              name="currency"
-              value={account.currency}
-              readOnly
-              aria-label="Currency"
-              className={`${inputStyle} bg-muted/60 text-muted-foreground cursor-not-allowed`}
-            />
-          </div>
-          <div className="flex flex-col justify-end">
-            <label className="flex h-9 items-center gap-2 rounded-lg border border-input px-3 text-xs font-medium cursor-pointer">
+        <details open className="group">
+          <summary className="flex cursor-pointer items-center justify-between list-none">
+            <div>
+              <h2 className="text-base font-semibold tracking-tight inline-block">Account details</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Update account configuration, country domicile, or US-situs classification.
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground border border-border/80 rounded-md px-2.5 py-1 hover:bg-muted transition-colors">
+              <span className="group-open:hidden">Edit settings ↓</span>
+              <span className="hidden group-open:inline">Hide ↑</span>
+            </span>
+          </summary>
+          <form action={submitAccount} className="mt-4 grid max-w-2xl grid-cols-2 gap-3 text-sm sm:grid-cols-3 pt-3 border-t border-border/60">
+            <input type="hidden" name="accountId" value={account.id} />
+            <div>
+              <label className="text-xs text-muted-foreground font-medium mb-1 block">Account name</label>
               <input
-                type="checkbox"
-                name="isUSSitus"
-                value="true"
-                defaultChecked={account.isUSSitus}
-                className="rounded text-foreground"
-              />{" "}
-              US-situs
-            </label>
-          </div>
-          <button
-            type="submit"
-            className="col-span-2 inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-xs transition-colors hover:bg-foreground/90 sm:col-span-3 cursor-pointer"
-          >
-            <Save className="size-3.5" aria-hidden="true" /> Save account
-          </button>
-        </form>
-        {errorForm === "account" && error ? (
-          <p className="mt-3 text-xs font-medium text-red-600" role="alert">
-            {error}
-          </p>
-        ) : null}
+                name="name"
+                defaultValue={account.name}
+                required
+                aria-label="Account name"
+                className={inputStyle}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground font-medium mb-1 block">Institution</label>
+              <input
+                name="institution"
+                defaultValue={account.institution}
+                required
+                aria-label="Institution"
+                className={inputStyle}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground font-medium mb-1 block">Account type</label>
+              <select
+                name="type"
+                defaultValue={account.type}
+                required
+                aria-label="Account type"
+                className={inputStyle}
+              >
+                {ACCOUNT_TYPES.map((type) => (
+                  <option key={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground font-medium mb-1 block">Country (2-letter)</label>
+              <input
+                name="country"
+                defaultValue={account.country}
+                required
+                pattern="[A-Z]{2}"
+                aria-label="Country"
+                className={inputStyle}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground font-medium mb-1 block">Currency</label>
+              <input
+                name="currency"
+                value={account.currency}
+                readOnly
+                aria-label="Currency"
+                className={`${inputStyle} bg-muted/60 text-muted-foreground cursor-not-allowed`}
+              />
+            </div>
+            <div className="flex flex-col justify-end">
+              <label className="flex h-9 items-center gap-2 rounded-lg border border-input px-3 text-xs font-medium cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="isUSSitus"
+                  value="true"
+                  defaultChecked={account.isUSSitus}
+                  className="rounded text-foreground"
+                />{" "}
+                US-situs
+              </label>
+            </div>
+            <button
+              type="submit"
+              className="col-span-2 inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-xs transition-colors hover:bg-foreground/90 sm:col-span-3 cursor-pointer"
+            >
+              <Save className="size-3.5" aria-hidden="true" /> Save account
+            </button>
+          </form>
+          {errorForm === "account" && error ? (
+            <p className="mt-3 text-xs font-medium text-red-600" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </details>
       </section>
 
       {/* Holdings Section — Header must be DIRECT child for E2E selector compatibility */}
@@ -410,17 +434,62 @@ export default async function AccountDetailPage({
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
             Add or update position
           </p>
-          <form action={submitHolding} className="grid max-w-2xl grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+          <form action={submitHolding} className="space-y-3 max-w-2xl text-sm">
             <input type="hidden" name="accountId" value={account.id} />
-            <input name="symbol" placeholder="Symbol (e.g. XEQT.TO)" required className={inputStyle} />
-            <input name="name" placeholder="Full name (e.g. iShares Core Equity)" required className={inputStyle} />
-            <input name="domicileCountry" placeholder="Domicile (CA)" required pattern="[A-Z]{2}" className={inputStyle} />
-            <input name="quantity" placeholder="Quantity (e.g. 10)" required className={inputStyle} />
-            <input name="lastPrice" placeholder="Price ($)" required className={inputStyle} />
-            <input name="priceAsOf" type="date" required className={inputStyle} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground font-medium mb-1 block">Ticker Symbol</label>
+                <input
+                  name="symbol"
+                  placeholder="e.g. XEQT.TO, AAPL, RY.TO"
+                  required
+                  className={inputStyle}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground font-medium mb-1 block">Quantity</label>
+                <input
+                  name="quantity"
+                  placeholder="e.g. 100"
+                  type="number"
+                  step="any"
+                  required
+                  className={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-muted/30 p-3 border border-border/60 space-y-2">
+              <p className="text-[11px] font-medium text-muted-foreground">
+                Optional Details (auto-resolved via MarketLens if omitted)
+              </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div>
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">Asset Name</label>
+                  <input name="name" placeholder="Auto from symbol" className={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">Domicile</label>
+                  <input name="domicileCountry" placeholder={account.country} pattern="[A-Za-z]{2}" className={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">Manual Price ($)</label>
+                  <input name="lastPrice" placeholder="Auto-quoted" className={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">Price Date</label>
+                  <input name="priceAsOf" type="date" className={inputStyle} />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground">
+              Tip: Use <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">.TO</code> for Canadian TSX listings (e.g. <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">RY.TO</code>, <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">XEQT.TO</code>). US listings trade in USD (e.g. <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">AAPL</code>).
+            </p>
+
             <button
               type="submit"
-              className="col-span-2 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-muted/60 px-4 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted sm:col-span-3 cursor-pointer"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-muted/60 px-4 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted cursor-pointer"
             >
               <Plus className="size-3.5" />
               <span>Add / update holding</span>

@@ -1419,6 +1419,505 @@
       "sources": ["https://www.pcfinancial.ca/en/credit-cards/insiders-world-elite/"],
       "lastVerifiedAt": "2026-08-17",
       "_note": "PC Express Pass pickup bonus intentionally excluded from card checkout earn because current issuer terms tie it to active Pass/member status rather than clearly requiring payment with this card."
+    },
+    {
+      "cardId": "rbc-ion-plus-visa",
+      "officialName": "RBC ION+ Visa",
+      "issuer": "Royal Bank of Canada",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annualCad": 48,
+        "waiver": "RBC Advantage Banking Account for Students can rebate the $48 fee for eligible students age 24 and under."
+      },
+      "program": {
+        "programId": "rbcAvion",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [
+        {
+          "ruleId": "rbc-ion-plus-base-1x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 1 },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "rbc-ion-plus-accelerated-3x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 3 },
+          "predicate": {
+            "categories": ["grocery", "dining", "gasStation", "evCharging", "transit", "streaming", "digitalMedia"]
+          },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "3x on qualifying grocery (5411), dining (5812/5813/5814), gas/EV (5541/5542/5552), rides/transit (4121/4111), and digital media/streaming (5815-5818/4899). Requires strict MCC matching."
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "sources": ["https://www.rbcroyalbank.com/credit-cards/rewards/rbc-ion-plus-visa.html"],
+      "lastVerifiedAt": "2026-08-18",
+      "_note": "Exact current card-specific FX percentage unresolved; foreign scoring must fail closed."
+    },
+    {
+      "cardId": "td-cash-back-visa-infinite",
+      "officialName": "TD Cash Back Visa Infinite Card",
+      "issuer": "TD Canada Trust",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annualCad": 139
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "cad"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "td-cb-vi-base-1pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "cashback", "rate": 0.01 },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "td-cb-vi-grocery-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "cashback", "rate": 0.03 },
+          "predicate": { "categories": ["grocery"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "$15,000 annual cap with unresolved reset boundary. MCC 5411."
+        },
+        {
+          "ruleId": "td-cb-vi-gas-ev-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "cashback", "rate": 0.03 },
+          "predicate": { "categories": ["gasStation", "evCharging"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "$15,000 annual cap. MCC 5541, 5542, 5552."
+        },
+        {
+          "ruleId": "td-cb-vi-transit-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "cashback", "rate": 0.03 },
+          "predicate": { "categories": ["transit"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "$15,000 annual cap. MCC 4111."
+        },
+        {
+          "ruleId": "td-cb-vi-recurring-digital-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "cashback", "rate": 0.03 },
+          "predicate": { "categories": ["recurring", "streaming", "digitalMedia"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "$15,000 annual cap. MCC 5815-5818, 4899 or Visa recurring indicator."
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "sources": ["https://www.td.com/ca/en/personal-banking/products/credit-cards/cash-back/cash-back-visa-infinite-card"],
+      "lastVerifiedAt": "2026-08-18",
+      "_note": "Accelerated rules disabled pending resolution of the exact reset boundary for the $15,000 annual category caps."
+    },
+    {
+      "cardId": "bmo-ascend-world-elite",
+      "officialName": "BMO Ascend World Elite Mastercard",
+      "issuer": "Bank of Montreal",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annualCad": 150,
+        "waiver": "BMO Premium Plan can fully rebate the annual fee subject to annual purchase conditions; Performance Plan can rebate $40."
+      },
+      "program": {
+        "programId": "bmoRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [
+        {
+          "ruleId": "bmo-ascend-base-1x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 1 },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "bmo-ascend-travel-5x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 5 },
+          "predicate": { "categories": ["travel"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "$15,000 calendar-year cap; resets January 1."
+        },
+        {
+          "ruleId": "bmo-ascend-dining-3x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 3 },
+          "predicate": { "categories": ["dining"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "$10,000 calendar-year cap; resets January 1."
+        },
+        {
+          "ruleId": "bmo-ascend-entertainment-3x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 3 },
+          "predicate": { "categories": ["entertainment"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "$10,000 calendar-year cap; resets January 1."
+        },
+        {
+          "ruleId": "bmo-ascend-recurring-3x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 3 },
+          "predicate": { "categories": ["recurring"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "$10,000 calendar-year cap; resets January 1."
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "sources": ["https://www.bmo.com/en-ca/main/personal/credit-cards/bmo-ascend-world-elite-mastercard/"],
+      "lastVerifiedAt": "2026-08-18",
+      "_note": "Card-specific FX percentage unresolved; foreign purchases suppressed until pinned."
+    },
+    {
+      "cardId": "westjet-rbc-world-elite",
+      "officialName": "WestJet RBC World Elite Mastercard",
+      "issuer": "Royal Bank of Canada",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annualCad": 139
+      },
+      "program": {
+        "programId": "westJetPoints",
+        "unit": "point"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "westjet-rbc-base-1_5x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 1.5 },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "westjet-rbc-direct-2x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 2 },
+          "predicate": { "channels": ["westjetDirect"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "2x on eligible WestJet flights or WestJet Vacations packages."
+        },
+        {
+          "ruleId": "westjet-rbc-grocery-2x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 2 },
+          "predicate": { "categories": ["grocery"], "merchantExclude": ["costco", "walmart"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "2x on qualifying grocery (MCC 5411)."
+        },
+        {
+          "ruleId": "westjet-rbc-gas-ev-2x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 2 },
+          "predicate": { "categories": ["gasStation", "evCharging"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "2x on gas/EV (MCC 5541, 5542, 5552)."
+        },
+        {
+          "ruleId": "westjet-rbc-transit-2x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 2 },
+          "predicate": { "categories": ["transit"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "2x on rideshare/taxi/transit (MCC 4121, 4111)."
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "sources": ["https://www.rbcroyalbank.com/credit-cards/travel/westjet-rbc-world-elite-mastercard.html"],
+      "lastVerifiedAt": "2026-08-18",
+      "_note": "Annual companion voucher ($5,000 spend requirement) and Status Lift are annual milestones, intentionally excluded from per-purchase checkout earn."
+    },
+    {
+      "cardId": "amazon-ca-rewards-mastercard",
+      "officialName": "Amazon.ca Rewards Mastercard",
+      "issuer": "MBNA",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annualCad": 0
+      },
+      "program": {
+        "programId": "amazonRewards",
+        "unit": "point"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "amazon-ca-base-1x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 1 },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "amazon-ca-prime-2_5x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 2.5 },
+          "predicate": { "merchantInclude": ["Amazon.ca", "Whole Foods Market"] },
+          "ownerConditions": ["amazonEligiblePrimeLinked"],
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "2.5 points/$ on eligible Amazon.ca and Whole Foods Market Canada purchases with linked active Prime."
+        },
+        {
+          "ruleId": "amazon-ca-nonprime-1_5x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 1.5 },
+          "predicate": { "merchantInclude": ["Amazon.ca", "Whole Foods Market"] },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "1.5 points/$ on eligible Amazon.ca and Whole Foods Market Canada purchases without Prime."
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "sources": ["https://www.mbna.ca/en/credit-cards/retail-store/amazon-rewards-mastercard"],
+      "lastVerifiedAt": "2026-08-18",
+      "_note": "Closed-loop Amazon.ca Gift Card redemption (100 pts = $1). Foreign purchases earn 2.5x with Prime (net ~0% after 2.5% FX) or 1x without Prime."
+    },
+    {
+      "cardId": "cibc-aventura-visa",
+      "officialName": "CIBC Aventura Visa Card",
+      "issuer": "CIBC",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annualCad": 0
+      },
+      "program": {
+        "programId": "aventura",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [
+        {
+          "ruleId": "cibc-aventura-basic-base-1x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "points", "pointsPerCad": 1 },
+          "predicate": {},
+          "capId": null
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "sources": ["https://www.cibc.com/en/personal-banking/credit-cards/no-annual-fee.html"],
+      "lastVerifiedAt": "2026-08-18",
+      "_note": "Flat 1x Aventura point/$1 across all categories with no annual cap. Foreign purchases suppressed until FX rate is verified."
+    },
+    {
+      "cardId": "amex-simplycash",
+      "officialName": "SimplyCash Card from American Express",
+      "issuer": "American Express Canada",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annualCad": 0
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "cad"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "simplycash-base-1_25pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "cashback", "rate": 0.0125 },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "simplycash-gas-2pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "cashback", "rate": 0.02 },
+          "predicate": {
+            "categories": ["gasStation"],
+            "country": "CA"
+          },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "Requires strict standalone-gas-merchant classification."
+        },
+        {
+          "ruleId": "simplycash-grocery-2pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-18",
+          "earn": { "type": "cashback", "rate": 0.02 },
+          "predicate": {
+            "categories": ["grocery"],
+            "country": "CA",
+            "merchantExclude": ["costco", "walmart"]
+          },
+          "capId": null,
+          "scoredInV1": false,
+          "_note": "$15k Cardmembership-year cap. Requires anniversary owner state and cap ledger where post-cap returns do not restore accelerator capacity."
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "ownerObserved",
+      "sources": ["https://www.americanexpress.com/en-ca/benefits/simplycash-card/"],
+      "lastVerifiedAt": "2026-08-18"
     }
   ]
 }

@@ -98,7 +98,7 @@
       "patternProperties": { "^_": {} },
       "properties": {
         "programId": {
-          "enum": ["amexMembershipRewards", "marriottBonvoy", "mbnaRewards", "ctMoney", "cro", "cashback", "scenePlus", "aeroplan", "rbcAvion", "tdRewards", "bmoRewards", "aventura", "nbcRewards", "pcOptimum"],
+          "enum": ["amexMembershipRewards", "marriottBonvoy", "mbnaRewards", "ctMoney", "cro", "cashback", "scenePlus", "aeroplan", "rbcAvion", "tdRewards", "bmoRewards", "aventura", "nbcRewards", "pcOptimum", "westJetPoints", "amazonRewards"],
           "description": "Engine-defined valuation dispatch key — Scorer.valueCad switches on this string against OwnerState.valuationsCad. A new programId requires an engine code change, not just a catalogue edit."
         },
         "unit": { "type": "string", "examples": ["point", "cad", "ctDollar", "cro"] }
@@ -170,7 +170,7 @@
         "ownerConditions": {
           "type": "array",
           "items": {
-            "enum": ["rogersEligibleServiceLinked", "cryptoLevelUpProActive", "tangerineCategorySelected"]
+            "enum": ["rogersEligibleServiceLinked", "cryptoLevelUpProActive", "tangerineCategorySelected", "amazonEligiblePrimeLinked"]
           },
           "description": "Engine-defined gate ids — RuleMatcher.conditionsResolveTrue switches on these exact strings and treats any unknown id as unresolved (fails closed). A new id requires an engine code change."
         },

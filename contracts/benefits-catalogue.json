@@ -2547,6 +2547,651 @@
           "notes": "Underwritten by ABLAC."
         }
       ]
+    },
+    {
+      "cardId": "rbc-ion-plus-visa",
+      "certificate": {
+        "underwriter": "RBC Insurance Company of Canada; RBC Life Insurance Company",
+        "sourceUrl": "https://www.rbcroyalbank.com/credit-cards/rewards/rbc-ion-plus-visa/rbc-ion-plus-visa-certificate-of-insurance.pdf",
+        "certificateDate": "2024-05",
+        "lastVerifiedAt": "2026-08-18",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "rbc-ion-plus-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1000,
+            "deductibleCad": null
+          },
+          "conditions": [
+            "Charge full device purchase price or all monthly wireless bills to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Insurance Company of Canada."
+        },
+        {
+          "benefitId": "rbc-ion-plus-purchase-security",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": 50000
+          },
+          "conditions": [
+            "Charge full purchase price of the item to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Insurance Company of Canada. $50,000 calendar-year account maximum."
+        },
+        {
+          "benefitId": "rbc-ion-plus-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Original manufacturer warranty must be five years or less; full cost charged to Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Insurance Company of Canada."
+        }
+      ]
+    },
+    {
+      "cardId": "td-cash-back-visa-infinite",
+      "certificate": {
+        "underwriter": "TD Home and Auto Insurance Company; TD Life Insurance Company",
+        "sourceUrl": "https://www.td.com/content/dam/tdct/document/pdf/12281-5a-cashback-infinite_roc-e-05-a2-final-en.pdf",
+        "certificateDate": "2024-05",
+        "lastVerifiedAt": "2026-08-18",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "td-cb-vi-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 2000000,
+            "maxTripLengthDays": 10,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "Coverage applies during first 10 consecutive days of an eligible trip for insured persons under 65 (4 days for age 65+)."
+          ],
+          "exclusions": [
+            "Coverage limited to 10 days for under 65 and 4 days for age 65+."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Life Insurance Company."
+        },
+        {
+          "benefitId": "td-cb-vi-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "At least 75% of the ticket cost must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company."
+        },
+        {
+          "benefitId": "td-cb-vi-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 1000
+          },
+          "conditions": [
+            "At least 75% of the ticket cost must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company."
+        },
+        {
+          "benefitId": "td-cb-vi-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 85000
+          },
+          "conditions": [
+            "Charge full rental cost to the Card.",
+            "Decline the rental agency collision damage waiver (CDW)."
+          ],
+          "exclusions": [
+            "Vehicles with MSRP exceeding $85,000 are excluded."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company."
+        },
+        {
+          "benefitId": "td-cb-vi-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1000,
+            "deductibleCad": null
+          },
+          "conditions": [
+            "Charge full purchase price of the device or all monthly wireless payments to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company."
+        },
+        {
+          "benefitId": "td-cb-vi-purchase-security",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "Charge full purchase price of the item to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company."
+        },
+        {
+          "benefitId": "td-cb-vi-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Original manufacturer warranty must be five years or less; full cost charged to Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company."
+        }
+      ]
+    },
+    {
+      "cardId": "bmo-ascend-world-elite",
+      "certificate": {
+        "underwriter": "BMO Life Assurance Company; First North American Insurance Company (FNAIC) / Allianz Global Risks US Insurance Company",
+        "sourceUrl": "https://www.bmo.com/pdf/Ascend_World_Elite_Insurance_Certificate.pdf",
+        "certificateDate": "2024-05",
+        "lastVerifiedAt": "2026-08-18",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "bmo-ascend-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 5000000,
+            "maxTripLengthDays": 21,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "Coverage applies during first 21 consecutive days of an eligible trip for insured persons under 65 (3 days for age 65+)."
+          ],
+          "exclusions": [
+            "Coverage limited to 21 days for under 65 and 3 days for age 65+."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by BMO Life Assurance Company."
+        },
+        {
+          "benefitId": "bmo-ascend-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxCad": 1500
+          },
+          "conditions": [
+            "Charge full trip cost or portion to the Card according to certificate terms."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC / Allianz. $1,500 per person, $5,000 per trip."
+        },
+        {
+          "benefitId": "bmo-ascend-trip-interruption",
+          "family": "travelDisruption",
+          "kind": "tripInterruption",
+          "coverage": {
+            "maxCad": 2000
+          },
+          "conditions": [
+            "Charge full trip cost or portion to the Card according to certificate terms."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC / Allianz. $2,000 per person, $10,000 per trip."
+        },
+        {
+          "benefitId": "bmo-ascend-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "Charge full ticket cost to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC / Allianz."
+        },
+        {
+          "benefitId": "bmo-ascend-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "Charge full ticket cost to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC / Allianz."
+        },
+        {
+          "benefitId": "bmo-ascend-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Charge full ticket cost to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC / Allianz."
+        },
+        {
+          "benefitId": "bmo-ascend-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Charge full rental cost to the Card.",
+            "Decline rental agency CDW/LDW."
+          ],
+          "exclusions": [
+            "Vehicles with MSRP exceeding $65,000 are excluded."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC / Allianz."
+        },
+        {
+          "benefitId": "bmo-ascend-purchase-security",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "Charge full purchase price of the item to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC / Allianz."
+        },
+        {
+          "benefitId": "bmo-ascend-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Original manufacturer warranty must be five years or less; full cost charged to Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by FNAIC / Allianz."
+        }
+      ]
+    },
+    {
+      "cardId": "westjet-rbc-world-elite",
+      "certificate": {
+        "underwriter": "RBC Insurance Company of Canada; RBC Life Insurance Company",
+        "sourceUrl": "https://www.rbcroyalbank.com/credit-cards/travel/westjet-rbc-world-elite-mastercard/westjet-rbc-world-elite-mastercard-certificate-of-insurance.pdf",
+        "certificateDate": "2024-05",
+        "lastVerifiedAt": "2026-08-18",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "westjet-rbc-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 5000000,
+            "maxTripLengthDays": 15,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "Coverage applies during first 15 consecutive days of an eligible trip for insured persons under 65 (3 days for age 65+)."
+          ],
+          "exclusions": [
+            "Coverage limited to 15 days for under 65 and 3 days for age 65+."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Life Insurance Company."
+        },
+        {
+          "benefitId": "westjet-rbc-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxCad": 1500
+          },
+          "conditions": [
+            "Charge full trip cost to the Card or rewards."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Insurance Company of Canada. $1,500 per person, $5,000 per trip."
+        },
+        {
+          "benefitId": "westjet-rbc-trip-interruption",
+          "family": "travelDisruption",
+          "kind": "tripInterruption",
+          "coverage": {
+            "maxCad": 5000
+          },
+          "conditions": [
+            "Charge full trip cost to the Card or rewards."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Insurance Company of Canada. $5,000 per person, $25,000 per trip."
+        },
+        {
+          "benefitId": "westjet-rbc-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "Charge full ticket cost to the Card or rewards."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Insurance Company of Canada."
+        },
+        {
+          "benefitId": "westjet-rbc-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "Charge full ticket cost to the Card or rewards."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Insurance Company of Canada."
+        },
+        {
+          "benefitId": "westjet-rbc-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Charge full ticket cost to the Card or rewards."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Insurance Company of Canada."
+        },
+        {
+          "benefitId": "westjet-rbc-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Charge full rental cost to the Card.",
+            "Decline rental agency CDW/LDW."
+          ],
+          "exclusions": [
+            "Vehicles with MSRP exceeding $65,000 are excluded."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Insurance Company of Canada."
+        },
+        {
+          "benefitId": "westjet-rbc-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1500,
+            "deductibleCad": null
+          },
+          "conditions": [
+            "Charge full device purchase price or recurring monthly service bills to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Insurance Company of Canada. Up to $1,500 per claim."
+        },
+        {
+          "benefitId": "westjet-rbc-purchase-security",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "Charge full purchase price of the item to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Insurance Company of Canada."
+        },
+        {
+          "benefitId": "westjet-rbc-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Original manufacturer warranty must be five years or less; full cost charged to Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RBC Insurance Company of Canada."
+        }
+      ]
+    },
+    {
+      "cardId": "amazon-ca-rewards-mastercard",
+      "certificate": {
+        "underwriter": "TD Home and Auto Insurance Company",
+        "sourceUrl": "https://www.mbna.ca/content/dam/mbna/document/pdf/credit-cards/mbnaplatinumplusmastercardguidetocoverage-en.pdf",
+        "certificateDate": "2024-03",
+        "lastVerifiedAt": "2026-08-18",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "amazon-ca-purchase-security",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": 60000
+          },
+          "conditions": [
+            "Charge full purchase price of the item to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company. $60,000 account maximum."
+        },
+        {
+          "benefitId": "amazon-ca-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Original manufacturer warranty must be five years or less; full cost charged to Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company."
+        },
+        {
+          "benefitId": "amazon-ca-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Charge full rental cost to the Card.",
+            "Decline rental agency CDW/LDW."
+          ],
+          "exclusions": [
+            "Vehicles with MSRP exceeding $65,000 are excluded."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company."
+        }
+      ]
+    },
+    {
+      "cardId": "cibc-aventura-visa",
+      "certificate": {
+        "underwriter": "Royal & Sun Alliance Insurance Company of Canada (RSA)",
+        "sourceUrl": "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/manage/agreements-and-insurance/pdfs/aventura-visa-insurance-en.pdf",
+        "certificateDate": "2025-07",
+        "lastVerifiedAt": "2026-08-18",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "cibc-aventura-basic-purchase-security",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "Charge full purchase price of the item to the Card or redeem with Aventura points."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RSA."
+        },
+        {
+          "benefitId": "cibc-aventura-basic-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Original manufacturer warranty must be five years or less; full cost charged to Card or points."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RSA."
+        }
+      ]
+    },
+    {
+      "cardId": "amex-simplycash",
+      "certificate": {
+        "underwriter": "Royal & Sun Alliance Insurance Company of Canada (RSA)",
+        "sourceUrl": "https://www.americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/SimplyCash-Card-COI-EN.pdf",
+        "certificateDate": "2025-07",
+        "lastVerifiedAt": "2026-08-18",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "simplycash-purchase-security",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "Charge full purchase price of the item to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RSA."
+        },
+        {
+          "benefitId": "simplycash-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Original manufacturer warranty must be five years or less; full cost charged to Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by RSA."
+        }
+      ]
     }
   ]
 }
