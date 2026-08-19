@@ -12,6 +12,7 @@
 
 export type QuoteStatus = "FRESH" | "STALE" | "UNAVAILABLE";
 export type KeySource = "USER" | "APP" | "NONE";
+export type AssetClass = "EQUITY" | "CRYPTO";
 
 export type SymbolQuote = {
   symbol: string;
@@ -126,7 +127,7 @@ export function providerKeyHeader(providerKeys: Record<string, string>): string 
  */
 export async function fetchQuotes(
   symbols: string[],
-  options: { providerKeys?: Record<string, string>; timeoutMs?: number } = {},
+  options: { assetClass?: AssetClass; providerKeys?: Record<string, string>; timeoutMs?: number } = {},
 ): Promise<QuoteBatch | null> {
   const baseUrl = process.env.MARKETLENS_BASE_URL?.trim();
   const apiKey = process.env.MARKETLENS_API_KEY?.trim();
@@ -141,10 +142,11 @@ export async function fetchQuotes(
 
   const merged: QuoteBatch = { pricing: "daily-close", expectedSession: null, quotes: [], truncated: [] };
   let anySucceeded = false;
+  const assetClassParam = options.assetClass ? `&assetClass=${encodeURIComponent(options.assetClass)}` : "";
 
   for (let i = 0; i < unique.length; i += MAX_SYMBOLS_PER_REQUEST) {
     const chunk = unique.slice(i, i + MAX_SYMBOLS_PER_REQUEST);
-    const url = `${baseUrl.replace(/\/+$/, "")}/api/v1/quotes?symbols=${encodeURIComponent(chunk.join(","))}`;
+    const url = `${baseUrl.replace(/\/+$/, "")}/api/v1/quotes?symbols=${encodeURIComponent(chunk.join(","))}${assetClassParam}`;
     try {
       const res = await fetch(url, {
         headers,
