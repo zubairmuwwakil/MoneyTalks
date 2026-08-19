@@ -8,6 +8,10 @@ import {
   isSupportedProvider,
   saveProviderKey,
 } from "@/lib/security/providerKeys";
+import {
+  exchangeQuestradeRefreshToken,
+  formatQuestradeCredential,
+} from "@/lib/services/questradeOAuth";
 
 type ActionResult = { ok: true; message: string } | { ok: false; error: string };
 
@@ -21,23 +25,45 @@ type ActionResult = { ok: true; message: string } | { ok: false; error: string }
 export async function saveProviderCredential(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const provider = String(formData.get("provider") ?? "").trim().toUpperCase();
-  const key = String(formData.get("apiKey") ?? "").trim();
-  const label = String(formData.get("label") ?? "").trim();
+  const rawKey = String(formData.get("apiKey") ?? "").trim();
+  const rawLabel = String(formData.get("label") ?? "").trim();
 
   if (!isSupportedProvider(provider)) {
     return { ok: false, error: `Unsupported provider: ${provider}` };
   }
-  if (!key) {
+  if (!rawKey) {
     return { ok: false, error: "Enter a key." };
   }
+
+  let finalKey = rawKey;
+  let finalLabel = rawLabel;
+  let successDetail = "";
+
+  if (provider === "QUESTRADE") {
+    if (!rawKey.includes("@") && rawKey.length > 20) {
+      const exchange = await exchangeQuestradeRefreshToken(rawKey);
+      if (exchange) {
+        finalKey = formatQuestradeCredential(exchange.accessToken, exchange.apiServer);
+        if (!finalLabel && exchange.apiServer) {
+          try {
+            finalLabel = `Questrade (${new URL(exchange.apiServer).hostname})`;
+          } catch {
+            finalLabel = "Questrade API";
+          }
+        }
+        successDetail = ` (connected to ${exchange.apiServer})`;
+      }
+    }
+  }
+
   // These characters are the header's own delimiters; a key containing one would
   // corrupt every other provider's key in the same request.
-  if (key.includes(",") || key.includes("=")) {
+  if (finalKey.includes(",") || finalKey.includes("=")) {
     return { ok: false, error: "That key contains a character this service cannot transmit safely (, or =)." };
   }
 
   try {
-    await saveProviderKey(prisma, userId, provider, key, label || undefined);
+    await saveProviderKey(prisma, userId, provider, finalKey, finalLabel || undefined);
   } catch {
     // Almost always a missing/misconfigured SECRET_ENC_KEY. Say what it means
     // without leaking configuration detail to the browser.
@@ -45,7 +71,7 @@ export async function saveProviderCredential(formData: FormData): Promise<Action
   }
 
   revalidatePath("/settings/providers");
-  return { ok: true, message: `${provider} key stored. It will be used for your next price refresh.` };
+  return { ok: true, message: `${provider} key stored${successDetail}. It will be used for your next price refresh.` };
 }
 
 export async function removeProviderCredential(formData: FormData): Promise<ActionResult> {

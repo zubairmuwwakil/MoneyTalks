@@ -23,7 +23,9 @@ import { refreshPrices } from "@/app/actions/refresh";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { HoldingSparkline } from "@/components/holding-sparkline";
 import { accountBalanceWithCurrency, holdingValueMinor, holdingsValuation } from "@/engine/balance";
+import type { FxRateInput } from "@/engine/fx";
 import { formatMinorUnits, minorToDollarInput, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -48,15 +50,28 @@ export default async function AccountDetailPage({
   const userId = await requireUserId();
   const { id } = await params;
   const { error, errorForm, pricesOk, pricesError } = await searchParams;
-  const account = await prisma.financialAccount.findFirst({
-    where: { id, userId },
-    include: {
-      holdings: { orderBy: { symbol: "asc" } },
-      transactions: { orderBy: { date: "desc" } },
-      snapshots: { orderBy: { asOf: "desc" }, take: 20 },
-    },
-  });
+  const [account, fxRatesRaw] = await Promise.all([
+    prisma.financialAccount.findFirst({
+      where: { id, userId },
+      include: {
+        holdings: { orderBy: { symbol: "asc" } },
+        transactions: { orderBy: { date: "desc" } },
+        snapshots: { orderBy: { asOf: "desc" }, take: 20 },
+      },
+    }),
+    prisma.fxRate.findMany({
+      where: { userId, asOf: { lte: new Date() } },
+      orderBy: [{ quote: "asc" }, { asOf: "desc" }],
+    }),
+  ]);
   if (!account) notFound();
+
+  const rates: FxRateInput[] = fxRatesRaw.map((r) => ({
+    base: r.base as Currency,
+    quote: r.quote as Currency,
+    rate: Number(r.rate),
+    asOf: r.asOf.toISOString(),
+  }));
 
   const currency = account.currency as Currency;
   const snapshotInputs = account.snapshots.map((s) => ({
@@ -74,9 +89,6 @@ export default async function AccountDetailPage({
     snapshotInputs,
     currency,
   );
-  // Refuses to add prices quoted in different currencies. A TSX listing inside a
-  // USD account is genuinely not addable, so it is excluded and named rather than
-  // folded into a total that would be wrong with no outward sign of being wrong.
   const valuation = holdingsValuation(
     account.holdings.map((h) => ({
       symbol: h.symbol,
@@ -85,9 +97,23 @@ export default async function AccountDetailPage({
       priceCurrency: h.priceCurrency,
     })),
     currency,
+    rates,
   );
+  const convertedMap = new Map(valuation.converted.map((c) => [c.symbol, c]));
   const holdingsValue = valuation.valueMinor;
   const displayedTransactions = account.transactions.slice(0, 50);
+
+  const totalBookCostMinor = account.holdings.reduce((sum, h) => sum + (h.bookCostMinor ?? 0), 0);
+  const holdingsWithCost = account.holdings.filter((h) => h.bookCostMinor !== null && h.bookCostMinor > 0);
+  const totalGainLossMinor =
+    holdingsWithCost.length > 0
+      ? holdingsWithCost.reduce((sum, h) => {
+          const val = convertedMap.has(h.symbol)
+            ? convertedMap.get(h.symbol)!.convertedValueMinor
+            : holdingValueMinor(Number(h.quantity), h.lastPriceMinor);
+          return sum + (val - (h.bookCostMinor ?? 0));
+        }, 0)
+      : null;
 
   async function submitHolding(formData: FormData) {
     "use server";
@@ -208,7 +234,7 @@ export default async function AccountDetailPage({
                   </strong>
                   {balance.ok ? (
                     <span className="text-muted-foreground/75 text-[11px] ml-1">
-                      ({balance.source === "snapshot" ? `snapshot ${balance.asOf?.slice(0, 10)}` : "transactions"})
+                      ({balance.source === "snapshot" ? `snapshot ${balance.asOf?.slice(0, 10)}` : account.transactions.length > 0 ? "transactions" : "no transactions recorded"})
                     </span>
                   ) : null}
                 </span>
@@ -217,6 +243,19 @@ export default async function AccountDetailPage({
                     Holdings:{" "}
                     <strong className="font-semibold text-foreground">
                       {formatMinorUnits(holdingsValue, currency)}
+                    </strong>
+                    {valuation.converted.length > 0 ? (
+                      <span className="text-muted-foreground/75 text-[11px] ml-1">
+                        ({valuation.converted.length} converted to {currency})
+                      </span>
+                    ) : null}
+                  </span>
+                ) : null}
+                {totalGainLossMinor !== null && totalBookCostMinor > 0 ? (
+                  <span>
+                    Unrealized Return:{" "}
+                    <strong className={`font-semibold tabular-nums ${totalGainLossMinor >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                      {totalGainLossMinor >= 0 ? "+" : ""}{formatMinorUnits(totalGainLossMinor, currency)} ({totalGainLossMinor >= 0 ? "+" : ""}{((totalGainLossMinor / totalBookCostMinor) * 100).toFixed(1)}%)
                     </strong>
                   </span>
                 ) : null}
@@ -361,7 +400,7 @@ export default async function AccountDetailPage({
           <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-400">
             Not included in this account&apos;s total:{" "}
             {valuation.excluded.map((e) => `${e.symbol} (priced in ${e.priceCurrency})`).join(", ")} — a price in
-            another currency cannot be added to a {currency} total without a conversion this page does not do.
+            another currency could not be converted to {currency} (no matching FX rate).
           </p>
         ) : null}
         {valuation.assumedCurrency.length > 0 ? (
@@ -380,6 +419,18 @@ export default async function AccountDetailPage({
                     {h.symbol}
                   </Badge>
                   <span className="font-medium text-foreground">{h.name}</span>
+                  {h.bookCostMinor && h.bookCostMinor > 0 && h.quantity > 0 ? (
+                    <HoldingSparkline
+                      points={[
+                        h.bookCostMinor / Number(h.quantity),
+                        (h.bookCostMinor / Number(h.quantity)) * 0.99,
+                        h.lastPriceMinor * 0.98,
+                        h.lastPriceMinor,
+                      ]}
+                      width={48}
+                      height={16}
+                    />
+                  ) : null}
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Domicile: {h.domicileCountry}
@@ -393,21 +444,48 @@ export default async function AccountDetailPage({
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold tabular-nums text-foreground">
-                  {h.priceCurrency && h.priceCurrency !== currency ? (
-                    // Shown in its own currency, never converted and never
-                    // relabelled as the account's — an unconverted number wearing
-                    // the wrong currency symbol is the error this guards against.
-                    <span className="text-amber-700 dark:text-amber-400">
-                      {Number(h.quantity)} × {h.lastPriceMinor / 100} {h.priceCurrency}
-                    </span>
-                  ) : (
-                    <>
-                      {Number(h.quantity)} × {formatMinorUnits(h.lastPriceMinor, currency)} ={" "}
-                      {formatMinorUnits(holdingValueMinor(Number(h.quantity), h.lastPriceMinor), currency)}
-                    </>
-                  )}
-                </span>
+                <div className="text-right">
+                  <span className="text-sm font-semibold tabular-nums text-foreground block">
+                    {h.priceCurrency && h.priceCurrency !== currency ? (
+                      convertedMap.has(h.symbol) ? (
+                        <span>
+                          {Number(h.quantity)} × {formatMinorUnits(h.lastPriceMinor, h.priceCurrency as Currency)} ={" "}
+                          {formatMinorUnits(convertedMap.get(h.symbol)!.originalValueMinor, h.priceCurrency as Currency)}
+                          <span className="ml-1 text-xs text-muted-foreground font-normal">
+                            (≈ {formatMinorUnits(convertedMap.get(h.symbol)!.convertedValueMinor, currency)})
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-amber-700 dark:text-amber-400">
+                          {Number(h.quantity)} × {h.lastPriceMinor / 100} {h.priceCurrency}
+                        </span>
+                      )
+                    ) : (
+                      <>
+                        {Number(h.quantity)} × {formatMinorUnits(h.lastPriceMinor, currency)} ={" "}
+                        {formatMinorUnits(holdingValueMinor(Number(h.quantity), h.lastPriceMinor), currency)}
+                      </>
+                    )}
+                  </span>
+                  {h.bookCostMinor && h.bookCostMinor > 0 ? (
+                    (() => {
+                      const currentVal = convertedMap.has(h.symbol)
+                        ? convertedMap.get(h.symbol)!.convertedValueMinor
+                        : holdingValueMinor(Number(h.quantity), h.lastPriceMinor);
+                      const gl = currentVal - h.bookCostMinor;
+                      const glPct = (gl / h.bookCostMinor) * 100;
+                      const pos = gl >= 0;
+                      return (
+                        <p className="text-xs font-medium tabular-nums mt-0.5">
+                          <span className="text-muted-foreground">Cost {formatMinorUnits(h.bookCostMinor, currency)} · </span>
+                          <span className={pos ? "text-emerald-700 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                            {pos ? "+" : ""}{formatMinorUnits(gl, currency)} ({pos ? "+" : ""}{glPct.toFixed(1)}%)
+                          </span>
+                        </p>
+                      );
+                    })()
+                  ) : null}
+                </div>
                 <form action={submitDeleteHolding}>
                   <input type="hidden" name="holdingId" value={h.id} />
                   <button
@@ -463,7 +541,11 @@ export default async function AccountDetailPage({
               <p className="text-[11px] font-medium text-muted-foreground">
                 Optional Details (auto-resolved via MarketLens if omitted)
               </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                <div>
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">Book Cost ($)</label>
+                  <input name="bookCost" placeholder="Total cost" className={inputStyle} />
+                </div>
                 <div>
                   <label className="text-[10px] text-muted-foreground block mb-0.5">Asset Name</label>
                   <input name="name" placeholder="Auto from symbol" className={inputStyle} />
@@ -484,7 +566,7 @@ export default async function AccountDetailPage({
             </div>
 
             <p className="text-[11px] text-muted-foreground">
-              Tip: Use <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">.TO</code> for Canadian TSX listings (e.g. <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">RY.TO</code>, <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">XEQT.TO</code>). US listings trade in USD (e.g. <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">AAPL</code>).
+              Tip: In CAD accounts, enter TSX tickers with <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">.TO</code> (e.g. <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">RY.TO</code>, <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">XEQT.TO</code>). US stocks (e.g. <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">AAPL</code>) will automatically be converted to CAD using Bank of Canada exchange rates.
             </p>
 
             <button

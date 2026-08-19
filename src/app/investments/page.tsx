@@ -3,18 +3,72 @@ import { ChevronRight, KeyRound, Plus, TrendingUp, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { accountBalanceWithCurrency } from "@/engine/balance";
+import { accountBalanceWithCurrency, holdingsValuation } from "@/engine/balance";
+import type { FxRateInput } from "@/engine/fx";
 import { formatMinorUnits, type Currency } from "@/engine/money";
+import { netWorth, type AccountBalanceRow } from "@/engine/networth";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
 export default async function InvestmentsPage() {
   const userId = await requireUserId();
-  const accounts = await prisma.financialAccount.findMany({
-    where: { userId },
-    include: { transactions: true, snapshots: true },
-    orderBy: { name: "asc" },
+  const [accounts, fxRatesRaw] = await Promise.all([
+    prisma.financialAccount.findMany({
+      where: { userId },
+      include: { transactions: true, snapshots: true, holdings: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.fxRate.findMany({
+      where: { userId, asOf: { lte: new Date() } },
+      orderBy: [{ quote: "asc" }, { asOf: "desc" }],
+    }),
+  ]);
+
+  const rates: FxRateInput[] = fxRatesRaw.map((r) => ({
+    base: r.base as Currency,
+    quote: r.quote as Currency,
+    rate: Number(r.rate),
+    asOf: r.asOf.toISOString(),
+  }));
+
+  const accountRows: AccountBalanceRow[] = accounts.map((a) => {
+    const snapshots = a.snapshots.map((s) => ({
+      balanceMinor: s.balanceMinor,
+      currency: s.currency as Currency,
+      asOf: s.asOf.toISOString(),
+    }));
+    const balance = accountBalanceWithCurrency(
+      a.transactions.map((t) => ({
+        type: t.type,
+        amountMinor: t.amountMinor,
+        date: t.date.toISOString(),
+        currency: t.currency,
+      })),
+      snapshots,
+      a.currency,
+    );
+    const valuation = holdingsValuation(
+      a.holdings.map((h) => ({
+        symbol: h.symbol,
+        quantity: Number(h.quantity),
+        lastPriceMinor: h.lastPriceMinor,
+        priceCurrency: h.priceCurrency,
+      })),
+      a.currency,
+      rates,
+    );
+    const totalMinor = (balance.ok ? balance.balanceMinor : 0) + valuation.valueMinor;
+    return {
+      id: a.id,
+      name: a.name,
+      type: a.type,
+      currency: a.currency as Currency,
+      balanceMinor: totalMinor,
+    };
   });
+
+  const portfolio = netWorth(accountRows, "CAD", rates);
+  const totalHoldingsCount = accounts.reduce((acc, a) => acc + a.holdings.length, 0);
 
   return (
     <main className="space-y-6 py-6 sm:py-8">
@@ -47,6 +101,30 @@ export default async function InvestmentsPage() {
           </Button>
         </div>
       </div>
+
+      {accounts.length > 0 ? (
+        <div className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Total Portfolio Value
+              </p>
+              <p className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                {formatMinorUnits(portfolio.totalMinor, "CAD")}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="secondary" className="text-xs font-medium">
+                {accounts.length} {accounts.length === 1 ? "account" : "accounts"}
+              </Badge>
+              <span>·</span>
+              <Badge variant="outline" className="text-xs font-medium">
+                {totalHoldingsCount} {totalHoldingsCount === 1 ? "holding" : "holdings"}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {accounts.length === 0 ? (
         <EmptyState
@@ -81,6 +159,19 @@ export default async function InvestmentsPage() {
                 snapshots,
                 a.currency,
               );
+              const valuation = holdingsValuation(
+                a.holdings.map((h) => ({
+                  symbol: h.symbol,
+                  quantity: Number(h.quantity),
+                  lastPriceMinor: h.lastPriceMinor,
+                  priceCurrency: h.priceCurrency,
+                })),
+                a.currency,
+                rates,
+              );
+              const holdingsValue = valuation.valueMinor;
+              const totalMinor = balance.ok ? balance.balanceMinor + holdingsValue : holdingsValue;
+
               return (
                 <li key={a.id} className="transition-colors hover:bg-muted/40">
                   <Link
@@ -110,13 +201,17 @@ export default async function InvestmentsPage() {
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-3">
-                      {balance.ok ? (
+                      {balance.ok || a.holdings.length > 0 ? (
                         <div className="text-right">
                           <p className="text-base font-semibold tabular-nums text-foreground">
-                            {formatMinorUnits(balance.balanceMinor, balance.currency as Currency)}
+                            {formatMinorUnits(totalMinor, a.currency as Currency)}
                           </p>
                           <p className="text-[11px] text-muted-foreground">
-                            {balance.source === "snapshot"
+                            {a.holdings.length > 0 && balance.ok && balance.balanceMinor > 0
+                              ? `${formatMinorUnits(balance.balanceMinor, a.currency as Currency)} cash · ${formatMinorUnits(holdingsValue, a.currency as Currency)} holdings`
+                              : a.holdings.length > 0
+                              ? `${a.holdings.length} ${a.holdings.length === 1 ? "holding" : "holdings"}`
+                              : balance.ok && balance.source === "snapshot"
                               ? `Snapshot as of ${balance.asOf?.slice(0, 10)}`
                               : "Derived from transactions"}
                           </p>
