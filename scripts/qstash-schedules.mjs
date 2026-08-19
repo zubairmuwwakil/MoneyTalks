@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 
 import { Client } from "@upstash/qstash";
+import { expected, resolveBaseUrl } from "./qstash-schedules.config.mjs";
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   console.log(`Create or update MoneyTalks QStash schedules.
 
 Required env:
   QSTASH_TOKEN
-  APP_URL
+  CRON_BASE_URL (preferred) or APP_URL
 
 Optional env:
   QSTASH_URL
@@ -22,8 +23,8 @@ Run:
   process.exit(0);
 }
 
-const required = ["QSTASH_TOKEN", "APP_URL"];
-const missing = required.filter((name) => !process.env[name]?.trim());
+const missing = ["QSTASH_TOKEN"].filter((name) => !process.env[name]?.trim());
+if (!resolveBaseUrl()) missing.push("CRON_BASE_URL or APP_URL");
 
 if (missing.length) {
   console.error(`Missing required environment variable(s): ${missing.join(", ")}`);
@@ -31,51 +32,19 @@ if (missing.length) {
   process.exit(1);
 }
 
-const appUrl = process.env.APP_URL.trim().replace(/\/+$/, "");
 const client = new Client({
   token: process.env.QSTASH_TOKEN,
   baseUrl: process.env.QSTASH_URL || undefined,
 });
 
-const schedules = [
-  {
-    name: "digest",
-    scheduleId: "moneytalks-digest",
-    path: "/api/cron/digest",
-    cron: process.env.QSTASH_DIGEST_CRON || "*/15 * * * *",
-  },
-  {
-    name: "notify",
-    scheduleId: "moneytalks-notify",
-    path: "/api/cron/notify",
-    cron: process.env.QSTASH_NOTIFY_CRON || "0 * * * *",
-  },
-  {
-    name: "purchase-merge",
-    scheduleId: "moneytalks-purchase-merge",
-    path: "/api/cron/purchase-merge",
-    cron: process.env.QSTASH_PURCHASE_MERGE_CRON || "30 3 * * *",
-  },
-  {
-    name: "fx",
-    scheduleId: "moneytalks-fx",
-    path: "/api/cron/fx",
-    // 11:00 UTC / 07:00 ET: the Bank of Canada's previous-business-day rate is
-    // published well before this, and it lands before any daily summary runs.
-    cron: process.env.QSTASH_FX_CRON || "0 11 * * *",
-  },
-  {
-    name: "prices",
-    scheduleId: "moneytalks-prices",
-    path: "/api/cron/prices",
-    // 02:00 UTC = after the US close and after MarketLens' own 22:30 UTC sweep,
-    // so the hub reads prices MarketLens has already warmed rather than racing it.
-    cron: process.env.QSTASH_PRICES_CRON || "0 2 * * *",
-  },
-];
+if (!process.env.CRON_BASE_URL?.trim()) {
+  console.warn("! CRON_BASE_URL unset, falling back to APP_URL. APP_URL follows the");
+  console.warn("  consumer brand and will move again on the next rebrand; set");
+  console.warn("  CRON_BASE_URL to a hostname you will never rename.\n");
+}
 
-for (const schedule of schedules) {
-  const destination = `${appUrl}${schedule.path}`;
+for (const schedule of expected()) {
+  const destination = schedule.destination;
   const { scheduleId } = await client.schedules.create({
     destination,
     scheduleId: schedule.scheduleId,
