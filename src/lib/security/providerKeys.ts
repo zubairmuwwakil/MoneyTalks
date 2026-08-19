@@ -14,7 +14,7 @@ import type { PrismaClient } from "@prisma/client";
 import { SecretCryptoError, decryptSecret, encryptSecret } from "./secretCrypto";
 
 /** Provider source names as MarketLens knows them. */
-export const SUPPORTED_PROVIDERS = ["ALPHAVANTAGE"] as const;
+export const SUPPORTED_PROVIDERS = ["ALPHAVANTAGE", "QUESTRADE"] as const;
 export type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
 
 export function isSupportedProvider(value: string): value is SupportedProvider {

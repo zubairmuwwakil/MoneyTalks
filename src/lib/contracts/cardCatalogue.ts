@@ -132,9 +132,7 @@ const earnRuleSchema = annotatedObject({
   earn: earnSchema,
   predicate: predicateSchema,
   capId: z.string().nullable(),
-  ownerConditions: z
-    .array(z.enum(["rogersEligibleServiceLinked", "cryptoLevelUpProActive", "tangerineCategorySelected"]))
-    .optional(),
+  ownerConditions: z.array(z.string()).optional(),
   scoredInV1: z.boolean().optional(),
 });
 
