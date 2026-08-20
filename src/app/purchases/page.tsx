@@ -22,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SortSelect } from "./ui/SortSelect";
+import { UnmappedCardPicker } from "./ui/UnmappedCardPicker";
+import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { Prisma } from "@prisma/client";
 
 const PAGE_SIZE = 50;
@@ -215,6 +217,16 @@ export default async function PurchasesInboxPage({
   userCards.forEach((c) => {
     if (c.contractCardId) cardNameMap.set(c.contractCardId, c.nickname);
   });
+
+  // Enriched card list for the UnmappedCardPicker — includes the catalogue
+  // official name so fuzzy matching can compare "American Express Cobalt"
+  // (cardRaw) against "American Express Cobalt Card" (officialName).
+  const pickerCards = userCards
+    .filter((c): c is { nickname: string; contractCardId: string } => !!c.contractCardId)
+    .map((c) => ({
+      ...c,
+      officialName: cardCatalogue.cards.find((cat) => cat.cardId === c.contractCardId)?.officialName,
+    }));
 
   // Calculate high-level summary KPIs
   let totalSpendCents = 0;
@@ -565,6 +577,7 @@ export default async function PurchasesInboxPage({
                       ? local.toFormat("MMM d · h:mm a")
                       : local.toFormat("MMM d, yyyy");
 
+                    const isUnmappedCard = !!(wallet?.cardRaw && !wallet.resolvedCardId);
                     const cardDisplay = wallet
                       ? (wallet.resolvedCardId ? cardNameMap.get(wallet.resolvedCardId) : null) ??
                         wallet.cardRaw ??
@@ -634,10 +647,14 @@ export default async function PurchasesInboxPage({
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                               <span className="font-medium text-foreground/80">{when}</span>
                               <span>·</span>
-                              <span className="inline-flex items-center gap-1">
-                                <CreditCard className="size-3 text-muted-foreground/80" />
-                                <span>{cardDisplay}</span>
-                              </span>
+                              {isUnmappedCard ? (
+                                <UnmappedCardPicker cardRaw={wallet!.cardRaw!} cards={pickerCards} />
+                              ) : (
+                                <span className="inline-flex items-center gap-1">
+                                  <CreditCard className="size-3 text-muted-foreground/80" />
+                                  <span>{cardDisplay}</span>
+                                </span>
+                              )}
                               {p.items.length > 0 ? (
                                 <>
                                   <span>·</span>

@@ -41,7 +41,7 @@ export async function processWalletEvents() {
         })
       : null;
 
-    if (merchantAlias && (cardAlias || !event.cardRaw)) {
+    if (merchantAlias) {
       // Normalize & promote to spine
       await prisma.$transaction(async (tx) => {
         const amountMinor = walletAmountMinor(event.amountRaw);

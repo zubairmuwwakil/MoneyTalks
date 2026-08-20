@@ -158,4 +158,47 @@ describe("processWalletEvents", () => {
     }));
     expect(applyCapAccrual).not.toHaveBeenCalled();
   });
+
+  it("normalizes an event with unmapped cardRaw (no cardAlias) — paymentMethod stays null, no cap accrual", async () => {
+    const event = {
+      id: "evt-5", userId: "user-1", eventId: "wevt_5",
+      merchantRaw: "Metro", cardRaw: "Aventura Visa Platinum",
+      amountRaw: new Prisma.Decimal("32.10"), currencyRaw: "CAD",
+      capturedAt: new Date("2026-08-17T14:00:00Z"),
+    };
+    vi.mocked(prisma.walletEvent.findMany)
+      .mockResolvedValueOnce([event] as any)
+      .mockResolvedValueOnce([]);
+    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Metro", category: "grocery" } as any);
+    // No card alias exists for this raw string
+    vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue(null);
+    tx.purchase.findFirst.mockResolvedValue(null);
+    tx.purchase.findMany.mockResolvedValue([]);
+    tx.purchase.create.mockResolvedValue({ id: "purch-5", currency: "CAD" });
+    tx.ownerStateRecord.findUnique.mockResolvedValue({ stateData: { cardStates: {} } });
+    tx.creditCard.findMany.mockResolvedValue([]);
+
+    const processed = await processWalletEvents();
+
+    expect(processed).toBe(1);
+    // Purchase created without a paymentMethod
+    expect(tx.purchase.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ merchant: "Metro", totalCents: 3210 }),
+    }));
+    const createCall = vi.mocked(tx.purchase.create).mock.calls[0][0] as any;
+    expect(createCall.data.paymentMethod).toBeUndefined();
+    // Event transitions to NORMALIZED with resolvedCardId null
+    expect(tx.walletEvent.update).toHaveBeenCalledWith({
+      where: { id: "evt-5" },
+      data: {
+        processingStatus: "NORMALIZED",
+        merchantNormalized: "Metro",
+        resolvedCardId: null,
+        purchaseId: "purch-5",
+      },
+    });
+    // Cap accrual skipped because no card alias
+    expect(applyCapAccrual).not.toHaveBeenCalled();
+  });
 });
+

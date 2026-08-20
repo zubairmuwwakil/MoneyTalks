@@ -66,6 +66,32 @@ export async function mapWalletCard(input: { rawString: string; contractCardId: 
     data: { resolvedCardId: contractCardId },
   });
 
+  // Backfill purchases that promoted without a paymentMethod (normalization
+  // now proceeds even when the card alias is missing).
+  const enrichableEvents = await prisma.walletEvent.findMany({
+    where: { userId, cardRaw: rawString, purchaseId: { not: null } },
+    select: { purchaseId: true },
+  });
+  const purchaseIds = [...new Set(enrichableEvents.map((e) => e.purchaseId!))];
+  if (purchaseIds.length > 0) {
+    await prisma.purchase.updateMany({
+      where: { id: { in: purchaseIds }, paymentMethod: null },
+      data: { paymentMethod: contractCardId },
+    });
+  }
+
+  // Trigger normalization so any still-OBSERVED events with this card can
+  // promote now that the alias exists, and cap accrual can run for events
+  // that were promoted without it.
+  try {
+    const { processWalletEvents } = await import("@/lib/domain/wallet/walletNormalization");
+    await processWalletEvents();
+  } catch (e) {
+    console.error("Error processing wallet events after card mapping", e);
+  }
+
   revalidatePath("/settings/wallet");
+  revalidatePath("/purchases");
   return { ok: true as const };
 }
+
