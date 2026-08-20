@@ -1,5 +1,9 @@
 export type Network = "VISA" | "MASTERCARD" | "AMEX";
 
+// The hub's own spend vocabulary. This is NOT the card rate model — that lives
+// in PickMe's catalogue and is read through src/lib/cards/catalogueCard.ts.
+// These categories exist so a MerchantAlias can be classified (see
+// /settings/merchants), which is hub-owned, global, shared learning.
 export const SPEND_CATEGORIES = [
   "groceries",
   "dining",
@@ -30,143 +34,20 @@ export const CATEGORY_LABELS: Record<SpendCategory, string> = {
   everything_else: "Everything else",
 };
 
-export interface CardCredit {
-  id: string;
-  label: string;
-  valueMinor: number;
-  period: "YEAR" | "MONTH";
-}
-
-export interface CategoryRate {
-  category: SpendCategory;
-  multiplier: number;
-  capMinor?: number;
-  capWindow?: "MONTH" | "YEAR";
-  capGroupId?: string;
-  requiresConditionId?: string;
-}
-
-export interface CapGroup {
-  id: string;
-  label: string;
-  capMinor: number;
-  capWindow: "MONTH" | "YEAR";
-}
-
-export interface CardCondition {
-  id: string;
-  label: string;
-  enabled: boolean;
-  annualFeeReductionMinor?: number;
-}
-
-export interface MerchantRate {
-  id: string;
-  merchant: string;
-  multiplier: number;
-  requiresConditionId?: string;
-}
-
-export interface BaseRateOverride {
-  id: string;
-  label: string;
-  multiplier: number;
-  requiresConditionId: string;
-  capMinor?: number;
-  capWindow?: "MONTH" | "YEAR";
-}
-
-export interface CardRewards {
-  pointValueCents: number; // cents of value per point; 1 = plain cashback
-  fxFeePct: number;
-  baseMultiplier: number;
-  categoryRates: CategoryRate[];
-  credits: CardCredit[];
-  capGroups?: CapGroup[];
-  conditions?: CardCondition[];
-  merchantRates?: MerchantRate[];
-  baseRateOverrides?: BaseRateOverride[];
-}
-
+/**
+ * A user's own copy of a card — the facts the hub owns. Everything rate-shaped
+ * (earn rules, caps, FX, credits) is resolved from the catalogue via
+ * `contractCardId`; nothing of the sort is ever stored per user.
+ *
+ * `contractCardId` null means the row is legacy or was imported, so its rates
+ * are simply unknown until the owner links it. That is deliberately not an
+ * error state and never a guess — see catalogueCard.ts.
+ */
 export interface CardDef {
   id: string;
   nickname: string;
   network: Network;
   annualFeeMinor: number;
-  rewards: CardRewards;
-}
-
-export interface CapUsage {
-  cardId: string;
-  category: SpendCategory;
-  periodKey: string; // "2026-08" for MONTH windows, "2026" for YEAR windows
-  usedMinor: number;
-}
-
-export function periodKeyFor(window: "MONTH" | "YEAR", today: string): string {
-  return window === "MONTH" ? today.slice(0, 7) : today.slice(0, 4);
-}
-
-export function conditionIsEnabled(rewards: CardRewards, conditionId?: string): boolean {
-  if (!conditionId) return true;
-  return rewards.conditions?.some((condition) => condition.id === conditionId && condition.enabled) ?? false;
-}
-
-export function activeCategoryRate(rewards: CardRewards, category: SpendCategory): CategoryRate | undefined {
-  return rewards.categoryRates.find(
-    (rate) => rate.category === category && conditionIsEnabled(rewards, rate.requiresConditionId),
-  );
-}
-
-export function activeBaseRateOverride(rewards: CardRewards): BaseRateOverride | undefined {
-  return (rewards.baseRateOverrides ?? [])
-    .filter((rate) => conditionIsEnabled(rewards, rate.requiresConditionId))
-    .sort((left, right) => right.multiplier - left.multiplier)[0];
-}
-
-export interface ResolvedSpendCap {
-  id: string;
-  label: string;
-  capMinor: number;
-  capWindow: "MONTH" | "YEAR";
-  categories: SpendCategory[];
-  allSpend?: boolean;
-}
-
-export function capForRate(rewards: CardRewards, rate: CategoryRate): ResolvedSpendCap | undefined {
-  if (rate.capGroupId) {
-    const group = rewards.capGroups?.find((candidate) => candidate.id === rate.capGroupId);
-    if (!group) return undefined;
-    return {
-      id: group.id,
-      label: group.label,
-      capMinor: group.capMinor,
-      capWindow: group.capWindow,
-      categories: rewards.categoryRates
-        .filter((candidate) => candidate.capGroupId === group.id && conditionIsEnabled(rewards, candidate.requiresConditionId))
-        .map((candidate) => candidate.category),
-    };
-  }
-
-  if (rate.capMinor === undefined) return undefined;
-  return {
-    id: `category:${rate.category}`,
-    label: CATEGORY_LABELS[rate.category],
-    capMinor: rate.capMinor,
-    capWindow: rate.capWindow ?? "MONTH",
-    categories: [rate.category],
-  };
-}
-
-export function capForBaseRateOverride(rewards: CardRewards, rate: BaseRateOverride): ResolvedSpendCap | undefined {
-  if (rate.capMinor === undefined) return undefined;
-  const categories = SPEND_CATEGORIES.filter((category) => !activeCategoryRate(rewards, category));
-  return {
-    id: `base-rate:${rate.id}`,
-    label: rate.label,
-    capMinor: rate.capMinor,
-    capWindow: rate.capWindow ?? "MONTH",
-    categories,
-    allSpend: categories.length === SPEND_CATEGORIES.length,
-  };
+  feeRebateMinor: number;
+  contractCardId: string | null;
 }

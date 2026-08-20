@@ -2,20 +2,20 @@
   "_upstream": {
     "repo": "https://github.com/zubairmuwwakil/PickMe",
     "ref": "main",
-    "commit": "79aa4647b1ea817ba9add79738925efe07cdcd39",
+    "commit": "670d1fe3554d9a2adb92f7cccb766b3719761d84",
     "files": {
-      "card-catalogue.json": "69354c8380c26397aba4a44effa3742f57b72edf7402a2de5cfc2fe7114a098e",
+      "card-catalogue.json": "6b79fb2dbe5c9c127889f1a42bc786dd1e41db07bccaaae7f7bfa2ac62989793",
       "benefits-catalogue.json": "08bf768f4c39f0f85a366f9182ce3a1fe82aa745ee6045eb711defc207c10c1d",
       "engine-fixtures.json": "ddf1ababa02cb855a6cf9a39ab3c271e0108509deb7374bd954cdb78b2c88c46",
-      "schema/card-catalogue.schema.json": "61472170d0278c47ee0a3af02a3bdf590eac99a25bb6243c48fcf4e2cc934efa",
+      "schema/card-catalogue.schema.json": "f6b6fd7062e15b55adb8309fe979609d8f3da93ba30686da5c070c751e1fe1db",
       "schema/benefits-catalogue.schema.json": "055c498a1c78b2ad091f249cbbb50b99c5c20ebeda99fd17aff8113bcd502888",
       "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db"
     }
   },
-  "card-catalogue.json": "69354c8380c26397aba4a44effa3742f57b72edf7402a2de5cfc2fe7114a098e",
+  "card-catalogue.json": "6b79fb2dbe5c9c127889f1a42bc786dd1e41db07bccaaae7f7bfa2ac62989793",
   "benefits-catalogue.json": "08bf768f4c39f0f85a366f9182ce3a1fe82aa745ee6045eb711defc207c10c1d",
   "engine-fixtures.json": "ddf1ababa02cb855a6cf9a39ab3c271e0108509deb7374bd954cdb78b2c88c46",
-  "schema/card-catalogue.schema.json": "61472170d0278c47ee0a3af02a3bdf590eac99a25bb6243c48fcf4e2cc934efa",
+  "schema/card-catalogue.schema.json": "f6b6fd7062e15b55adb8309fe979609d8f3da93ba30686da5c070c751e1fe1db",
   "schema/benefits-catalogue.schema.json": "055c498a1c78b2ad091f249cbbb50b99c5c20ebeda99fd17aff8113bcd502888",
   "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db"
 }

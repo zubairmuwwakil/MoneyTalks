@@ -262,12 +262,6 @@ export async function allocateRecommendedCard(formData: FormData): Promise<Actio
               network: catCard.network.toUpperCase(),
               annualFeeMinor: Math.round((catCard.fee?.annualCad ?? 0) * 100),
               contractCardId: catCard.cardId,
-              rewards: asJson({
-                baseRate: 1,
-                spendCategories: [],
-                credits: [],
-                conditions: [],
-              }),
             },
             select: { id: true },
           });

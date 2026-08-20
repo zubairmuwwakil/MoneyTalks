@@ -3,8 +3,13 @@ import { ArrowLeft, CreditCard, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { creditsRealizedMinor, effectiveAnnualFeeMinor, type RedeemedCredit } from "@/lib/cards/fees";
-import type { CardDef, CardRewards } from "@/lib/cards/types";
+import {
+  catalogueCredits,
+  catalogueCreditsRealizedMinor,
+  effectiveAnnualFeeMinor,
+  type RedeemedCredit,
+} from "@/lib/cards/catalogueCard";
+import type { CardDef } from "@/lib/cards/types";
 import { formatMinorUnits } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -21,7 +26,8 @@ export default async function ManageCardsPage() {
     nickname: c.nickname,
     network: c.network as CardDef["network"],
     annualFeeMinor: c.annualFeeMinor,
-    rewards: c.rewards as unknown as CardRewards,
+    feeRebateMinor: c.feeRebateMinor,
+    contractCardId: c.contractCardId,
   }));
   const today = new Date().toISOString().slice(0, 10);
 
@@ -68,8 +74,9 @@ export default async function ManageCardsPage() {
           const def = defs[i];
           const redeemed = (c.state?.creditsRedeemed as unknown as RedeemedCredit[]) ?? [];
           const realizedMinor =
-            creditsRealizedMinor(def.rewards.credits, redeemed, today) + (c.state?.rewardsEstimateMinor ?? 0);
-          const netMinor = realizedMinor - effectiveAnnualFeeMinor(def);
+            catalogueCreditsRealizedMinor(catalogueCredits(def.contractCardId), redeemed, today) +
+            (c.state?.rewardsEstimateMinor ?? 0);
+          const netMinor = realizedMinor - effectiveAnnualFeeMinor(def.annualFeeMinor, def.feeRebateMinor);
           return (
             <li key={c.id} className="transition-colors hover:bg-muted/40">
               <Link
@@ -91,7 +98,7 @@ export default async function ManageCardsPage() {
                 </div>
                 <div className="text-right">
                   <span className="text-sm font-semibold tabular-nums text-foreground">
-                    fee {formatMinorUnits(effectiveAnnualFeeMinor(def), "CAD")} - net {formatMinorUnits(netMinor, "CAD")}
+                    fee {formatMinorUnits(effectiveAnnualFeeMinor(def.annualFeeMinor, def.feeRebateMinor), "CAD")} - net {formatMinorUnits(netMinor, "CAD")}
                   </span>
                 </div>
               </Link>

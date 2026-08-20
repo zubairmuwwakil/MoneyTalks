@@ -6,57 +6,53 @@ datasource db {
   provider = "postgresql"
 }
 
-// ---- Auth.js models (shape required by @auth/prisma-adapter) ----
-// NOTE: "Account" here is an OAuth/provider account, owned by the adapter.
-// Financial accounts (Phase 1) must be modeled as "FinancialAccount".
-
 model User {
   id                          String                       @id @default(cuid())
-  clerkId                     String?                      @unique
   name                        String?
   email                       String?                      @unique
   emailVerified               DateTime?
   image                       String?
-  accounts                    Account[]
-  walletInstallations         WalletInstallation[]
-  walletEvents                WalletEvent[]
-  capUsageLedgers             CapUsageLedger[]
-  capAccruals                 CapAccrual[]
-  ownerStateRecord            OwnerStateRecord?
-  cardAliases                 CardAlias[]
-  statementLines              StatementLine[]
-  sessions                    Session[]
-  authenticators              Authenticator[]
-  financialAccounts           FinancialAccount[]
-  fxRates                     FxRate[]
-  providerCredentials         ProviderCredential[]
-  profile                     Profile?
-  alerts                      Alert[]
-  bills                       Bill[]
-  creditCards                 CreditCard[]
-  coverageReports             CoverageReport[]
   createdAt                   DateTime                     @default(now())
   updatedAt                   DateTime                     @updatedAt
+  clerkId                     String?                      @unique
+  accounts                    Account[]
+  alerts                      Alert[]
+  authenticators              Authenticator[]
+  automationSuggestions       AutomationSuggestion[]
+  bills                       Bill[]
+  capAccruals                 CapAccrual[]
+  capUsageLedgers             CapUsageLedger[]
+  cardAliases                 CardAlias[]
+  cardRequests                CardRequest[]
+  coverageReports             CoverageReport[]
+  creditCards                 CreditCard[]
+  dataDeletionJobs            DataDeletionJob[]
+  detectedItems               DetectedItem[]
   emailConnection             EmailConnection?
   emailTransactions           EmailTransaction[]
-  receiptDocuments            ReceiptDocument[]
-  purchases                   Purchase[]
-  purchaseDuplicateDismissals PurchaseDuplicateDismissal[]
-  returnItems                 ReturnItem[]
-  shipmentEvents              ShipmentEvent[]
-  refundCases                 RefundCase[]
-  subscriptions               Subscription[]
-  subscriptionPayments        SubscriptionPayment[]
-  detectedItems               DetectedItem[]
-  automationSuggestions       AutomationSuggestion[]
-  receiptUploads              ReceiptUpload[]
+  financialAccounts           FinancialAccount[]
+  fxRates                     FxRate[]
   notifications               Notification[]
   notificationJobs            NotificationJob[]
   notificationPreference      NotificationPreference?
+  ownerStateRecord            OwnerStateRecord?
+  profile                     Profile?
+  providerCredentials         ProviderCredential[]
+  purchases                   Purchase[]
+  purchaseDuplicateDismissals PurchaseDuplicateDismissal[]
+  receiptDocuments            ReceiptDocument[]
+  receiptUploads              ReceiptUpload[]
+  refundCases                 RefundCase[]
+  returnItems                 ReturnItem[]
+  sessions                    Session[]
+  shipmentEvents              ShipmentEvent[]
   snoozedEvents               SnoozedEvent[]
+  statementLines              StatementLine[]
+  subscriptions               Subscription[]
+  subscriptionPayments        SubscriptionPayment[]
   valueEvents                 ValueEvent[]
-  dataDeletionJobs            DataDeletionJob[]
-  cardRequests                CardRequest[]
+  walletEvents                WalletEvent[]
+  walletInstallations         WalletInstallation[]
 }
 
 model Account {
@@ -105,7 +101,804 @@ model Authenticator {
   @@id([userId, credentialID])
 }
 
-// ---- Financial domain (Phase 1) ----
+model FinancialAccount {
+  id           String            @id @default(cuid())
+  userId       String
+  type         AccountType
+  name         String
+  institution  String
+  country      String
+  currency     String
+  isUSSitus    Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  snapshots    BalanceSnapshot[]
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  holdings     Holding[]
+  transactions Transaction[]
+
+  @@unique([userId, name, institution])
+  @@index([userId])
+}
+
+model Holding {
+  id              String           @id @default(cuid())
+  accountId       String
+  symbol          String
+  name            String
+  domicileCountry String
+  quantity        Decimal
+  bookCostMinor   Int?
+  lastPriceMinor  Int
+  priceAsOf       DateTime
+  priceCurrency   String?
+  priceSource     String?
+  priceStatus     String?
+  account         FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, symbol])
+}
+
+/// A user's own upstream market-data credential (BYOK).
+///
+/// Stored here, encrypted, and never in MarketLens: MarketLens is a stateless
+/// shared provider and holding user credentials is exactly the personal-finance
+/// territory it is not allowed to grow into. The key is decrypted only to be put
+/// on a single outbound request header, and MarketLens uses it and forgets it.
+model ProviderCredential {
+  id           String    @id @default(cuid())
+  userId       String
+  /// Provider source name as MarketLens knows it, e.g. ALPHAVANTAGE.
+  provider     String
+  /// AES-256-GCM envelope from secretCrypto — never a plaintext key.
+  encryptedKey String
+  label        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastUsedAt   DateTime?
+  /// Outcome the last time this key actually served a request (USER, or the
+  /// reason it did not), so a silently-dead key is visible instead of looking
+  /// like everything is fine while Yahoo quietly serves everything.
+  lastStatus   String?
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+}
+
+model Transaction {
+  id          String           @id @default(cuid())
+  accountId   String
+  type        TxType
+  amountMinor Int
+  currency    String
+  date        DateTime
+  description String?
+  dedupeHash  String?
+  account     FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, date])
+}
+
+model BalanceSnapshot {
+  id           String           @id @default(cuid())
+  accountId    String
+  balanceMinor Int
+  currency     String
+  asOf         DateTime
+  account      FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, asOf])
+  @@index([accountId, asOf])
+}
+
+model FxRate {
+  id     String   @id @default(cuid())
+  userId String
+  base   String
+  quote  String
+  rate   Decimal
+  asOf   DateTime
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, base, quote, asOf])
+}
+
+model Profile {
+  userId                   String   @id
+  residency                String   @default("CA")
+  citizenships             String[] @default([])
+  filingStatus             String   @default("SINGLE_ABROAD")
+  marginalUSRatePct        Int      @default(24)
+  dtcEligible              Boolean  @default(false)
+  benefitPrograms          String[] @default([])
+  rdspIncomeTier           String   @default("UNKNOWN")
+  rdspCarryForwardYears    Int      @default(0)
+  rdspGrantsLifetimeMinor  Int      @default(0)
+  rdspContribLifetimeMinor Int      @default(0)
+  tfsaRoomMinor            Int      @default(0)
+  rrspRoomMinor            Int      @default(0)
+  fhsaRoomMinor            Int      @default(0)
+  nhtContributed           Boolean  @default(false)
+  incomeSources            Json     @default("[]")
+  updatedAt                DateTime @updatedAt
+  cushionMinor             Int      @default(0)
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Alert {
+  id          String   @id @default(cuid())
+  userId      String
+  ruleKey     String
+  entityRef   String   @default("")
+  dismissedAt DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ruleKey, entityRef])
+}
+
+model Bill {
+  id                 String      @id @default(cuid())
+  userId             String
+  name               String
+  category           String
+  payee              String?
+  sourceAccountId    String?
+  currency           String      @default("CAD")
+  autopay            Boolean     @default(false)
+  variable           Boolean     @default(false)
+  notes              String?
+  cadence            Json
+  schedule           Json
+  prepaymentMonthDay String?
+  interestRatePct    Decimal?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  spendCategory      String?
+  paymentCardId      String?
+  paymentRail        String      @default("unknown")
+  railFeePct         Decimal?
+  paymentCard        CreditCard? @relation(fields: [paymentCardId], references: [id])
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments           Payment[]
+
+  @@unique([userId, name])
+  @@index([paymentCardId])
+}
+
+model Payment {
+  id                  String    @id @default(cuid())
+  billId              String
+  dueDate             DateTime
+  expectedAmountMinor Int
+  actualAmountMinor   Int?
+  paidAt              DateTime?
+  bill                Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  @@unique([billId, dueDate])
+}
+
+model CreditCard {
+  id                 String           @id @default(cuid())
+  userId             String
+  nickname           String
+  issuer             String
+  network            String
+  lastFour           String?
+  country            String           @default("CA")
+  currency           String           @default("CAD")
+  limitMinor         Int?
+  statementDay       Int?
+  dueDay             Int?
+  aprPct             Decimal?
+  annualFeeMinor     Int              @default(0)
+  // What the owner's own banking package actually rebates off the fee. This is
+  // the OWNER's arrangement, not a property of the card, which is why it lives
+  // here and not in the catalogue: issuers offer tiers (Scotia's Ultimate can
+  // rebate up to $150 where Preferred rebates $40), so only the owner can say
+  // which one they hold. The catalogue's `fee.waiver` prose is shown alongside
+  // as guidance; no figure is ever inferred from it.
+  feeRebateMinor     Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  contractCardId     String?
+  feeMonthDay        String?
+  feeCancelGraceDays Int              @default(30)
+  bills              Bill[]
+  state              CardState?
+  coverageReports    CoverageReport[]
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  statementLines     StatementLine[]
+
+  @@unique([userId, nickname])
+  @@index([userId, contractCardId])
+}
+
+model StatementLine {
+  id            String     @id @default(cuid())
+  userId        String
+  cardId        String
+  date          DateTime
+  description   String
+  amountMinor   Int
+  status        String
+  purchaseId    String?
+  walletEventId String?
+  lineHash      String
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  card          CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  purchase      Purchase?  @relation(fields: [purchaseId], references: [id])
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lineHash])
+  @@index([userId, date])
+  @@index([purchaseId])
+}
+
+model CoverageReport {
+  id            String     @id @default(cuid())
+  userId        String
+  cardId        String
+  month         String
+  matchedLines  Int
+  eligibleLines Int
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  card          CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, month])
+  @@index([userId, cardId, month])
+}
+
+model CardState {
+  cardId               String     @id
+  capsUsage            Json       @default("[]")
+  creditsRedeemed      Json       @default("[]")
+  rewardsEstimateMinor Int        @default(0)
+  updatedAt            DateTime   @updatedAt
+  card                 CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id                  String              @id @default(cuid())
+  userId              String
+  name                String
+  amountCents         Int
+  currency            String              @default("CAD")
+  renewalDate         DateTime
+  cadence             SubscriptionCadence @default(MONTHLY)
+  status              SubscriptionStatus  @default(ACTIVE)
+  cancelUrl           String?
+  notes               String?
+  trialEndAt          DateTime?
+  cancelInstructions  String?
+  merchantCanonicalId String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  detectedItems       DetectedItem[]
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, renewalDate])
+}
+
+model ReturnItem {
+  id                String          @id @default(cuid())
+  userId            String
+  purchaseId        String?
+  store             String
+  itemNote          String?
+  amountCents       Int?
+  currency          String?
+  purchaseDate      DateTime
+  returnWindowDays  Int             @default(30)
+  returnBy          DateTime
+  status            ReturnStatus    @default(NOT_STARTED)
+  trackingNumber    String?
+  carrier           String?
+  dropoffDate       DateTime?
+  deliveredAt       DateTime?
+  refundExpectedAt  DateTime?
+  refundedDate      DateTime?
+  refundAmountCents Int?
+  refundSlaDays     Int             @default(14)
+  refundType        String?         @default("ORIGINAL")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  refundCase        RefundCase?     @relation("ReturnItemRefundCase")
+  purchase          Purchase?       @relation(fields: [purchaseId], references: [id])
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shipmentEvents    ShipmentEvent[] @relation("ReturnItemShipmentEvents")
+
+  @@index([userId, returnBy])
+  @@index([userId, refundExpectedAt])
+}
+
+model SnoozedEvent {
+  id           String   @id @default(cuid())
+  userId       String
+  eventId      String
+  snoozedUntil DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([userId, snoozedUntil])
+}
+
+model ReceiptUpload {
+  id          String              @id @default(cuid())
+  userId      String
+  filename    String
+  contentType String
+  sizeBytes   Int
+  storagePath String
+  status      ReceiptUploadStatus @default(NEEDS_REVIEW)
+  extracted   Json?
+  error       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Purchase {
+  id                        String                       @id @default(cuid())
+  userId                    String
+  merchant                  String
+  totalCents                Int?
+  currency                  String?
+  purchasedAt               DateTime
+  orderNumber               String?
+  paymentMethod             String?
+  source                    PurchaseSource               @default(GMAIL)
+  sourceEmailId             String?
+  createdAt                 DateTime                     @default(now())
+  updatedAt                 DateTime                     @updatedAt
+  category                  String?
+  possibleDuplicateOfId     String?
+  sourceEventId             String?
+  emailTransactions         EmailTransaction[]
+  user                      User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments               PurchaseAttachment[]
+  duplicateDismissalsAsHigh PurchaseDuplicateDismissal[] @relation("DuplicateDismissalHigh")
+  duplicateDismissalsAsLow  PurchaseDuplicateDismissal[] @relation("DuplicateDismissalLow")
+  items                     PurchaseItem[]
+  returns                   ReturnItem[]
+  statementLines            StatementLine[]
+  walletEvents              WalletEvent[]
+
+  @@unique([userId, sourceEmailId])
+  @@unique([userId, sourceEventId])
+  @@index([userId, purchasedAt])
+  @@index([purchasedAt])
+  @@index([userId, merchant])
+}
+
+model PurchaseDuplicateDismissal {
+  id             String   @id @default(cuid())
+  userId         String
+  purchaseLowId  String
+  purchaseHighId String
+  dismissedAt    DateTime @default(now())
+  purchaseHigh   Purchase @relation("DuplicateDismissalHigh", fields: [purchaseHighId], references: [id], onDelete: Cascade)
+  purchaseLow    Purchase @relation("DuplicateDismissalLow", fields: [purchaseLowId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, purchaseLowId, purchaseHighId])
+  @@index([purchaseLowId])
+  @@index([purchaseHighId])
+}
+
+model PurchaseItem {
+  id         String   @id @default(cuid())
+  purchaseId String
+  title      String
+  qty        Int?
+  priceCents Int?
+  currency   String?
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseId])
+}
+
+model PurchaseAttachment {
+  id            String   @id @default(cuid())
+  purchaseId    String
+  storageKey    String
+  mime          String?
+  sha256        String?
+  sourceEmailId String?
+  createdAt     DateTime @default(now())
+  sourceEventId String?
+  purchase      Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@unique([purchaseId, storageKey])
+  @@index([purchaseId])
+}
+
+model EmailConnection {
+  id           String        @id @default(cuid())
+  userId       String        @unique
+  provider     EmailProvider @default(GMAIL)
+  emailAddress String?
+  accessToken  String?
+  refreshToken String?
+  expiry       DateTime?
+  scope        String?
+  lastScanAt   DateTime?
+  scanMode     ScanMode      @default(ALL)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DataDeletionJob {
+  id          String             @id @default(cuid())
+  userId      String
+  requestedAt DateTime           @default(now())
+  status      DataDeletionStatus @default(PENDING)
+  completedAt DateTime?
+  error       String?
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model AutomationSuggestion {
+  id               String           @id @default(cuid())
+  userId           String
+  provider         EmailProvider    @default(GMAIL)
+  primaryMessageId String?
+  type             SuggestionType
+  status           SuggestionStatus @default(NEW)
+  merchant         String
+  amountCents      Int?
+  currency         String?
+  detectedDate     DateTime
+  confidence       String
+  reasons          Json
+  messageIds       Json
+  draft            Json
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, primaryMessageId])
+  @@index([userId, status])
+  @@index([userId, type])
+}
+
+model DetectedItem {
+  id             String             @id @default(cuid())
+  userId         String
+  type           DetectedItemType
+  merchant       String
+  amountCents    Int?
+  currency       String?
+  date           DateTime
+  confidence     String
+  sourceEmailId  String?
+  rawSnippetHash String
+  status         DetectedItemStatus @default(NEW)
+  subscriptionId String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  sourceEventId  String?
+  subscription   Subscription?      @relation(fields: [subscriptionId], references: [id])
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, date])
+  @@index([userId, merchant])
+}
+
+model EmailTransaction {
+  id               String            @id @default(cuid())
+  userId           String
+  provider         EmailProvider     @default(GMAIL)
+  messageId        String
+  merchant         String
+  fromEmail        String?
+  subject          String?
+  purchasedAt      DateTime?
+  orderId          String?
+  totalCents       Int?
+  currency         String?
+  items            Json?
+  rawSource        String
+  parserError      String?
+  createdAt        DateTime          @default(now())
+  purchaseId       String?
+  purchase         Purchase?         @relation(fields: [purchaseId], references: [id])
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  receiptDocuments ReceiptDocument[]
+
+  @@unique([userId, provider, messageId])
+  @@index([purchaseId])
+  @@index([userId, merchant])
+  @@index([userId, purchasedAt])
+}
+
+model ReceiptDocument {
+  id                 String           @id @default(cuid())
+  userId             String
+  emailTransactionId String
+  filename           String
+  contentType        String
+  storagePath        String
+  sizeBytes          Int
+  createdAt          DateTime         @default(now())
+  emailTransaction   EmailTransaction @relation(fields: [emailTransactionId], references: [id], onDelete: Cascade)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, emailTransactionId])
+}
+
+model SubscriptionPayment {
+  id             String   @id @default(cuid())
+  userId         String
+  subscriptionId String
+  paidAt         DateTime
+  amountCents    Int
+  currency       String   @default("CAD")
+  notes          String?
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, subscriptionId, paidAt])
+}
+
+model Notification {
+  id           String            @id @default(cuid())
+  userId       String
+  type         NotificationType
+  title        String
+  body         String?
+  eventDate    DateTime?
+  scheduledFor DateTime
+  sourceKind   String
+  sourceId     String
+  eventKey     String
+  readAt       DateTime?
+  dismissedAt  DateTime?
+  emailedAt    DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs         NotificationJob[]
+
+  @@unique([userId, eventKey])
+  @@index([userId, scheduledFor])
+  @@index([userId, readAt])
+  @@index([userId, dismissedAt])
+}
+
+model NotificationJob {
+  id             String                @id @default(cuid())
+  userId         String
+  channel        NotificationChannel
+  status         NotificationJobStatus @default(PENDING)
+  sendAt         DateTime
+  attempts       Int                   @default(0)
+  lastError      String?
+  sentAt         DateTime?
+  lockedAt       DateTime?
+  lockId         String?
+  notificationId String?
+  dedupeKey      String
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  notification   Notification?         @relation(fields: [notificationId], references: [id])
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([status, sendAt])
+  @@index([userId, sendAt])
+}
+
+model NotificationPreference {
+  userId                String   @id
+  emailDigestEnabled    Boolean  @default(false)
+  timezone              String   @default("America/Toronto")
+  digestHourLocal       Int      @default(9)
+  windowDays            Int      @default(14)
+  subLeadDays           Int      @default(3)
+  returnLeadDays        Int      @default(2)
+  billLeadDays          Int      @default(2)
+  primaryEmail          String?
+  notifyOnDelivery      Boolean  @default(true)
+  notifyOnRefundOverdue Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ShipmentEvent {
+  id         String     @id @default(cuid())
+  userId     String
+  returnId   String
+  statusCode String
+  statusText String
+  occurredAt DateTime
+  location   String?
+  raw        Json?
+  createdAt  DateTime   @default(now())
+  returnItem ReturnItem @relation("ReturnItemShipmentEvents", fields: [returnId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([returnId, occurredAt])
+  @@index([userId, occurredAt])
+}
+
+model RefundCase {
+  id                String     @id @default(cuid())
+  userId            String
+  returnId          String     @unique
+  expectedAt        DateTime?
+  receivedAt        DateTime?
+  overdueNotifiedAt DateTime?
+  refundType        String?    @default("ORIGINAL")
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  returnItem        ReturnItem @relation("ReturnItemRefundCase", fields: [returnId], references: [id], onDelete: Cascade)
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ValueEvent {
+  id          String         @id @default(cuid())
+  userId      String
+  type        ValueEventType
+  amountCents Int
+  currency    String         @default("CAD")
+  occurredAt  DateTime
+  sourceId    String?
+  isEstimated Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, occurredAt])
+  @@index([userId, type])
+}
+
+model WalletInstallation {
+  id           String        @id @default(cuid())
+  userId       String
+  tokenHash    String        @unique
+  label        String
+  createdAt    DateTime      @default(now())
+  revokedAt    DateTime?
+  walletEvents WalletEvent[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model WalletEvent {
+  id                     String                      @id @default(cuid())
+  userId                 String
+  walletInstallationId   String
+  eventId                String                      @unique
+  source                 String
+  schemaVersion          Int
+  shortcutVersion        Int
+  capturedAt             DateTime
+  uploadedAt             DateTime                    @default(now())
+  merchantRaw            String?
+  transactionNameRaw     String?
+  amountRaw              Decimal?                    @db.Decimal(15, 4)
+  currencyRaw            String?
+  cardRaw                String?
+  latitude               Float?
+  longitude              Float?
+  locationAccuracyMeters Float?
+  assumedCurrency        Boolean                     @default(false)
+  processingStatus       WalletEventProcessingStatus @default(OBSERVED)
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  feedbackVerdict        String?
+  feedbackWarning        String?
+  capturedAtRaw          String?
+  capturedTimezone       String?
+  merchantNormalized     String?
+  resolvedCardId         String?
+  rawPayload             Json?
+  purchaseId             String?
+  purchase               Purchase?                   @relation(fields: [purchaseId], references: [id])
+  user                   User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  walletInstallation     WalletInstallation          @relation(fields: [walletInstallationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, eventId])
+  @@index([userId, capturedAt])
+  @@index([purchaseId])
+}
+
+model MerchantAlias {
+  id             String   @id @default(cuid())
+  rawString      String   @unique
+  normalizedName String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  category       String?
+}
+
+model CardAlias {
+  id        String   @id @default(cuid())
+  rawString String
+  cardId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, rawString])
+}
+
+model OwnerStateRecord {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  stateData Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CapUsageLedger {
+  id        String   @id @default(cuid())
+  userId    String
+  cardId    String
+  capId     String
+  periodKey String
+  usedMinor Int      @default(0)
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId, capId, periodKey])
+  @@index([userId, capId, periodKey])
+}
+
+model CapAccrual {
+  id                String    @id @default(cuid())
+  userId            String
+  sourceKey         String    @unique
+  cardId            String
+  capId             String
+  periodKey         String
+  usedMinor         Int
+  reversedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  sourceAmountMinor Int?
+  sourceCurrency    String?
+  fxRate            Decimal?
+  fxRateAsOf        DateTime?
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, cardId, capId, periodKey])
+}
+
+model Waitlist {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  createdAt DateTime  @default(now())
+  invitedAt DateTime?
+}
+
+model CardRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  issuer    String
+  cardName  String
+  note      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
 
 enum AccountType {
   RRSP
@@ -128,308 +921,6 @@ enum TxType {
   INTEREST
   FEE
 }
-
-model FinancialAccount {
-  id           String            @id @default(cuid())
-  userId       String
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type         AccountType
-  name         String
-  institution  String
-  country      String // ISO-3166 alpha-2
-  currency     String // ISO-4217: CAD | USD | JMD
-  isUSSitus    Boolean           @default(false)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  holdings     Holding[]
-  transactions Transaction[]
-  snapshots    BalanceSnapshot[]
-
-  @@unique([userId, name, institution])
-  @@index([userId])
-}
-
-model Holding {
-  id              String           @id @default(cuid())
-  accountId       String
-  account         FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  symbol          String
-  name            String
-  domicileCountry String // ISO-3166 alpha-2 — drives the PFIC scan in Phase 2
-  quantity        Decimal
-  bookCostMinor   Int?
-  lastPriceMinor  Int
-  priceAsOf       DateTime
-  // ISO-4217 the price is quoted in. Null means unknown, which is NOT the same as
-  // the account currency: VFV.TO prices in CAD inside a USD account, and summing
-  // the two produces a confidently wrong total. Valuation refuses on a mismatch
-  // or an unknown rather than guessing.
-  priceCurrency   String?
-  // Which MarketLens provider supplied it (YAHOO, DEMO), or null for manual entry.
-  priceSource     String?
-  // FRESH / STALE / UNAVAILABLE as of the last refresh, so the UI can show a
-  // price's age without recomputing the exchange calendar.
-  priceStatus     String?
-
-  @@unique([accountId, symbol])
-}
-
-/// A user's own upstream market-data credential (BYOK).
-///
-/// Stored here, encrypted, and never in MarketLens: MarketLens is a stateless
-/// shared provider and holding user credentials is exactly the personal-finance
-/// territory it is not allowed to grow into. The key is decrypted only to be put
-/// on a single outbound request header, and MarketLens uses it and forgets it.
-model ProviderCredential {
-  id           String    @id @default(cuid())
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  /// Provider source name as MarketLens knows it, e.g. ALPHAVANTAGE.
-  provider     String
-  /// AES-256-GCM envelope from secretCrypto — never a plaintext key.
-  encryptedKey String
-  label        String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  lastUsedAt   DateTime?
-  /// Outcome the last time this key actually served a request (USER, or the
-  /// reason it did not), so a silently-dead key is visible instead of looking
-  /// like everything is fine while Yahoo quietly serves everything.
-  lastStatus   String?
-
-  @@unique([userId, provider])
-  @@index([userId])
-}
-
-model Transaction {
-  id          String           @id @default(cuid())
-  accountId   String
-  account     FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  type        TxType
-  amountMinor Int // always positive; TxType determines the sign in derivation
-  currency    String
-  date        DateTime
-  description String?
-  dedupeHash  String?
-
-  @@index([accountId, date])
-}
-
-model BalanceSnapshot {
-  id           String           @id @default(cuid())
-  accountId    String
-  account      FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  balanceMinor Int
-  currency     String
-  asOf         DateTime
-
-  @@unique([accountId, asOf])
-  @@index([accountId, asOf])
-}
-
-model FxRate {
-  id     String   @id @default(cuid())
-  userId String
-  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  base   String // ISO-4217
-  quote  String // ISO-4217
-  rate   Decimal
-  asOf   DateTime
-
-  @@unique([userId, base, quote, asOf])
-}
-
-// ---- Money Finder (Phase 2) ----
-
-model Profile {
-  userId                   String   @id
-  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  residency                String   @default("CA")
-  citizenships             String[] @default([])
-  filingStatus             String   @default("SINGLE_ABROAD") // SINGLE_ABROAD | MFJ_ABROAD | OTHER
-  marginalUSRatePct        Int      @default(24)
-  dtcEligible              Boolean  @default(false)
-  benefitPrograms          String[] @default([]) // e.g. ["OW"] or ["ODSP"]
-  rdspIncomeTier           String   @default("UNKNOWN") // LOW | HIGH | UNKNOWN
-  rdspCarryForwardYears    Int      @default(0)
-  rdspGrantsLifetimeMinor  Int      @default(0)
-  rdspContribLifetimeMinor Int      @default(0)
-  tfsaRoomMinor            Int      @default(0)
-  rrspRoomMinor            Int      @default(0)
-  fhsaRoomMinor            Int      @default(0)
-  cushionMinor             Int      @default(0)
-  nhtContributed           Boolean  @default(false)
-  incomeSources            Json     @default("[]") // [{name, amountMinor, cadence, kind}]
-  updatedAt                DateTime @updatedAt
-}
-
-model Alert {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ruleKey     String
-  entityRef   String   @default("") // "" = whole rule; else holdingId/accountId/txId
-  dismissedAt DateTime @default(now())
-
-  @@unique([userId, ruleKey, entityRef])
-}
-
-// ---- Bills (Phase 3) ----
-
-model Bill {
-  id                 String      @id @default(cuid())
-  userId             String
-  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name               String
-  category           String // housing | utilities | subscriptions | transport | debt | other
-  payee              String?
-  sourceAccountId    String? // informational link to a FinancialAccount
-  currency           String      @default("CAD")
-  autopay            Boolean     @default(false)
-  variable           Boolean     @default(false)
-  notes              String?
-  cadence            Json // {type: BIWEEKLY|MONTHLY|QUARTERLY|ANNUAL, ...} — validated by zod
-  schedule           Json // [{from, to?, amountMinor, note?}] — validated by zod
-  prepaymentMonthDay String? // "03-15" — enables the mortgage-prepayment reminder rule
-  interestRatePct    Decimal? // enables the rough interest-saved estimate
-  // Pinned engine spend category (e.g. "streaming", "memberships") — wins
-  // over the derived Bill.category -> engine-category mapping. Null falls
-  // back to the derived table (src/lib/domain/bills/cardForBill.ts).
-  spendCategory      String?
-  // How this bill can actually be PAID — orthogonal to `category`, which
-  // answers "what kind of spend is this" for earn-rule mapping. Collapsing
-  // the two produced a confidently wrong answer: Durham Region water is a
-  // `utilities` bill (a recommendable category) that only accepts
-  // pre-authorized debit. "unknown" defers to the category table's
-  // historical assumption, so existing rows behave exactly as before.
-  // See resolveBillPaymentRail in src/lib/domain/bills/cardForBill.ts.
-  paymentRail        String      @default("unknown") // card | pad | card_via_third_party | unknown
-  // Third-party pass-through surcharge as a percentage (2.5 = 2.5%). Only
-  // meaningful when paymentRail == "card_via_third_party"; null there blocks
-  // the recommendation rather than assuming the service is free.
-  railFeePct         Decimal?
-  // The CreditCard the user has chosen to pay this bill with. Nullable so a
-  // card can be deleted without deleting the bill it was allocated to.
-  paymentCardId      String?
-  paymentCard        CreditCard? @relation(fields: [paymentCardId], references: [id], onDelete: SetNull)
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-  payments           Payment[]
-
-  @@unique([userId, name])
-  @@index([paymentCardId])
-}
-
-model Payment {
-  id                  String    @id @default(cuid())
-  billId              String
-  bill                Bill      @relation(fields: [billId], references: [id], onDelete: Cascade)
-  dueDate             DateTime
-  expectedAmountMinor Int
-  actualAmountMinor   Int?
-  paidAt              DateTime?
-
-  @@unique([billId, dueDate])
-}
-
-// ---- Cards (Phase 4) ----
-
-model CreditCard {
-  id                 String           @id @default(cuid())
-  userId             String
-  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nickname           String
-  issuer             String
-  network            String // VISA | MASTERCARD | AMEX
-  lastFour           String?
-  country            String           @default("CA")
-  currency           String           @default("CAD")
-  limitMinor         Int?
-  statementDay       Int?
-  dueDay             Int?
-  aprPct             Decimal?
-  annualFeeMinor     Int              @default(0)
-  // Recurring month-day the annual fee posts on ("03-15"), matching the
-  // Bill.prepaymentMonthDay precedent. Null means the user has not told us —
-  // no calendar events, no reminders, no guessing. Days 29-31 are allowed and
-  // clamped to the real month at read time (src/lib/cards/feeSchedule.ts).
-  feeMonthDay        String?
-  // Days after the fee posts during which cancelling still recovers it.
-  // Per-card because issuers differ; the default is the common case, not a
-  // guarantee, and the UI labels it as the user's own input.
-  feeCancelGraceDays Int              @default(30)
-  // The scoring-contract identity used by Wallet capture aliases. This is
-  // intentionally separate from this user's CreditCard.id.
-  contractCardId     String?
-  rewards            Json // validated rewards structure — see src/lib/validation/cards.ts
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  state              CardState?
-  coverageReports    CoverageReport[]
-  statementLines     StatementLine[]
-  bills              Bill[]
-
-  @@unique([userId, nickname])
-  @@index([userId, contractCardId])
-}
-
-// The third observation source: the only one that sees physical-card
-// purchases. Persisted since 2026-08-17 (complete-record posture — lines were
-// previously ephemeral); lineHash makes re-uploads idempotent.
-model StatementLine {
-  id            String     @id @default(cuid())
-  userId        String
-  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cardId        String
-  card          CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  date          DateTime
-  description   String
-  amountMinor   Int
-  // matched | matched-tolerant | matched-preauth | unmatched | ambiguous |
-  // excluded | rejected.
-  // As of the latest upload, except where the user settled a tolerant match:
-  // "matched" (confirmed) and "rejected" survive re-uploads of the same line.
-  status        String
-  purchaseId    String?
-  purchase      Purchase?  @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
-  // Un-promoted wallet event this line matched (no FK; the event promotes later).
-  walletEventId String?
-  lineHash      String
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-
-  @@unique([userId, lineHash])
-  @@index([userId, date])
-  @@index([purchaseId])
-}
-
-// A compact, durable result of a statement reconciliation snapshot.
-model CoverageReport {
-  id            String     @id @default(cuid())
-  userId        String
-  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cardId        String
-  card          CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  month         String // transaction month: YYYY-MM
-  matchedLines  Int
-  eligibleLines Int
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-
-  @@unique([cardId, month])
-  @@index([userId, cardId, month])
-}
-
-model CardState {
-  cardId               String     @id
-  card                 CreditCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  capsUsage            Json       @default("[]") // [{category, periodKey, usedMinor}]
-  creditsRedeemed      Json       @default("[]") // [{creditId, periodKey}]
-  rewardsEstimateMinor Int        @default(0) // owner's estimate of rewards earned this year
-  updatedAt            DateTime   @updatedAt
-}
-
-// ---- Return SaaS Absorbed Models ----
 
 enum SubscriptionCadence {
   MONTHLY
@@ -468,74 +959,16 @@ enum ValueEventType {
   FEE_AVOIDED
 }
 
-model Subscription {
-  id                  String              @id @default(cuid())
-  userId              String
-  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name                String
-  amountCents         Int
-  currency            String              @default("CAD")
-  renewalDate         DateTime
-  cadence             SubscriptionCadence @default(MONTHLY)
-  status              SubscriptionStatus  @default(ACTIVE)
-  cancelUrl           String?
-  notes               String?
-  trialEndAt          DateTime?
-  cancelInstructions  String?
-  merchantCanonicalId String?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-
-  detectedItems DetectedItem[]
-
-  @@index([userId, renewalDate])
-}
-
-model ReturnItem {
-  id               String       @id @default(cuid())
-  userId           String
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  purchaseId       String?
-  store            String
-  itemNote         String?
-  amountCents      Int?
-  currency         String?
-  purchaseDate     DateTime
-  returnWindowDays Int          @default(30)
-  returnBy         DateTime
-  status           ReturnStatus @default(NOT_STARTED)
-
-  trackingNumber    String?
-  carrier           String?
-  dropoffDate       DateTime?
-  deliveredAt       DateTime?
-  refundExpectedAt  DateTime?
-  refundedDate      DateTime?
-  refundAmountCents Int?
-  refundSlaDays     Int       @default(14)
-  refundType        String?   @default("ORIGINAL")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  shipmentEvents ShipmentEvent[] @relation("ReturnItemShipmentEvents")
-  refundCase     RefundCase?     @relation("ReturnItemRefundCase")
-  purchase       Purchase?       @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
-
-  @@index([userId, returnBy])
-  @@index([userId, refundExpectedAt])
-}
-
 enum EmailProvider {
   GMAIL
   UPLOAD
 }
 
 enum PurchaseSource {
-  WALLET
   GMAIL
   UPLOAD
   MANUAL
+  WALLET
 }
 
 enum ScanMode {
@@ -552,131 +985,10 @@ enum DataDeletionStatus {
   FAILED
 }
 
-model SnoozedEvent {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  eventId      String
-  snoozedUntil DateTime
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, eventId])
-  @@index([userId, snoozedUntil])
-}
-
 enum ReceiptUploadStatus {
   PARSED
   NEEDS_REVIEW
   FAILED
-}
-
-model ReceiptUpload {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  filename    String
-  contentType String
-  sizeBytes   Int
-  storagePath String
-
-  status    ReceiptUploadStatus @default(NEEDS_REVIEW)
-  extracted Json?
-  error     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId, createdAt])
-}
-
-model Purchase {
-  id                    String         @id @default(cuid())
-  userId                String
-  user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  merchant              String
-  totalCents            Int?
-  currency              String?
-  purchasedAt           DateTime
-  orderNumber           String?
-  paymentMethod         String?
-  // Canonical checkout category once the source has been resolved. A null
-  // category remains deliberately unresolved rather than being guessed.
-  category              String?
-  source                PurchaseSource @default(GMAIL)
-  sourceEmailId         String?
-  sourceEventId         String?
-  // Conservative near-match (amount+time matched, merchant unclear). Plain
-  // column, no FK — the flagged row must survive its counterpart's deletion.
-  possibleDuplicateOfId String?
-
-  items                     PurchaseItem[]
-  attachments               PurchaseAttachment[]
-  returns                   ReturnItem[]
-  walletEvents              WalletEvent[]
-  emailTransactions         EmailTransaction[]
-  statementLines            StatementLine[]
-  duplicateDismissalsAsLow  PurchaseDuplicateDismissal[] @relation("DuplicateDismissalLow")
-  duplicateDismissalsAsHigh PurchaseDuplicateDismissal[] @relation("DuplicateDismissalHigh")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, sourceEmailId])
-  @@unique([userId, sourceEventId])
-  @@index([userId, purchasedAt])
-  @@index([purchasedAt])
-  @@index([userId, merchant])
-}
-
-// Durable, order-normalized record of a user's "keep separate" decision.
-// The cron must never offer the same pair again while both purchases exist.
-model PurchaseDuplicateDismissal {
-  id             String   @id @default(cuid())
-  userId         String
-  purchaseLowId  String
-  purchaseHighId String
-  dismissedAt    DateTime @default(now())
-
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  purchaseLow  Purchase @relation("DuplicateDismissalLow", fields: [purchaseLowId], references: [id], onDelete: Cascade)
-  purchaseHigh Purchase @relation("DuplicateDismissalHigh", fields: [purchaseHighId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, purchaseLowId, purchaseHighId])
-  @@index([purchaseLowId])
-  @@index([purchaseHighId])
-}
-
-model PurchaseItem {
-  id         String  @id @default(cuid())
-  purchaseId String
-  title      String
-  qty        Int?
-  priceCents Int?
-  currency   String?
-
-  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
-
-  @@index([purchaseId])
-}
-
-model PurchaseAttachment {
-  id            String  @id @default(cuid())
-  purchaseId    String
-  storageKey    String
-  mime          String?
-  sha256        String?
-  sourceEmailId String?
-  sourceEventId String?
-
-  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([purchaseId, storageKey])
-  @@index([purchaseId])
 }
 
 enum SuggestionStatus {
@@ -689,157 +1001,6 @@ enum SuggestionType {
   RETURN
   SUBSCRIPTION
   BILL
-}
-
-model EmailConnection {
-  id       String        @id @default(cuid())
-  userId   String        @unique
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider EmailProvider @default(GMAIL)
-
-  emailAddress String?
-  accessToken  String?
-  refreshToken String?
-  expiry       DateTime?
-  scope        String?
-  lastScanAt   DateTime?
-  scanMode     ScanMode  @default(ALL)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model DataDeletionJob {
-  id          String             @id @default(cuid())
-  userId      String
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  requestedAt DateTime           @default(now())
-  status      DataDeletionStatus @default(PENDING)
-  completedAt DateTime?
-  error       String?
-
-  @@index([userId, status])
-}
-
-model AutomationSuggestion {
-  id       String        @id @default(cuid())
-  userId   String
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider EmailProvider @default(GMAIL)
-
-  primaryMessageId String?
-
-  type   SuggestionType
-  status SuggestionStatus @default(NEW)
-
-  merchant     String
-  amountCents  Int?
-  currency     String?
-  detectedDate DateTime
-
-  confidence String
-  reasons    Json
-  messageIds Json
-  draft      Json
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, primaryMessageId])
-  @@index([userId, status])
-  @@index([userId, type])
-}
-
-model DetectedItem {
-  id             String             @id @default(cuid())
-  userId         String
-  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type           DetectedItemType
-  merchant       String
-  amountCents    Int?
-  currency       String?
-  date           DateTime
-  confidence     String
-  sourceEmailId  String?
-  sourceEventId  String?
-  rawSnippetHash String
-  status         DetectedItemStatus @default(NEW)
-
-  subscriptionId String?
-  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId, status])
-  @@index([userId, date])
-  @@index([userId, merchant])
-}
-
-model EmailTransaction {
-  id       String        @id @default(cuid())
-  userId   String
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider EmailProvider @default(GMAIL)
-
-  messageId String
-  merchant  String
-  fromEmail String?
-  subject   String?
-
-  purchasedAt DateTime?
-  orderId     String?
-  totalCents  Int?
-  currency    String?
-  items       Json?
-  rawSource   String
-  parserError String?
-
-  receiptDocuments ReceiptDocument[]
-
-  // Canonical purchase this observation fed (set at scan promotion).
-  purchaseId String?
-  purchase   Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-
-  @@unique([userId, provider, messageId])
-  @@index([purchaseId])
-  @@index([userId, merchant])
-  @@index([userId, purchasedAt])
-}
-
-model ReceiptDocument {
-  id                 String           @id @default(cuid())
-  userId             String
-  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emailTransactionId String
-  emailTransaction   EmailTransaction @relation(fields: [emailTransactionId], references: [id], onDelete: Cascade)
-
-  filename    String
-  contentType String
-  storagePath String
-  sizeBytes   Int
-
-  createdAt DateTime @default(now())
-
-  @@index([userId, emailTransactionId])
-}
-
-model SubscriptionPayment {
-  id             String @id @default(cuid())
-  userId         String
-  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscriptionId String
-
-  paidAt      DateTime
-  amountCents Int
-  currency    String   @default("CAD")
-  notes       String?
-
-  createdAt DateTime @default(now())
-
-  @@index([userId, subscriptionId, paidAt])
 }
 
 enum NotificationType {
@@ -865,304 +1026,10 @@ enum NotificationJobStatus {
   CANCELED
 }
 
-model Notification {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  type  NotificationType
-  title String
-  body  String?
-
-  eventDate DateTime?
-
-  scheduledFor DateTime
-
-  sourceKind String
-  sourceId   String
-
-  eventKey String
-
-  readAt      DateTime?
-  dismissedAt DateTime?
-  emailedAt   DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  jobs NotificationJob[]
-
-  @@unique([userId, eventKey])
-  @@index([userId, scheduledFor])
-  @@index([userId, readAt])
-  @@index([userId, dismissedAt])
-}
-
-model NotificationJob {
-  id      String                @id @default(cuid())
-  userId  String
-  user    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  channel NotificationChannel
-  status  NotificationJobStatus @default(PENDING)
-
-  sendAt    DateTime
-  attempts  Int       @default(0)
-  lastError String?
-  sentAt    DateTime?
-
-  lockedAt DateTime?
-  lockId   String?
-
-  notificationId String?
-  notification   Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
-
-  dedupeKey String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, dedupeKey])
-  @@index([status, sendAt])
-  @@index([userId, sendAt])
-}
-
-model NotificationPreference {
-  userId                String  @id
-  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emailDigestEnabled    Boolean @default(false)
-  timezone              String  @default("America/Toronto")
-  digestHourLocal       Int     @default(9)
-  windowDays            Int     @default(14)
-  subLeadDays           Int     @default(3)
-  returnLeadDays        Int     @default(2)
-  billLeadDays          Int     @default(2)
-  primaryEmail          String?
-  notifyOnDelivery      Boolean @default(true)
-  notifyOnRefundOverdue Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model ShipmentEvent {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  returnId   String
-  statusCode String
-  statusText String
-  occurredAt DateTime
-  location   String?
-  raw        Json?
-  createdAt  DateTime @default(now())
-
-  returnItem ReturnItem @relation("ReturnItemShipmentEvents", fields: [returnId], references: [id], onDelete: Cascade)
-
-  @@index([returnId, occurredAt])
-  @@index([userId, occurredAt])
-}
-
-model RefundCase {
-  id                String    @id @default(cuid())
-  userId            String
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  returnId          String    @unique
-  expectedAt        DateTime?
-  receivedAt        DateTime?
-  overdueNotifiedAt DateTime?
-  refundType        String?   @default("ORIGINAL")
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  returnItem ReturnItem @relation("ReturnItemRefundCase", fields: [returnId], references: [id], onDelete: Cascade)
-}
-
-model ValueEvent {
-  id          String         @id @default(cuid())
-  userId      String
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        ValueEventType
-  amountCents Int
-  currency    String         @default("CAD")
-  occurredAt  DateTime
-  sourceId    String?
-  isEstimated Boolean        @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId, occurredAt])
-  @@index([userId, type])
-}
-
-model WalletInstallation {
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique
-  label     String
-  createdAt DateTime  @default(now())
-  revokedAt DateTime?
-
-  walletEvents WalletEvent[]
-
-  @@index([userId])
-}
-
 enum WalletEventProcessingStatus {
   OBSERVED
   NORMALIZED
   POSSIBLE_DUPLICATE
   RECONCILED
   REVERSED
-}
-
-model WalletEvent {
-  id                   String             @id @default(cuid())
-  userId               String
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  walletInstallationId String
-  walletInstallation   WalletInstallation @relation(fields: [walletInstallationId], references: [id], onDelete: Cascade)
-  eventId              String             @unique
-  source               String
-  schemaVersion        Int
-  shortcutVersion      Int
-  capturedAt           DateTime
-  // The device's original timestamp string (offset preserved) and IANA zone —
-  // capturedAt alone can't reproduce the wall-clock time the user experienced.
-  capturedAtRaw        String?
-  capturedTimezone     String?
-  uploadedAt           DateTime           @default(now())
-
-  merchantRaw        String?
-  transactionNameRaw String?
-  amountRaw          Decimal? @db.Decimal(15, 4)
-  currencyRaw        String?
-  cardRaw            String?
-  merchantNormalized String?
-  resolvedCardId     String?
-
-  latitude               Float?
-  longitude              Float?
-  locationAccuracyMeters Float?
-
-  // Payload as received, before any server interpretation. Lets improved
-  // parsers re-read history and preserves fields the server didn't understand.
-  rawPayload Json?
-
-  assumedCurrency Boolean @default(false)
-
-  // The synchronous capture verdict is retained so the iOS feedback log can show
-  // what the server actually returned at tap time. Raw event fields remain immutable.
-  feedbackVerdict String?
-  feedbackWarning String?
-
-  processingStatus WalletEventProcessingStatus @default(OBSERVED)
-
-  // Canonical purchase this observation fed (set at normalization).
-  purchaseId String?
-  purchase   Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId, eventId])
-  @@index([userId, capturedAt])
-  @@index([purchaseId])
-}
-
-model MerchantAlias {
-  id             String   @id @default(cuid())
-  rawString      String   @unique
-  normalizedName String
-  // Optional because aliases can be resolved before a category is known.
-  category       String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-}
-
-// Per-user: the same raw device string ("RBC Visa") can mean different
-// physical cards for different users. MerchantAlias stays global on purpose —
-// merchant identity is universal, shared learning benefits everyone.
-model CardAlias {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rawString String
-  cardId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, rawString])
-}
-
-model OwnerStateRecord {
-  id        String @id @default(cuid())
-  userId    String @unique
-  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stateData Json
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// Materialized cap use for the active card-contract window. Amounts are minor
-// units of the cap's measure (CAD cents or USD-equivalent cents).
-model CapUsageLedger {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cardId    String
-  capId     String
-  periodKey String
-  usedMinor Int      @default(0)
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, cardId, capId, periodKey])
-  @@index([userId, capId, periodKey])
-}
-
-// One row per source event gives cap updates exactly-once semantics and retains
-// the delta required to reverse a WalletEvent after it has been normalized.
-model CapAccrual {
-  id                String    @id @default(cuid())
-  userId            String
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sourceKey         String    @unique
-  cardId            String
-  capId             String
-  periodKey         String
-  usedMinor         Int
-  // FX provenance. Nullable because accruals written before conversion
-  // existed cannot have their original currency recovered.
-  sourceAmountMinor Int?
-  sourceCurrency    String?
-  fxRate            Decimal?
-  fxRateAsOf        DateTime?
-  reversedAt        DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  @@index([userId, cardId, capId, periodKey])
-}
-
-// ---- Waitlist & Card Requests (Phase 4) ----
-
-model Waitlist {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  createdAt DateTime  @default(now())
-  invitedAt DateTime?
-}
-
-model CardRequest {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  issuer    String
-  cardName  String
-  note      String?
-  createdAt DateTime @default(now())
-
-  @@index([userId])
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { CardForm } from "@/components/card-form";
+import { catalogueChoices } from "@/lib/cards/catalogueCard";
 import { requireUserId } from "@/lib/require-user";
 
 export default async function NewCardPage() {
@@ -18,12 +19,12 @@ export default async function NewCardPage() {
         </Link>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Add card</h1>
         <p className="text-sm text-muted-foreground">
-          Autofill from popular card presets or configure custom reward multipliers, category spend caps, and annual fee schedules.
+          Pick your card from the shared catalogue — its rates, caps and credits come with it, identical to PickMe — then add the details that are specific to your copy.
         </p>
       </div>
 
       <div className="mt-6">
-        <CardForm mode="create" />
+        <CardForm mode="create" choices={catalogueChoices()} />
       </div>
     </main>
   );

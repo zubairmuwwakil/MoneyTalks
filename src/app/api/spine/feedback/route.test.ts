@@ -22,6 +22,7 @@ describe("GET /api/spine/feedback", () => {
       capturedAtRaw: "2026-08-17T09:30:00-04:00", capturedTimezone: "America/Toronto",
       merchantRaw: "Coffee", merchantNormalized: "Cafe",
       amountRaw: new Prisma.Decimal("6.42"), currencyRaw: "CAD", cardRaw: "Amex Cobalt",
+      resolvedCardId: "amex-cobalt",
       feedbackVerdict: "warning",
       feedbackWarning: "⚠ Cobalt would have earned ~$0.74 more",
     }] as never);
@@ -31,11 +32,29 @@ describe("GET /api/spine/feedback", () => {
       eventId: "wevt-1", capturedAt: "2026-08-17T13:30:00.000Z",
       capturedAtRaw: "2026-08-17T09:30:00-04:00", capturedTimezone: "America/Toronto",
       merchantRaw: "Coffee", merchantNormalized: "Cafe",
-      amountMinor: 642, currency: "CAD", cardRaw: "Amex Cobalt", verdict: "warning",
+      amountMinor: 642, currency: "CAD", cardRaw: "Amex Cobalt",
+      resolvedCardId: "amex-cobalt", verdict: "warning",
       warning: "⚠ Cobalt would have earned ~$0.74 more",
     }] });
     expect(prisma.walletEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { userId: "user-1", feedbackVerdict: { not: null } }, take: 50,
     }));
+  });
+
+  // The alias table is the only thing allowed to map cardRaw to a catalogue id. An event it has
+  // not resolved must say so plainly, so the consumer leaves the card blank instead of guessing.
+  it("reports an unresolved card as null rather than omitting the field", async () => {
+    vi.mocked(getSessionUserId).mockResolvedValue("user-1");
+    vi.mocked(prisma.walletEvent.findMany).mockResolvedValue([{
+      eventId: "wevt-2", capturedAt: new Date("2026-08-17T13:30:00Z"),
+      capturedAtRaw: null, capturedTimezone: null,
+      merchantRaw: "SQ *CAFE", merchantNormalized: null,
+      amountRaw: new Prisma.Decimal("6.42"), currencyRaw: "CAD",
+      cardRaw: "Some Unknown Card", resolvedCardId: null,
+      feedbackVerdict: "unknown", feedbackWarning: null,
+    }] as never);
+
+    const { feedback } = await (await GET()).json();
+    expect(feedback[0].resolvedCardId).toBeNull();
   });
 });

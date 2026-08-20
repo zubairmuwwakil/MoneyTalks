@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatMinorUnits, type Currency } from "@/engine/money";
 import { FeeCycleNote } from "@/components/fee-cycle-note";
-import { effectiveAnnualFeeMinor } from "@/lib/cards/fees";
+import { effectiveAnnualFeeMinor } from "@/lib/cards/catalogueCard";
 import { currentFeeCycle, type FeeScheduleCard } from "@/lib/cards/feeSchedule";
-import type { CardDef, CardRewards } from "@/lib/cards/types";
+import type { CardDef } from "@/lib/cards/types";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -24,7 +24,8 @@ export default async function CardsPage() {
     nickname: c.nickname,
     network: c.network as CardDef["network"],
     annualFeeMinor: c.annualFeeMinor,
-    rewards: c.rewards as unknown as CardRewards,
+    feeRebateMinor: c.feeRebateMinor,
+    contractCardId: c.contractCardId,
     feeMonthDay: c.feeMonthDay,
     feeCancelGraceDays: c.feeCancelGraceDays,
   }));
@@ -34,7 +35,10 @@ export default async function CardsPage() {
   // A card that charges a real fee but has no renewal date can't be counted
   // down, and the field is worthless unfilled — so the prompt is the feature.
   const missingRenewalDate = defs.filter(
-    (def, i) => cycles[i] === null && effectiveAnnualFeeMinor(def) > 0 && !def.feeMonthDay,
+    (def, i) =>
+      cycles[i] === null &&
+      effectiveAnnualFeeMinor(def.annualFeeMinor, def.feeRebateMinor) > 0 &&
+      !def.feeMonthDay,
   ).length;
 
   return (
@@ -115,7 +119,7 @@ export default async function CardsPage() {
                 </div>
                 <div className="text-right">
                   <span className="text-sm font-semibold tabular-nums text-muted-foreground">
-                    fee {formatMinorUnits(effectiveAnnualFeeMinor(defs[i]), "CAD")}/yr
+                    fee {formatMinorUnits(effectiveAnnualFeeMinor(defs[i].annualFeeMinor, defs[i].feeRebateMinor), "CAD")}/yr
                   </span>
                   {cycles[i] ? (
                     <FeeCycleNote cycle={cycles[i]!} today={today} currency={c.currency as Currency} className="mt-1 block" />

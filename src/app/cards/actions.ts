@@ -3,18 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
-import {
-  activeCategoryRate,
-  activeBaseRateOverride,
-  capForBaseRateOverride,
-  capForRate,
-  periodKeyFor,
-  SPEND_CATEGORIES,
-  type CapUsage,
-  type CardRewards,
-  type SpendCategory,
-} from "@/lib/cards/types";
-import type { RedeemedCredit } from "@/lib/cards/fees";
+import { catalogueCredits, type RedeemedCredit } from "@/lib/cards/catalogueCard";
 import { parseDollarsToMinor } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -38,7 +27,7 @@ export async function createCard(_previousState: CardFormState, formData: FormDa
   const parsed = parsedCardFromForm(formData);
   if (!parsed.success) return parsed.state;
 
-  const { rewards, ...core } = parsed.data;
+  const core = parsed.data;
   const existing = await prisma.creditCard.findUnique({
     where: { userId_nickname: { userId, nickname: core.nickname } },
     select: { id: true },
@@ -47,10 +36,7 @@ export async function createCard(_previousState: CardFormState, formData: FormDa
 
   let cardId: string;
   try {
-    const card = await prisma.creditCard.create({
-      data: { ...core, userId, rewards: asJson(rewards) },
-      select: { id: true },
-    });
+    const card = await prisma.creditCard.create({ data: { ...core, userId }, select: { id: true } });
     cardId = card.id;
   } catch (error) {
     if (isUniqueConstraintError(error)) return nicknameTakenState();
@@ -69,7 +55,7 @@ export async function updateCard(_previousState: CardFormState, formData: FormDa
   const cardId = String(formData.get("cardId") ?? "").trim();
   if (!cardId) return { error: "The card to update is missing. Please return to Manage cards and try again." };
 
-  const { rewards, ...core } = parsed.data;
+  const core = parsed.data;
   try {
     const card = await ownedCard(userId, cardId);
     const existing = await prisma.creditCard.findUnique({
@@ -78,14 +64,14 @@ export async function updateCard(_previousState: CardFormState, formData: FormDa
     });
     if (existing && existing.id !== card.id) return nicknameTakenState();
 
-    await prisma.creditCard.update({
-      where: { id: card.id },
-      data: { ...core, rewards: asJson(rewards) },
-    });
+    await prisma.creditCard.update({ where: { id: card.id }, data: core });
   } catch (error) {
     if (isUniqueConstraintError(error)) return nicknameTakenState();
     return {
-      error: error instanceof Error && error.message === "Card not found" ? error.message : "Could not save this card. Please try again.",
+      error:
+        error instanceof Error && error.message === "Card not found"
+          ? error.message
+          : "Could not save this card. Please try again.",
     };
   }
 
@@ -145,52 +131,22 @@ function revalidateCardRoutes(cardId?: string) {
   if (cardId) revalidatePath(`/cards/${cardId}`);
 }
 
-export async function addCapUsage(formData: FormData): Promise<ActionResult> {
-  const userId = await requireUserId();
-  const cardId = String(formData.get("cardId") ?? "");
-  const category = String(formData.get("category") ?? "") as SpendCategory;
-  const amountMinor = parseDollarsToMinor(String(formData.get("amount") ?? ""));
-  if (!SPEND_CATEGORIES.includes(category)) return { ok: false, error: "Bad category" };
-  if (amountMinor === null || !Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
-    return { ok: false, error: "Spend must be a dollar amount, e.g. 84.20" };
-  }
-  try {
-    const card = await ownedCard(userId, cardId);
-    const rewards = card.rewards as unknown as CardRewards;
-    const rate = activeCategoryRate(rewards, category);
-    const baseRateOverride = activeBaseRateOverride(rewards);
-    const categoryCap = rate ? capForRate(rewards, rate) : undefined;
-    const baseRateCap = baseRateOverride ? capForBaseRateOverride(rewards, baseRateOverride) : undefined;
-    const cap = categoryCap ?? (baseRateCap?.categories.includes(category) ? baseRateCap : undefined);
-    if (!cap) return { ok: false, error: "This category has no active cap" };
-    const periodKey = periodKeyFor(cap.capWindow, today());
-    const usage = ((card.state?.capsUsage as unknown as CapUsage[]) ?? []).slice();
-    const existing = usage.find((u) => u.cardId === cardId && u.category === category && u.periodKey === periodKey);
-    if (existing) existing.usedMinor += amountMinor;
-    else usage.push({ cardId, category, periodKey, usedMinor: amountMinor });
-    await prisma.cardState.upsert({
-      where: { cardId },
-      update: { capsUsage: asJson(usage) },
-      create: { cardId, capsUsage: asJson(usage) },
-    });
-    revalidatePath("/cards");
-    revalidatePath(`/cards/${cardId}`);
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed" };
-  }
-  return { ok: true };
-}
-
+/**
+ * Marks a catalogue credit used (or un-used) for the current period.
+ *
+ * The credit DEFINITIONS come from the catalogue via `contractCardId`; only the
+ * redemption — owner activity — is stored here. An unlinked card has no credits
+ * to redeem, which is stated rather than silently succeeding.
+ */
 export async function toggleCredit(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const cardId = String(formData.get("cardId") ?? "");
   const creditId = String(formData.get("creditId") ?? "");
   try {
     const card = await ownedCard(userId, cardId);
-    const rewards = card.rewards as unknown as CardRewards;
-    const credit = rewards.credits.find((c) => c.id === creditId);
-    if (!credit) return { ok: false, error: "Unknown credit" };
-    const periodKey = periodKeyFor(credit.period, today());
+    const credit = catalogueCredits(card.contractCardId).find((c) => c.creditId === creditId);
+    if (!credit) return { ok: false, error: "Unknown credit for this card" };
+    const periodKey = credit.period === "calendarMonth" ? today().slice(0, 7) : today().slice(0, 4);
     let redeemed = ((card.state?.creditsRedeemed as unknown as RedeemedCredit[]) ?? []).slice();
     const already = redeemed.some((r) => r.creditId === creditId && r.periodKey === periodKey);
     redeemed = already
@@ -203,33 +159,6 @@ export async function toggleCredit(formData: FormData): Promise<ActionResult> {
     });
     revalidatePath(`/cards/${cardId}`);
     revalidatePath("/cards/manage");
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed" };
-  }
-  return { ok: true };
-}
-
-export async function toggleCardCondition(formData: FormData): Promise<ActionResult> {
-  const userId = await requireUserId();
-  const cardId = String(formData.get("cardId") ?? "");
-  const conditionId = String(formData.get("conditionId") ?? "");
-  try {
-    const card = await ownedCard(userId, cardId);
-    const rewards = card.rewards as unknown as CardRewards;
-    const condition = rewards.conditions?.find((candidate) => candidate.id === conditionId);
-    if (!condition) return { ok: false, error: "Unknown card condition" };
-    await prisma.creditCard.update({
-      where: { id: card.id },
-      data: {
-        rewards: asJson({
-          ...rewards,
-          conditions: rewards.conditions?.map((candidate) =>
-            candidate.id === conditionId ? { ...candidate, enabled: !candidate.enabled } : candidate,
-          ),
-        }),
-      },
-    });
-    revalidateCardRoutes(card.id);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed" };
   }

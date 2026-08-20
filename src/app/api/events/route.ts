@@ -5,7 +5,7 @@ import { parseISODateParam } from "@/lib/utils/dateParams";
 import { addDaysUTC, toISODateOnlyUTC } from "@/lib/utils/dates";
 import type { CalendarEvent } from "@/lib/utils/calendarEvents";
 import { buildBillEvents, buildCardFeeEvents, type BillSource } from "@/lib/domain/calendar/calendarSources";
-import type { CardDef, CardRewards } from "@/lib/cards/types";
+import type { CardDef } from "@/lib/cards/types";
 import type { FeeScheduleCard } from "@/lib/cards/feeSchedule";
 import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
 
@@ -112,7 +112,8 @@ export async function GET(req: NextRequest) {
         nickname: true,
         network: true,
         annualFeeMinor: true,
-        rewards: true,
+        feeRebateMinor: true,
+        contractCardId: true,
         feeMonthDay: true,
         feeCancelGraceDays: true,
       },
@@ -252,7 +253,8 @@ export async function GET(req: NextRequest) {
     nickname: c.nickname,
     network: c.network as CardDef["network"],
     annualFeeMinor: c.annualFeeMinor,
-    rewards: c.rewards as unknown as CardRewards,
+    feeRebateMinor: c.feeRebateMinor,
+    contractCardId: c.contractCardId,
     feeMonthDay: c.feeMonthDay,
     feeCancelGraceDays: c.feeCancelGraceDays,
   }));

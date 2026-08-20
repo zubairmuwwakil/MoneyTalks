@@ -10,7 +10,7 @@
 // Voice: plain, specific, and willing to say what the software does not do.
 // Do not make it sound like marketing.
 
-export const EFFECTIVE_DATE = "17 August 2026";
+export const EFFECTIVE_DATE = "19 August 2026";
 export const CONTACT_EMAIL = "zmuwwakil1@gmail.com";
 export const PUBLISHER = "Zubair Muwwakil";
 export const POLICY_URL = "https://moneytalks.zubairmuwwakil.com/privacy";
@@ -44,7 +44,7 @@ export const SECTIONS: Section[] = [
       },
       {
         kind: "p",
-        text: "**On the server, but only if you create an account.** A PickMe account is optional. If you make one, the web hub at moneytalks.zubairmuwwakil.com holds the data you put into it, and — if you set up the optional Wallet Shortcut — a record of your card transactions, including the amount, the merchant, and the card used.",
+        text: "**On the server, but only if you create an account.** A PickMe account is optional. If you make one, PickMe syncs your wallet and reward settings to the web hub at moneytalks.zubairmuwwakil.com. The hub also holds the data you put into it and — if you set up the optional Wallet Shortcut — a record of your card transactions, including the amount, the merchant, and the card used.",
       },
       {
         kind: "note",
@@ -112,12 +112,12 @@ export const SECTIONS: Section[] = [
     blocks: [
       {
         kind: "p",
-        text: "All of this is written to a database inside the app's own storage area on your device, and it stays there.",
+        text: "All of this is written to the app's storage area on your device. If you stay signed out, it stays there. If you sign in, the wallet and reward settings identified below are also copied to your account on the server; the merchant history, recommendations, and corrections are not.",
       },
       { kind: "sub", text: "Your cards" },
       {
         kind: "p",
-        text: "Which card products you picked from the catalogue built into the app — for example an American Express Cobalt Card. The catalogue ships with the app; choosing a card from it tells nobody anything.",
+        text: "Which card products you picked from the catalogue built into the app — for example an American Express Cobalt Card. The catalogue ships with the app. Your choices remain only on the device while signed out and are synced to your account while signed in.",
       },
       {
         kind: "note",
@@ -178,7 +178,7 @@ export const SECTIONS: Section[] = [
       },
       {
         kind: "p",
-        text: "That is exactly why the app is built so this record never leaves your device. The design decision came first; this policy describes it rather than promising it.",
+        text: "The shopping record described above — merchants, recommendations, purchase entries, and corrections — never leaves your device. When you sign in, the separate wallet configuration listed under Your cards and Your card settings does sync so the server can evaluate Wallet Shortcut captures.",
       },
     ],
   },
@@ -204,13 +204,15 @@ export const SECTIONS: Section[] = [
         kind: "bullets",
         items: [
           "your Clerk sign-in token, which identifies your account on every request",
+          "your complete PickMe wallet configuration when you finish or edit wallet setup: selected card products, default and drawer cards, card-specific reward conditions and categories, account-anniversary or cap-reset settings, your cap-progress estimates, switching thresholds, and point or reward valuations",
+          "the issuer, card product name, and optional note you enter if you ask for a card that is not yet in PickMe's catalogue",
           '{"label": "..."} — a name you type, such as “my iPhone”, when you create a Wallet Shortcut installation token',
           '{"scope": "account"} — when you ask to delete your account',
         ],
       },
       {
         kind: "p",
-        text: "That is the entire outbound payload surface of the app. Cap usage and feedback sync is a pull: the app asks the server for figures and receives them. It does not push your prediction log, your confirmations, or your saved merchant locations, because no code in the app reads those models for transmission.",
+        text: "That is the entire outbound payload surface of the app. Cap-ledger and feedback sync is otherwise a pull: the app asks the server for figures and receives them. It does not push your prediction log, your confirmations, purchase entries, or saved merchant locations, because no code in the app reads those models for transmission.",
       },
       {
         kind: "note",
@@ -230,9 +232,9 @@ export const SECTIONS: Section[] = [
         kind: "bullets",
         items: [
           "Location is off until you turn it on. The app does not ask on first launch and does not work around a refusal.",
-          "The app requests While Using the App permission. It never requests Always.",
-          "Each reading is a one-time fix, taken when you tap to find nearby merchants. The code requests single fixes and never starts continuous background updates.",
-          "Your coordinates are not saved as a trail. What is saved is the location of a merchant you confirmed, so it can be offered to you again next time you are there.",
+          "A manual nearby search uses While Using the App permission. If you separately enable ambient arrival alerts, PickMe requests Always permission so iOS can report region entry and significant location changes while the app is closed.",
+          "PickMe never starts continuous GPS tracking. Manual searches request one fix; ambient discovery uses iOS region monitoring and significant-location-change events.",
+          "The app stores confirmed merchant coordinates and a coarse cache of roughly one-kilometre areas it has searched so it can limit future Maps lookups. Areas not revisited are removed after about 90 days, and Erase This iPhone's History removes the cache.",
         ],
       },
       {
@@ -274,7 +276,9 @@ export const SECTIONS: Section[] = [
           "Whatever you enter in the web hub: purchases, returns, subscriptions, bills, receipts and their uploaded files, investments, and notification preferences.",
           "Transactions captured by the Wallet Shortcut, if you set it up — see the next section.",
           "Cap usage ledgers and accruals, which track progress toward your cards' bonus limits.",
-          "Your card and merchant settings as held server-side, and the alias tables that map raw transaction text to a known card or merchant.",
+          "Your PickMe wallet and reward settings: selected card products, default and drawer cards, card-specific reward conditions and categories, account-anniversary or cap-reset settings, cap-progress estimates, switching thresholds, and point or reward valuations.",
+          "Your card and merchant mappings as held server-side, and the alias tables that map raw transaction text to a known card or merchant.",
+          "Card-catalogue requests you submit, including the issuer, product name, and optional note you entered.",
           "Wallet Shortcut installations: the label you gave each one and a hashed copy of its token. The token itself is not stored in a form I can read back.",
           "If you connect an email account, the connection details described in the email section below.",
         ],

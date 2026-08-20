@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { CardForm, type CardFormValues } from "@/components/card-form";
+import { catalogueChoices } from "@/lib/cards/catalogueCard";
 import { minorToDollarInput } from "@/engine/money";
-import type { CardRewards } from "@/lib/cards/types";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -13,8 +13,8 @@ export default async function EditCardPage({ params }: { params: Promise<{ id: s
   const card = await prisma.creditCard.findFirst({ where: { id, userId } });
   if (!card) notFound();
 
-  const rewards = card.rewards as unknown as CardRewards;
   const initialValues: CardFormValues = {
+    contractCardId: card.contractCardId ?? "",
     nickname: card.nickname,
     issuer: card.issuer,
     network: card.network as CardFormValues["network"],
@@ -26,54 +26,9 @@ export default async function EditCardPage({ params }: { params: Promise<{ id: s
     dueDay: card.dueDay?.toString() ?? "",
     aprPct: card.aprPct?.toString() ?? "",
     annualFee: minorToDollarInput(card.annualFeeMinor),
+    feeRebate: minorToDollarInput(card.feeRebateMinor),
     feeMonthDay: card.feeMonthDay ?? "",
     feeCancelGraceDays: card.feeCancelGraceDays.toString(),
-    rewards: {
-      pointValueCents: rewards.pointValueCents.toString(),
-      fxFeePct: rewards.fxFeePct.toString(),
-      baseMultiplier: rewards.baseMultiplier.toString(),
-      categoryRates: rewards.categoryRates.map((rate) => ({
-        category: rate.category,
-        multiplier: rate.multiplier.toString(),
-        cap: rate.capMinor === undefined ? "" : minorToDollarInput(rate.capMinor),
-        capWindow: rate.capWindow ?? "MONTH",
-        capGroupId: rate.capGroupId ?? "",
-        requiresConditionId: rate.requiresConditionId ?? "",
-      })),
-      credits: rewards.credits.map((credit) => ({
-        id: credit.id,
-        label: credit.label,
-        value: minorToDollarInput(credit.valueMinor),
-        period: credit.period,
-      })),
-      capGroups: (rewards.capGroups ?? []).map((group) => ({
-        id: group.id,
-        label: group.label,
-        cap: minorToDollarInput(group.capMinor),
-        capWindow: group.capWindow,
-      })),
-      conditions: (rewards.conditions ?? []).map((condition) => ({
-        id: condition.id,
-        label: condition.label,
-        enabled: condition.enabled,
-        annualFeeReduction:
-          condition.annualFeeReductionMinor === undefined ? "" : minorToDollarInput(condition.annualFeeReductionMinor),
-      })),
-      merchantRates: (rewards.merchantRates ?? []).map((rate) => ({
-        id: rate.id,
-        merchant: rate.merchant,
-        multiplier: rate.multiplier.toString(),
-        requiresConditionId: rate.requiresConditionId ?? "",
-      })),
-      baseRateOverrides: (rewards.baseRateOverrides ?? []).map((rate) => ({
-        id: rate.id,
-        label: rate.label,
-        multiplier: rate.multiplier.toString(),
-        requiresConditionId: rate.requiresConditionId,
-        cap: rate.capMinor === undefined ? "" : minorToDollarInput(rate.capMinor),
-        capWindow: rate.capWindow ?? "MONTH",
-      })),
-    },
   };
 
   return (
@@ -88,12 +43,18 @@ export default async function EditCardPage({ params }: { params: Promise<{ id: s
         </Link>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Edit {card.nickname}</h1>
         <p className="text-sm text-muted-foreground">
-          Update card parameters, rewards multipliers, category bonuses, and credits.
+          Update the details specific to your copy of this card. Its rates, caps and credits come
+          from the shared catalogue.
         </p>
       </div>
 
       <div className="mt-6">
-        <CardForm mode="edit" cardId={card.id} initialValues={initialValues} />
+        <CardForm
+          mode="edit"
+          cardId={card.id}
+          choices={catalogueChoices()}
+          initialValues={initialValues}
+        />
       </div>
     </main>
   );

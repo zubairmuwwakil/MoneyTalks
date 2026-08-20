@@ -2,6 +2,7 @@
 
 import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { mergeDuplicatePurchase, keepSeparatePurchase } from "./actions";
 
 export default function DuplicateResolution({ purchaseId }: { purchaseId: string }) {
@@ -10,11 +11,13 @@ export default function DuplicateResolution({ purchaseId }: { purchaseId: string
   const router = useRouter();
 
   return (
-    <div className="mt-2">
+    <div className="mt-2.5">
       <div className="flex flex-wrap gap-2">
-        <button
+        <Button
+          size="xs"
+          variant="outline"
           disabled={pending}
-          className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+          className="border-amber-400/60 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-700/50"
           onClick={() =>
             startTransition(async () => {
               const result = await mergeDuplicatePurchase(purchaseId);
@@ -22,11 +25,13 @@ export default function DuplicateResolution({ purchaseId }: { purchaseId: string
             })
           }
         >
-          Same purchase — merge
-        </button>
-        <button
+          {pending ? "Merging..." : "Same purchase — merge"}
+        </Button>
+        <Button
+          size="xs"
+          variant="ghost"
           disabled={pending}
-          className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+          className="text-amber-800 hover:bg-amber-200/50 dark:text-amber-300 dark:hover:bg-amber-900/40"
           onClick={() =>
             startTransition(async () => {
               const result = await keepSeparatePurchase(purchaseId);
@@ -36,9 +41,10 @@ export default function DuplicateResolution({ purchaseId }: { purchaseId: string
           }
         >
           Different — keep separate
-        </button>
+        </Button>
       </div>
-      {error ? <div className="mt-1 text-xs text-red-700">{error}</div> : null}
+      {error ? <div className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">{error}</div> : null}
     </div>
   );
 }
+

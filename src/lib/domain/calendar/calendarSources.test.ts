@@ -84,7 +84,8 @@ const baseCard: CardDef = {
   nickname: "Amex Cobalt",
   network: "AMEX",
   annualFeeMinor: 15_000,
-  rewards: { pointValueCents: 1.2, fxFeePct: 2.5, baseMultiplier: 1, categoryRates: [], credits: [] },
+  feeRebateMinor: 0,
+    contractCardId: null,
 };
 
 function feeCard(overrides: Partial<FeeScheduleCard> = {}): FeeScheduleCard {

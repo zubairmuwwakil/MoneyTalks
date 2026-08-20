@@ -1,123 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { cardImportEntry, cardRewardsInput } from "./cards";
-
-// The import format speaks DOLLARS; the engine's CardRewards speaks integer cents.
-// They are deliberately different shapes, so this file builds its own dollar-shaped
-// fixture rather than feeding the engine's storage fixture into the parser.
-const REWARDS_IN_DOLLARS = {
-  pointValueCents: 1.2,
-  fxFeePct: 2.5,
-  baseMultiplier: 1,
-  categoryRates: [
-    { category: "dining", multiplier: 5 },
-    { category: "groceries", multiplier: 4, cap: 1500, capWindow: "MONTH" },
-  ],
-  credits: [{ id: "dine100", label: "$100 dining credit", value: 100, period: "YEAR" }],
-};
-
-describe("cardRewardsInput", () => {
-  it("takes dollars and stores cents", () => {
-    const parsed = cardRewardsInput.safeParse(REWARDS_IN_DOLLARS);
-    expect(parsed).toMatchObject({
-      success: true,
-      data: {
-        categoryRates: [
-          { category: "dining", multiplier: 5 },
-          { category: "groceries", multiplier: 4, capMinor: 150_000, capWindow: "MONTH" },
-        ],
-        credits: [{ id: "dine100", valueMinor: 10_000, period: "YEAR" }],
-      },
-    });
-  });
-
-  it("rejects unknown categories, negative values, and caps without windows", () => {
-    expect(
-      cardRewardsInput.safeParse({
-        ...REWARDS_IN_DOLLARS,
-        categoryRates: [{ category: "lottery", multiplier: 2 }],
-      }).success,
-    ).toBe(false);
-    expect(cardRewardsInput.safeParse({ ...REWARDS_IN_DOLLARS, pointValueCents: -1 }).success).toBe(false);
-    expect(
-      cardRewardsInput.safeParse({
-        ...REWARDS_IN_DOLLARS,
-        categoryRates: [{ category: "dining", multiplier: 2, cap: 10 }],
-      }).success,
-    ).toBe(false);
-  });
-
-  it("rejects sub-cent precision rather than silently rounding a cap", () => {
-    expect(
-      cardRewardsInput.safeParse({
-        ...REWARDS_IN_DOLLARS,
-        categoryRates: [{ category: "dining", multiplier: 2, cap: "10.555", capWindow: "YEAR" }],
-      }).success,
-    ).toBe(false);
-  });
-
-  it("stores shared caps, conditions, and merchant bonuses with validated links", () => {
-    const parsed = cardRewardsInput.safeParse({
-      ...REWARDS_IN_DOLLARS,
-      categoryRates: [
-        { category: "groceries", multiplier: 3, capGroupId: "food" },
-        { category: "dining", multiplier: 3, capGroupId: "food", requiresConditionId: "savings" },
-      ],
-      capGroups: [{ id: "food", label: "Food spend", cap: "500.00", capWindow: "MONTH" }],
-      conditions: [{ id: "savings", label: "Savings account linked", enabled: true, annualFeeReduction: "10.00" }],
-      merchantRates: [{ id: "triangle", merchant: "Canadian Tire", multiplier: "4", requiresConditionId: "savings" }],
-      baseRateOverrides: [
-        { id: "pro", label: "Pro plan", multiplier: "3", requiresConditionId: "savings", cap: "2500", capWindow: "MONTH" },
-      ],
-    });
-
-    expect(parsed).toMatchObject({
-      success: true,
-      data: {
-        capGroups: [{ id: "food", capMinor: 50_000 }],
-        conditions: [{ id: "savings", enabled: true, annualFeeReductionMinor: 1_000 }],
-        merchantRates: [{ id: "triangle", multiplier: 4 }],
-        baseRateOverrides: [{ id: "pro", multiplier: 3, capMinor: 250_000 }],
-      },
-    });
-
-    expect(
-      cardRewardsInput.safeParse({
-        ...REWARDS_IN_DOLLARS,
-        categoryRates: [{ category: "dining", multiplier: 3, capGroupId: "missing" }],
-      }).success,
-    ).toBe(false);
-  });
-});
+import { cardImportEntry } from "./cards";
 
 describe("cardImportEntry", () => {
   it("accepts the string-valued numeric fields submitted by the card form", () => {
     const parsed = cardImportEntry.safeParse({
+      contractCardId: "amex-cobalt",
       nickname: "Browser form card",
       issuer: "Fixture Bank",
       network: "VISA",
       annualFee: "120.00",
+      feeRebate: "20.00",
       dueDay: "15",
       aprPct: "19.99",
-      rewards: {
-        pointValueCents: "1.5",
-        fxFeePct: "2.5",
-        baseMultiplier: "1",
-        categoryRates: [{ category: "dining", multiplier: "3", cap: "500.00", capWindow: "MONTH" }],
-        credits: [{ id: "fixture-credit", label: "Fixture credit", value: "10.00", period: "MONTH" }],
-      },
     });
 
     expect(parsed).toMatchObject({
       success: true,
       data: {
+        contractCardId: "amex-cobalt",
         annualFeeMinor: 12_000,
+        feeRebateMinor: 2_000,
         dueDay: 15,
         aprPct: 19.99,
-        rewards: {
-          pointValueCents: 1.5,
-          categoryRates: [{ multiplier: 3, capMinor: 50_000 }],
-          credits: [{ valueMinor: 1_000 }],
-        },
       },
     });
   });
@@ -130,7 +34,6 @@ describe("cardImportEntry", () => {
       annualFee: 150,
       limit: 10_000,
       dueDay: 15,
-      rewards: REWARDS_IN_DOLLARS,
     });
     expect(parsed).toMatchObject({
       success: true,
@@ -143,26 +46,21 @@ describe("cardImportEntry", () => {
       nickname: "No Fee Card",
       issuer: "Fixture Bank",
       network: "VISA",
-      rewards: REWARDS_IN_DOLLARS,
     });
     expect(parsed).toMatchObject({ success: true, data: { annualFeeMinor: 0 } });
   });
 
-  it("defaults omitted recurring credits to an empty list", () => {
-    const rewardsWithoutCredits = {
-      pointValueCents: REWARDS_IN_DOLLARS.pointValueCents,
-      fxFeePct: REWARDS_IN_DOLLARS.fxFeePct,
-      baseMultiplier: REWARDS_IN_DOLLARS.baseMultiplier,
-      categoryRates: REWARDS_IN_DOLLARS.categoryRates,
-    };
+  // An unlinked row is a real state: an import cannot know which catalogue
+  // product a card is, and the card still works without rates until the owner
+  // links it. Guessing the link would silently rescore their spend.
+  it("accepts a card with no catalogue link and defaults its rebate to zero", () => {
     const parsed = cardImportEntry.safeParse({
-      nickname: "No credits card",
+      nickname: "Unlinked card",
       issuer: "Fixture Bank",
       network: "VISA",
-      rewards: rewardsWithoutCredits,
     });
 
-    expect(parsed).toMatchObject({ success: true, data: { rewards: { credits: [] } } });
+    expect(parsed).toMatchObject({ success: true, data: { feeRebateMinor: 0 } });
   });
 
   it("rejects a bad network and out-of-range due days", () => {
@@ -170,23 +68,19 @@ describe("cardImportEntry", () => {
       nickname: "x",
       issuer: "y",
       network: "AMEX",
-      rewards: REWARDS_IN_DOLLARS,
     };
     expect(cardImportEntry.safeParse({ ...good, network: "DINERS" }).success).toBe(false);
     expect(cardImportEntry.safeParse({ ...good, dueDay: 31 }).success).toBe(false);
   });
 
-  it("rejects fee reductions above the published annual fee", () => {
+  it("rejects a fee rebate above the card's annual fee", () => {
     expect(
       cardImportEntry.safeParse({
-        nickname: "Over-waived",
+        nickname: "Over-rebated",
         issuer: "Fixture Bank",
         network: "VISA",
         annualFee: 10,
-        rewards: {
-          ...REWARDS_IN_DOLLARS,
-          conditions: [{ id: "waiver", label: "Fee waiver", enabled: true, annualFeeReduction: 11 }],
-        },
+        feeRebate: 11,
       }).success,
     ).toBe(false);
   });

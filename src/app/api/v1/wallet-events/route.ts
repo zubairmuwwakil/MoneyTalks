@@ -173,6 +173,14 @@ export async function POST(req: Request) {
     data: { feedbackVerdict: verdict, feedbackWarning: warning ?? null },
   });
 
+  // Instantly normalize and promote the event so it shows up in real-time on the purchases page
+  try {
+    const { processWalletEvents } = await import("@/lib/domain/wallet/walletNormalization");
+    await processWalletEvents();
+  } catch (e) {
+    console.error("Error processing wallet events synchronously", e);
+  }
+
   // `final: true` marks every definitive JSON verdict (2xx and 4xx) so the
   // Shortcut can use one flat check to delete its outbox file; transient
   // failures (network, 5xx, platform errors) never produce this shape.

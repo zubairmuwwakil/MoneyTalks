@@ -68,6 +68,20 @@ export interface Program {
   unit: string;
 }
 
+/// Mirrors Swift's `CardCredit` (CatalogueModels.swift). A recurring statement
+/// credit for holding the card. Deliberately NOT an earn rule: it does not
+/// depend on what the purchase was, so `RecommendationEngine` never reads it
+/// and the golden fixtures are unaffected by its presence. It is keep/cancel
+/// and net-value input only.
+export interface CardCredit {
+  creditId: string;
+  label: string;
+  valueCad: number;
+  period: CapPeriod;
+  sourceType: SourceType;
+  lastVerifiedAt: string;
+}
+
 export interface CardProduct {
   cardId: string;
   officialName: string;
@@ -81,6 +95,8 @@ export interface CardProduct {
   caps: Cap[];
   perTransactionRewardVisibility: string;
   lastVerifiedAt: string;
+  /// Optional: absence means the card grants no credits, never "unknown".
+  credits?: CardCredit[];
 }
 
 export interface Catalogue {

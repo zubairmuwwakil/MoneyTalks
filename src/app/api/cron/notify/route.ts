@@ -10,7 +10,7 @@ import {
 } from "@/lib/domain/notifications/eventNotificationScheduler";
 import { startOfDayUTC, addDaysUTC } from "@/lib/utils/dates";
 import type { FeeScheduleCard } from "@/lib/cards/feeSchedule";
-import type { CardDef, CardRewards } from "@/lib/cards/types";
+import type { CardDef } from "@/lib/cards/types";
 import { refreshShipmentTimeline } from "@/lib/domain/shipping/tracking";
 import { processWalletEvents } from "@/lib/domain/wallet/walletNormalization";
 
@@ -77,7 +77,8 @@ async function runNotifyCron(req: NextRequest) {
         nickname: true,
         network: true,
         annualFeeMinor: true,
-        rewards: true,
+        feeRebateMinor: true,
+        contractCardId: true,
         currency: true,
         feeMonthDay: true,
         feeCancelGraceDays: true,
@@ -113,7 +114,8 @@ async function runNotifyCron(req: NextRequest) {
       nickname: c.nickname,
       network: c.network as CardDef["network"],
       annualFeeMinor: c.annualFeeMinor,
-      rewards: c.rewards as unknown as CardRewards,
+      feeRebateMinor: c.feeRebateMinor,
+    contractCardId: c.contractCardId,
       feeMonthDay: c.feeMonthDay,
       feeCancelGraceDays: c.feeCancelGraceDays,
     };

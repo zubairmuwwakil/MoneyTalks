@@ -136,6 +136,20 @@ const earnRuleSchema = annotatedObject({
   scoredInV1: z.boolean().optional(),
 });
 
+// Statement credits granted for holding the card. Mirrors `$defs/cardCredit`
+// in PickMe's schema, added 2026-08-19. A credit does not depend on what the
+// purchase was, so it never enters the checkout pick — it is keep/cancel and
+// net-value input. `valueCad` is the issuer's stated maximum, not a forecast
+// of use; whether one was redeemed is owner activity (CardState).
+const cardCreditSchema = annotatedObject({
+  creditId: z.string(),
+  label: z.string(),
+  valueCad: z.number(),
+  period: z.enum(["calendarMonth", "calendarYear", "accountYear"]),
+  sourceType: sourceTypeSchema,
+  lastVerifiedAt: z.string(),
+});
+
 const cardProductSchema = annotatedObject({
   cardId: z.string(),
   officialName: z.string(),
@@ -154,6 +168,8 @@ const cardProductSchema = annotatedObject({
   categoryMccReference: z.record(z.string(), z.unknown()).optional(),
   redemption: z.record(z.string(), z.unknown()).optional(),
   redemptionFactors: z.array(z.unknown()).optional(),
+  // Optional: absence means the card grants no credits, never "unknown".
+  credits: z.array(cardCreditSchema).optional(),
 });
 
 export const cardCatalogueSchema = annotatedObject({
@@ -162,6 +178,7 @@ export const cardCatalogueSchema = annotatedObject({
   cards: z.array(cardProductSchema),
 });
 
+export type CardCredit = z.infer<typeof cardCreditSchema>;
 export type Earn = z.infer<typeof earnSchema>;
 export type CardProduct = z.infer<typeof cardProductSchema>;
 export type CardCatalogue = z.infer<typeof cardCatalogueSchema>;

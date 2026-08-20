@@ -23,8 +23,8 @@ export default function CardMappingSection({
     <div className="mt-8 rounded-2xl border bg-white p-6 shadow-sm">
       <h2 className="text-sm font-semibold text-slate-900">Map your cards</h2>
       <p className="mt-0.5 text-xs text-slate-500">
-        Apple reports each card as a text label. Tell us which of your cards each label means —
-        recommendations start working the moment a card is mapped.
+        Apple Wallet Shortcuts report each tapped card as a raw text string (e.g. "Aventura Visa Platinum"). 
+        Tell us which of your saved Credit Cards each label represents. Once mapped, any past and future taps using this card will instantly be matched and appear in real-time on your Purchases page.
       </p>
       {error ? <div className="mt-2 text-xs text-red-600">{error}</div> : null}
       <div className="mt-3 space-y-2">

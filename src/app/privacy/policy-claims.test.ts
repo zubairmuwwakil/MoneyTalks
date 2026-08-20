@@ -58,6 +58,25 @@ describe("privacy policy page — required disclosures", () => {
     expect(prose).toMatch(/if you have a PickMe account|server/i);
   });
 
+  it("discloses the complete owner-state wallet upload", () => {
+    expect(prose).toMatch(/complete PickMe wallet configuration/i);
+    expect(prose).toMatch(/selected card products/i);
+    expect(prose).toMatch(/point or reward valuations/i);
+    expect(prose).toMatch(/switching thresholds/i);
+    expect(prose).toMatch(/issuer, card product name, and optional note/i);
+  });
+
+  it("does not describe signed-in wallet choices as local-only", () => {
+    expect(prose).not.toMatch(/choosing a card from it tells nobody anything/i);
+    expect(prose).toMatch(/remain only on the device while signed out/i);
+  });
+
+  it("discloses Always location and ambient discovery honestly", () => {
+    expect(prose).toMatch(/requests Always permission/i);
+    expect(prose).toMatch(/significant-location-change/i);
+    expect(prose).not.toMatch(/It never requests Always/i);
+  });
+
   it("discloses the Wallet Shortcut posting transactions to the server", () => {
     expect(prose).toMatch(/Wallet Shortcut/i);
     expect(prose).toMatch(/wallet-events/i);

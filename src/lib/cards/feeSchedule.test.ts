@@ -12,13 +12,8 @@ const baseCard: CardDef = {
   nickname: "Fixture Alpha Amex",
   network: "AMEX",
   annualFeeMinor: 15_000,
-  rewards: {
-    pointValueCents: 1.2,
-    fxFeePct: 2.5,
-    baseMultiplier: 1,
-    categoryRates: [],
-    credits: [],
-  },
+  feeRebateMinor: 0,
+    contractCardId: null,
 };
 
 function card(overrides: Partial<FeeScheduleCard> = {}): FeeScheduleCard {
@@ -104,34 +99,27 @@ describe("currentFeeCycle — when there is no decision to surface", () => {
     expect(currentFeeCycle(card({ annualFeeMinor: 0 }), utc(2026, 3, 3))).toBeNull();
   });
 
-  it("returns null when an active waiver reduces the fee to zero", () => {
-    const waived = card({
-      rewards: {
-        ...baseCard.rewards,
-        conditions: [{ id: "waiver", label: "Employer waiver", enabled: true, annualFeeReductionMinor: 15_000 }],
-      },
-    });
+  // The rebate is the owner's own figure now — what their banking package
+  // actually gives them — rather than a number inferred from card rules. The
+  // three cases the retired waiver model covered still have to hold.
+  it("returns null when the owner's rebate covers the whole fee", () => {
+    const waived = card({ annualFeeMinor: 15_000, feeRebateMinor: 15_000 });
     expect(currentFeeCycle(waived, utc(2026, 3, 3))).toBeNull();
   });
 
-  it("still returns a cycle when the waiver is not enabled", () => {
-    const notWaived = card({
-      rewards: {
-        ...baseCard.rewards,
-        conditions: [{ id: "waiver", label: "Employer waiver", enabled: false, annualFeeReductionMinor: 15_000 }],
-      },
-    });
+  it("still returns a cycle when the owner records no rebate", () => {
+    const notWaived = card({ annualFeeMinor: 15_000, feeRebateMinor: 0 });
     expect(currentFeeCycle(notWaived, utc(2026, 3, 3))!.feeMinor).toBe(15_000);
   });
 
-  it("reports the reduced fee when a partial waiver is active", () => {
-    const partial = card({
-      rewards: {
-        ...baseCard.rewards,
-        conditions: [{ id: "waiver", label: "Partial waiver", enabled: true, annualFeeReductionMinor: 5_000 }],
-      },
-    });
+  it("reports the reduced fee when the rebate is partial", () => {
+    const partial = card({ annualFeeMinor: 15_000, feeRebateMinor: 5_000 });
     expect(currentFeeCycle(partial, utc(2026, 3, 3))!.feeMinor).toBe(10_000);
+  });
+
+  it("never lets an over-stated rebate turn the fee negative", () => {
+    const over = card({ annualFeeMinor: 15_000, feeRebateMinor: 99_000 });
+    expect(currentFeeCycle(over, utc(2026, 3, 3))).toBeNull();
   });
 });
 

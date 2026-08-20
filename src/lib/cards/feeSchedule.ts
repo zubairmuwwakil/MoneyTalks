@@ -1,5 +1,5 @@
 import { addDaysUTC, clampDayToMonth, startOfDayUTC } from "@/lib/utils/dates";
-import { effectiveAnnualFeeMinor } from "./fees";
+import { effectiveAnnualFeeMinor } from "./catalogueCard";
 import type { CardDef } from "./types";
 
 /**
@@ -43,7 +43,7 @@ export function currentFeeCycle(card: FeeScheduleCard, today: Date): FeeCycle | 
   const day = Number(match[2]);
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
 
-  const feeMinor = effectiveAnnualFeeMinor(card);
+  const feeMinor = effectiveAnnualFeeMinor(card.annualFeeMinor, card.feeRebateMinor);
   if (feeMinor <= 0) return null;
 
   const todayUTC = startOfDayUTC(today);

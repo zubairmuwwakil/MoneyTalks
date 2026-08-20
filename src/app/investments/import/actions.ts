@@ -125,12 +125,14 @@ export async function importJson(formData: FormData): Promise<ImportResult> {
           bills += 1;
         }
 
-        for (const c of parsed.data.cards ?? []) {
-          const { rewards, ...core } = c;
+        for (const core of parsed.data.cards ?? []) {
+          // An import cannot know which catalogue product a row is, so it lands
+          // unlinked (contractCardId null) and the owner links it. That is the
+          // honest state: rates stay absent rather than being guessed onto it.
           await tx.creditCard.upsert({
             where: { userId_nickname: { userId, nickname: core.nickname } },
-            update: { ...core, rewards: asJson(rewards) },
-            create: { ...core, userId, rewards: asJson(rewards) },
+            update: core,
+            create: { ...core, userId },
           });
           cards += 1;
         }
