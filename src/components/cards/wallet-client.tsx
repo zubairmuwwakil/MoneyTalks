@@ -11,21 +11,25 @@ import {
   FileSpreadsheet,
   CalendarClock,
   Sparkles,
-  SlidersHorizontal,
   LayoutGrid,
-  ListOrdered,
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { WalletSummaryBar, type WalletSummaryStats } from "./wallet-summary-bar";
+import { WalletImpactWorkspace } from "./wallet-impact-workspace";
+import type { WalletImpactView } from "@/lib/domain/cards/walletImpact";
 import { CardTile, type CardTileData } from "./card-tile";
 import { CategoryCheatSheet } from "./category-cheat-sheet";
 import { RenewalManagerModal, type RenewalModalCardItem } from "./renewal-manager-modal";
 import type { FeeCycle } from "@/lib/cards/feeSchedule";
 import type { CheatSheetCategoryItem } from "@/lib/cards/cardPresentation";
-import { formatMinorUnits } from "@/engine/money";
+
+export interface WalletOperationalStats {
+  missingRenewalDateCount: number;
+  closestRenewalNote: string | null;
+  closestRenewalDays: number | null;
+  decisionWindowCount: number;
+}
 
 type FilterType = "all" | "fee" | "no-fee" | "amex" | "visa" | "mastercard";
 type ViewMode = "cards" | "cheatsheet";
@@ -34,12 +38,14 @@ export function WalletClient({
   cards,
   cycles,
   stats,
+  impact,
   categories,
   todayIso,
 }: {
   cards: CardTileData[];
   cycles: (FeeCycle | null)[];
-  stats: WalletSummaryStats;
+  stats: WalletOperationalStats;
+  impact: WalletImpactView;
   categories: CheatSheetCategoryItem[];
   todayIso: string;
 }) {
@@ -123,9 +129,42 @@ export function WalletClient({
         </div>
       </div>
 
-      {/* Portfolio Summary KPI Bar */}
+      {/* Portfolio impact workspace */}
       {cards.length > 0 ? (
-        <WalletSummaryBar stats={stats} onOpenRenewalManager={() => setIsRenewalModalOpen(true)} />
+        <WalletImpactWorkspace view={impact} />
+      ) : null}
+
+      {/* Renewal context stays visible beside the annual-fee verdict. */}
+      {stats.closestRenewalNote || stats.decisionWindowCount > 0 ? (
+        <div
+          className={`flex flex-col justify-between gap-3 rounded-xl border px-4 py-3 text-xs sm:flex-row sm:items-center ${
+            stats.decisionWindowCount > 0
+              ? "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+              : "border-border/80 bg-muted/25 text-foreground"
+          }`}
+        >
+          <div className="flex min-w-0 items-start gap-2">
+            <CalendarClock className={`mt-0.5 size-4 shrink-0 ${stats.decisionWindowCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`} />
+            <div className="min-w-0">
+              <strong>
+                {stats.decisionWindowCount > 0
+                  ? `${stats.decisionWindowCount} renewal decision window${stats.decisionWindowCount === 1 ? "" : "s"} open`
+                  : "Next fee renewal"}
+              </strong>
+              {stats.closestRenewalNote ? (
+                <p className="mt-0.5 text-muted-foreground">{stats.closestRenewalNote}</p>
+              ) : null}
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 shrink-0 bg-background/80 text-xs hover:bg-background"
+            onClick={() => setIsRenewalModalOpen(true)}
+          >
+            Manage renewal dates
+          </Button>
+        </div>
       ) : null}
 
       {/* Missing Renewal Dates Actionable Banner */}

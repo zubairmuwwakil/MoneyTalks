@@ -14,6 +14,7 @@ import { allocateRecommendedCard } from "@/app/bills/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { BillImpactWorkspace } from "@/components/bills/bill-impact-workspace";
 import type { Catalogue, OwnerState } from "@/engine/cards-twin";
 import { billOccurrences, type BillDef } from "@/engine/billforecast";
 import type { FxRateInput } from "@/engine/fx";
@@ -25,6 +26,7 @@ import {
   type BillAllocationResult,
 } from "@/lib/domain/bills/billAllocationSummary";
 import { recommendCardForBill, type BillRecommendationResult } from "@/lib/domain/bills/cardForBill";
+import { buildBillImpact } from "@/lib/domain/bills/billImpact";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { prisma } from "@/lib/prisma";
@@ -227,9 +229,12 @@ export default async function BillsPage({
     asOf: r.asOf.toISOString(),
   }));
   const cardById = new Map(paymentCards.map((c) => [c.id, c]));
+  const billDefs = bills.map(toBillDef);
+  const billDefById = new Map(billDefs.map((def) => [def.id, def]));
+  const billImpact = buildBillImpact(billDefs, fxRates, today, 8);
 
   const withNext = bills.map((b) => {
-    const def = toBillDef(b);
+    const def = billDefById.get(b.id)!;
     const next = billOccurrences(def, today, horizon)[0] ?? null;
     const rec = recommendCardForBill(
       catalogue,
@@ -321,6 +326,8 @@ export default async function BillsPage({
       ) : null}
 
       {bills.length > 0 && hasCards ? <BillAllocationSummaryBanner summary={allocationSummary} /> : null}
+
+      {bills.length > 0 ? <BillImpactWorkspace view={billImpact} /> : null}
 
       {bills.length === 0 ? (
         <EmptyState

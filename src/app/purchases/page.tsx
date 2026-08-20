@@ -6,14 +6,13 @@ import {
   CreditCard,
   AlertTriangle,
   ChevronRight,
-  Sparkles,
   Smartphone,
-  DollarSign,
   X,
-  ShieldCheck,
   Plus,
   Calendar,
 } from "lucide-react";
+import type { FxRateInput } from "@/engine/fx";
+import type { Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { formatMoney } from "@/lib/utils/calendarEvents";
@@ -24,6 +23,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SortSelect } from "./ui/SortSelect";
 import { UnmappedCardPicker } from "./ui/UnmappedCardPicker";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
+import { buildPurchaseImpact } from "@/lib/domain/purchases/purchaseImpact";
+import { PurchaseImpactWorkspace } from "@/components/purchases/purchase-impact-workspace";
 import { Prisma } from "@prisma/client";
 
 const PAGE_SIZE = 50;
@@ -160,7 +161,7 @@ export default async function PurchasesInboxPage({
   }
 
   // Execute parallel queries for stats, cards, timezone, and list
-  const [pref, userCards, allPurchasesSummary, purchasesWithNextPage] = await Promise.all([
+  const [pref, userCards, fxRatesRaw, allPurchasesSummary, purchasesWithNextPage] = await Promise.all([
     prisma.notificationPreference.findUnique({
       where: { userId },
       select: { timezone: true },
@@ -169,10 +170,15 @@ export default async function PurchasesInboxPage({
       where: { userId, contractCardId: { not: null } },
       select: { nickname: true, contractCardId: true },
     }),
+    prisma.fxRate.findMany({
+      where: { userId, asOf: { lte: new Date(nowMs) } },
+      orderBy: { asOf: "desc" },
+    }),
     prisma.purchase.findMany({
       where: { userId },
       select: {
         id: true,
+        merchant: true,
         totalCents: true,
         currency: true,
         source: true,
@@ -180,7 +186,21 @@ export default async function PurchasesInboxPage({
         possibleDuplicateOfId: true,
         emailTransactions: { select: { id: true }, take: 1 },
         attachments: { select: { id: true }, take: 1 },
-        returns: { select: { id: true, status: true }, take: 1 },
+        returns: {
+          select: {
+            id: true,
+            status: true,
+            refundedDate: true,
+            refundAmountCents: true,
+            amountCents: true,
+            currency: true,
+          },
+        },
+        walletEvents: {
+          select: { capturedAt: true, capturedTimezone: true },
+          orderBy: { capturedAt: "asc" },
+          take: 1,
+        },
       },
     }),
     prisma.purchase.findMany({
@@ -228,16 +248,47 @@ export default async function PurchasesInboxPage({
       officialName: cardCatalogue.cards.find((cat) => cat.cardId === c.contractCardId)?.officialName,
     }));
 
-  // Calculate high-level summary KPIs
-  let totalSpendCents = 0;
+  const fxRates: FxRateInput[] = fxRatesRaw.map((rate) => ({
+    base: rate.base as Currency,
+    quote: rate.quote as Currency,
+    rate: Number(rate.rate),
+    asOf: rate.asOf.toISOString(),
+  }));
+  const purchaseImpact = buildPurchaseImpact(
+    allPurchasesSummary.map((purchase) => {
+      const wallet = purchase.walletEvents[0] ?? null;
+      const local = purchaseLocalDateTime(
+        wallet?.capturedAt ?? purchase.purchasedAt,
+        wallet?.capturedTimezone,
+        homeZone,
+      );
+      return {
+        date: local.toISODate() ?? purchase.purchasedAt.toISOString().slice(0, 10),
+        merchant: purchase.merchant,
+        totalMinor: purchase.totalCents,
+        currency: purchase.currency,
+        refunds: purchase.returns.flatMap((item) => {
+          const refundAmount = item.refundAmountCents ?? item.amountCents;
+          return item.status === "REFUNDED" && item.refundedDate && typeof refundAmount === "number"
+            ? [{
+                date: item.refundedDate.toISOString().slice(0, 10),
+                amountMinor: refundAmount,
+                currency: item.currency ?? purchase.currency,
+              }]
+            : [];
+        }),
+      };
+    }),
+    fxRates,
+    new Date(nowMs).toISOString().slice(0, 10),
+  );
+
+  // Calculate operational summary counts
   let withReceiptCount = 0;
   let flaggedCount = 0;
   let returnEligibleCount = 0;
 
   for (const p of allPurchasesSummary) {
-    if (typeof p.totalCents === "number") {
-      totalSpendCents += p.totalCents;
-    }
     const hasReceipt =
       p.emailTransactions.length > 0 ||
       p.attachments.length > 0 ||
@@ -258,14 +309,10 @@ export default async function PurchasesInboxPage({
 
   const totalPurchasesCount = allPurchasesSummary.length;
   const missingReceiptCount = totalPurchasesCount - withReceiptCount;
-  const receiptMatchPercent =
-    totalPurchasesCount > 0 ? Math.round((withReceiptCount / totalPurchasesCount) * 100) : 0;
-
   // Group purchases by month
   const groupedPurchases: {
     monthKey: string;
     monthLabel: string;
-    subtotalCents: number;
     items: typeof purchases;
   }[] = [];
 
@@ -277,126 +324,40 @@ export default async function PurchasesInboxPage({
 
     let group = groupedPurchases.find((g) => g.monthKey === monthKey);
     if (!group) {
-      group = { monthKey, monthLabel, subtotalCents: 0, items: [] };
+      group = { monthKey, monthLabel, items: [] };
       groupedPurchases.push(group);
     }
     group.items.push(p);
-    if (typeof p.totalCents === "number") {
-      group.subtotalCents += p.totalCents;
-    }
   });
 
   return (
     <main className="space-y-6 pb-12">
-      {/* 1. Hero Header Card */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-950 via-slate-900 to-[#0b1220] p-6 sm:p-8 shadow-2xl shadow-black/50">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-20 top-0 h-56 w-56 rounded-full bg-cyan-400/20 blur-[110px]" />
-          <div className="absolute -right-15 top-10 h-64 w-64 rounded-full bg-emerald-400/18 blur-[110px]" />
-        </div>
-        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-cyan-400/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-cyan-200 border border-cyan-400/30">
-                <Sparkles className="size-3" /> Purchases Engine
-              </span>
-              {flaggedCount > 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/20 px-2.5 py-0.5 text-[11px] font-semibold text-amber-200 border border-amber-400/30">
-                  <AlertTriangle className="size-3" /> {flaggedCount} flagged
-                </span>
-              ) : null}
-            </div>
-            <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-white">
-              Purchases Inbox
-            </h1>
-            <p className="text-sm text-slate-300 max-w-xl">
-              Every purchase, from tap to receipt, synthesized in one record.
-            </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight">Purchases</h1>
+            {flaggedCount > 0 ? (
+              <Badge variant="warning" className="gap-1"><AlertTriangle className="size-3" />{flaggedCount} flagged</Badge>
+            ) : null}
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-muted-foreground">
+            Captured purchases, receipt evidence, returns, and duplicates.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
             <Button
               asChild
-              className="rounded-full bg-linear-to-r from-cyan-500 to-emerald-500 text-slate-950 font-semibold shadow-lg shadow-cyan-500/20 hover:opacity-95 transition-all"
+              size="sm"
             >
               <Link href="/receipts/upload" className="flex items-center gap-2">
                 <UploadCloud className="size-4" />
                 <span>Upload Receipt</span>
               </Link>
             </Button>
-          </div>
         </div>
       </div>
 
-      {/* 2. KPI Summary Metric Cards Strip */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-        <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium uppercase tracking-wider">Total Tracked</span>
-            <DollarSign className="size-4 text-emerald-500" />
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-bold text-foreground">
-              {formatMoney(totalSpendCents, "CAD")}
-            </span>
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {totalPurchasesCount} purchase{totalPurchasesCount === 1 ? "" : "s"} recorded
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium uppercase tracking-wider">Receipt Match</span>
-            <Receipt className="size-4 text-cyan-500" />
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-bold text-foreground">
-              {receiptMatchPercent}%
-            </span>
-            <span className="text-xs text-muted-foreground">
-              ({withReceiptCount}/{totalPurchasesCount})
-            </span>
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {missingReceiptCount > 0 ? `${missingReceiptCount} need receipt proof` : "100% verified"}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium uppercase tracking-wider">Return Protection</span>
-            <ShieldCheck className="size-4 text-indigo-500" />
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-bold text-foreground">
-              {returnEligibleCount}
-            </span>
-            <span className="text-xs text-muted-foreground">eligible</span>
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            <Link href="/returns" className="text-primary hover:underline">
-              View Returns Hub →
-            </Link>
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium uppercase tracking-wider">Duplicates</span>
-            <AlertTriangle className={`size-4 ${flaggedCount > 0 ? "text-amber-500" : "text-muted-foreground"}`} />
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-xl sm:text-2xl font-bold text-foreground">
-              {flaggedCount}
-            </span>
-            <span className="text-xs text-muted-foreground">flagged</span>
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            {flaggedCount > 0 ? "Near-match candidates" : "All clean & deduped"}
-          </p>
-        </div>
-      </div>
+      <PurchaseImpactWorkspace view={purchaseImpact} />
 
       {/* 3. Search & Filter Bar */}
       <div className="space-y-3 rounded-2xl border border-border/80 bg-card p-4 shadow-2xs">
@@ -553,8 +514,8 @@ export default async function PurchasesInboxPage({
                     <Calendar className="size-3.5 text-primary" />
                     <span>{group.monthLabel}</span>
                   </div>
-                  <span className="font-mono text-foreground font-semibold">
-                    {formatMoney(group.subtotalCents, "CAD")}
+                  <span className="text-muted-foreground">
+                    {group.items.length} purchase{group.items.length === 1 ? "" : "s"}
                   </span>
                 </div>
 
@@ -764,4 +725,3 @@ export default async function PurchasesInboxPage({
     </main>
   );
 }
-

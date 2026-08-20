@@ -1,4 +1,4 @@
-import { effectiveAnnualFeeMinor, catalogueCredits } from "@/lib/cards/catalogueCard";
+import { effectiveAnnualFeeMinor, catalogueCredits, type RedeemedCredit } from "@/lib/cards/catalogueCard";
 import { currentFeeCycle, feeCycleDaysRemaining, type FeeScheduleCard } from "@/lib/cards/feeSchedule";
 import { buildCheatSheetRecommendations } from "@/lib/cards/cardPresentation";
 import type { CardDef } from "@/lib/cards/types";
@@ -6,14 +6,18 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { WalletClient } from "@/components/cards/wallet-client";
 import type { CardTileData } from "@/components/cards/card-tile";
-import type { WalletSummaryStats } from "@/components/cards/wallet-summary-bar";
+import type { WalletOperationalStats } from "@/components/cards/wallet-client";
+import { buildWalletImpact } from "@/lib/domain/cards/walletImpact";
 
 export default async function CardsPage() {
   const userId = await requireUserId();
   const cards = await prisma.creditCard.findMany({
     where: { userId },
     orderBy: { nickname: "asc" },
-    include: { coverageReports: { orderBy: { month: "desc" }, take: 1 } },
+    include: {
+      state: true,
+      coverageReports: { orderBy: { month: "desc" }, take: 1 },
+    },
   });
 
   const defs: FeeScheduleCard[] = cards.map((c) => ({
@@ -30,14 +34,9 @@ export default async function CardsPage() {
   const today = new Date();
   const cycles = defs.map((def) => currentFeeCycle(def, today));
 
-  // Compute portfolio stats
-  let totalAnnualFeeMinor = 0;
-  let totalGrossFeeMinor = 0;
-  let totalCreditsCad = 0;
   let missingRenewalDateCount = 0;
   let decisionWindowCount = 0;
 
-  const networkCounts = { amex: 0, visa: 0, mastercard: 0, other: 0 };
   const upcomingCycleNotes: Array<{ days: number; note: string }> = [];
 
   for (let i = 0; i < cards.length; i++) {
@@ -46,18 +45,6 @@ export default async function CardsPage() {
     const cycle = cycles[i];
 
     const effFee = effectiveAnnualFeeMinor(def.annualFeeMinor, def.feeRebateMinor);
-    totalAnnualFeeMinor += effFee;
-    totalGrossFeeMinor += def.annualFeeMinor;
-
-    const credits = catalogueCredits(c.contractCardId);
-    totalCreditsCad += credits.reduce((sum, cr) => sum + cr.valueCad, 0);
-
-    const net = c.network.toUpperCase();
-    if (net === "AMEX") networkCounts.amex++;
-    else if (net === "VISA") networkCounts.visa++;
-    else if (net === "MASTERCARD") networkCounts.mastercard++;
-    else networkCounts.other++;
-
     if (effFee > 0 && !c.feeMonthDay) {
       missingRenewalDateCount++;
     }
@@ -82,17 +69,26 @@ export default async function CardsPage() {
   upcomingCycleNotes.sort((a, b) => a.days - b.days);
   const closest = upcomingCycleNotes[0] ?? null;
 
-  const stats: WalletSummaryStats = {
-    totalAnnualFeeMinor,
-    totalGrossFeeMinor,
-    totalCreditsCad,
-    cardCount: cards.length,
-    networkCounts,
+  const stats: WalletOperationalStats = {
     missingRenewalDateCount,
     closestRenewalNote: closest?.note ?? null,
     closestRenewalDays: closest?.days ?? null,
     decisionWindowCount,
   };
+
+  const impact = buildWalletImpact(
+    cards.map((card) => ({
+      id: card.id,
+      nickname: card.nickname,
+      issuer: card.issuer,
+      annualFeeMinor: card.annualFeeMinor,
+      feeRebateMinor: card.feeRebateMinor,
+      rewardsEstimateMinor: card.state?.rewardsEstimateMinor ?? 0,
+      credits: catalogueCredits(card.contractCardId),
+      redeemed: (card.state?.creditsRedeemed as unknown as RedeemedCredit[]) ?? [],
+    })),
+    today.getUTCFullYear(),
+  );
 
   const cardTiles: CardTileData[] = cards.map((c) => {
     const report = c.coverageReports[0];
@@ -125,6 +121,7 @@ export default async function CardsPage() {
         cards={cardTiles}
         cycles={cycles}
         stats={stats}
+        impact={impact}
         categories={categories}
         todayIso={today.toISOString()}
       />
