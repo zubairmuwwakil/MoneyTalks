@@ -77,7 +77,7 @@ Scope widens from three repos to four: `marketdata`/MarketLens joins
   D1's CIPO Nice 9/36/42 clearance transfers to the new name and must clear before
   public launch; D2's TestFlight/waitlist copy and D3's catalogue framing update
   once the name is chosen. Rename stays cheap until public App Store launch.
-  **RESOLVED 2026-08-18: the name is Inunity**, domain `inunity.ca` purchased.
+  **RESOLVED 2026-08-18: the name is In Unity**, domain `inunity.ca` purchased.
   Note for clearance: an unrelated software company (inunity.com — Textline,
   Texting Base, Textedly) holds the name in classes 9/42; class 36 appears open.
   The CIPO 9/36/42 search is still owner work and now has a known obstacle.
@@ -132,7 +132,7 @@ Scope widens from three repos to four: `marketdata`/MarketLens joins
 
 ## Consequences of Amendment E
 
-- **MoneyTalks:** is Inunity, the unifier. Investment tracking is now
+- **MoneyTalks:** is In Unity, the unifier. Investment tracking is now
   buildable, consuming MarketLens. Everything else in decision 6's v1 surface
   stands.
 - **PickMe:** unchanged as the canonical card engine; it is no longer the

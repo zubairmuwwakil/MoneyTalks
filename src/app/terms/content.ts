@@ -29,7 +29,7 @@ export const SECTIONS: Section[] = [
     blocks: [
       {
         kind: "p",
-        text: `These Terms of Service ("Terms") constitute a legally binding agreement between you and ${PUBLISHER} ("Publisher", "we", "us", or "our") governing your access to and use of the Inunity web application, the PickMe iOS application, and any associated shortcuts, tools, and services (collectively, the "Service").`,
+        text: `These Terms of Service ("Terms") constitute a legally binding agreement between you and ${PUBLISHER} ("Publisher", "we", "us", or "our") governing your access to and use of the In Unity web application, the PickMe iOS application, and any associated shortcuts, tools, and services (collectively, the "Service").`,
       },
       {
         kind: "p",
@@ -61,13 +61,13 @@ export const SECTIONS: Section[] = [
     blocks: [
       {
         kind: "p",
-        text: "Inunity and PickMe provide personal finance tooling designed to help individuals organize financial records, optimize payment methods, track multi-currency assets, forecast upcoming bills, and monitor merchant return windows.",
+        text: "In Unity and PickMe provide personal finance tooling designed to help individuals organize financial records, optimize payment methods, track multi-currency assets, forecast upcoming bills, and monitor merchant return windows.",
       },
       {
         kind: "bullets",
         items: [
           "**PickMe (iOS Application):** An on-device payment copilot that evaluates card reward multipliers, bonus spend caps, and merchant categories to suggest optimal cards for checkout.",
-          "**Inunity Command Center (Web Application):** A financial dashboard for managing recurring bills, multi-currency holdings valuation, statement reconciliation, and regulatory planning checklists (such as CRA and IRS filing schedules).",
+          "**In Unity Command Center (Web Application):** A financial dashboard for managing recurring bills, multi-currency holdings valuation, statement reconciliation, and regulatory planning checklists (such as CRA and IRS filing schedules).",
           "**Apple Wallet Integration:** An optional client-side iOS Shortcut mechanism to capture transaction metadata without connecting to third-party financial aggregators.",
         ],
       },
@@ -83,7 +83,7 @@ export const SECTIONS: Section[] = [
     blocks: [
       {
         kind: "note",
-        text: "**CRITICAL DISCLAIMER:** Inunity and PickMe are educational, organizational, and informational tools. The Service does NOT provide personalized financial, investment, accounting, tax, or legal advice.",
+        text: "**CRITICAL DISCLAIMER:** In Unity and PickMe are educational, organizational, and informational tools. The Service does NOT provide personalized financial, investment, accounting, tax, or legal advice.",
       },
       {
         kind: "p",
@@ -126,7 +126,7 @@ export const SECTIONS: Section[] = [
     blocks: [
       {
         kind: "p",
-        text: "You may use the PickMe iOS app locally on your device without registering an account. If you choose to use the Inunity web command center or sync data via server APIs, you must create an account.",
+        text: "You may use the PickMe iOS app locally on your device without registering an account. If you choose to use the In Unity web command center or sync data via server APIs, you must create an account.",
       },
       {
         kind: "bullets",

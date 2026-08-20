@@ -197,7 +197,7 @@ const COMMANDS: CommandItem[] = [
   {
     id: "pub-signup",
     title: "Create Account / Sign Up",
-    description: "Register a new Inunity account and start setting up your command center",
+    description: "Register a new In Unity account and start setting up your command center",
     category: "Public & Info",
     href: "/signup",
     icon: UserPlus,
@@ -411,7 +411,7 @@ export function CommandPalette() {
             <span>↵ to select</span>
             <span>esc to close</span>
           </div>
-          <span className="font-semibold text-foreground/80">Inunity Command Surface</span>
+          <span className="font-semibold text-foreground/80">In Unity Command Surface</span>
         </div>
       </div>
     </div>

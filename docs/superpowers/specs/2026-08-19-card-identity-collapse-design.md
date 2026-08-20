@@ -1,4 +1,4 @@
-# Card identity collapse — one card model across Inunity and PickMe
+# Card identity collapse — one card model across In Unity and PickMe
 
 Status: ratified in session 2026-08-19. Supersedes nothing in the decision
 record except the scope note recorded in `LOG.md` for this date.
@@ -50,9 +50,9 @@ One card fact lives in exactly one place, keyed by the catalogue `cardId`.
 | Layer | Owner | Holds | Example |
 |---|---|---|---|
 | **Catalogue** | PickMe (Swift canonical) | What the card *is* | earn rules, caps, FX, credits, fee waivers, benefits |
-| **`CreditCard`** | Inunity | What *your instance* is | nickname, lastFour, limit, statement/due day, APR, fee dates, `contractCardId` |
+| **`CreditCard`** | In Unity | What *your instance* is | nickname, lastFour, limit, statement/due day, APR, fee dates, `contractCardId` |
 | **`OwnerState.cardStates`** | synced both ways | Your *answers* | `feeWaiverActive`, `selectedCategories`, `rogersEligibleServiceLinked` |
-| **`CardState`** / `CapUsageLedger` | Inunity | Your *activity* | credits redeemed, observed cap spend |
+| **`CardState`** / `CapUsageLedger` | In Unity | Your *activity* | credits redeemed, observed cap spend |
 
 `contractCardId` is the join. It already exists on `CreditCard` and is already
 the identity Wallet-capture aliases resolve against — this design finally

@@ -8,7 +8,7 @@ history from current holdings.
 
 The investments page reports current account and portfolio values but cannot
 answer how much the investments earned. The nightly price cron overwrites each
-holding's latest price, so Inunity retains no user-specific daily valuation
+holding's latest price, so In Unity retains no user-specific daily valuation
 history. The small holding sparklines are especially unsafe: they synthesize
 four points from book cost and the current price and can be mistaken for real
 market history.
@@ -16,7 +16,7 @@ market history.
 MarketLens already owns the correct market-data boundary. It stores daily OHLCV,
 corporate actions, adjusted closes, currency, provenance, freshness, calendars,
 and quality state. It must not receive user identities, quantities, cash, or
-portfolio totals. Inunity owns those personal-finance facts and therefore owns
+portfolio totals. In Unity owns those personal-finance facts and therefore owns
 portfolio performance.
 
 ## Goals
@@ -68,11 +68,11 @@ interest, and fees remain part of performance.
 
 MarketLens remains unchanged for this release. Its existing quote endpoint
 continues to supply daily closes with currency, trade date, source, and
-freshness. Inunity records the user-specific quantities, account values, cash
+freshness. In Unity records the user-specific quantities, account values, cash
 flows, FX conversion, and calculated returns.
 
 Raw market price history remains canonical in MarketLens. A price copied into an
-Inunity valuation snapshot is an audit input to a user-specific calculation, not
+In Unity valuation snapshot is an audit input to a user-specific calculation, not
 a second market-data source.
 
 ## Data model

@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Inunity — Personal Finance Command Center",
-    short_name: "Inunity",
+    name: "In Unity — Personal Finance Command Center",
+    short_name: "In Unity",
     description:
       "Personal finance command center for multi-currency tracking, ambient card copilot, cashflow forecasting, and tax compliance.",
     start_url: "/",

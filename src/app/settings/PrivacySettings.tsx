@@ -217,7 +217,7 @@ export default function PrivacySettings() {
             <p className="text-lg font-semibold text-white">Wipe your data, keep your account</p>
             <p className="text-sm text-amber-100/80">
               Removes purchases, receipts, subscriptions, returns, notifications, and everything the
-              Inunity app has synced — captured wallet events, cap usage, and your saved card setup.
+              In Unity app has synced — captured wallet events, cap usage, and your saved card setup.
               Your sign-in stays, so you can start over.
             </p>
           </div>
@@ -239,10 +239,10 @@ export default function PrivacySettings() {
           <p className="text-lg font-semibold text-white">Delete your account permanently</p>
           <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-rose-100/85">
             <li>Everything above is deleted, plus your account record itself.</li>
-            <li>Your Inunity sign-in is removed. You will not be able to sign in again.</li>
+            <li>Your In Unity sign-in is removed. You will not be able to sign in again.</li>
             <li>Any Wallet Shortcut installation tokens stop working immediately.</li>
             <li>
-              The Inunity iPhone app keeps working offline, but stops syncing. Data stored only on
+              The In Unity iPhone app keeps working offline, but stops syncing. Data stored only on
               your iPhone is not touched by this — delete that in the app.
             </li>
             <li>This cannot be undone, and we cannot restore it for you.</li>

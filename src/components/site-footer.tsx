@@ -6,7 +6,7 @@ export function SiteFooter() {
   return (
     <footer className="mt-16 border-t border-border/70 pb-20 pt-6 sm:pb-6">
       <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <p>Inunity — personal finance command center</p>
+        <p>In Unity — personal finance command center</p>
         <nav aria-label="Footer" className="flex flex-wrap items-center gap-4">
           <Link
             href="/marketing"

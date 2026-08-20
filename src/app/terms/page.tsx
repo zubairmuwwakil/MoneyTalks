@@ -12,9 +12,9 @@ import {
 // Public by design: App Store Connect requires legal URLs that are
 // reachable without signing in. The route is allowlisted in src/proxy.ts.
 export const metadata: Metadata = {
-  title: "Terms of Service — Inunity",
+  title: "Terms of Service — In Unity",
   description:
-    "Terms and conditions governing your use of the Inunity web platform and the PickMe iOS app.",
+    "Terms and conditions governing your use of the In Unity web platform and the PickMe iOS app.",
   alternates: { canonical: TERMS_URL },
 };
 
@@ -140,15 +140,15 @@ export default function TermsOfServicePage() {
             className="inline-flex items-center gap-2 font-bold tracking-tight transition-opacity hover:opacity-90"
           >
             <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden">
-              <img src="/icon.svg" alt="Inunity" className="size-6" />
+              <img src="/icon.svg" alt="In Unity" className="size-6" />
             </div>
-            <span className="text-base font-semibold">Inunity</span>
+            <span className="text-base font-semibold">In Unity</span>
           </Link>
 
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Terms of Service</h1>
             <p className="text-[15px] leading-7 text-muted-foreground">
-              For the Inunity web command center and the PickMe app for iPhone.
+              For the In Unity web command center and the PickMe app for iPhone.
             </p>
           </div>
 

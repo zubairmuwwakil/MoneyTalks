@@ -12,10 +12,10 @@ export default async function SignUpPage() {
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center text-center space-y-2">
           <div className="flex size-14 items-center justify-center rounded-2xl bg-foreground/10 text-foreground shadow-md overflow-hidden p-2">
-            <Image src="/icon.svg" alt="Inunity" width={40} height={40} className="size-10" />
+            <Image src="/icon.svg" alt="In Unity" width={40} height={40} className="size-10" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Inunity</h1>
+            <h1 className="text-2xl font-bold tracking-tight">In Unity</h1>
             <p className="text-xs text-muted-foreground mt-0.5">Personal finance command center</p>
           </div>
         </div>

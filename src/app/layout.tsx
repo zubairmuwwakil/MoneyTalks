@@ -8,13 +8,13 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Inunity — Personal Finance Command Center",
-    template: "%s | Inunity",
+    default: "In Unity — Personal Finance Command Center",
+    template: "%s | In Unity",
   },
   description:
     "Personal finance command center for multi-currency tracking, ambient card rewards copilot, cashflow forecasting, and cross-border tax compliance.",
-  applicationName: "Inunity",
-  authors: [{ name: "Inunity Team" }],
+  applicationName: "In Unity",
+  authors: [{ name: "In Unity Team" }],
   keywords: [
     "Personal Finance",
     "Credit Card Rewards",
@@ -28,17 +28,17 @@ export const metadata: Metadata = {
     "FHSA",
   ],
   openGraph: {
-    title: "Inunity — Personal Finance Command Center",
+    title: "In Unity — Personal Finance Command Center",
     description:
       "Max out rewards on every swipe, project 12-month bill cashflow, track multi-currency net worth, and catch cross-border compliance triggers.",
     url: "https://inunity.ca",
-    siteName: "Inunity",
+    siteName: "In Unity",
     locale: "en_CA",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Inunity — Personal Finance Command Center",
+    title: "In Unity — Personal Finance Command Center",
     description:
       "Max out rewards on every swipe, project 12-month bill cashflow, and catch cross-border compliance triggers.",
   },

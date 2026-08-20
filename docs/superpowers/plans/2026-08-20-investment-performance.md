@@ -4,7 +4,7 @@
 
 **Goal:** Add honest, cash-flow-adjusted investment performance tracking from rollout onward, including daily account/position snapshots, TWR and gain calculations, mover attribution, and a restrained interactive investments workspace.
 
-**Architecture:** MarketLens remains the canonical market-data service and continues to provide daily prices. Inunity captures user-specific daily account and position valuations after refresh, stores the exact FX and provenance inputs used, calculates performance in pure domain functions, and renders a server-loaded/client-interactive workspace. Partial or stale valuations are stored for diagnosis but excluded from performance.
+**Architecture:** MarketLens remains the canonical market-data service and continues to provide daily prices. In Unity captures user-specific daily account and position valuations after refresh, stores the exact FX and provenance inputs used, calculates performance in pure domain functions, and renders a server-loaded/client-interactive workspace. Partial or stale valuations are stored for diagnosis but excluded from performance.
 
 **Tech Stack:** Next.js 16.3 App Router, React 19, TypeScript 5, Prisma 7/PostgreSQL, Recharts 3, Tailwind CSS 4, Vitest 4, Playwright 1.62.
 

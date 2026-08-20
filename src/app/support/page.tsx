@@ -12,9 +12,9 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Support & Help Center — Inunity",
+  title: "Support & Help Center — In Unity",
   description:
-    "Get help with Inunity: contact support, view setup guides for Apple Wallet shortcuts, submit card requests, and manage your data.",
+    "Get help with In Unity: contact support, view setup guides for Apple Wallet shortcuts, submit card requests, and manage your data.",
   alternates: { canonical: "https://inunity.ca/support" },
 };
 
@@ -24,19 +24,19 @@ const CONTACT_EMAIL = "zmuwwakil1@gmail.com";
 
 const FAQS = [
   {
-    question: "What is Inunity and how does it work?",
+    question: "What is In Unity and how does it work?",
     answer:
-      "Inunity is your personal finance command center and payment optimizer. On your iPhone, it tells you which card in your wallet earns the highest rewards on the purchase you are about to make, accounting for merchant categories, bonus caps, and point valuations. On the web hub, it unifies your multi-currency investments, recurring bill forecasts, and cross-border tax compliance checks.",
+      "In Unity is your personal finance command center and payment optimizer. On your iPhone, it tells you which card in your wallet earns the highest rewards on the purchase you are about to make, accounting for merchant categories, bonus caps, and point valuations. On the web hub, it unifies your multi-currency investments, recurring bill forecasts, and cross-border tax compliance checks.",
   },
   {
     question: "How do I set up Apple Wallet automation?",
     answer:
-      "Inunity can automatically record transactions using an iOS Shortcut triggered when you tap with Apple Pay. You can generate and configure your installation token inside Settings under Apple Wallet. Transactions are captured securely without needing access to your bank login credentials.",
+      "In Unity can automatically record transactions using an iOS Shortcut triggered when you tap with Apple Pay. You can generate and configure your installation token inside Settings under Apple Wallet. Transactions are captured securely without needing access to your bank login credentials.",
   },
   {
     question: "Are my bank login credentials or card numbers stored?",
     answer:
-      "Never. Neither the iOS app nor the web server ever connects to your bank or card issuer. Inunity never asks for full card numbers, CVVs, PINs, or online banking passwords, and no screen in the product accepts them.",
+      "Never. Neither the iOS app nor the web server ever connects to your bank or card issuer. In Unity never asks for full card numbers, CVVs, PINs, or online banking passwords, and no screen in the product accepts them.",
   },
   {
     question: "What if my credit card is not listed in the catalogue?",
@@ -66,15 +66,15 @@ export default function SupportPage() {
             className="inline-flex items-center gap-2 font-bold tracking-tight transition-opacity hover:opacity-90"
           >
             <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden">
-              <img src="/icon.svg" alt="Inunity" className="size-6" />
+              <img src="/icon.svg" alt="In Unity" className="size-6" />
             </div>
-            <span className="text-base font-semibold">Inunity</span>
+            <span className="text-base font-semibold">In Unity</span>
           </Link>
 
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Support &amp; Help Center</h1>
             <p className="text-[15px] leading-7 text-muted-foreground">
-              Need assistance with Inunity? Contact our team, explore setup guides, or manage your account.
+              Need assistance with In Unity? Contact our team, explore setup guides, or manage your account.
             </p>
           </div>
         </header>
@@ -214,7 +214,7 @@ export default function SupportPage() {
         {/* App Store & Developer Notes */}
         <footer className="border-t border-border pt-8 text-xs text-muted-foreground space-y-2">
           <p>
-            Inunity is built and maintained by Zubair Muwwakil. Review our{" "}
+            In Unity is built and maintained by Zubair Muwwakil. Review our{" "}
             <Link
               href="/privacy"
               className="underline decoration-border underline-offset-4 hover:decoration-foreground"

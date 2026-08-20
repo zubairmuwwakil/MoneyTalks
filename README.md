@@ -1,4 +1,4 @@
-# Inunity
+# In Unity
 
 A privacy-first personal finance command center and transaction operating system: zero-bank-login Apple Pay capture, multi-currency ledger, cashflow forecasting, and statutory tax/benefit compliance engines.
 
@@ -10,9 +10,9 @@ A privacy-first personal finance command center and transaction operating system
 
 ## 1. Standalone Product Capabilities
 
-Inunity functions independently as a complete personal finance platform built around **direct device transaction capture**:
+In Unity functions independently as a complete personal finance platform built around **direct device transaction capture**:
 
-- **Zero-Bank-Login Apple Pay Capture**: An iPhone Wallet Automation + Apple Shortcut captures Apple Pay tap events and posts authenticated transaction payloads directly to your personal Inunity ledger in real time without third-party aggregator passwords.
+- **Zero-Bank-Login Apple Pay Capture**: An iPhone Wallet Automation + Apple Shortcut captures Apple Pay tap events and posts authenticated transaction payloads directly to your personal In Unity ledger in real time without third-party aggregator passwords.
 - **Multi-Currency Net Worth**: Live tracking with CAD / USD / JMD denomination toggles and automated FX rate synchronisation via the Bank of Canada Valet API.
 - **12-Month Bill & Cashflow Forecast**: Forward-looking projection engine with customizable cash cushions that flags upcoming payment pile-ups and rolling minimum-balance dips.
 - **Money Finder (Statutory Rules Engine)**: 24 citation-backed compliance checks for cross-border filing (FBAR, Form 8938, PFIC, T1135) and Canadian wealth/benefit opportunities (RDSP grants & bonds, FHSA contribution room, DTC, CWB) with printable tax checklists.
@@ -22,7 +22,7 @@ Inunity functions independently as a complete personal finance platform built ar
 
 ## 2. Ecosystem Unification (Optional)
 
-Inunity also serves as the central command hub of the **Zemi Echelon** financial ecosystem, optionally unifying three specialized sibling products:
+In Unity also serves as the central command hub of the **Zemi Echelon** financial ecosystem, optionally unifying three specialized sibling products:
 
 | Sibling Product | Repository | Role in Ecosystem | Integration Surface |
 |---|---|---|---|

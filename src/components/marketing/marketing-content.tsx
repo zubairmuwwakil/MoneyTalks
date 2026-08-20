@@ -76,7 +76,7 @@ export function MarketingContent() {
       <section className="relative flex flex-col items-center text-center space-y-6 pt-4 pb-4 sm:pt-6 sm:pb-8">
         <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-muted/60 px-3.5 py-1 text-xs font-medium text-foreground">
           <Sparkles className="size-3.5 text-primary" />
-          <span>Inunity Personal Finance &amp; Card Copilot</span>
+          <span>In Unity Personal Finance &amp; Card Copilot</span>
         </div>
 
         <h1 className="max-w-4xl text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-foreground">
@@ -175,9 +175,9 @@ export function MarketingContent() {
             <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden">
-                  <Image src="/icon.svg" alt="Inunity" width={20} height={20} className="size-5" />
+                  <Image src="/icon.svg" alt="In Unity" width={20} height={20} className="size-5" />
                 </div>
-                <span className="font-semibold text-sm">Inunity Command Surface</span>
+                <span className="font-semibold text-sm">In Unity Command Surface</span>
               </div>
               <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -522,7 +522,7 @@ export function MarketingContent() {
           <Badge variant="outline" className="text-xs font-semibold uppercase tracking-wider">
             Simple 3-Step Setup
           </Badge>
-          <h2 className="text-2xl font-bold tracking-tight sm:text-4xl">How Inunity Works</h2>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-4xl">How In Unity Works</h2>
         </div>
 
         <div className="grid gap-6 sm:grid-cols-3">
@@ -538,7 +538,7 @@ export function MarketingContent() {
             <span className="text-3xl font-extrabold text-muted-foreground/30">02</span>
             <h3 className="text-base font-semibold">Ambient Pick at Checkout</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              When standing at a register or shopping online, Inunity calculates the optimal card based on real category multipliers and caps.
+              When standing at a register or shopping online, In Unity calculates the optimal card based on real category multipliers and caps.
             </p>
           </div>
 
@@ -556,7 +556,7 @@ export function MarketingContent() {
       <section className="space-y-6 max-w-3xl mx-auto w-full">
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Frequently Asked Questions</h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">Everything you need to know about the Inunity hub and copilot.</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Everything you need to know about the In Unity hub and copilot.</p>
         </div>
 
         <div className="space-y-3">
@@ -568,7 +568,7 @@ export function MarketingContent() {
           </div>
 
           <div className="rounded-xl border border-border/70 bg-card p-5 space-y-2">
-            <h4 className="text-sm font-semibold">Does Inunity need my online banking credentials?</h4>
+            <h4 className="text-sm font-semibold">Does In Unity need my online banking credentials?</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Never. We do not use credential-scraping aggregators (like Plaid or Flinks). You maintain complete control of your data via manual entry, statement CSV import, and optional private email receipt ingestion.
             </p>
@@ -597,7 +597,7 @@ export function MarketingContent() {
             Start taking command of your financial edge today
           </h2>
           <p className="text-xs sm:text-sm text-background/80">
-            Create your free account for full access to the Inunity web command center and ambient card copilot.
+            Create your free account for full access to the In Unity web command center and ambient card copilot.
           </p>
         </div>
 
