@@ -21,7 +21,8 @@ vi.mock("@/lib/domain/investments/captureInvestmentSnapshots", () => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: {
+  prisma: (() => {
+    const delegates = {
     financialAccount: {
       findFirst: vi.fn(),
     },
@@ -43,7 +44,12 @@ vi.mock("@/lib/prisma", () => ({
     alert: {
       create: vi.fn(),
     },
-  },
+    };
+    return {
+      ...delegates,
+      $transaction: vi.fn(async (callback: (tx: typeof delegates) => unknown) => callback(delegates)),
+    };
+  })(),
 }));
 
 describe("Investment Actions - Smart Sync & Set Cash", () => {
@@ -132,8 +138,9 @@ describe("Investment Actions - Smart Sync & Set Cash", () => {
       const result = await addTransaction(formData);
 
       expect(result).toEqual({ ok: true });
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(recomputeSnapshotFlows).toHaveBeenCalledWith(
-        prisma,
+        expect.objectContaining({ transaction: prisma.transaction }),
         "acc-1",
         new Date("2026-08-18"),
       );
@@ -221,7 +228,7 @@ describe("Investment Actions - Smart Sync & Set Cash", () => {
 
       await expect(updateTransaction(formData)).resolves.toEqual({ ok: true });
       expect(recomputeSnapshotFlows).toHaveBeenCalledWith(
-        prisma,
+        expect.objectContaining({ transaction: prisma.transaction }),
         "acc-1",
         new Date("2026-08-10"),
       );
@@ -240,7 +247,7 @@ describe("Investment Actions - Smart Sync & Set Cash", () => {
 
       await expect(deleteTransaction(formData)).resolves.toEqual({ ok: true });
       expect(recomputeSnapshotFlows).toHaveBeenCalledWith(
-        prisma,
+        expect.objectContaining({ transaction: prisma.transaction }),
         "acc-1",
         new Date("2026-08-12"),
       );

@@ -195,6 +195,7 @@ export function aggregatePortfolioPoints(accounts: AccountValuationSeries[]): Va
   if (!portfolioStart) return [];
 
   const result: ValuationPoint[] = [];
+  const includedAccountIds = new Set<string>();
   for (const date of dates) {
     const activeAccounts = normalized.filter((account) => account.firstDate! <= date);
     const points = activeAccounts.map((account) => account.byDate.get(date));
@@ -210,16 +211,16 @@ export function aggregatePortfolioPoints(accounts: AccountValuationSeries[]): Va
       const account = activeAccounts[index];
       valueMinor = safeAdd(valueMinor, completePoint.valueMinor, `portfolio value for ${date}`);
 
-      const flow =
-        account.firstDate === date
-          ? date === portfolioStart
-            ? 0
-            : completePoint.valueMinor
-          : completePoint.externalFlowMinor;
+      const flow = !includedAccountIds.has(account.accountId)
+        ? result.length === 0
+          ? 0
+          : completePoint.valueMinor
+        : completePoint.externalFlowMinor;
       externalFlowMinor = safeAdd(externalFlowMinor, flow, `portfolio flow for ${date}`);
     });
 
     result.push({ date, valueMinor, externalFlowMinor });
+    activeAccounts.forEach((account) => includedAccountIds.add(account.accountId));
   }
 
   return result;

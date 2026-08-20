@@ -66,13 +66,23 @@ function rangeStart(range: PerformanceRange, today: Date): string | null {
   if (range === "YTD") {
     result.setUTCMonth(0, 1);
   } else if (range === "1M") {
-    result.setUTCMonth(result.getUTCMonth() - 1);
+    setClampedUtcMonth(result, result.getUTCMonth() - 1);
   } else if (range === "3M") {
-    result.setUTCMonth(result.getUTCMonth() - 3);
+    setClampedUtcMonth(result, result.getUTCMonth() - 3);
   } else {
-    result.setUTCFullYear(result.getUTCFullYear() - 1);
+    setClampedUtcMonth(result, result.getUTCMonth() - 12);
   }
   return result.toISOString().slice(0, 10);
+}
+
+function setClampedUtcMonth(value: Date, targetMonth: number): void {
+  const day = value.getUTCDate();
+  value.setUTCDate(1);
+  value.setUTCMonth(targetMonth);
+  const lastDay = new Date(
+    Date.UTC(value.getUTCFullYear(), value.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  value.setUTCDate(Math.min(day, lastDay));
 }
 
 /**

@@ -1,4 +1,4 @@
-import { InvestmentSnapshotStatus, type PrismaClient } from "@prisma/client";
+import { InvestmentSnapshotStatus, type Prisma, type PrismaClient } from "@prisma/client";
 import {
   accountBalanceWithCurrency,
   holdingsValuation,
@@ -19,6 +19,11 @@ export type CaptureOptions = {
   asOf?: Date;
   displayCurrency?: Currency;
 };
+
+type SnapshotFlowClient = Pick<
+  Prisma.TransactionClient,
+  "investmentAccountSnapshot" | "transaction"
+>;
 
 type ExternalTransaction = {
   type: string;
@@ -101,6 +106,24 @@ function externalFlowSince(
     const signed = transaction.type === "CONTRIBUTION" ? transaction.amountMinor : -transaction.amountMinor;
     return safeAdd(sum, signed, "external flow");
   }, 0);
+}
+
+function externalFlowCurrenciesMatch(
+  transactions: ExternalTransaction[],
+  previousCompleteAsOf: Date | null,
+  through: Date,
+  currency: string,
+): boolean {
+  if (previousCompleteAsOf === null) return true;
+  const after = utcDayEnd(previousCompleteAsOf);
+  return transactions
+    .filter(
+      (transaction) =>
+        transaction.date > after &&
+        transaction.date <= through &&
+        (transaction.type === "CONTRIBUTION" || transaction.type === "WITHDRAWAL"),
+    )
+    .every((transaction) => transaction.currency.toUpperCase() === currency.toUpperCase());
 }
 
 function staleOrUnavailable(status: string | null): boolean {
@@ -222,16 +245,13 @@ export async function captureInvestmentSnapshots(
         };
       });
 
-      const complete =
+      let complete =
         hasSetupData &&
         cashComplete &&
         holdingsSummary.complete &&
         holdingsSummary.assumedCurrency.length === 0 &&
         positions.every((position) => position.valuationComplete) &&
         displayTotal.ok;
-      const status = complete
-        ? InvestmentSnapshotStatus.COMPLETE
-        : InvestmentSnapshotStatus.PARTIAL;
       const pricedHoldings = account.holdings.filter(
         (holding) => holding.priceCurrency !== null && holding.priceStatus?.toUpperCase() !== "UNAVAILABLE",
       );
@@ -249,6 +269,17 @@ export async function captureInvestmentSnapshots(
           through,
           accountCurrency,
         );
+        complete =
+          complete &&
+          externalFlowCurrenciesMatch(
+            account.transactions,
+            previousComplete?.asOf ?? null,
+            through,
+            accountCurrency,
+          );
+        const status = complete
+          ? InvestmentSnapshotStatus.COMPLETE
+          : InvestmentSnapshotStatus.PARTIAL;
         const displayFlow = conversionToDisplay(nativeFlow, accountCurrency, displayCurrency, rates);
         const snapshotData = {
           currency: accountCurrency,
@@ -297,7 +328,7 @@ export async function captureInvestmentSnapshots(
 }
 
 export async function recomputeSnapshotFlows(
-  prisma: PrismaClient,
+  prisma: SnapshotFlowClient,
   accountId: string,
   from: Date,
 ): Promise<void> {

@@ -171,6 +171,30 @@ describe("aggregatePortfolioPoints", () => {
       { date: "2026-08-22", valueMinor: 15_300, externalFlowMinor: 0 },
     ]);
   });
+
+  it("treats an account as opening on its first complete portfolio observation", () => {
+    expect(
+      aggregatePortfolioPoints([
+        {
+          accountId: "existing",
+          points: [
+            { date: "2026-08-20", valueMinor: 10_000, externalFlowMinor: 0 },
+            { date: "2026-08-22", valueMinor: 10_200, externalFlowMinor: 0 },
+          ],
+        },
+        {
+          accountId: "new",
+          points: [
+            { date: "2026-08-21", valueMinor: 5_000, externalFlowMinor: 0 },
+            { date: "2026-08-22", valueMinor: 5_100, externalFlowMinor: 0 },
+          ],
+        },
+      ]),
+    ).toEqual([
+      { date: "2026-08-20", valueMinor: 10_000, externalFlowMinor: 0 },
+      { date: "2026-08-22", valueMinor: 15_300, externalFlowMinor: 5_100 },
+    ]);
+  });
 });
 
 describe("attributePositionChanges", () => {

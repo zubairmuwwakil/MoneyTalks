@@ -156,6 +156,34 @@ describe("captureInvestmentSnapshots", () => {
     expect(transactionDb.investmentPositionSnapshot.createMany).not.toHaveBeenCalled();
   });
 
+  it("marks a snapshot partial when an interval flow uses another currency", async () => {
+    const { prisma, transactionDb } = prismaMock(
+      [
+        accountFixture({
+          transactions: [
+            {
+              type: "CONTRIBUTION",
+              amountMinor: 1_000,
+              currency: "CAD",
+              date: new Date("2026-08-20T12:00:00Z"),
+            },
+          ],
+        }),
+      ],
+      [{ base: "USD", quote: "CAD", rate: 1.4, asOf: DAY }],
+    );
+    transactionDb.investmentAccountSnapshot.findFirst.mockResolvedValueOnce({
+      asOf: new Date("2026-08-19T00:00:00Z"),
+    });
+
+    const result = await captureInvestmentSnapshots(prisma as never, "user-1", { asOf: AS_OF });
+
+    expect(result).toEqual({ accounts: 1, complete: 0, partial: 1, failed: 0 });
+    expect(transactionDb.investmentAccountSnapshot.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: expect.objectContaining({ status: "PARTIAL" }) }),
+    );
+  });
+
   it("upserts and replaces positions when capture reruns on the same UTC day", async () => {
     const { prisma, transactionDb } = prismaMock([accountFixture()], [
       { base: "USD", quote: "CAD", rate: 1.4, asOf: DAY },
