@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMarketLensConfigured } from "@/lib/services/marketlens";
 import { refreshHoldingPrices } from "@/lib/domain/investments/refreshHoldingPrices";
+import { captureInvestmentSnapshots } from "@/lib/domain/investments/captureInvestmentSnapshots";
 import { isAuthorizedCronRequest } from "@/lib/security/cronAuth";
 
 export const runtime = "nodejs";
@@ -19,42 +20,67 @@ async function runPriceCron(req: NextRequest) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  if (!isMarketLensConfigured()) {
-    console.warn("[cron/prices] MARKETLENS_BASE_URL / MARKETLENS_API_KEY not set; nothing attempted");
-    return NextResponse.json({ ok: false, reason: "not-configured", updated: 0 }, { status: 503 });
+  const marketLensConfigured = isMarketLensConfigured();
+  if (!marketLensConfigured) {
+    console.warn("[cron/prices] market data is not configured; recording diagnostic snapshots only");
   }
 
-  // Only users who actually hold something priceable (equities or crypto).
+  // Cash-only accounts still need a daily valuation, so account ownership — not
+  // the presence of a priceable holding — determines who participates.
   const users = await prisma.user.findMany({
-    where: { financialAccounts: { some: { holdings: { some: {} } } } },
-    select: { id: true },
+    where: { financialAccounts: { some: {} } },
+    select: {
+      id: true,
+      financialAccounts: { select: { holdings: { select: { id: true }, take: 1 } } },
+    },
   });
 
   let updated = 0;
   let usersRefreshed = 0;
+  let snapshotsRecorded = 0;
+  const snapshots = { complete: 0, partial: 0, failed: 0 };
   for (const user of users) {
+    const hasHoldings = user.financialAccounts.some((account) => account.holdings.length > 0);
+    if (hasHoldings && marketLensConfigured) {
+      try {
+        const outcome = await refreshHoldingPrices(prisma, user.id, { timeoutMs: 20_000 });
+        updated += outcome.updated;
+        if (outcome.updated > 0) usersRefreshed += 1;
+      } catch (err) {
+        // Snapshot capture still runs: the stale inputs are useful diagnostics,
+        // while their partial status keeps them out of performance math.
+        console.warn(`[cron/prices] refresh failed for user ${user.id}:`, err);
+      }
+    }
+
     try {
-      const outcome = await refreshHoldingPrices(prisma, user.id, { timeoutMs: 20_000 });
-      updated += outcome.updated;
-      if (outcome.updated > 0) usersRefreshed += 1;
+      const capture = await captureInvestmentSnapshots(prisma, user.id);
+      snapshots.complete += capture.complete;
+      snapshots.partial += capture.partial;
+      snapshots.failed += capture.failed;
+      snapshotsRecorded += capture.complete + capture.partial;
     } catch (err) {
-      // One user's broken credential must not stop the sweep for everybody else.
-      console.warn(`[cron/prices] refresh failed for user ${user.id}:`, err);
+      snapshots.failed += user.financialAccounts.length;
+      console.warn(`[cron/prices] snapshot capture failed for user ${user.id}:`, err);
     }
   }
 
-  // A sweep that priced nothing is a real gap, not a quiet success. Same shape as
-  // the FX cron: report it, and leave every stored price untouched — holdings keep
-  // their last-known values and the UI shows them as stale.
-  if (users.length > 0 && updated === 0) {
-    console.warn("[cron/prices] no prices refreshed; existing prices left untouched");
+  if (users.length > 0 && snapshotsRecorded === 0) {
+    console.warn("[cron/prices] no investment snapshots were recorded");
     return NextResponse.json(
-      { ok: false, reason: "no-prices-available", users: users.length, updated: 0 },
+      {
+        ok: false,
+        reason: "no-snapshots-recorded",
+        users: users.length,
+        usersRefreshed,
+        updated,
+        snapshots,
+      },
       { status: 502 },
     );
   }
 
-  return NextResponse.json({ ok: true, users: users.length, usersRefreshed, updated });
+  return NextResponse.json({ ok: true, users: users.length, usersRefreshed, updated, snapshots });
 }
 
 export async function GET(req: NextRequest) {

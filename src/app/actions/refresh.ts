@@ -6,6 +6,7 @@ import { fetchUsdCadRate } from "@/lib/fetch-fx";
 import { fetchCryptoPricesMinor } from "@/lib/fetch-prices";
 import { isMarketLensConfigured } from "@/lib/services/marketlens";
 import { refreshHoldingPrices } from "@/lib/domain/investments/refreshHoldingPrices";
+import { captureInvestmentSnapshots } from "@/lib/domain/investments/captureInvestmentSnapshots";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -75,10 +76,20 @@ export async function refreshPrices(formData: FormData): Promise<void> {
   if (!account) redirectWithStatus(path, "pricesError", "Account not found.");
 
   if (account.type === "CRYPTO") {
-    await refreshCryptoPrices(account, path);
+    const crypto = await refreshCryptoPrices(account);
+    await captureInvestmentSnapshots(prisma, userId);
+    revalidatePath(path);
+    revalidatePath("/investments");
+    revalidatePath("/");
+    redirectWithStatus(
+      path,
+      "pricesOk",
+      `${crypto.updated} updated, ${crypto.failed} failed (CoinGecko). Manual entry always works.`,
+    );
   }
 
   if (!isMarketLensConfigured()) {
+    await captureInvestmentSnapshots(prisma, userId);
     redirectWithStatus(
       path,
       "pricesError",
@@ -87,8 +98,10 @@ export async function refreshPrices(formData: FormData): Promise<void> {
   }
 
   const outcome = await refreshHoldingPrices(prisma, userId, { accountId });
+  await captureInvestmentSnapshots(prisma, userId);
 
   revalidatePath(path);
+  revalidatePath("/investments");
   revalidatePath("/");
 
   if (outcome.reason === "no-holdings") {
@@ -135,8 +148,7 @@ function summarizeSkips(skipped: { reason: string }[]): string {
  */
 async function refreshCryptoPrices(
   account: { id: string; currency: string; holdings: { id: string; symbol: string }[] },
-  path: string,
-): Promise<never> {
+): Promise<{ updated: number; failed: number }> {
   const prices = await fetchCryptoPricesMinor(
     account.holdings.map((h) => h.symbol),
     account.currency,
@@ -164,8 +176,5 @@ async function refreshCryptoPrices(
     });
     updated += 1;
   }
-  revalidatePath(path);
-  revalidatePath("/");
-
-  redirectWithStatus(path, "pricesOk", `${updated} updated, ${failed} failed (CoinGecko). Manual entry always works.`);
+  return { updated, failed };
 }

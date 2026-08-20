@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { csvImportInput, type CsvImportInput } from "@/lib/validation/csv-import";
 import { IMPORT_LIMITS } from "@/lib/validation/investments";
+import { recomputeSnapshotFlows } from "@/lib/domain/investments/captureInvestmentSnapshots";
 
 export interface CsvImportResult {
   ok: boolean;
@@ -178,6 +179,9 @@ export async function importCsv(formData: FormData): Promise<CsvImportResult> {
     try {
       const created = await prisma.transaction.createMany({ data: toInsert });
       imported = created.count;
+      const insertedDates = toInsert.map((transaction) => new Date(transaction.date));
+      const earliestAffected = new Date(Math.min(...insertedDates.map((date) => date.getTime())));
+      await recomputeSnapshotFlows(prisma, accountId, earliestAffected);
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : "Insert failed" };
     }

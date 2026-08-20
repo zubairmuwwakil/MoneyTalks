@@ -13,6 +13,7 @@ import {
 
 import { isMarketLensConfigured } from "@/lib/services/marketlens";
 import { refreshHoldingPrices } from "@/lib/domain/investments/refreshHoldingPrices";
+import { recomputeSnapshotFlows } from "@/lib/domain/investments/captureInvestmentSnapshots";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -238,6 +239,7 @@ export async function addTransaction(formData: FormData): Promise<ActionResult> 
         }
       }
     }
+    await recomputeSnapshotFlows(prisma, accountId, new Date(parsed.data.date));
   } catch (e) {
     return fail(e);
   }
@@ -257,7 +259,7 @@ export async function updateTransaction(formData: FormData): Promise<ActionResul
     const id = recordId(formData, "transactionId");
     const transaction = await prisma.transaction.findFirst({
       where: { id, account: { userId } },
-      select: { id: true, accountId: true },
+      select: { id: true, accountId: true, date: true },
     });
     if (!transaction) throw new Error("Transaction not found");
     accountId = transaction.accountId;
@@ -268,6 +270,12 @@ export async function updateTransaction(formData: FormData): Promise<ActionResul
         date: new Date(parsed.data.date),
       },
     });
+    const nextDate = new Date(parsed.data.date);
+    await recomputeSnapshotFlows(
+      prisma,
+      accountId,
+      transaction.date < nextDate ? transaction.date : nextDate,
+    );
   } catch (e) {
     return fail(e);
   }
@@ -284,11 +292,12 @@ export async function deleteTransaction(formData: FormData): Promise<ActionResul
     const id = recordId(formData, "transactionId");
     const transaction = await prisma.transaction.findFirst({
       where: { id, account: { userId } },
-      select: { id: true, accountId: true },
+      select: { id: true, accountId: true, date: true },
     });
     if (!transaction) throw new Error("Transaction not found");
     accountId = transaction.accountId;
     await prisma.transaction.delete({ where: { id: transaction.id } });
+    await recomputeSnapshotFlows(prisma, accountId, transaction.date);
   } catch (e) {
     return fail(e);
   }
