@@ -13,6 +13,7 @@ import {
 
 import { isMarketLensConfigured } from "@/lib/services/marketlens";
 import { refreshHoldingPrices } from "@/lib/domain/investments/refreshHoldingPrices";
+import { recomputeSnapshotFlows } from "@/lib/domain/investments/captureInvestmentSnapshots";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -175,20 +176,24 @@ export async function addTransaction(formData: FormData): Promise<ActionResult> 
           "ROTH_CONFIRM_REQUIRED: contributions while Canadian-resident can permanently taint the treaty election. Tick the confirmation box to record it anyway.",
       };
     }
-    const created = await prisma.transaction.create({
-      data: {
-        ...parsed.data,
-        accountId,
-        currency: account.currency,
-        date: new Date(parsed.data.date),
-      },
-    });
-    if (isRothContribution) {
-      // The override is logged, per the spec's blocking-flow requirement.
-      await prisma.alert.create({
-        data: { userId, ruleKey: "ROTH_OVERRIDE_LOG", entityRef: created.id },
+    await prisma.$transaction(async (tx) => {
+      const created = await tx.transaction.create({
+        data: {
+          ...parsed.data,
+          accountId,
+          currency: account.currency,
+          date: new Date(parsed.data.date),
+        },
       });
-    }
+      if (isRothContribution) {
+        // The override and flow cache share the ledger transaction, so a
+        // performance failure cannot leave a silently committed contribution.
+        await tx.alert.create({
+          data: { userId, ruleKey: "ROTH_OVERRIDE_LOG", entityRef: created.id },
+        });
+      }
+      await recomputeSnapshotFlows(tx, accountId, new Date(parsed.data.date));
+    });
 
     // Smart sync with holdings table if trade ticker symbol and quantity are provided
     const tradeSymbol = String(formData.get("symbol") ?? "").trim().toUpperCase();
@@ -254,19 +259,27 @@ export async function updateTransaction(formData: FormData): Promise<ActionResul
 
   let accountId: string;
   try {
-    const id = recordId(formData, "transactionId");
-    const transaction = await prisma.transaction.findFirst({
-      where: { id, account: { userId } },
-      select: { id: true, accountId: true },
-    });
-    if (!transaction) throw new Error("Transaction not found");
-    accountId = transaction.accountId;
-    await prisma.transaction.update({
-      where: { id: transaction.id },
-      data: {
-        ...parsed.data,
-        date: new Date(parsed.data.date),
-      },
+    accountId = await prisma.$transaction(async (tx) => {
+      const id = recordId(formData, "transactionId");
+      const transaction = await tx.transaction.findFirst({
+        where: { id, account: { userId } },
+        select: { id: true, accountId: true, date: true },
+      });
+      if (!transaction) throw new Error("Transaction not found");
+      await tx.transaction.update({
+        where: { id: transaction.id },
+        data: {
+          ...parsed.data,
+          date: new Date(parsed.data.date),
+        },
+      });
+      const nextDate = new Date(parsed.data.date);
+      await recomputeSnapshotFlows(
+        tx,
+        transaction.accountId,
+        transaction.date < nextDate ? transaction.date : nextDate,
+      );
+      return transaction.accountId;
     });
   } catch (e) {
     return fail(e);
@@ -281,14 +294,17 @@ export async function deleteTransaction(formData: FormData): Promise<ActionResul
   const userId = await requireUserId();
   let accountId: string;
   try {
-    const id = recordId(formData, "transactionId");
-    const transaction = await prisma.transaction.findFirst({
-      where: { id, account: { userId } },
-      select: { id: true, accountId: true },
+    accountId = await prisma.$transaction(async (tx) => {
+      const id = recordId(formData, "transactionId");
+      const transaction = await tx.transaction.findFirst({
+        where: { id, account: { userId } },
+        select: { id: true, accountId: true, date: true },
+      });
+      if (!transaction) throw new Error("Transaction not found");
+      await tx.transaction.delete({ where: { id: transaction.id } });
+      await recomputeSnapshotFlows(tx, transaction.accountId, transaction.date);
+      return transaction.accountId;
     });
-    if (!transaction) throw new Error("Transaction not found");
-    accountId = transaction.accountId;
-    await prisma.transaction.delete({ where: { id: transaction.id } });
   } catch (e) {
     return fail(e);
   }

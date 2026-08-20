@@ -242,9 +242,15 @@ export type CaptureOutcome = {
   complete: number;
   partial: number;
   failed: number;
+  failures: Array<{ accountId: string; reason: string }>;
 };
 
-export type CaptureOptions = { asOf?: Date; displayCurrency?: Currency };
+export type CaptureOptions = {
+  asOf?: Date;
+  displayCurrency?: Currency;
+  accountId?: string;
+  validatedHoldingIds?: readonly string[];
+};
 
 export async function captureInvestmentSnapshots(
   prisma: PrismaClient,
@@ -263,6 +269,7 @@ Complete requires:
 - `holdingsValuation.complete` is true.
 - `assumedCurrency` is empty.
 - Every holding has a provable `priceCurrency`.
+- Every holding was validated in this refresh against MarketLens' `expectedSession`.
 - No holding has `priceStatus === "STALE"` or `"UNAVAILABLE"`.
 - CAD conversion succeeds with an FX rate whose date is recorded.
 

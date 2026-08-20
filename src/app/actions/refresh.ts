@@ -6,6 +6,7 @@ import { fetchUsdCadRate } from "@/lib/fetch-fx";
 import { fetchCryptoPricesMinor } from "@/lib/fetch-prices";
 import { isMarketLensConfigured } from "@/lib/services/marketlens";
 import { refreshHoldingPrices } from "@/lib/domain/investments/refreshHoldingPrices";
+import { captureInvestmentSnapshots } from "@/lib/domain/investments/captureInvestmentSnapshots";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -75,10 +76,30 @@ export async function refreshPrices(formData: FormData): Promise<void> {
   if (!account) redirectWithStatus(path, "pricesError", "Account not found.");
 
   if (account.type === "CRYPTO") {
-    await refreshCryptoPrices(account, path);
+    const crypto = await refreshCryptoPrices(account);
+    const capture = await captureInvestmentSnapshots(prisma, userId, {
+      accountId,
+      validatedHoldingIds: crypto.validatedHoldingIds,
+    });
+    revalidatePath(path);
+    revalidatePath("/investments");
+    revalidatePath("/");
+    if (capture.failed > 0) {
+      redirectWithStatus(
+        path,
+        "pricesError",
+        "Prices were refreshed, but the performance snapshot could not be recorded. Try again.",
+      );
+    }
+    redirectWithStatus(
+      path,
+      "pricesOk",
+      `${crypto.updated} updated, ${crypto.failed} failed (CoinGecko). Manual entry always works.`,
+    );
   }
 
   if (!isMarketLensConfigured()) {
+    await captureInvestmentSnapshots(prisma, userId, { accountId, validatedHoldingIds: [] });
     redirectWithStatus(
       path,
       "pricesError",
@@ -87,9 +108,22 @@ export async function refreshPrices(formData: FormData): Promise<void> {
   }
 
   const outcome = await refreshHoldingPrices(prisma, userId, { accountId });
+  const capture = await captureInvestmentSnapshots(prisma, userId, {
+    accountId,
+    validatedHoldingIds: outcome.validatedHoldingIds,
+  });
 
   revalidatePath(path);
+  revalidatePath("/investments");
   revalidatePath("/");
+
+  if (capture.failed > 0) {
+    redirectWithStatus(
+      path,
+      "pricesError",
+      "Prices were refreshed, but the performance snapshot could not be recorded. Try again.",
+    );
+  }
 
   if (outcome.reason === "no-holdings") {
     redirectWithStatus(path, "pricesError", "This account has no holdings to price.");
@@ -135,8 +169,7 @@ function summarizeSkips(skipped: { reason: string }[]): string {
  */
 async function refreshCryptoPrices(
   account: { id: string; currency: string; holdings: { id: string; symbol: string }[] },
-  path: string,
-): Promise<never> {
+): Promise<{ updated: number; failed: number; validatedHoldingIds: string[] }> {
   const prices = await fetchCryptoPricesMinor(
     account.holdings.map((h) => h.symbol),
     account.currency,
@@ -144,6 +177,7 @@ async function refreshCryptoPrices(
 
   let updated = 0;
   let failed = 0;
+  const validatedHoldingIds: string[] = [];
   for (const holding of account.holdings) {
     const price = prices[holding.symbol.toUpperCase()];
     if (price === undefined) {
@@ -163,9 +197,7 @@ async function refreshCryptoPrices(
       },
     });
     updated += 1;
+    validatedHoldingIds.push(holding.id);
   }
-  revalidatePath(path);
-  revalidatePath("/");
-
-  redirectWithStatus(path, "pricesOk", `${updated} updated, ${failed} failed (CoinGecko). Manual entry always works.`);
+  return { updated, failed, validatedHoldingIds };
 }

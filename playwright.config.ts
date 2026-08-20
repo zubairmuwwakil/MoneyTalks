@@ -13,6 +13,12 @@ if (process.env.NEXT_PUBLIC_CLERK_TEST_PUBLISHABLE_KEY) {
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_CLERK_TEST_PUBLISHABLE_KEY;
 }
 
+const playwrightPort = process.env.PLAYWRIGHT_PORT ?? "3000";
+if (!/^\d{2,5}$/.test(playwrightPort)) {
+  throw new Error("PLAYWRIGHT_PORT must be a numeric TCP port");
+}
+const baseURL = `http://localhost:${playwrightPort}`;
+
 export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
@@ -23,10 +29,10 @@ export default defineConfig({
   // Every spec seeds and tears down the same fixture user against one shared
   // database, so spec files must not run in parallel workers.
   workers: 1,
-  use: { baseURL: "http://localhost:3000" },
+  use: { baseURL },
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000/api/health",
+    command: `npm run dev -- -p ${playwrightPort}`,
+    url: `${baseURL}/api/health`,
     reuseExistingServer: true,
     timeout: 60_000,
   },

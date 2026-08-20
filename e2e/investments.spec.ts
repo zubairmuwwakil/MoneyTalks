@@ -1,8 +1,14 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
-import { cleanupE2EUser, createAuthedContext } from "./helpers/session";
+import { prisma } from "../src/lib/prisma";
+import { cleanupE2EUser, createAuthedContext, E2E_EMAIL } from "./helpers/session";
 
 test.describe.configure({ mode: "serial" });
+
+function utcDayOffset(days: number): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + days));
+}
 
 test.beforeAll(async () => {
   await cleanupE2EUser();
@@ -88,6 +94,227 @@ test("import fixture, see accounts with balances, toggle currency", async ({ bro
   await expect(page.getByText("Atomic rollback account")).toHaveCount(0);
 
   await context.close();
+});
+
+test("shows cash-flow-adjusted performance and honest tracking states", async ({ browser, baseURL }) => {
+  const context = await createAuthedContext(browser, baseURL!);
+  const page = await context.newPage();
+  await page.goto("/investments");
+  const user = await prisma.user.findUniqueOrThrow({ where: { email: E2E_EMAIL } });
+  const twoDaysAgo = utcDayOffset(-2);
+  const previousDay = utcDayOffset(-1);
+  const today = utcDayOffset(0);
+
+  const performanceAccount = await prisma.financialAccount.create({
+    data: {
+      userId: user.id,
+      type: "RRSP",
+      name: "Performance RRSP",
+      institution: "Fictional Performance Brokerage",
+      country: "CA",
+      currency: "CAD",
+      snapshots: { create: { balanceMinor: 0, currency: "CAD", asOf: today } },
+    },
+  });
+  const emptyAccount = await prisma.financialAccount.create({
+    data: {
+      userId: user.id,
+      type: "TFSA",
+      name: "Needs Setup TFSA",
+      institution: "Fictional Empty Brokerage",
+      country: "CA",
+      currency: "CAD",
+    },
+  });
+  const zeroAccount = await prisma.financialAccount.create({
+    data: {
+      userId: user.id,
+      type: "CASH",
+      name: "Measured Zero Cash",
+      institution: "Fictional Cash Bank",
+      country: "CA",
+      currency: "CAD",
+      snapshots: {
+        create: { balanceMinor: 0, currency: "CAD", asOf: today },
+      },
+    },
+  });
+  const pendingCashAccount = await prisma.financialAccount.create({
+    data: {
+      userId: user.id,
+      type: "CASH",
+      name: "Pending Cash",
+      institution: "Fictional Cash Bank",
+      country: "CA",
+      currency: "CAD",
+      snapshots: {
+        create: { balanceMinor: 2_500, currency: "CAD", asOf: today },
+      },
+    },
+  });
+
+  const baseSnapshot = {
+    accountId: performanceAccount.id,
+    currency: "CAD",
+    cashMinor: 0,
+    displayCurrency: "CAD",
+    fxRateToDisplay: null,
+    fxAsOf: null,
+    holdingCount: 2,
+    pricedHoldingCount: 2,
+    earliestPriceAsOf: twoDaysAgo,
+    latestPriceAsOf: today,
+  } as const;
+  await prisma.investmentAccountSnapshot.create({
+    data: {
+      ...baseSnapshot,
+      asOf: twoDaysAgo,
+      holdingsMinor: 10_000,
+      totalMinor: 10_000,
+      netExternalFlowMinor: 0,
+      displayTotalMinor: 10_000,
+      displayExternalFlowMinor: 0,
+      status: "COMPLETE",
+      positions: {
+        create: [
+          {
+            symbol: "AAPL",
+            name: "Apple",
+            quantity: 2,
+            priceMinor: 5_000,
+            priceCurrency: "CAD",
+            priceAsOf: twoDaysAgo,
+            priceSource: "TEST",
+            priceStatus: "FRESH",
+            marketValueMinor: 10_000,
+            displayMarketValueMinor: 10_000,
+            valuationComplete: true,
+          },
+          {
+            symbol: "SHOP",
+            name: "Shopify",
+            quantity: 1,
+            priceMinor: 0,
+            priceCurrency: "CAD",
+            priceAsOf: twoDaysAgo,
+            priceSource: "TEST",
+            priceStatus: "FRESH",
+            marketValueMinor: 0,
+            displayMarketValueMinor: 0,
+            valuationComplete: true,
+          },
+        ],
+      },
+    },
+  });
+  await prisma.investmentAccountSnapshot.create({
+    data: {
+      ...baseSnapshot,
+      asOf: previousDay,
+      holdingsMinor: 11_500,
+      totalMinor: 11_500,
+      netExternalFlowMinor: 1_000,
+      displayTotalMinor: 11_500,
+      displayExternalFlowMinor: 1_000,
+      status: "COMPLETE",
+      positions: {
+        create: [
+          {
+            symbol: "AAPL",
+            name: "Apple",
+            quantity: 2,
+            priceMinor: 5_250,
+            priceCurrency: "CAD",
+            priceAsOf: previousDay,
+            priceSource: "TEST",
+            priceStatus: "FRESH",
+            marketValueMinor: 10_500,
+            displayMarketValueMinor: 10_500,
+            valuationComplete: true,
+          },
+          {
+            symbol: "SHOP",
+            name: "Shopify",
+            quantity: 2,
+            priceMinor: 500,
+            priceCurrency: "CAD",
+            priceAsOf: previousDay,
+            priceSource: "TEST",
+            priceStatus: "FRESH",
+            marketValueMinor: 1_000,
+            displayMarketValueMinor: 1_000,
+            valuationComplete: true,
+          },
+        ],
+      },
+    },
+  });
+  await prisma.investmentAccountSnapshot.create({
+    data: {
+      ...baseSnapshot,
+      asOf: today,
+      holdingsMinor: 20_000,
+      totalMinor: 20_000,
+      netExternalFlowMinor: 0,
+      displayTotalMinor: 20_000,
+      displayExternalFlowMinor: 0,
+      status: "PARTIAL",
+      pricedHoldingCount: 1,
+    },
+  });
+  await prisma.investmentAccountSnapshot.create({
+    data: {
+      accountId: zeroAccount.id,
+      asOf: today,
+      currency: "CAD",
+      cashMinor: 0,
+      holdingsMinor: 0,
+      totalMinor: 0,
+      netExternalFlowMinor: 0,
+      displayCurrency: "CAD",
+      displayTotalMinor: 0,
+      displayExternalFlowMinor: 0,
+      status: "COMPLETE",
+      holdingCount: 0,
+      pricedHoldingCount: 0,
+    },
+  });
+
+  try {
+    await page.reload();
+    await expect(page.getByText("$115.00", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("+$5.00", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("+5.0%", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("+$10.00", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/Time-weighted return removes deposits and withdrawals/)).toBeVisible();
+    await expect(page.getByText(/Data incomplete:/)).toContainText("Performance RRSP");
+    await expect(page.getByText("Position changed", { exact: true })).toBeVisible();
+    await expect(page.getByText("Needs setup", { exact: true })).toBeVisible();
+    await expect(page.getByText("$0.00", { exact: true })).toBeVisible();
+    await expect(page.locator(".recharts-surface").first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /Performance RRSP/ })).toContainText(
+      "$0.00 cash · $115.00 holdings",
+    );
+    await expect(page.getByRole("link", { name: /Pending Cash/ })).toContainText(
+      "$25.00 cash · $0.00 holdings",
+    );
+    await page.getByText("View performance data", { exact: true }).click();
+    await expect(page.getByRole("cell", { name: "Contribution +$10.00" })).toBeVisible();
+
+    const allRange = page.getByRole("button", { name: "All", exact: true });
+    await allRange.focus();
+    await page.keyboard.press("Enter");
+    await expect(allRange).toHaveAttribute("aria-pressed", "true");
+    await page.getByLabel("Scope").selectOption(performanceAccount.id);
+    await expect(page.getByText("Performance RRSP value", { exact: true })).toBeVisible();
+  } finally {
+    await prisma.financialAccount.deleteMany({
+      where: {
+        id: { in: [performanceAccount.id, emptyAccount.id, zeroAccount.id, pendingCashAccount.id] },
+      },
+    });
+    await context.close();
+  }
 });
 
 test("edit account and delete holding, transaction, snapshot, and account", async ({ browser, baseURL }) => {

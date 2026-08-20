@@ -102,20 +102,21 @@ model Authenticator {
 }
 
 model FinancialAccount {
-  id           String            @id @default(cuid())
-  userId       String
-  type         AccountType
-  name         String
-  institution  String
-  country      String
-  currency     String
-  isUSSitus    Boolean           @default(false)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  snapshots    BalanceSnapshot[]
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  holdings     Holding[]
-  transactions Transaction[]
+  id                  String                      @id @default(cuid())
+  userId              String
+  type                AccountType
+  name                String
+  institution         String
+  country             String
+  currency            String
+  isUSSitus           Boolean                     @default(false)
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  snapshots           BalanceSnapshot[]
+  user                User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  holdings            Holding[]
+  investmentSnapshots InvestmentAccountSnapshot[]
+  transactions        Transaction[]
 
   @@unique([userId, name, institution])
   @@index([userId])
@@ -190,6 +191,55 @@ model BalanceSnapshot {
 
   @@unique([accountId, asOf])
   @@index([accountId, asOf])
+}
+
+model InvestmentAccountSnapshot {
+  id                       String                       @id @default(cuid())
+  accountId                String
+  asOf                     DateTime
+  currency                 String
+  cashMinor                Int
+  holdingsMinor            Int
+  totalMinor               Int
+  netExternalFlowMinor     Int                          @default(0)
+  displayCurrency          String                       @default("CAD")
+  displayTotalMinor        Int
+  displayExternalFlowMinor Int                          @default(0)
+  fxRateToDisplay          Decimal?
+  fxAsOf                   DateTime?
+  status                   InvestmentSnapshotStatus
+  holdingCount             Int
+  pricedHoldingCount       Int
+  earliestPriceAsOf        DateTime?
+  latestPriceAsOf          DateTime?
+  createdAt                DateTime                     @default(now())
+  updatedAt                DateTime                     @updatedAt
+  account                  FinancialAccount             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  positions                InvestmentPositionSnapshot[]
+
+  @@unique([accountId, asOf])
+  @@index([accountId, asOf])
+}
+
+model InvestmentPositionSnapshot {
+  id                      String                    @id @default(cuid())
+  accountSnapshotId       String
+  holdingId               String?
+  symbol                  String
+  name                    String
+  quantity                Decimal
+  priceMinor              Int
+  priceCurrency           String?
+  priceAsOf               DateTime
+  priceSource             String?
+  priceStatus             String?
+  marketValueMinor        Int
+  displayMarketValueMinor Int
+  valuationComplete       Boolean
+  accountSnapshot         InvestmentAccountSnapshot @relation(fields: [accountSnapshotId], references: [id], onDelete: Cascade)
+
+  @@unique([accountSnapshotId, symbol])
+  @@index([accountSnapshotId])
 }
 
 model FxRate {
@@ -920,6 +970,11 @@ enum TxType {
   DIVIDEND
   INTEREST
   FEE
+}
+
+enum InvestmentSnapshotStatus {
+  COMPLETE
+  PARTIAL
 }
 
 enum SubscriptionCadence {

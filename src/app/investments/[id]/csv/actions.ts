@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { csvImportInput, type CsvImportInput } from "@/lib/validation/csv-import";
 import { IMPORT_LIMITS } from "@/lib/validation/investments";
+import { recomputeSnapshotFlows } from "@/lib/domain/investments/captureInvestmentSnapshots";
 
 export interface CsvImportResult {
   ok: boolean;
@@ -170,13 +171,18 @@ export async function importCsv(formData: FormData): Promise<CsvImportResult> {
     });
   }
 
-  // A single createMany is atomic by definition (one statement, one round
-  // trip) and avoids both an N-row interactive-transaction timeout and a
-  // partial import if something fails mid-loop.
+  // One createMany keeps the insert bounded; the surrounding transaction also
+  // updates cached flows so the ledger and performance history commit together.
   let imported = 0;
   if (toInsert.length > 0) {
     try {
-      const created = await prisma.transaction.createMany({ data: toInsert });
+      const created = await prisma.$transaction(async (tx) => {
+        const result = await tx.transaction.createMany({ data: toInsert });
+        const insertedDates = toInsert.map((transaction) => new Date(transaction.date));
+        const earliestAffected = new Date(Math.min(...insertedDates.map((date) => date.getTime())));
+        await recomputeSnapshotFlows(tx, accountId, earliestAffected);
+        return result;
+      });
       imported = created.count;
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : "Insert failed" };

@@ -24,7 +24,6 @@ import { refreshPrices } from "@/app/actions/refresh";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { HoldingSparkline } from "@/components/holding-sparkline";
 import { accountBalanceWithCurrency, holdingValueMinor, holdingsValuation } from "@/engine/balance";
 import type { FxRateInput } from "@/engine/fx";
 import { formatMinorUnits, minorToDollarInput, type Currency } from "@/engine/money";
@@ -445,18 +444,6 @@ export default async function AccountDetailPage({
                     {h.symbol}
                   </Badge>
                   <span className="font-medium text-foreground">{h.name}</span>
-                  {h.bookCostMinor && h.bookCostMinor > 0 && Number(h.quantity) > 0 ? (
-                    <HoldingSparkline
-                      points={[
-                        h.bookCostMinor / Number(h.quantity),
-                        (h.bookCostMinor / Number(h.quantity)) * 0.99,
-                        h.lastPriceMinor * 0.98,
-                        h.lastPriceMinor,
-                      ]}
-                      width={48}
-                      height={16}
-                    />
-                  ) : null}
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Domicile: {h.domicileCountry}

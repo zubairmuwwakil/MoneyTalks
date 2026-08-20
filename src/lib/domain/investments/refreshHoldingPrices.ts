@@ -14,6 +14,8 @@ export type RefreshOutcome = {
   ok: boolean;
   updated: number;
   skipped: SkippedPrice[];
+  /** Prices proven fresh for MarketLens' expected exchange session in this request. */
+  validatedHoldingIds: string[];
   /** Which providers actually served the prices, e.g. {"YAHOO": 4, "BINANCE": 2}. Surfaced so a
    *  user who supplied their own key can see whether it was used. */
   sources: Record<string, number>;
@@ -30,7 +32,7 @@ export async function refreshHoldingPrices(
   options: { accountId?: string; timeoutMs?: number } = {},
 ): Promise<RefreshOutcome> {
   if (!isMarketLensConfigured()) {
-    return { ok: false, updated: 0, skipped: [], sources: {}, reason: "not-configured" };
+    return { ok: false, updated: 0, skipped: [], validatedHoldingIds: [], sources: {}, reason: "not-configured" };
   }
 
   const holdings = await prisma.holding.findMany({
@@ -50,14 +52,17 @@ export async function refreshHoldingPrices(
   });
 
   if (holdings.length === 0) {
-    return { ok: false, updated: 0, skipped: [], sources: {}, reason: "no-holdings" };
+    return { ok: false, updated: 0, skipped: [], validatedHoldingIds: [], sources: {}, reason: "no-holdings" };
   }
 
   const providerKeys = await readProviderKeys(prisma, userId);
   const equityHoldings = holdings.filter((h) => h.account.type !== "CRYPTO");
   const cryptoHoldings = holdings.filter((h) => h.account.type === "CRYPTO");
 
-  const quotes: SymbolQuote[] = [];
+  const equityQuotes: SymbolQuote[] = [];
+  const cryptoQuotes: SymbolQuote[] = [];
+  const validatedEquitySymbols = new Set<string>();
+  const validatedCryptoSymbols = new Set<string>();
   const keySources = new Set<string>();
 
   if (equityHoldings.length > 0) {
@@ -66,7 +71,14 @@ export async function refreshHoldingPrices(
       { assetClass: "EQUITY", providerKeys, timeoutMs: options.timeoutMs },
     );
     if (equityBatch) {
-      quotes.push(...equityBatch.quotes);
+      equityQuotes.push(...equityBatch.quotes);
+      if (equityBatch.expectedSession) {
+        equityBatch.quotes.forEach((quote) => {
+          if (quote.status === "FRESH" && quote.tradeDate === equityBatch.expectedSession) {
+            validatedEquitySymbols.add(quote.symbol.toUpperCase());
+          }
+        });
+      }
       equityBatch.quotes.forEach((q) => {
         if (q.keySource) keySources.add(q.keySource);
       });
@@ -79,7 +91,14 @@ export async function refreshHoldingPrices(
       { assetClass: "CRYPTO", providerKeys, timeoutMs: options.timeoutMs },
     );
     if (cryptoBatch) {
-      quotes.push(...cryptoBatch.quotes);
+      cryptoQuotes.push(...cryptoBatch.quotes);
+      if (cryptoBatch.expectedSession) {
+        cryptoBatch.quotes.forEach((quote) => {
+          if (quote.status === "FRESH" && quote.tradeDate === cryptoBatch.expectedSession) {
+            validatedCryptoSymbols.add(quote.symbol.toUpperCase());
+          }
+        });
+      }
       cryptoBatch.quotes.forEach((q) => {
         if (q.keySource) keySources.add(q.keySource);
       });
@@ -88,12 +107,31 @@ export async function refreshHoldingPrices(
 
   // Nothing came back at all. Leave every stored price exactly as it was — the
   // same rule as the FX cron, where an empty fetch must not overwrite good data.
-  if (quotes.length === 0) {
-    return { ok: false, updated: 0, skipped: [], sources: {}, reason: "fetch-failed" };
+  if (equityQuotes.length === 0 && cryptoQuotes.length === 0) {
+    return { ok: false, updated: 0, skipped: [], validatedHoldingIds: [], sources: {}, reason: "fetch-failed" };
   }
 
-  const plan = planPriceSync(holdings, quotes);
+  const equityPlan = planPriceSync(equityHoldings, equityQuotes);
+  const cryptoPlan = planPriceSync(cryptoHoldings, cryptoQuotes);
+  const plan = {
+    updates: [...equityPlan.updates, ...cryptoPlan.updates],
+    skipped: [...equityPlan.skipped, ...cryptoPlan.skipped],
+  };
   const now = new Date();
+  const validatedHoldingIds = [
+    ...equityPlan.updates
+      .filter(
+        (update) =>
+          update.priceStatus === "FRESH" && validatedEquitySymbols.has(update.symbol.toUpperCase()),
+      )
+      .map((update) => update.id),
+    ...cryptoPlan.updates
+      .filter(
+        (update) =>
+          update.priceStatus === "FRESH" && validatedCryptoSymbols.has(update.symbol.toUpperCase()),
+      )
+      .map((update) => update.id),
+  ];
 
   for (const update of plan.updates) {
     await prisma.holding.update({
@@ -124,5 +162,11 @@ export async function refreshHoldingPrices(
     });
   }
 
-  return { ok: plan.updates.length > 0, updated: plan.updates.length, skipped: plan.skipped, sources };
+  return {
+    ok: plan.updates.length > 0,
+    updated: plan.updates.length,
+    skipped: plan.skipped,
+    validatedHoldingIds,
+    sources,
+  };
 }
