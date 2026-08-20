@@ -33,6 +33,7 @@ export type InvestmentAccountMeta = {
   holdingCount: number;
   fallbackCurrentValueMinor: number | null;
   cashMinor: number | null;
+  fallbackHoldingsMinor: number | null;
 };
 
 type ChartPoint = {
@@ -410,6 +411,9 @@ export function PerformanceWorkspace({
           {view.accounts.map((account) => {
             const meta = accounts.find((candidate) => candidate.id === account.id)!;
             const value = account.currentValueMinor ?? meta.fallbackCurrentValueMinor;
+            const compositionCash = account.currentCashMinor ??
+              (meta.fallbackCurrentValueMinor !== null ? meta.cashMinor : null);
+            const compositionHoldings = account.currentHoldingsMinor ?? meta.fallbackHoldingsMinor;
             const values = account.summary.series.map((point) => point.valueMinor);
             return (
               <li key={account.id} className="group transition-colors hover:bg-muted/35">
@@ -455,9 +459,9 @@ export function PerformanceWorkspace({
                           ? account.summary.startDate ? `Tracking since ${account.summary.startDate}` : `${meta.holdingCount} holdings`
                           : account.status === "incomplete" ? "Data incomplete" : "Add cash or holdings"}
                       </p>
-                      {account.currentCashMinor !== null && account.currentHoldingsMinor !== null ? (
+                      {compositionCash !== null && compositionHoldings !== null ? (
                         <p className="mt-0.5 text-[9px] text-muted-foreground">
-                          {formatMinorUnits(account.currentCashMinor, account.currency)} cash · {formatMinorUnits(account.currentHoldingsMinor, account.currency)} holdings
+                          {formatMinorUnits(compositionCash, account.currency)} cash · {formatMinorUnits(compositionHoldings, account.currency)} holdings
                         </p>
                       ) : null}
                       {value === null && meta.cashMinor !== null ? (

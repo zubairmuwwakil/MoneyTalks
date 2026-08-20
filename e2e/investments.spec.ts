@@ -139,6 +139,19 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
       },
     },
   });
+  const pendingCashAccount = await prisma.financialAccount.create({
+    data: {
+      userId: user.id,
+      type: "CASH",
+      name: "Pending Cash",
+      institution: "Fictional Cash Bank",
+      country: "CA",
+      currency: "CAD",
+      snapshots: {
+        create: { balanceMinor: 2_500, currency: "CAD", asOf: today },
+      },
+    },
+  });
 
   const baseSnapshot = {
     accountId: performanceAccount.id,
@@ -282,6 +295,9 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
     await expect(page.getByRole("link", { name: /Performance RRSP/ })).toContainText(
       "$0.00 cash · $115.00 holdings",
     );
+    await expect(page.getByRole("link", { name: /Pending Cash/ })).toContainText(
+      "$25.00 cash · $0.00 holdings",
+    );
     await page.getByText("View performance data", { exact: true }).click();
     await expect(page.getByRole("cell", { name: "Contribution +$10.00" })).toBeVisible();
 
@@ -293,7 +309,9 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
     await expect(page.getByText("Performance RRSP value", { exact: true })).toBeVisible();
   } finally {
     await prisma.financialAccount.deleteMany({
-      where: { id: { in: [performanceAccount.id, emptyAccount.id, zeroAccount.id] } },
+      where: {
+        id: { in: [performanceAccount.id, emptyAccount.id, zeroAccount.id, pendingCashAccount.id] },
+      },
     });
     await context.close();
   }

@@ -59,7 +59,8 @@ export async function refreshHoldingPrices(
   const equityHoldings = holdings.filter((h) => h.account.type !== "CRYPTO");
   const cryptoHoldings = holdings.filter((h) => h.account.type === "CRYPTO");
 
-  const quotes: SymbolQuote[] = [];
+  const equityQuotes: SymbolQuote[] = [];
+  const cryptoQuotes: SymbolQuote[] = [];
   const validatedEquitySymbols = new Set<string>();
   const validatedCryptoSymbols = new Set<string>();
   const keySources = new Set<string>();
@@ -70,7 +71,7 @@ export async function refreshHoldingPrices(
       { assetClass: "EQUITY", providerKeys, timeoutMs: options.timeoutMs },
     );
     if (equityBatch) {
-      quotes.push(...equityBatch.quotes);
+      equityQuotes.push(...equityBatch.quotes);
       if (equityBatch.expectedSession) {
         equityBatch.quotes.forEach((quote) => {
           if (quote.status === "FRESH" && quote.tradeDate === equityBatch.expectedSession) {
@@ -90,7 +91,7 @@ export async function refreshHoldingPrices(
       { assetClass: "CRYPTO", providerKeys, timeoutMs: options.timeoutMs },
     );
     if (cryptoBatch) {
-      quotes.push(...cryptoBatch.quotes);
+      cryptoQuotes.push(...cryptoBatch.quotes);
       if (cryptoBatch.expectedSession) {
         cryptoBatch.quotes.forEach((quote) => {
           if (quote.status === "FRESH" && quote.tradeDate === cryptoBatch.expectedSession) {
@@ -106,22 +107,31 @@ export async function refreshHoldingPrices(
 
   // Nothing came back at all. Leave every stored price exactly as it was — the
   // same rule as the FX cron, where an empty fetch must not overwrite good data.
-  if (quotes.length === 0) {
+  if (equityQuotes.length === 0 && cryptoQuotes.length === 0) {
     return { ok: false, updated: 0, skipped: [], validatedHoldingIds: [], sources: {}, reason: "fetch-failed" };
   }
 
-  const plan = planPriceSync(holdings, quotes);
+  const equityPlan = planPriceSync(equityHoldings, equityQuotes);
+  const cryptoPlan = planPriceSync(cryptoHoldings, cryptoQuotes);
+  const plan = {
+    updates: [...equityPlan.updates, ...cryptoPlan.updates],
+    skipped: [...equityPlan.skipped, ...cryptoPlan.skipped],
+  };
   const now = new Date();
-  const holdingById = new Map(holdings.map((holding) => [holding.id, holding]));
-  const validatedHoldingIds = plan.updates
-    .filter((update) => {
-      const holding = holdingById.get(update.id);
-      const validatedSymbols = holding?.account.type === "CRYPTO"
-        ? validatedCryptoSymbols
-        : validatedEquitySymbols;
-      return update.priceStatus === "FRESH" && validatedSymbols.has(update.symbol.toUpperCase());
-    })
-    .map((update) => update.id);
+  const validatedHoldingIds = [
+    ...equityPlan.updates
+      .filter(
+        (update) =>
+          update.priceStatus === "FRESH" && validatedEquitySymbols.has(update.symbol.toUpperCase()),
+      )
+      .map((update) => update.id),
+    ...cryptoPlan.updates
+      .filter(
+        (update) =>
+          update.priceStatus === "FRESH" && validatedCryptoSymbols.has(update.symbol.toUpperCase()),
+      )
+      .map((update) => update.id),
+  ];
 
   for (const update of plan.updates) {
     await prisma.holding.update({

@@ -138,12 +138,14 @@ export default async function InvestmentsPage() {
       account,
       hasSetupData,
       fallbackCurrentValueMinor,
+      fallbackHoldingsMinor:
+        fallbackCurrentValueMinor === null ? null : valuation.valueMinor,
       cashMinor,
     };
   });
 
   const accountMeta: InvestmentAccountMeta[] = currentRows.map(
-    ({ account, fallbackCurrentValueMinor, cashMinor }) => ({
+    ({ account, fallbackCurrentValueMinor, fallbackHoldingsMinor, cashMinor }) => ({
       id: account.id,
       type: account.type,
       institution: account.institution,
@@ -152,6 +154,7 @@ export default async function InvestmentsPage() {
       holdingCount: account.holdings.length,
       fallbackCurrentValueMinor,
       cashMinor,
+      fallbackHoldingsMinor,
     }),
   );
 
