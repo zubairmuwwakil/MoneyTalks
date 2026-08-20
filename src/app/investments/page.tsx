@@ -1,92 +1,185 @@
 import Link from "next/link";
-import { ChevronRight, KeyRound, Plus, TrendingUp, Upload } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Activity, Plus, TrendingUp, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  PerformanceWorkspace,
+  type InvestmentAccountMeta,
+} from "@/components/investments/performance-workspace";
 import { accountBalanceWithCurrency, holdingsValuation } from "@/engine/balance";
 import type { FxRateInput } from "@/engine/fx";
-import { formatMinorUnits, type Currency } from "@/engine/money";
+import type { Currency } from "@/engine/money";
 import { netWorth, type AccountBalanceRow } from "@/engine/networth";
+import {
+  buildPerformanceWorkspace,
+  type PerformanceAccountInput,
+  type PerformanceRange,
+  type PerformanceWorkspaceView,
+} from "@/lib/domain/investments/performanceReadModel";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
+const RANGES: PerformanceRange[] = ["1M", "3M", "YTD", "1Y", "ALL"];
+
 export default async function InvestmentsPage() {
   const userId = await requireUserId();
+  const now = new Date();
   const [accounts, fxRatesRaw] = await Promise.all([
     prisma.financialAccount.findMany({
       where: { userId },
-      include: { transactions: true, snapshots: true, holdings: true },
+      include: {
+        transactions: true,
+        snapshots: true,
+        holdings: true,
+        investmentSnapshots: {
+          include: { positions: true },
+          orderBy: { asOf: "asc" },
+        },
+      },
       orderBy: { name: "asc" },
     }),
     prisma.fxRate.findMany({
-      where: { userId, asOf: { lte: new Date() } },
+      where: { userId, asOf: { lte: now } },
       orderBy: [{ quote: "asc" }, { asOf: "desc" }],
     }),
   ]);
 
-  const rates: FxRateInput[] = fxRatesRaw.map((r) => ({
-    base: r.base as Currency,
-    quote: r.quote as Currency,
-    rate: Number(r.rate),
-    asOf: r.asOf.toISOString(),
+  const rates: FxRateInput[] = fxRatesRaw.map((rate) => ({
+    base: rate.base as Currency,
+    quote: rate.quote as Currency,
+    rate: Number(rate.rate),
+    asOf: rate.asOf.toISOString(),
   }));
 
-  const accountRows: AccountBalanceRow[] = accounts.map((a) => {
-    const snapshots = a.snapshots.map((s) => ({
-      balanceMinor: s.balanceMinor,
-      currency: s.currency as Currency,
-      asOf: s.asOf.toISOString(),
-    }));
-    const balance = accountBalanceWithCurrency(
-      a.transactions.map((t) => ({
-        type: t.type,
-        amountMinor: t.amountMinor,
-        date: t.date.toISOString(),
-        currency: t.currency,
+  const performanceAccounts: PerformanceAccountInput[] = accounts.map((account) => ({
+    id: account.id,
+    name: account.name,
+    currency: account.currency as Currency,
+    hasSetupData:
+      account.holdings.length > 0 || account.transactions.length > 0 || account.snapshots.length > 0,
+    snapshots: account.investmentSnapshots.map((snapshot) => ({
+      asOf: snapshot.asOf.toISOString().slice(0, 10),
+      currency: snapshot.currency as Currency,
+      totalMinor: snapshot.totalMinor,
+      netExternalFlowMinor: snapshot.netExternalFlowMinor,
+      displayTotalMinor: snapshot.displayTotalMinor,
+      displayExternalFlowMinor: snapshot.displayExternalFlowMinor,
+      status: snapshot.status,
+      positions: snapshot.positions.map((position) => ({
+        symbol: position.symbol,
+        quantity: Number(position.quantity),
+        displayValueMinor: position.displayMarketValueMinor,
       })),
-      snapshots,
-      a.currency,
+    })),
+  }));
+
+  const views = Object.fromEntries(
+    RANGES.map((range) => [range, buildPerformanceWorkspace(performanceAccounts, range, now)]),
+  ) as Record<PerformanceRange, PerformanceWorkspaceView>;
+
+  const currentRows = accounts.map((account) => {
+    const hasSetupData =
+      account.holdings.length > 0 || account.transactions.length > 0 || account.snapshots.length > 0;
+    const balance = accountBalanceWithCurrency(
+      account.transactions.map((transaction) => ({
+        type: transaction.type,
+        amountMinor: transaction.amountMinor,
+        date: transaction.date.toISOString(),
+        currency: transaction.currency,
+      })),
+      account.snapshots.map((snapshot) => ({
+        balanceMinor: snapshot.balanceMinor,
+        currency: snapshot.currency,
+        asOf: snapshot.asOf.toISOString(),
+      })),
+      account.currency,
     );
     const valuation = holdingsValuation(
-      a.holdings.map((h) => ({
-        symbol: h.symbol,
-        quantity: Number(h.quantity),
-        lastPriceMinor: h.lastPriceMinor,
-        priceCurrency: h.priceCurrency,
+      account.holdings.map((holding) => ({
+        symbol: holding.symbol,
+        quantity: Number(holding.quantity),
+        lastPriceMinor: holding.lastPriceMinor,
+        priceCurrency: holding.priceCurrency,
       })),
-      a.currency,
+      account.currency,
       rates,
     );
-    const totalMinor = (balance.ok ? balance.balanceMinor : 0) + valuation.valueMinor;
+    const priceEvidenceComplete = account.holdings.every(
+      (holding) =>
+        holding.priceCurrency !== null &&
+        holding.priceStatus?.toUpperCase() !== "STALE" &&
+        holding.priceStatus?.toUpperCase() !== "UNAVAILABLE",
+    );
+    const fallbackCurrentValueMinor =
+      hasSetupData &&
+      balance.ok &&
+      valuation.complete &&
+      valuation.assumedCurrency.length === 0 &&
+      priceEvidenceComplete
+        ? balance.balanceMinor + valuation.valueMinor
+        : null;
+
     return {
-      id: a.id,
-      name: a.name,
-      type: a.type,
-      currency: a.currency as Currency,
-      balanceMinor: totalMinor,
+      account,
+      hasSetupData,
+      fallbackCurrentValueMinor,
+      cashMinor: balance.ok ? balance.balanceMinor : null,
     };
   });
 
-  const portfolio = netWorth(accountRows, "CAD", rates);
-  const totalHoldingsCount = accounts.reduce((acc, a) => acc + a.holdings.length, 0);
+  const accountMeta: InvestmentAccountMeta[] = currentRows.map(
+    ({ account, fallbackCurrentValueMinor, cashMinor }) => ({
+      id: account.id,
+      type: account.type,
+      institution: account.institution,
+      country: account.country,
+      isUSSitus: account.isUSSitus,
+      holdingCount: account.holdings.length,
+      fallbackCurrentValueMinor,
+      cashMinor,
+    }),
+  );
+
+  const configuredRows = currentRows.filter((row) => row.hasSetupData);
+  let fallbackPortfolioValueMinor: number | null = null;
+  if (
+    configuredRows.length > 0 &&
+    configuredRows.every((row) => row.fallbackCurrentValueMinor !== null)
+  ) {
+    try {
+      const rows: AccountBalanceRow[] = configuredRows.map((row) => ({
+        id: row.account.id,
+        name: row.account.name,
+        type: row.account.type,
+        currency: row.account.currency as Currency,
+        balanceMinor: row.fallbackCurrentValueMinor!,
+      }));
+      fallbackPortfolioValueMinor = netWorth(rows, "CAD", rates).totalMinor;
+    } catch {
+      // Missing FX means the portfolio value is unknown, never an assumed zero.
+    }
+  }
+
+  const needsAttention = views["1M"].dataHealth.needsAttention;
 
   return (
-    <main className="space-y-6 py-6 sm:py-8">
-      {/* Header with Title and Primary Actions */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <main className="space-y-7 py-6 sm:py-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Investments</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage your registered accounts, cash, crypto, holdings, and transactions.
+          <p className="mt-1 text-sm text-muted-foreground">
+            Track value, cash flows, and investment performance across your accounts.
           </p>
         </div>
-        <div className="flex items-center gap-2.5">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/settings/providers" className="flex items-center gap-1.5">
-              <KeyRound className="size-3.5" />
-              <span>Market data keys</span>
-            </Link>
-          </Button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {needsAttention ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link href="#data-health" className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+                <Activity className="size-3.5" />
+                <span>Data health</span>
+              </Link>
+            </Button>
+          ) : null}
           <Button asChild variant="outline" size="sm">
             <Link href="/investments/import" className="flex items-center gap-1.5">
               <Upload className="size-3.5" />
@@ -100,135 +193,22 @@ export default async function InvestmentsPage() {
             </Link>
           </Button>
         </div>
-      </div>
-
-      {accounts.length > 0 ? (
-        <div className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Total Portfolio Value
-              </p>
-              <p className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                {formatMinorUnits(portfolio.totalMinor, "CAD")}
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="secondary" className="text-xs font-medium">
-                {accounts.length} {accounts.length === 1 ? "account" : "accounts"}
-              </Badge>
-              <span>·</span>
-              <Badge variant="outline" className="text-xs font-medium">
-                {totalHoldingsCount} {totalHoldingsCount === 1 ? "holding" : "holdings"}
-              </Badge>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      </header>
 
       {accounts.length === 0 ? (
         <EmptyState
           icon={TrendingUp}
           title="No accounts yet"
           description="Track your registered accounts (TFSA, RRSP, RDSP, FHSA), cash, and crypto in one place."
-          action={{
-            label: "Add your first account",
-            href: "/investments/new",
-          }}
-          secondaryAction={{
-            label: "Import from JSON",
-            href: "/investments/import",
-          }}
+          action={{ label: "Add your first account", href: "/investments/new" }}
+          secondaryAction={{ label: "Import from JSON", href: "/investments/import" }}
         />
       ) : (
-        <div className="space-y-4">
-          <ul className="divide-y divide-border/60 rounded-xl border border-border/80 bg-card shadow-2xs overflow-hidden">
-            {accounts.map((a) => {
-              const snapshots = a.snapshots.map((s) => ({
-                balanceMinor: s.balanceMinor,
-                currency: s.currency as Currency,
-                asOf: s.asOf.toISOString(),
-              }));
-              const balance = accountBalanceWithCurrency(
-                a.transactions.map((t) => ({
-                  type: t.type,
-                  amountMinor: t.amountMinor,
-                  date: t.date.toISOString(),
-                  currency: t.currency,
-                })),
-                snapshots,
-                a.currency,
-              );
-              const valuation = holdingsValuation(
-                a.holdings.map((h) => ({
-                  symbol: h.symbol,
-                  quantity: Number(h.quantity),
-                  lastPriceMinor: h.lastPriceMinor,
-                  priceCurrency: h.priceCurrency,
-                })),
-                a.currency,
-                rates,
-              );
-              const holdingsValue = valuation.valueMinor;
-              const totalMinor = balance.ok ? balance.balanceMinor + holdingsValue : holdingsValue;
-
-              return (
-                <li key={a.id} className="transition-colors hover:bg-muted/40">
-                  <Link
-                    href={`/investments/${a.id}`}
-                    className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground text-sm sm:text-base tracking-tight">
-                          {a.name}
-                        </span>
-                        {a.isUSSitus ? (
-                          <Badge variant="warning" className="text-[10px]">
-                            US-Situs
-                          </Badge>
-                        ) : null}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Badge variant="secondary" className="text-[10px] font-medium">
-                          {a.type}
-                        </Badge>
-                        <span>·</span>
-                        <span>{a.institution}</span>
-                        <span>·</span>
-                        <span>{a.country}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between sm:justify-end gap-3">
-                      {balance.ok || a.holdings.length > 0 ? (
-                        <div className="text-right">
-                          <p className="text-base font-semibold tabular-nums text-foreground">
-                            {formatMinorUnits(totalMinor, a.currency as Currency)}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {a.holdings.length > 0 && balance.ok && balance.balanceMinor > 0
-                              ? `${formatMinorUnits(balance.balanceMinor, a.currency as Currency)} cash · ${formatMinorUnits(holdingsValue, a.currency as Currency)} holdings`
-                              : a.holdings.length > 0
-                              ? `${a.holdings.length} ${a.holdings.length === 1 ? "holding" : "holdings"}`
-                              : balance.ok && balance.source === "snapshot"
-                              ? `Snapshot as of ${balance.asOf?.slice(0, 10)}`
-                              : "Derived from transactions"}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="max-w-xs text-right text-xs font-medium text-red-600">
-                          {balance.error}
-                        </span>
-                      )}
-                      <ChevronRight className="size-4 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        <PerformanceWorkspace
+          views={views}
+          accounts={accountMeta}
+          fallbackPortfolioValueMinor={fallbackPortfolioValueMinor}
+        />
       )}
     </main>
   );

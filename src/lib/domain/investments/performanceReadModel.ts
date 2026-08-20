@@ -39,6 +39,7 @@ export type PerformanceAccountView = {
   status: "tracking" | "needs-setup" | "incomplete";
   currentValueMinor: number | null;
   summary: PerformanceSummary;
+  movers: PositionContribution[];
 };
 
 export type PerformanceWorkspaceView = {
@@ -195,13 +196,15 @@ export function buildPerformanceWorkspace(
       status = "tracking";
     }
 
+    const summary = calculatePerformance(pointsForRange(nativePoints(account), range, today));
     return {
       id: account.id,
       name: account.name,
       currency: account.currency,
       status,
       currentValueMinor: latestComplete?.totalMinor ?? null,
-      summary: calculatePerformance(pointsForRange(nativePoints(account), range, today)),
+      summary,
+      movers: moversForSeries([account], summary.series),
     };
   });
 
