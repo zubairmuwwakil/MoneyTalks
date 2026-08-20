@@ -200,3 +200,47 @@ export async function deleteCard(formData: FormData): Promise<ActionResult> {
   revalidateCardRoutes(cardId);
   redirect("/cards/manage");
 }
+
+export async function bulkUpdateCardRenewalDates(
+  entries: Array<{ cardId: string; feeMonthDay: string; feeCancelGraceDays?: number }>,
+): Promise<ActionResult> {
+  const userId = await requireUserId();
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return { ok: false, error: "No entries provided" };
+  }
+
+  const MONTH_DAY = /^(\d{2})-(\d{2})$/;
+
+  try {
+    for (const entry of entries) {
+      if (!entry.cardId || !entry.feeMonthDay) continue;
+      const cleanMonthDay = entry.feeMonthDay.trim();
+      const match = MONTH_DAY.exec(cleanMonthDay);
+      if (!match) continue;
+      const month = Number(match[1]);
+      const day = Number(match[2]);
+      if (month < 1 || month > 12 || day < 1 || day > 31) continue;
+
+      const grace =
+        typeof entry.feeCancelGraceDays === "number" &&
+        Number.isInteger(entry.feeCancelGraceDays) &&
+        entry.feeCancelGraceDays >= 0
+          ? entry.feeCancelGraceDays
+          : 30;
+
+      await prisma.creditCard.updateMany({
+        where: { id: entry.cardId, userId },
+        data: {
+          feeMonthDay: cleanMonthDay,
+          feeCancelGraceDays: grace,
+        },
+      });
+    }
+
+    revalidateCardRoutes();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to update renewal dates" };
+  }
+}
+
