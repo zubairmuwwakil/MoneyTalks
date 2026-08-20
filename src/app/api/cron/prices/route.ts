@@ -41,9 +41,11 @@ async function runPriceCron(req: NextRequest) {
   const snapshots = { complete: 0, partial: 0, failed: 0 };
   for (const user of users) {
     const hasHoldings = user.financialAccounts.some((account) => account.holdings.length > 0);
+    let validatedHoldingIds: string[] = [];
     if (hasHoldings && marketLensConfigured) {
       try {
         const outcome = await refreshHoldingPrices(prisma, user.id, { timeoutMs: 20_000 });
+        validatedHoldingIds = outcome.validatedHoldingIds;
         updated += outcome.updated;
         if (outcome.updated > 0) usersRefreshed += 1;
       } catch (err) {
@@ -54,7 +56,7 @@ async function runPriceCron(req: NextRequest) {
     }
 
     try {
-      const capture = await captureInvestmentSnapshots(prisma, user.id);
+      const capture = await captureInvestmentSnapshots(prisma, user.id, { validatedHoldingIds });
       snapshots.complete += capture.complete;
       snapshots.partial += capture.partial;
       snapshots.failed += capture.failed;

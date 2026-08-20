@@ -39,6 +39,7 @@ describe("refreshPrices", () => {
       ok: true,
       updated: 1,
       skipped: [],
+      validatedHoldingIds: ["holding-1"],
       sources: { YAHOO: 1 },
     });
     vi.mocked(captureInvestmentSnapshots).mockResolvedValue({
@@ -46,6 +47,7 @@ describe("refreshPrices", () => {
       complete: 1,
       partial: 0,
       failed: 0,
+      failures: [],
     });
   });
 
@@ -58,9 +60,28 @@ describe("refreshPrices", () => {
     expect(refreshHoldingPrices).toHaveBeenCalledWith(prisma, "user-1", {
       accountId: "account-1",
     });
-    expect(captureInvestmentSnapshots).toHaveBeenCalledWith(prisma, "user-1");
+    expect(captureInvestmentSnapshots).toHaveBeenCalledWith(prisma, "user-1", {
+      accountId: "account-1",
+      validatedHoldingIds: ["holding-1"],
+    });
     expect(vi.mocked(refreshHoldingPrices).mock.invocationCallOrder[0]).toBeLessThan(
       vi.mocked(captureInvestmentSnapshots).mock.invocationCallOrder[0],
+    );
+  });
+
+  it("surfaces a targeted snapshot failure even when the quote refresh succeeded", async () => {
+    vi.mocked(captureInvestmentSnapshots).mockResolvedValueOnce({
+      accounts: 1,
+      complete: 0,
+      partial: 0,
+      failed: 1,
+      failures: [{ accountId: "account-1", reason: "PrismaClientKnownRequestError" }],
+    });
+    const formData = new FormData();
+    formData.append("accountId", "account-1");
+
+    await expect(refreshPrices(formData)).rejects.toThrow(
+      /pricesError=Prices%20were%20refreshed%2C%20but%20the%20performance%20snapshot%20could%20not%20be%20recorded/,
     );
   });
 });

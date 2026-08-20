@@ -37,6 +37,7 @@ describe("price cron performance capture", () => {
       ok: true,
       updated: 2,
       skipped: [],
+      validatedHoldingIds: ["holding-1", "holding-2"],
       sources: { YAHOO: 2 },
     });
     vi.mocked(captureInvestmentSnapshots).mockResolvedValue({
@@ -44,6 +45,7 @@ describe("price cron performance capture", () => {
       complete: 1,
       partial: 0,
       failed: 0,
+      failures: [],
     });
   });
 
@@ -62,7 +64,9 @@ describe("price cron performance capture", () => {
       },
     });
     expect(refreshHoldingPrices).not.toHaveBeenCalled();
-    expect(captureInvestmentSnapshots).toHaveBeenCalledWith(prisma, "cash-user");
+    expect(captureInvestmentSnapshots).toHaveBeenCalledWith(prisma, "cash-user", {
+      validatedHoldingIds: [],
+    });
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       ok: true,
@@ -80,16 +84,26 @@ describe("price cron performance capture", () => {
     ] as never);
     vi.mocked(refreshHoldingPrices)
       .mockRejectedValueOnce(new Error("provider down"))
-      .mockResolvedValueOnce({ ok: true, updated: 3, skipped: [], sources: { YAHOO: 3 } });
+      .mockResolvedValueOnce({
+        ok: true,
+        updated: 3,
+        skipped: [],
+        validatedHoldingIds: ["holding-2"],
+        sources: { YAHOO: 3 },
+      });
     vi.mocked(captureInvestmentSnapshots)
-      .mockResolvedValueOnce({ accounts: 1, complete: 0, partial: 1, failed: 0 })
-      .mockResolvedValueOnce({ accounts: 1, complete: 1, partial: 0, failed: 0 });
+      .mockResolvedValueOnce({ accounts: 1, complete: 0, partial: 1, failed: 0, failures: [] })
+      .mockResolvedValueOnce({ accounts: 1, complete: 1, partial: 0, failed: 0, failures: [] });
 
     const response = await GET(request());
 
     expect(refreshHoldingPrices).toHaveBeenCalledTimes(2);
-    expect(captureInvestmentSnapshots).toHaveBeenNthCalledWith(1, prisma, "one");
-    expect(captureInvestmentSnapshots).toHaveBeenNthCalledWith(2, prisma, "two");
+    expect(captureInvestmentSnapshots).toHaveBeenNthCalledWith(1, prisma, "one", {
+      validatedHoldingIds: [],
+    });
+    expect(captureInvestmentSnapshots).toHaveBeenNthCalledWith(2, prisma, "two", {
+      validatedHoldingIds: ["holding-2"],
+    });
     await expect(response.json()).resolves.toEqual({
       ok: true,
       users: 2,

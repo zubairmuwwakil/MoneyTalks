@@ -39,6 +39,7 @@ export type PositionContribution = {
   contributionMinor: number | null;
   eligible: boolean;
   reason: "position-changed" | null;
+  excludedIntervals: number;
 };
 
 function assertSafeMinor(value: number, label: string): void {
@@ -195,7 +196,7 @@ export function aggregatePortfolioPoints(accounts: AccountValuationSeries[]): Va
   if (!portfolioStart) return [];
 
   const result: ValuationPoint[] = [];
-  const includedAccountIds = new Set<string>();
+  const lastIncludedDateByAccount = new Map<string, string>();
   for (const date of dates) {
     const activeAccounts = normalized.filter((account) => account.firstDate! <= date);
     const points = activeAccounts.map((account) => account.byDate.get(date));
@@ -211,16 +212,33 @@ export function aggregatePortfolioPoints(accounts: AccountValuationSeries[]): Va
       const account = activeAccounts[index];
       valueMinor = safeAdd(valueMinor, completePoint.valueMinor, `portfolio value for ${date}`);
 
-      const flow = !includedAccountIds.has(account.accountId)
-        ? result.length === 0
-          ? 0
-          : completePoint.valueMinor
-        : completePoint.externalFlowMinor;
+      const lastIncludedDate = lastIncludedDateByAccount.get(account.accountId);
+      const intervalPoints = account.points.filter(
+        (candidate) =>
+          (lastIncludedDate === undefined || candidate.date > lastIncludedDate) && candidate.date <= date,
+      );
+      let flow = 0;
+      if (result.length > 0 && lastIncludedDate === undefined) {
+        // Adding an account is an external portfolio flow at its actual opening
+        // value. Any appreciation before the next common portfolio date remains
+        // performance instead of being reclassified as a contribution.
+        flow = intervalPoints[0].valueMinor;
+        for (const candidate of intervalPoints.slice(1)) {
+          flow = safeAdd(flow, candidate.externalFlowMinor, `opening portfolio flow for ${date}`);
+        }
+      } else if (lastIncludedDate !== undefined) {
+        // A complete account point can be absent from the aggregate because a
+        // different account was incomplete. Carry every intervening ledger flow
+        // forward to the next common date so it cannot turn into investment gain.
+        for (const candidate of intervalPoints) {
+          flow = safeAdd(flow, candidate.externalFlowMinor, `portfolio interval flow for ${date}`);
+        }
+      }
       externalFlowMinor = safeAdd(externalFlowMinor, flow, `portfolio flow for ${date}`);
     });
 
     result.push({ date, valueMinor, externalFlowMinor });
-    activeAccounts.forEach((account) => includedAccountIds.add(account.accountId));
+    activeAccounts.forEach((account) => lastIncludedDateByAccount.set(account.accountId, date));
   }
 
   return result;
@@ -255,6 +273,7 @@ export function attributePositionChanges(
         contributionMinor: null,
         eligible: false,
         reason: "position-changed" as const,
+        excludedIntervals: 1,
       };
     }
 
@@ -267,6 +286,7 @@ export function attributePositionChanges(
       ),
       eligible: true,
       reason: null,
+      excludedIntervals: 0,
     };
   });
 }

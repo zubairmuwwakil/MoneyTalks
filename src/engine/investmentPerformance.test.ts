@@ -172,9 +172,8 @@ describe("aggregatePortfolioPoints", () => {
     ]);
   });
 
-  it("treats an account as opening on its first complete portfolio observation", () => {
-    expect(
-      aggregatePortfolioPoints([
+  it("uses the account's actual opening value when its first portfolio date is skipped", () => {
+    const points = aggregatePortfolioPoints([
         {
           accountId: "existing",
           points: [
@@ -189,11 +188,39 @@ describe("aggregatePortfolioPoints", () => {
             { date: "2026-08-22", valueMinor: 5_100, externalFlowMinor: 0 },
           ],
         },
-      ]),
-    ).toEqual([
+      ]);
+
+    expect(points).toEqual([
       { date: "2026-08-20", valueMinor: 10_000, externalFlowMinor: 0 },
-      { date: "2026-08-22", valueMinor: 15_300, externalFlowMinor: 5_100 },
+      { date: "2026-08-22", valueMinor: 15_300, externalFlowMinor: 5_000 },
     ]);
+    expect(calculatePerformance(points)).toMatchObject({ gainMinor: 300, netFlowMinor: 5_000 });
+  });
+
+  it("carries account flows across a date omitted from the portfolio series", () => {
+    const points = aggregatePortfolioPoints([
+      {
+        accountId: "one",
+        points: [
+          { date: "2026-08-20", valueMinor: 10_000, externalFlowMinor: 0 },
+          { date: "2026-08-21", valueMinor: 10_050, externalFlowMinor: 50 },
+          { date: "2026-08-22", valueMinor: 10_100, externalFlowMinor: 0 },
+        ],
+      },
+      {
+        accountId: "two",
+        points: [
+          { date: "2026-08-20", valueMinor: 5_000, externalFlowMinor: 0 },
+          { date: "2026-08-22", valueMinor: 5_000, externalFlowMinor: 0 },
+        ],
+      },
+    ]);
+
+    expect(points).toEqual([
+      { date: "2026-08-20", valueMinor: 15_000, externalFlowMinor: 0 },
+      { date: "2026-08-22", valueMinor: 15_100, externalFlowMinor: 50 },
+    ]);
+    expect(calculatePerformance(points)).toMatchObject({ gainMinor: 50, netFlowMinor: 50 });
   });
 });
 
@@ -212,9 +239,9 @@ describe("attributePositionChanges", () => {
         ],
       ),
     ).toEqual([
-      { symbol: "AAPL", contributionMinor: 1_500, eligible: true, reason: null },
-      { symbol: "NEW", contributionMinor: null, eligible: false, reason: "position-changed" },
-      { symbol: "SHOP", contributionMinor: null, eligible: false, reason: "position-changed" },
+      { symbol: "AAPL", contributionMinor: 1_500, eligible: true, reason: null, excludedIntervals: 0 },
+      { symbol: "NEW", contributionMinor: null, eligible: false, reason: "position-changed", excludedIntervals: 1 },
+      { symbol: "SHOP", contributionMinor: null, eligible: false, reason: "position-changed", excludedIntervals: 1 },
     ]);
   });
 });

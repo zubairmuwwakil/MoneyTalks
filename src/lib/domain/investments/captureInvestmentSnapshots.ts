@@ -13,11 +13,15 @@ export type CaptureOutcome = {
   complete: number;
   partial: number;
   failed: number;
+  failures: Array<{ accountId: string; reason: string }>;
 };
 
 export type CaptureOptions = {
   asOf?: Date;
   displayCurrency?: Currency;
+  accountId?: string;
+  /** Holding IDs whose prices were validated by the market-data provider in this run. */
+  validatedHoldingIds?: readonly string[];
 };
 
 type SnapshotFlowClient = Pick<
@@ -131,6 +135,15 @@ function staleOrUnavailable(status: string | null): boolean {
   return normalized === "STALE" || normalized === "UNAVAILABLE";
 }
 
+function sanitizedFailureReason(error: unknown): string {
+  if (error instanceof RangeError) {
+    if (error.message.includes("finite decimal")) return "invalid decimal value";
+    if (error.message.includes("safe integer")) return "unsafe minor-unit value";
+    return "invalid valuation data";
+  }
+  return error instanceof Error ? error.name : "unknown error";
+}
+
 export async function captureInvestmentSnapshots(
   prisma: PrismaClient,
   userId: string,
@@ -139,10 +152,11 @@ export async function captureInvestmentSnapshots(
   const asOf = utcDay(options.asOf ?? new Date());
   const through = utcDayEnd(asOf);
   const displayCurrency = options.displayCurrency ?? "CAD";
+  const validatedHoldingIds = new Set(options.validatedHoldingIds ?? []);
 
   const [accounts, fxRows] = await Promise.all([
     prisma.financialAccount.findMany({
-      where: { userId },
+      where: { userId, ...(options.accountId ? { id: options.accountId } : {}) },
       include: {
         holdings: true,
         transactions: { where: { date: { lte: through } }, orderBy: { date: "asc" } },
@@ -162,6 +176,7 @@ export async function captureInvestmentSnapshots(
     complete: 0,
     partial: 0,
     failed: 0,
+    failures: [],
   };
 
   for (const account of accounts) {
@@ -227,7 +242,10 @@ export async function captureInvestmentSnapshots(
           ? conversionToDisplay(singleValuation.valueMinor, accountCurrency, displayCurrency, rates)
           : { ok: false as const, amountMinor: 0 as const, effectiveRate: null, fxAsOf: null };
         const valuationComplete =
-          nativeComplete && displayValue.ok && !staleOrUnavailable(holding.priceStatus);
+          nativeComplete &&
+          displayValue.ok &&
+          validatedHoldingIds.has(holding.id) &&
+          !staleOrUnavailable(holding.priceStatus);
 
         return {
           holdingId: holding.id,
@@ -252,9 +270,7 @@ export async function captureInvestmentSnapshots(
         holdingsSummary.assumedCurrency.length === 0 &&
         positions.every((position) => position.valuationComplete) &&
         displayTotal.ok;
-      const pricedHoldings = account.holdings.filter(
-        (holding) => holding.priceCurrency !== null && holding.priceStatus?.toUpperCase() !== "UNAVAILABLE",
-      );
+      const pricedHoldingCount = positions.filter((position) => position.valuationComplete).length;
       const priceDates = account.holdings.map((holding) => holding.priceAsOf.getTime());
 
       await prisma.$transaction(async (tx) => {
@@ -294,7 +310,7 @@ export async function captureInvestmentSnapshots(
           fxAsOf: displayTotal.fxAsOf,
           status,
           holdingCount: account.holdings.length,
-          pricedHoldingCount: pricedHoldings.length,
+          pricedHoldingCount,
           earliestPriceAsOf: priceDates.length > 0 ? new Date(Math.min(...priceDates)) : null,
           latestPriceAsOf: priceDates.length > 0 ? new Date(Math.max(...priceDates)) : null,
         };
@@ -319,8 +335,11 @@ export async function captureInvestmentSnapshots(
 
       if (complete) outcome.complete += 1;
       else outcome.partial += 1;
-    } catch {
+    } catch (error) {
       outcome.failed += 1;
+      const reason = sanitizedFailureReason(error);
+      outcome.failures.push({ accountId: account.id, reason });
+      console.warn(`[investment-snapshots] capture failed for account ${account.id}: ${reason}`);
     }
   }
 

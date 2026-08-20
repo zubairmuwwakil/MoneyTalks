@@ -148,11 +148,13 @@ Manual price refresh uses the same capture service. Because the snapshot key is
 daily, it improves today's record instead of creating intraday pseudo-history.
 
 An account snapshot is complete only when cash can be valued, every held
-position has a provable price currency, foreign values have usable FX, and no
-position is unavailable. A stale last-known price may still be stored for
-diagnostics, but the account row is partial and does not become a performance
-point. Weekends may produce complete flat points when MarketLens correctly says
-Friday is the latest expected equity session; this is not treated as stale.
+position has a provable price currency, foreign values have usable FX, and each
+holding received a fresh quote in the same refresh run whose trade date matches
+MarketLens' `expectedSession`. Persisted `FRESH` labels are never reused as proof
+for a later day. A stale last-known price may still be stored for diagnostics,
+but the account row is partial and does not become a performance point.
+Weekends may produce complete flat points when MarketLens correctly says Friday
+is the latest expected equity session; this is not treated as stale.
 
 If refresh or valuation fails, existing prices and snapshots remain unchanged.
 There is no zero-fill or fabricated flat day.

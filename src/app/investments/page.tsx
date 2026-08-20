@@ -60,6 +60,8 @@ export default async function InvestmentsPage() {
     snapshots: account.investmentSnapshots.map((snapshot) => ({
       asOf: snapshot.asOf.toISOString().slice(0, 10),
       currency: snapshot.currency as Currency,
+      cashMinor: snapshot.cashMinor,
+      holdingsMinor: snapshot.holdingsMinor,
       totalMinor: snapshot.totalMinor,
       netExternalFlowMinor: snapshot.netExternalFlowMinor,
       displayTotalMinor: snapshot.displayTotalMinor,

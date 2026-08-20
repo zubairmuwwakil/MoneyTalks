@@ -5,6 +5,11 @@ import { cleanupE2EUser, createAuthedContext, E2E_EMAIL } from "./helpers/sessio
 
 test.describe.configure({ mode: "serial" });
 
+function utcDayOffset(days: number): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + days));
+}
+
 test.beforeAll(async () => {
   await cleanupE2EUser();
 });
@@ -96,6 +101,9 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
   const page = await context.newPage();
   await page.goto("/investments");
   const user = await prisma.user.findUniqueOrThrow({ where: { email: E2E_EMAIL } });
+  const twoDaysAgo = utcDayOffset(-2);
+  const previousDay = utcDayOffset(-1);
+  const today = utcDayOffset(0);
 
   const performanceAccount = await prisma.financialAccount.create({
     data: {
@@ -105,6 +113,7 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
       institution: "Fictional Performance Brokerage",
       country: "CA",
       currency: "CAD",
+      snapshots: { create: { balanceMinor: 0, currency: "CAD", asOf: today } },
     },
   });
   const emptyAccount = await prisma.financialAccount.create({
@@ -126,7 +135,7 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
       country: "CA",
       currency: "CAD",
       snapshots: {
-        create: { balanceMinor: 0, currency: "CAD", asOf: new Date("2026-08-20T00:00:00Z") },
+        create: { balanceMinor: 0, currency: "CAD", asOf: today },
       },
     },
   });
@@ -140,13 +149,13 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
     fxAsOf: null,
     holdingCount: 2,
     pricedHoldingCount: 2,
-    earliestPriceAsOf: new Date("2026-08-18T00:00:00Z"),
-    latestPriceAsOf: new Date("2026-08-20T00:00:00Z"),
+    earliestPriceAsOf: twoDaysAgo,
+    latestPriceAsOf: today,
   } as const;
   await prisma.investmentAccountSnapshot.create({
     data: {
       ...baseSnapshot,
-      asOf: new Date("2026-08-18T00:00:00Z"),
+      asOf: twoDaysAgo,
       holdingsMinor: 10_000,
       totalMinor: 10_000,
       netExternalFlowMinor: 0,
@@ -161,7 +170,7 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
             quantity: 2,
             priceMinor: 5_000,
             priceCurrency: "CAD",
-            priceAsOf: new Date("2026-08-18T00:00:00Z"),
+            priceAsOf: twoDaysAgo,
             priceSource: "TEST",
             priceStatus: "FRESH",
             marketValueMinor: 10_000,
@@ -174,7 +183,7 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
             quantity: 1,
             priceMinor: 0,
             priceCurrency: "CAD",
-            priceAsOf: new Date("2026-08-18T00:00:00Z"),
+            priceAsOf: twoDaysAgo,
             priceSource: "TEST",
             priceStatus: "FRESH",
             marketValueMinor: 0,
@@ -188,7 +197,7 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
   await prisma.investmentAccountSnapshot.create({
     data: {
       ...baseSnapshot,
-      asOf: new Date("2026-08-19T00:00:00Z"),
+      asOf: previousDay,
       holdingsMinor: 11_500,
       totalMinor: 11_500,
       netExternalFlowMinor: 1_000,
@@ -203,7 +212,7 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
             quantity: 2,
             priceMinor: 5_250,
             priceCurrency: "CAD",
-            priceAsOf: new Date("2026-08-19T00:00:00Z"),
+            priceAsOf: previousDay,
             priceSource: "TEST",
             priceStatus: "FRESH",
             marketValueMinor: 10_500,
@@ -216,7 +225,7 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
             quantity: 2,
             priceMinor: 500,
             priceCurrency: "CAD",
-            priceAsOf: new Date("2026-08-19T00:00:00Z"),
+            priceAsOf: previousDay,
             priceSource: "TEST",
             priceStatus: "FRESH",
             marketValueMinor: 1_000,
@@ -230,7 +239,7 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
   await prisma.investmentAccountSnapshot.create({
     data: {
       ...baseSnapshot,
-      asOf: new Date("2026-08-20T00:00:00Z"),
+      asOf: today,
       holdingsMinor: 20_000,
       totalMinor: 20_000,
       netExternalFlowMinor: 0,
@@ -243,7 +252,7 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
   await prisma.investmentAccountSnapshot.create({
     data: {
       accountId: zeroAccount.id,
-      asOf: new Date("2026-08-20T00:00:00Z"),
+      asOf: today,
       currency: "CAD",
       cashMinor: 0,
       holdingsMinor: 0,
@@ -264,11 +273,17 @@ test("shows cash-flow-adjusted performance and honest tracking states", async ({
     await expect(page.getByText("+$5.00", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("+5.0%", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("+$10.00", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/Time-weighted return removes deposits and withdrawals/)).toBeVisible();
     await expect(page.getByText(/Data incomplete:/)).toContainText("Performance RRSP");
     await expect(page.getByText("Position changed", { exact: true })).toBeVisible();
     await expect(page.getByText("Needs setup", { exact: true })).toBeVisible();
     await expect(page.getByText("$0.00", { exact: true })).toBeVisible();
     await expect(page.locator(".recharts-surface").first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /Performance RRSP/ })).toContainText(
+      "$0.00 cash · $115.00 holdings",
+    );
+    await page.getByText("View performance data", { exact: true }).click();
+    await expect(page.getByRole("cell", { name: "Contribution +$10.00" })).toBeVisible();
 
     const allRange = page.getByRole("button", { name: "All", exact: true });
     await allRange.focus();

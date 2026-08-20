@@ -16,6 +16,8 @@ export type PerformancePositionInput = PositionPoint;
 export type PerformanceSnapshotInput = {
   asOf: string;
   currency: Currency;
+  cashMinor: number;
+  holdingsMinor: number;
   totalMinor: number;
   netExternalFlowMinor: number;
   displayTotalMinor: number;
@@ -38,6 +40,8 @@ export type PerformanceAccountView = {
   currency: Currency;
   status: "tracking" | "needs-setup" | "incomplete";
   currentValueMinor: number | null;
+  currentCashMinor: number | null;
+  currentHoldingsMinor: number | null;
   summary: PerformanceSummary;
   movers: PositionContribution[];
 };
@@ -83,6 +87,16 @@ function setClampedUtcMonth(value: Date, targetMonth: number): void {
     Date.UTC(value.getUTCFullYear(), value.getUTCMonth() + 1, 0),
   ).getUTCDate();
   value.setUTCDate(Math.min(day, lastDay));
+}
+
+function expectedCaptureDate(today: Date): string {
+  const expected = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+  );
+  // The daily job is scheduled for 02:00 UTC. A short grace window avoids
+  // labelling yesterday stale while today's run is still in flight.
+  if (today.getUTCHours() < 4) expected.setUTCDate(expected.getUTCDate() - 1);
+  return expected.toISOString().slice(0, 10);
 }
 
 /**
@@ -143,7 +157,10 @@ function moversForSeries(
   accounts: PerformanceAccountInput[],
   series: PerformanceSummary["series"],
 ): PositionContribution[] {
-  const attribution = new Map<string, { contributionMinor: number; changed: boolean }>();
+  const attribution = new Map<
+    string,
+    { contributionMinor: number; eligibleIntervals: number; excludedIntervals: number }
+  >();
   for (let index = 1; index < series.length; index += 1) {
     const interval = attributePositionChanges(
       positionsOnDate(accounts, series[index - 1].date),
@@ -152,12 +169,14 @@ function moversForSeries(
     for (const contribution of interval) {
       const accumulated = attribution.get(contribution.symbol) ?? {
         contributionMinor: 0,
-        changed: false,
+        eligibleIntervals: 0,
+        excludedIntervals: 0,
       };
       if (contribution.eligible) {
         accumulated.contributionMinor += contribution.contributionMinor ?? 0;
+        accumulated.eligibleIntervals += 1;
       } else {
-        accumulated.changed = true;
+        accumulated.excludedIntervals += 1;
       }
       attribution.set(contribution.symbol, accumulated);
     }
@@ -165,9 +184,21 @@ function moversForSeries(
 
   return [...attribution.entries()]
     .map(([symbol, value]): PositionContribution =>
-      value.changed
-        ? { symbol, contributionMinor: null, eligible: false, reason: "position-changed" }
-        : { symbol, contributionMinor: value.contributionMinor, eligible: true, reason: null },
+      value.eligibleIntervals === 0
+        ? {
+            symbol,
+            contributionMinor: null,
+            eligible: false,
+            reason: "position-changed",
+            excludedIntervals: value.excludedIntervals,
+          }
+        : {
+            symbol,
+            contributionMinor: value.contributionMinor,
+            eligible: true,
+            reason: null,
+            excludedIntervals: value.excludedIntervals,
+          },
     )
     .sort((left, right) => {
       if (left.eligible !== right.eligible) return left.eligible ? -1 : 1;
@@ -190,6 +221,7 @@ export function buildPerformanceWorkspace(
   const portfolioPoints = pointsForRange(aggregatePortfolioPoints(accountSeries), range, today);
   const portfolio = calculatePerformance(portfolioPoints);
   const partialAccounts: string[] = [];
+  const expectedLatestDate = expectedCaptureDate(today);
 
   const accountViews = accounts.map((account): PerformanceAccountView => {
     const allSnapshots = sortedSnapshots(account.snapshots);
@@ -197,9 +229,14 @@ export function buildPerformanceWorkspace(
     const latest = allSnapshots.at(-1);
     const latestComplete = complete.at(-1);
     let status: PerformanceAccountView["status"];
-    if (!account.hasSetupData && allSnapshots.length === 0) {
+    if (!account.hasSetupData) {
       status = "needs-setup";
-    } else if (!latestComplete || latest?.status === "PARTIAL") {
+    } else if (
+      !latestComplete ||
+      latest?.status === "PARTIAL" ||
+      !latest ||
+      dateKey(latest.asOf) < expectedLatestDate
+    ) {
       status = "incomplete";
       partialAccounts.push(account.name);
     } else {
@@ -213,6 +250,8 @@ export function buildPerformanceWorkspace(
       currency: account.currency,
       status,
       currentValueMinor: latestComplete?.totalMinor ?? null,
+      currentCashMinor: latestComplete?.cashMinor ?? null,
+      currentHoldingsMinor: latestComplete?.holdingsMinor ?? null,
       summary,
       movers: moversForSeries([account], summary.series),
     };

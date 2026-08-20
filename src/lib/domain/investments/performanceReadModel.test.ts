@@ -15,6 +15,8 @@ function snapshot(
   return {
     asOf,
     currency: "CAD",
+    cashMinor: 0,
+    holdingsMinor: totalMinor,
     totalMinor,
     netExternalFlowMinor: 0,
     displayTotalMinor: totalMinor,
@@ -72,7 +74,7 @@ describe("buildPerformanceWorkspace", () => {
       [
         account({
           snapshots: [
-            snapshot("2026-08-19", 10_000),
+            snapshot("2026-08-19", 10_000, { cashMinor: 2_000, holdingsMinor: 8_000 }),
             snapshot("2026-08-20", 10_500, { status: "PARTIAL" }),
           ],
         }),
@@ -84,7 +86,12 @@ describe("buildPerformanceWorkspace", () => {
     expect(view.state).toBe("incomplete");
     expect(view.latestCompleteAsOf).toBe("2026-08-19");
     expect(view.portfolio.endValueMinor).toBe(10_000);
-    expect(view.accounts[0]).toMatchObject({ status: "incomplete", currentValueMinor: 10_000 });
+    expect(view.accounts[0]).toMatchObject({
+      status: "incomplete",
+      currentValueMinor: 10_000,
+      currentCashMinor: 2_000,
+      currentHoldingsMinor: 8_000,
+    });
     expect(view.dataHealth.needsAttention).toBe(true);
   });
 
@@ -102,6 +109,35 @@ describe("buildPerformanceWorkspace", () => {
       expect.objectContaining({ id: "empty", status: "needs-setup", currentValueMinor: null }),
       expect.objectContaining({ id: "zero", status: "tracking", currentValueMinor: 0 }),
     ]);
+  });
+
+  it("keeps needs-setup authoritative after a diagnostic partial capture", () => {
+    const view = buildPerformanceWorkspace(
+      [
+        account({
+          id: "empty",
+          name: "Empty TFSA",
+          hasSetupData: false,
+          snapshots: [snapshot("2026-08-20", 0, { status: "PARTIAL" })],
+        }),
+      ],
+      "ALL",
+      TODAY,
+    );
+
+    expect(view.accounts[0]).toMatchObject({ status: "needs-setup", currentValueMinor: null });
+    expect(view.dataHealth).toEqual({ needsAttention: false, partialAccounts: [] });
+  });
+
+  it("marks an account incomplete when the expected nightly capture is missing", () => {
+    const view = buildPerformanceWorkspace(
+      [account({ snapshots: [snapshot("2026-08-19", 10_000)] })],
+      "ALL",
+      TODAY,
+    );
+
+    expect(view.accounts[0]).toMatchObject({ status: "incomplete", currentValueMinor: 10_000 });
+    expect(view.dataHealth.partialAccounts).toEqual(["Main RRSP"]);
   });
 
   it("uses the same selected range for metrics and chart series", () => {
@@ -160,8 +196,40 @@ describe("buildPerformanceWorkspace", () => {
     );
 
     expect(view.movers).toEqual([
-      { symbol: "AAPL", contributionMinor: 2_500, eligible: true, reason: null },
-      { symbol: "SHOP", contributionMinor: null, eligible: false, reason: "position-changed" },
+      { symbol: "AAPL", contributionMinor: 2_500, eligible: true, reason: null, excludedIntervals: 0 },
+      { symbol: "SHOP", contributionMinor: 0, eligible: true, reason: null, excludedIntervals: 1 },
+    ]);
+  });
+
+  it("keeps eligible mover attribution while disclosing excluded quantity-change intervals", () => {
+    const view = buildPerformanceWorkspace(
+      [
+        account({
+          snapshots: [
+            snapshot("2026-08-18", 10_000, {
+              positions: [{ symbol: "SHOP", quantity: 1, displayValueMinor: 10_000 }],
+            }),
+            snapshot("2026-08-19", 10_500, {
+              positions: [{ symbol: "SHOP", quantity: 2, displayValueMinor: 10_500 }],
+            }),
+            snapshot("2026-08-20", 11_000, {
+              positions: [{ symbol: "SHOP", quantity: 2, displayValueMinor: 11_000 }],
+            }),
+          ],
+        }),
+      ],
+      "ALL",
+      TODAY,
+    );
+
+    expect(view.movers).toEqual([
+      {
+        symbol: "SHOP",
+        contributionMinor: 500,
+        eligible: true,
+        reason: null,
+        excludedIntervals: 1,
+      },
     ]);
   });
 });

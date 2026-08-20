@@ -192,9 +192,7 @@ export function PerformanceWorkspace({
             <div className="border-t border-border/70 py-3 sm:border-t-0 sm:px-5">
               <dt className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
                 Time-weighted return
-                <span title="Deposits and withdrawals are removed. Dividends, interest, fees, and currency movement remain in performance.">
-                  <Info className="size-3" aria-hidden="true" />
-                </span>
+                <Info className="size-3" aria-hidden="true" />
               </dt>
               <dd className={`mt-1 text-lg font-semibold tabular-nums ${tone(summary.twr)}`}>
                 {formatSignedPercent(summary.twr)}
@@ -207,6 +205,9 @@ export function PerformanceWorkspace({
               </dd>
             </div>
           </dl>
+          <p className="mt-2 text-[10px] leading-4 text-muted-foreground">
+            Time-weighted return removes deposits and withdrawals. Dividends, interest, fees, and currency movement remain in performance.
+          </p>
         </div>
 
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_17rem]">
@@ -325,9 +326,9 @@ export function PerformanceWorkspace({
                   View performance data
                 </summary>
                 <div className="mt-3 overflow-x-auto rounded-lg border border-border/70">
-                  <table className="w-full min-w-lg text-left">
+                  <table className="w-full min-w-xl text-left">
                     <thead className="bg-muted/60 text-[10px] uppercase tracking-wider text-muted-foreground">
-                      <tr><th className="px-3 py-2">Date</th><th className="px-3 py-2 text-right">Value</th><th className="px-3 py-2 text-right">Net invested</th><th className="px-3 py-2 text-right">Daily return</th></tr>
+                      <tr><th className="px-3 py-2">Date</th><th className="px-3 py-2 text-right">Value</th><th className="px-3 py-2 text-right">Net invested</th><th className="px-3 py-2 text-right">Cash flow</th><th className="px-3 py-2 text-right">Daily return</th></tr>
                     </thead>
                     <tbody className="divide-y divide-border/60">
                       {data.map((point) => (
@@ -335,6 +336,13 @@ export function PerformanceWorkspace({
                           <td className="px-3 py-2">{readableDate(point.date)}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{formatMinorUnits(point.valueMinor, currency)}</td>
                           <td className="px-3 py-2 text-right tabular-nums">{formatMinorUnits(point.netInvestedMinor, currency)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {point.externalFlowMinor > 0
+                              ? `Contribution ${formatSignedMinor(point.externalFlowMinor, currency)}`
+                              : point.externalFlowMinor < 0
+                                ? `Withdrawal ${formatSignedMinor(point.externalFlowMinor, currency)}`
+                                : "—"}
+                          </td>
                           <td className="px-3 py-2 text-right tabular-nums">{formatSignedPercent(point.dailyReturn)}</td>
                         </tr>
                       ))}
@@ -356,8 +364,15 @@ export function PerformanceWorkspace({
                   <li key={mover.symbol} className="flex items-center justify-between gap-3 py-3 first:pt-0">
                     <span className="font-mono text-xs font-semibold">{mover.symbol}</span>
                     {mover.eligible ? (
-                      <span className={`text-xs font-semibold tabular-nums ${tone(mover.contributionMinor)}`}>
-                        {formatSignedMinor(mover.contributionMinor, "CAD")}
+                      <span className="text-right">
+                        <span className={`block text-xs font-semibold tabular-nums ${tone(mover.contributionMinor)}`}>
+                          {formatSignedMinor(mover.contributionMinor, "CAD")}
+                        </span>
+                        {mover.excludedIntervals > 0 ? (
+                          <span className="mt-0.5 block text-[9px] font-medium text-muted-foreground">
+                            {mover.excludedIntervals} {mover.excludedIntervals === 1 ? "interval" : "intervals"} excluded
+                          </span>
+                        ) : null}
                       </span>
                     ) : (
                       <span className="text-[10px] font-medium text-muted-foreground">Position changed</span>
@@ -440,6 +455,11 @@ export function PerformanceWorkspace({
                           ? account.summary.startDate ? `Tracking since ${account.summary.startDate}` : `${meta.holdingCount} holdings`
                           : account.status === "incomplete" ? "Data incomplete" : "Add cash or holdings"}
                       </p>
+                      {account.currentCashMinor !== null && account.currentHoldingsMinor !== null ? (
+                        <p className="mt-0.5 text-[9px] text-muted-foreground">
+                          {formatMinorUnits(account.currentCashMinor, account.currency)} cash · {formatMinorUnits(account.currentHoldingsMinor, account.currency)} holdings
+                        </p>
+                      ) : null}
                       {value === null && meta.cashMinor !== null ? (
                         <p className="mt-0.5 text-[10px] text-muted-foreground">
                           {formatMinorUnits(meta.cashMinor, account.currency)} cash measured

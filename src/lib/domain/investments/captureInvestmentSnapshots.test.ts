@@ -62,14 +62,34 @@ function prismaMock(accounts: AccountFixture[], rates: Array<Record<string, unkn
 }
 
 describe("captureInvestmentSnapshots", () => {
+  it("does not reuse an old persisted FRESH quote without evidence from this refresh run", async () => {
+    const base = accountFixture();
+    const { prisma, transactionDb } = prismaMock(
+      [{ ...base, holdings: [{ ...base.holdings[0], priceAsOf: new Date("2026-08-19T00:00:00Z") }] }],
+      [{ base: "USD", quote: "CAD", rate: 1.4, asOf: DAY }],
+    );
+
+    const result = await captureInvestmentSnapshots(prisma as never, "user-1", { asOf: AS_OF });
+
+    expect(result).toEqual({ accounts: 1, complete: 0, partial: 1, failed: 0, failures: [] });
+    expect(transactionDb.investmentAccountSnapshot.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ status: "PARTIAL", pricedHoldingCount: 0 }),
+      }),
+    );
+  });
+
   it("writes a complete native and CAD valuation with FX provenance", async () => {
     const { prisma, transactionDb } = prismaMock([accountFixture()], [
       { base: "USD", quote: "CAD", rate: 1.4, asOf: new Date("2026-08-20T00:00:00.000Z") },
     ]);
 
-    const result = await captureInvestmentSnapshots(prisma as never, "user-1", { asOf: AS_OF });
+    const result = await captureInvestmentSnapshots(prisma as never, "user-1", {
+      asOf: AS_OF,
+      validatedHoldingIds: ["holding-1"],
+    });
 
-    expect(result).toEqual({ accounts: 1, complete: 1, partial: 0, failed: 0 });
+    expect(result).toEqual({ accounts: 1, complete: 1, partial: 0, failed: 0, failures: [] });
     expect(transactionDb.investmentAccountSnapshot.upsert).toHaveBeenCalledWith({
       where: { accountId_asOf: { accountId: "account-1", asOf: DAY } },
       create: expect.objectContaining({
@@ -119,7 +139,7 @@ describe("captureInvestmentSnapshots", () => {
 
     const result = await captureInvestmentSnapshots(prisma as never, "user-1", { asOf: AS_OF });
 
-    expect(result).toEqual({ accounts: 1, complete: 0, partial: 1, failed: 0 });
+    expect(result).toEqual({ accounts: 1, complete: 0, partial: 1, failed: 0, failures: [] });
     expect(transactionDb.investmentAccountSnapshot.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ create: expect.objectContaining({ status: "PARTIAL" }) }),
     );
@@ -178,7 +198,7 @@ describe("captureInvestmentSnapshots", () => {
 
     const result = await captureInvestmentSnapshots(prisma as never, "user-1", { asOf: AS_OF });
 
-    expect(result).toEqual({ accounts: 1, complete: 0, partial: 1, failed: 0 });
+    expect(result).toEqual({ accounts: 1, complete: 0, partial: 1, failed: 0, failures: [] });
     expect(transactionDb.investmentAccountSnapshot.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ create: expect.objectContaining({ status: "PARTIAL" }) }),
     );
@@ -189,9 +209,13 @@ describe("captureInvestmentSnapshots", () => {
       { base: "USD", quote: "CAD", rate: 1.4, asOf: DAY },
     ]);
 
-    await captureInvestmentSnapshots(prisma as never, "user-1", { asOf: AS_OF });
+    await captureInvestmentSnapshots(prisma as never, "user-1", {
+      asOf: AS_OF,
+      validatedHoldingIds: ["holding-1"],
+    });
     await captureInvestmentSnapshots(prisma as never, "user-1", {
       asOf: new Date("2026-08-20T23:59:00.000Z"),
+      validatedHoldingIds: ["holding-1"],
     });
 
     expect(transactionDb.investmentAccountSnapshot.upsert).toHaveBeenCalledTimes(2);
@@ -204,6 +228,7 @@ describe("captureInvestmentSnapshots", () => {
   });
 
   it("counts a failed account and continues capturing later accounts", async () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const invalid = accountFixture({
       id: "bad-account",
       holdings: [{ ...accountFixture().holdings[0], quantity: Number.NaN }],
@@ -220,8 +245,18 @@ describe("captureInvestmentSnapshots", () => {
 
     const result = await captureInvestmentSnapshots(prisma as never, "user-1", { asOf: AS_OF });
 
-    expect(result).toEqual({ accounts: 2, complete: 1, partial: 0, failed: 1 });
+    expect(result).toEqual({
+      accounts: 2,
+      complete: 1,
+      partial: 0,
+      failed: 1,
+      failures: [{ accountId: "bad-account", reason: "invalid decimal value" }],
+    });
+    expect(warning).toHaveBeenCalledWith(
+      "[investment-snapshots] capture failed for account bad-account: invalid decimal value",
+    );
     expect(transactionDb.investmentAccountSnapshot.upsert).toHaveBeenCalledTimes(1);
+    warning.mockRestore();
   });
 });
 

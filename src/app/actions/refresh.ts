@@ -77,10 +77,20 @@ export async function refreshPrices(formData: FormData): Promise<void> {
 
   if (account.type === "CRYPTO") {
     const crypto = await refreshCryptoPrices(account);
-    await captureInvestmentSnapshots(prisma, userId);
+    const capture = await captureInvestmentSnapshots(prisma, userId, {
+      accountId,
+      validatedHoldingIds: crypto.validatedHoldingIds,
+    });
     revalidatePath(path);
     revalidatePath("/investments");
     revalidatePath("/");
+    if (capture.failed > 0) {
+      redirectWithStatus(
+        path,
+        "pricesError",
+        "Prices were refreshed, but the performance snapshot could not be recorded. Try again.",
+      );
+    }
     redirectWithStatus(
       path,
       "pricesOk",
@@ -89,7 +99,7 @@ export async function refreshPrices(formData: FormData): Promise<void> {
   }
 
   if (!isMarketLensConfigured()) {
-    await captureInvestmentSnapshots(prisma, userId);
+    await captureInvestmentSnapshots(prisma, userId, { accountId, validatedHoldingIds: [] });
     redirectWithStatus(
       path,
       "pricesError",
@@ -98,11 +108,22 @@ export async function refreshPrices(formData: FormData): Promise<void> {
   }
 
   const outcome = await refreshHoldingPrices(prisma, userId, { accountId });
-  await captureInvestmentSnapshots(prisma, userId);
+  const capture = await captureInvestmentSnapshots(prisma, userId, {
+    accountId,
+    validatedHoldingIds: outcome.validatedHoldingIds,
+  });
 
   revalidatePath(path);
   revalidatePath("/investments");
   revalidatePath("/");
+
+  if (capture.failed > 0) {
+    redirectWithStatus(
+      path,
+      "pricesError",
+      "Prices were refreshed, but the performance snapshot could not be recorded. Try again.",
+    );
+  }
 
   if (outcome.reason === "no-holdings") {
     redirectWithStatus(path, "pricesError", "This account has no holdings to price.");
@@ -148,7 +169,7 @@ function summarizeSkips(skipped: { reason: string }[]): string {
  */
 async function refreshCryptoPrices(
   account: { id: string; currency: string; holdings: { id: string; symbol: string }[] },
-): Promise<{ updated: number; failed: number }> {
+): Promise<{ updated: number; failed: number; validatedHoldingIds: string[] }> {
   const prices = await fetchCryptoPricesMinor(
     account.holdings.map((h) => h.symbol),
     account.currency,
@@ -156,6 +177,7 @@ async function refreshCryptoPrices(
 
   let updated = 0;
   let failed = 0;
+  const validatedHoldingIds: string[] = [];
   for (const holding of account.holdings) {
     const price = prices[holding.symbol.toUpperCase()];
     if (price === undefined) {
@@ -175,6 +197,7 @@ async function refreshCryptoPrices(
       },
     });
     updated += 1;
+    validatedHoldingIds.push(holding.id);
   }
-  return { updated, failed };
+  return { updated, failed, validatedHoldingIds };
 }
