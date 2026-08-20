@@ -21,6 +21,7 @@ import { purchaseLocalDateTime } from "@/lib/utils/purchaseTime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SortSelect } from "./ui/SortSelect";
 import { Prisma } from "@prisma/client";
 
 const PAGE_SIZE = 50;
@@ -74,8 +75,8 @@ const AVATAR_GRADIENTS = [
   "from-rose-500/20 via-pink-500/20 to-purple-500/20 text-rose-700 dark:text-rose-300 border-rose-500/25",
 ];
 
-function getMerchantAvatar(name: string) {
-  const clean = name.trim();
+function getMerchantAvatar(name?: string | null) {
+  const clean = (name ?? "Purchase").trim();
   if (!clean) return { initials: "P", gradient: AVATAR_GRADIENTS[0] };
   const words = clean.split(/\s+/).filter(Boolean);
   let initials = "";
@@ -413,21 +414,7 @@ export default async function PurchasesInboxPage({
           </div>
 
           <div className="flex items-center gap-2">
-            <select
-              name="sort"
-              defaultValue={sort}
-              onChange={(e) => {
-                const target = e.target.form;
-                if (target) target.requestSubmit();
-              }}
-              aria-label="Sort purchases"
-              className="rounded-xl border border-input bg-background px-3 py-2 text-xs font-medium text-foreground focus:border-primary focus:ring-2 focus:ring-ring/20 outline-none transition"
-            >
-              <option value="date_desc">Newest First</option>
-              <option value="date_asc">Oldest First</option>
-              <option value="amount_desc">Highest Amount</option>
-              <option value="amount_asc">Lowest Amount</option>
-            </select>
+            <SortSelect defaultValue={sort} />
 
             <Button type="submit" size="sm" variant="default" className="rounded-xl">
               Search
