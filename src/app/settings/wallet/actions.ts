@@ -95,3 +95,78 @@ export async function mapWalletCard(input: { rawString: string; contractCardId: 
   return { ok: true as const };
 }
 
+// Automatically creates a CreditCard record for the user from the card catalogue
+// (if they don't already have one) AND maps the raw Apple Pay string to it.
+export async function addCardAndMapWallet(input: { rawString: string; contractCardId: string }) {
+  const userId = await requireUserId();
+  const parsed = mapInput.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "invalid input" };
+  const { rawString, contractCardId } = parsed.data;
+
+  const catCard = cardCatalogue.cards.find((c) => c.cardId === contractCardId);
+  if (!catCard) return { ok: false as const, error: "unknown catalogue card" };
+
+  const existingCard = await prisma.creditCard.findFirst({
+    where: { userId, contractCardId },
+    select: { id: true },
+  });
+
+  if (!existingCard) {
+    let nickname = catCard.officialName;
+    const nicknameConflict = await prisma.creditCard.findUnique({
+      where: { userId_nickname: { userId, nickname } },
+      select: { id: true },
+    });
+    if (nicknameConflict) {
+      nickname = `${catCard.officialName} (${rawString.slice(-4)})`;
+    }
+
+    await prisma.creditCard.create({
+      data: {
+        userId,
+        nickname,
+        issuer: catCard.issuer,
+        network: catCard.network,
+        contractCardId: catCard.cardId,
+        currency: cardCatalogue.currency || "CAD",
+      },
+    });
+  }
+
+  await prisma.cardAlias.upsert({
+    where: { userId_rawString: { userId, rawString } },
+    create: { userId, rawString, cardId: contractCardId },
+    update: { cardId: contractCardId },
+  });
+
+  await prisma.walletEvent.updateMany({
+    where: { userId, cardRaw: rawString },
+    data: { resolvedCardId: contractCardId },
+  });
+
+  const enrichableEvents = await prisma.walletEvent.findMany({
+    where: { userId, cardRaw: rawString, purchaseId: { not: null } },
+    select: { purchaseId: true },
+  });
+  const purchaseIds = [...new Set(enrichableEvents.map((e) => e.purchaseId!))];
+  if (purchaseIds.length > 0) {
+    await prisma.purchase.updateMany({
+      where: { id: { in: purchaseIds }, paymentMethod: null },
+      data: { paymentMethod: contractCardId },
+    });
+  }
+
+  try {
+    const { processWalletEvents } = await import("@/lib/domain/wallet/walletNormalization");
+    await processWalletEvents();
+  } catch (e) {
+    console.error("Error processing wallet events after card creation & mapping", e);
+  }
+
+  revalidatePath("/cards");
+  revalidatePath("/settings/wallet");
+  revalidatePath("/purchases");
+  return { ok: true as const };
+}
+
+
