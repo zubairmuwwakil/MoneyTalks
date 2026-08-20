@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { mapRows, parseCsv, type ColumnMapping } from "@/engine/csv";
+import { mapRows, parseCsv, detectColumnMapping, type ColumnMapping } from "@/engine/csv";
 import {
   coverageForLines,
   PROPOSED_STATUSES,
@@ -90,18 +90,32 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose a CSV file first." };
   if (file.size > IMPORT_LIMITS.fileBytes) return { ok: false, error: "CSV file is too large (maximum 5 MB)." };
 
-  const mappingParsed = csvMappingInput.safeParse({
-    dateCol: formData.get("dateCol"), amountCol: formData.get("amountCol"), descriptionCol: formData.get("descriptionCol"),
-    dateFormat: formData.get("dateFormat"), negate: formData.get("negate") ?? "false", hasHeader: formData.get("hasHeader") ?? "false",
-  });
-  if (!mappingParsed.success) return { ok: false, error: "Check the column mapping." };
-
-  let mapped;
+  let csvRows: string[][];
   try {
-    mapped = mapRows(parseCsv(await file.text()), mappingParsed.data as ColumnMapping);
+    csvRows = parseCsv(await file.text());
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Could not parse CSV." };
   }
+
+  const detected = detectColumnMapping(csvRows);
+
+  const rawDateCol = formData.get("dateCol");
+  const rawAmountCol = formData.get("amountCol");
+  const rawDescCol = formData.get("descriptionCol");
+
+  const mappingInput = {
+    dateCol: rawDateCol !== null && rawDateCol !== "" ? rawDateCol : detected ? String(detected.dateCol) : null,
+    amountCol: rawAmountCol !== null && rawAmountCol !== "" ? rawAmountCol : detected ? String(detected.amountCol) : null,
+    descriptionCol: rawDescCol !== null && rawDescCol !== "" ? rawDescCol : detected ? String(detected.descriptionCol) : null,
+    dateFormat: formData.get("dateFormat") || detected?.dateFormat || "YMD",
+    negate: formData.get("negate") ?? (detected ? String(detected.negate) : "false"),
+    hasHeader: formData.get("hasHeader") ?? (detected ? String(detected.hasHeader) : "false"),
+  };
+
+  const mappingParsed = csvMappingInput.safeParse(mappingInput);
+  if (!mappingParsed.success) return { ok: false, error: "Check the column mapping." };
+
+  const mapped = mapRows(csvRows, mappingParsed.data as ColumnMapping);
   const validRows = mapped.filter((row): row is Extract<typeof row, { date: string }> => "date" in row);
   if (validRows.length === 0) return { ok: false, error: "No valid statement lines found. Check the mapping and date format." };
 

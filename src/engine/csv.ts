@@ -94,3 +94,43 @@ export function dedupeHash(
   }
   return hash1.toString(16).padStart(8, "0") + hash2.toString(16).padStart(8, "0");
 }
+
+export function detectColumnMapping(rows: string[][]): ColumnMapping | null {
+  if (rows.length === 0) return null;
+  const headers = rows[0].map((h) => h.toLowerCase().replace(/[^a-z0-9]/g, ""));
+
+  let dateCol = headers.findIndex((h) => h.includes("date"));
+  let descriptionCol = headers.findIndex((h) => h.includes("description") || h.includes("payee") || h.includes("merchant") || h.includes("memo"));
+  let amountCol = headers.findIndex((h) => h === "amount" || h.includes("cad") || h.includes("usd") || h.includes("total") || h.includes("charge"));
+
+  if (amountCol === -1) {
+    amountCol = headers.findIndex((h) => h.includes("amount"));
+  }
+
+  if (dateCol === -1 || descriptionCol === -1 || amountCol === -1) {
+    return null;
+  }
+
+  // Detect date format from sample row
+  let dateFormat: "YMD" | "MDY" | "DMY" = "YMD";
+  if (rows.length > 1 && rows[1][dateCol]) {
+    const sample = rows[1][dateCol].trim();
+    if (/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$/.test(sample)) {
+      dateFormat = "YMD";
+    } else if (/^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$/.test(sample)) {
+      // If first part > 12, it's DMY, else default MDY
+      const firstNum = Number(sample.split(/[-/.]/)[0]);
+      dateFormat = firstNum > 12 ? "DMY" : "MDY";
+    }
+  }
+
+  return {
+    dateCol,
+    amountCol,
+    descriptionCol,
+    dateFormat,
+    negate: false,
+    hasHeader: true,
+  };
+}
+

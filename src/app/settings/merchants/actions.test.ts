@@ -14,6 +14,8 @@ vi.mock("next/cache", () => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $transaction: vi.fn(),
+    merchantAlias: { upsert: vi.fn() },
+    purchase: { updateMany: vi.fn() },
   },
 }));
 
@@ -211,3 +213,38 @@ describe("updateMerchantAlias", () => {
     });
   });
 });
+
+describe("setMerchantCategory", () => {
+  it("upserts merchant alias and updates user purchases", async () => {
+    const { setMerchantCategory } = await import("./actions");
+    vi.mocked(prisma.merchantAlias.upsert).mockResolvedValue({
+      id: "alias-2",
+      rawString: "SQ *CAFE",
+      normalizedName: "SQ *CAFE",
+      category: "dining",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(prisma.purchase.updateMany).mockResolvedValue({ count: 2 });
+
+    const res = await setMerchantCategory({ rawString: "SQ *CAFE", category: "dining" });
+
+    expect(res).toEqual({ ok: true, category: "dining" });
+    expect(prisma.merchantAlias.upsert).toHaveBeenCalledWith({
+      where: { rawString: "SQ *CAFE" },
+      create: { rawString: "SQ *CAFE", normalizedName: "SQ *CAFE", category: "dining" },
+      update: { category: "dining" },
+    });
+    expect(prisma.purchase.updateMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user-1",
+        OR: [
+          { merchant: "SQ *CAFE" },
+          { walletEvents: { some: { merchantRaw: "SQ *CAFE" } } },
+        ],
+      },
+      data: { category: "dining" },
+    });
+  });
+});
+

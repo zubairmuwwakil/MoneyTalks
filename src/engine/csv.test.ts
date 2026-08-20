@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dedupeHash, mapRows, parseCsv, type ColumnMapping } from "./csv";
+import { dedupeHash, detectColumnMapping, mapRows, parseCsv, type ColumnMapping } from "./csv";
 
 describe("parseCsv", () => {
   it("parses quoted fields with embedded commas and escaped quotes", () => {
@@ -80,3 +80,43 @@ describe("dedupeHash", () => {
     expect(hash).toHaveLength(16);
   });
 });
+
+describe("detectColumnMapping", () => {
+  it("auto-detects Amex & Scotia header layouts with YMD dates", () => {
+    const rows = [
+      ["Transaction Date", "Description", "Amount"],
+      ["2026-08-15", "STARBUCKS", "5.25"],
+    ];
+    const res = detectColumnMapping(rows);
+    expect(res).toEqual({
+      dateCol: 0,
+      descriptionCol: 1,
+      amountCol: 2,
+      dateFormat: "YMD",
+      negate: false,
+      hasHeader: true,
+    });
+  });
+
+  it("auto-detects TD & RBC header layouts with MDY dates", () => {
+    const rows = [
+      ["Date", "Description", "CAD$"],
+      ["08/15/2026", "TIM HORTONS", "3.10"],
+    ];
+    const res = detectColumnMapping(rows);
+    expect(res).toEqual({
+      dateCol: 0,
+      descriptionCol: 1,
+      amountCol: 2,
+      dateFormat: "MDY",
+      negate: false,
+      hasHeader: true,
+    });
+  });
+
+  it("returns null when required headers are missing", () => {
+    const rows = [["Foo", "Bar"]];
+    expect(detectColumnMapping(rows)).toBeNull();
+  });
+});
+

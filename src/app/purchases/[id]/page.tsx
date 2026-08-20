@@ -15,6 +15,8 @@ import {
   Layers,
   Clock,
 } from "lucide-react";
+import { InlineCategoryPicker } from "../ui/InlineCategoryPicker";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/utils/calendarEvents";
 import { requireUserId } from "@/lib/require-user";
@@ -184,6 +186,11 @@ export default async function PurchaseDetailPage({
                 {purchase.orderNumber ? (
                   <span className="font-mono text-foreground/80">· Order #{purchase.orderNumber}</span>
                 ) : null}
+                <span>·</span>
+                <InlineCategoryPicker
+                  rawString={wallet?.merchantRaw ?? purchase.merchant}
+                  currentCategory={purchase.category}
+                />
               </div>
             </div>
           </div>

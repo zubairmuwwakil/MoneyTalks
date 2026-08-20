@@ -103,3 +103,61 @@ export async function updateMerchantAlias(input: {
     };
   });
 }
+
+const setCategoryInput = z.object({
+  rawString: z.string().trim().min(1, "Merchant string required"),
+  category: z.string().trim().nullable(),
+});
+
+export async function setMerchantCategory(input: {
+  rawString: string;
+  category: string | null;
+}) {
+  const userId = await requireUserId();
+  const parsed = setCategoryInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: "Invalid input" };
+  }
+  const { rawString, category } = parsed.data;
+
+  const alias = await prisma.merchantAlias.upsert({
+    where: { rawString },
+    create: {
+      rawString,
+      normalizedName: rawString.trim(),
+      category,
+    },
+    update: {
+      category,
+    },
+  });
+
+  // Backfill category for user's purchases linked to this merchant
+  await prisma.purchase.updateMany({
+    where: {
+      userId,
+      OR: [
+        { merchant: alias.normalizedName },
+        { walletEvents: { some: { merchantRaw: rawString } } },
+      ],
+    },
+    data: {
+      category,
+    },
+  });
+
+  // Trigger normalization sweep to re-evaluate reward verdicts and cap accruals
+  try {
+    const { processWalletEvents } = await import("@/lib/domain/wallet/walletNormalization");
+    await processWalletEvents();
+  } catch (e) {
+    console.error("Error re-evaluating wallet events after category update", e);
+  }
+
+  revalidatePath("/settings/merchants");
+  revalidatePath("/purchases");
+  revalidatePath("/cards/reconcile");
+
+  return { ok: true as const, category: alias.category };
+}
+

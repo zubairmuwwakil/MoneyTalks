@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   ChevronRight,
   Smartphone,
+  Sparkles,
   X,
   Plus,
   Calendar,
@@ -228,6 +229,23 @@ export default async function PurchasesInboxPage({
     }),
   ]);
 
+  // Query missed rewards summary from wallet event warnings
+  const missedRewardEvents = await prisma.walletEvent.findMany({
+    where: { userId, feedbackWarning: { not: null } },
+    select: { feedbackWarning: true },
+  });
+
+  let missedRewardsCents = 0;
+  const missedRewardsCount = missedRewardEvents.length;
+  for (const event of missedRewardEvents) {
+    if (event.feedbackWarning) {
+      const match = event.feedbackWarning.match(/~\$([0-9.]+)/);
+      if (match && match[1]) {
+        missedRewardsCents += Math.round(parseFloat(match[1]) * 100);
+      }
+    }
+  }
+
   const homeZone = pref?.timezone ?? null;
   const hasNextPage = purchasesWithNextPage.length > PAGE_SIZE;
   const purchases = purchasesWithNextPage.slice(0, PAGE_SIZE);
@@ -356,6 +374,28 @@ export default async function PurchasesInboxPage({
             </Button>
         </div>
       </div>
+
+      {/* Rewards Optimization Opportunity Banner */}
+      {missedRewardsCount > 0 ? (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-300">
+              <Sparkles className="size-5" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                Rewards Optimization Opportunity
+              </p>
+              <p className="text-sm font-bold text-foreground">
+                ~{formatMoney(missedRewardsCents, "CAD")} missed across {missedRewardsCount} purchase{missedRewardsCount === 1 ? "" : "s"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Using recommended cards next time will maximize your points & cashback yield.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <PurchaseImpactWorkspace view={purchaseImpact} />
 
