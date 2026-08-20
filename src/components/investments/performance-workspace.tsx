@@ -104,7 +104,9 @@ export function PerformanceWorkspace({
   const summary = accountView?.summary ?? view.portfolio;
   const currency = accountView?.currency ?? "CAD";
   const scopeName = accountView?.name ?? "Portfolio";
-  const fallbackValue = accountMeta?.fallbackCurrentValueMinor ?? fallbackPortfolioValueMinor;
+  const fallbackValue = accountId
+    ? accountMeta?.fallbackCurrentValueMinor ?? null
+    : fallbackPortfolioValueMinor;
   const headlineValue = summary.endValueMinor ?? fallbackValue;
   const movers = accountView?.movers ?? view.movers;
   const data = useMemo(() => chartPoints(view, accountId), [view, accountId]);

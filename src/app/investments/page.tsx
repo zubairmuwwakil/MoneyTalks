@@ -7,7 +7,7 @@ import {
   type InvestmentAccountMeta,
 } from "@/components/investments/performance-workspace";
 import { accountBalanceWithCurrency, holdingsValuation } from "@/engine/balance";
-import type { FxRateInput } from "@/engine/fx";
+import { convertMinor, type FxRateInput } from "@/engine/fx";
 import type { Currency } from "@/engine/money";
 import { netWorth, type AccountBalanceRow } from "@/engine/networth";
 import {
@@ -104,6 +104,19 @@ export default async function InvestmentsPage() {
       account.currency,
       rates,
     );
+    let cashMinor: number | null = null;
+    if (balance.ok) {
+      try {
+        cashMinor = convertMinor(
+          balance.balanceMinor,
+          balance.currency as Currency,
+          account.currency as Currency,
+          rates,
+        );
+      } catch {
+        // A cash balance in another currency is unknown without matching FX.
+      }
+    }
     const priceEvidenceComplete = account.holdings.every(
       (holding) =>
         holding.priceCurrency !== null &&
@@ -112,18 +125,18 @@ export default async function InvestmentsPage() {
     );
     const fallbackCurrentValueMinor =
       hasSetupData &&
-      balance.ok &&
+      cashMinor !== null &&
       valuation.complete &&
       valuation.assumedCurrency.length === 0 &&
       priceEvidenceComplete
-        ? balance.balanceMinor + valuation.valueMinor
+        ? cashMinor + valuation.valueMinor
         : null;
 
     return {
       account,
       hasSetupData,
       fallbackCurrentValueMinor,
-      cashMinor: balance.ok ? balance.balanceMinor : null,
+      cashMinor,
     };
   });
 
