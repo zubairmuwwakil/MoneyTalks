@@ -1,48 +1,141 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import { PUT } from "./route";
+import { GET, PUT } from "./route";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
 
 vi.mock("@/lib/require-user", () => ({ getSessionUserId: vi.fn() }));
-vi.mock("@/lib/prisma", () => ({ prisma: { ownerStateRecord: { upsert: vi.fn() } } }));
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    ownerStateRecord: { findUnique: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
+    creditCard: { findMany: vi.fn() },
+  },
+}));
+
+const valuations = {
+  amexMembershipRewards: { centsPerPoint: 1, floorCentsPerPoint: 1 },
+  marriottBonvoy: { centsPerPoint: 0.8, low: 0.6, high: 1 },
+  mbnaRewards: { centsPerPoint: 1, floorCentsPerPoint: 0.833333 },
+  ctMoney: { cadPerUnit: 1, optionalUsabilityFactor: 0.95, usabilityFactorApplied: true },
+  cro: { model: "reward-currency", faceValueFactorIfAutoSold: 1, defaultHeldRiskFactor: 0.8 },
+  cashBack: { cadPerDollar: 1 },
+};
 
 const state = {
   ownerStateVersion: "wallet-setup-1", ownedCardIds: ["amex-cobalt"], defaultCardId: "amex-cobalt",
   switchThreshold: { minAdvantagePercentagePoints: 0.5, minAdvantageCad: 0.25, semantics: "both" },
   carry: { drawerCards: [] }, cardStates: { "amex-cobalt": { capProgress: { cap: 0 } } },
-  valuationsCad: {
-    amexMembershipRewards: { centsPerPoint: 1, floorCentsPerPoint: 1 },
-    marriottBonvoy: { centsPerPoint: 0.8, low: 0.6, high: 1 },
-    mbnaRewards: { centsPerPoint: 1, floorCentsPerPoint: 0.833333 },
-    ctMoney: { cadPerUnit: 1, optionalUsabilityFactor: 0.95, usabilityFactorApplied: true },
-    cro: { model: "reward-currency", faceValueFactorIfAutoSold: 1, defaultHeldRiskFactor: 0.8 },
-    cashBack: { cadPerDollar: 1 },
-  },
+  valuationsCad: valuations,
 };
 
+const put = (body: unknown) =>
+  PUT(new NextRequest("http://localhost/api/spine/owner-state", { method: "PUT", body: JSON.stringify(body) }));
+
+const stored = (stateData: unknown, updatedAt = new Date("2026-08-17T12:00:00Z")) =>
+  ({ userId: "user-1", stateData, updatedAt } as never);
+
 describe("PUT /api/spine/owner-state", () => {
-  beforeEach(() => { vi.resetAllMocks(); vi.mocked(getSessionUserId).mockResolvedValue("user-1"); });
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(getSessionUserId).mockResolvedValue("user-1");
+  });
 
   it("requires a Clerk session", async () => {
     vi.mocked(getSessionUserId).mockResolvedValue(null);
-    expect((await PUT(new NextRequest("http://localhost/api/spine/owner-state", { method: "PUT", body: JSON.stringify(state) }))).status).toBe(401);
+    expect((await put(state)).status).toBe(401);
   });
 
   it("rejects a state whose default card is not owned", async () => {
-    const response = await PUT(new NextRequest("http://localhost/api/spine/owner-state", {
-      method: "PUT", body: JSON.stringify({ ...state, defaultCardId: "not-owned" }),
-    }));
+    const response = await put({ ...state, defaultCardId: "not-owned" });
     expect(response.status).toBe(400);
-    expect(prisma.ownerStateRecord.upsert).not.toHaveBeenCalled();
+    expect(prisma.ownerStateRecord.create).not.toHaveBeenCalled();
+    expect(prisma.ownerStateRecord.updateMany).not.toHaveBeenCalled();
   });
 
-  it("upserts the validated signed-in user's state", async () => {
-    vi.mocked(prisma.ownerStateRecord.upsert).mockResolvedValue({ stateData: state, updatedAt: new Date("2026-08-17T12:00:00Z") } as never);
-    const response = await PUT(new NextRequest("http://localhost/api/spine/owner-state", { method: "PUT", body: JSON.stringify(state) }));
+  it("creates the record when the user has none", async () => {
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.ownerStateRecord.create).mockResolvedValue(stored(state));
+    expect((await put(state)).status).toBe(200);
+    expect(prisma.ownerStateRecord.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ userId: "user-1" }) }),
+    );
+  });
+
+  // The regression this endpoint's merge exists for: PickMe saving its wallet
+  // used to replace stateData wholesale, silently un-owning every card the
+  // phone did not happen to have and discarding web-authored answers.
+  it("merges into the stored wallet instead of replacing it", async () => {
+    vi.mocked(prisma.ownerStateRecord.findUnique)
+      .mockResolvedValueOnce(stored({
+        ...state,
+        ownedCardIds: ["amex-cobalt", "td-aeroplan-visa-infinite"],
+        cardStates: { "tangerine-moneyback-world": { selectedCategories: ["groceries"] } },
+      }))
+      .mockResolvedValueOnce(stored(state, new Date("2026-08-19T12:00:00Z")));
+    vi.mocked(prisma.ownerStateRecord.updateMany).mockResolvedValue({ count: 1 } as never);
+
+    expect((await put(state)).status).toBe(200);
+
+    const written = (vi.mocked(prisma.ownerStateRecord.updateMany).mock.calls[0][0].data as {
+      stateData: { ownedCardIds: string[]; cardStates: Record<string, unknown> };
+    }).stateData;
+    expect(written.ownedCardIds).toEqual(["amex-cobalt", "td-aeroplan-visa-infinite"]);
+    expect(written.cardStates["tangerine-moneyback-world"]).toEqual({ selectedCategories: ["groceries"] });
+  });
+
+  it("guards the write on the version it read", async () => {
+    const readAt = new Date("2026-08-17T12:00:00Z");
+    vi.mocked(prisma.ownerStateRecord.findUnique)
+      .mockResolvedValueOnce(stored(state, readAt))
+      .mockResolvedValueOnce(stored(state, readAt));
+    vi.mocked(prisma.ownerStateRecord.updateMany).mockResolvedValue({ count: 1 } as never);
+    await put(state);
+    expect(prisma.ownerStateRecord.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "user-1", updatedAt: readAt } }),
+    );
+  });
+
+  it("re-reads and retries when another writer landed first", async () => {
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(stored(state));
+    vi.mocked(prisma.ownerStateRecord.updateMany)
+      .mockResolvedValueOnce({ count: 0 } as never)
+      .mockResolvedValueOnce({ count: 1 } as never);
+    expect((await put(state)).status).toBe(200);
+    expect(prisma.ownerStateRecord.updateMany).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports a conflict rather than success when contention never clears", async () => {
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(stored(state));
+    vi.mocked(prisma.ownerStateRecord.updateMany).mockResolvedValue({ count: 0 } as never);
+    expect((await put(state)).status).toBe(409);
+  });
+});
+
+describe("GET /api/spine/owner-state", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(getSessionUserId).mockResolvedValue("user-1");
+  });
+
+  it("requires a Clerk session", async () => {
+    vi.mocked(getSessionUserId).mockResolvedValue(null);
+    expect((await GET()).status).toBe(401);
+  });
+
+  // A user with no catalogue-linked cards is a real answer, not a failure:
+  // PickMe must show its own empty picker rather than an error.
+  it("returns a null wallet rather than an error when there is nothing to send", async () => {
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.creditCard.findMany).mockResolvedValue([] as never);
+    const response = await GET();
     expect(response.status).toBe(200);
-    expect(prisma.ownerStateRecord.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      where: { userId: "user-1" }, create: expect.objectContaining({ userId: "user-1" }),
-    }));
+    expect(await response.json()).toEqual({ ownerState: null, updatedAt: null });
+  });
+
+  it("returns the stored wallet so a fresh install does not re-enter it", async () => {
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(stored(state));
+    vi.mocked(prisma.creditCard.findMany).mockResolvedValue([] as never);
+    expect((await GET()).status).toBe(200);
+    expect((await (await GET()).json()).ownerState).toEqual(state);
   });
 });

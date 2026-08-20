@@ -172,3 +172,72 @@ export async function ensureOwnerStateRecord(db: OwnerStateDb, userId: string) {
     return db.ownerStateRecord.findUnique({ where: { userId } });
   }
 }
+
+// ---------------------------------------------------------------------------
+// The two-writer merge (ratified 2026-08-19).
+//
+// PickMe and the web both author owner state. `PUT /api/spine/owner-state`
+// used to `upsert` `stateData` wholesale, which is a last-writer-wins replace
+// with no conflict detection — correct for one writer, silently lossy for
+// two. A card set or a condition answer authored on the web disappeared the
+// next time the phone saved its wallet.
+//
+// The policy below extends reconcileOwnedCards' asymmetry from one field to
+// the whole object, for the same reason it was right there: an addition is
+// provable from data the writer can see, a removal never is.
+//
+//   ownedCardIds  union, stored order first — a writer that cannot see a card
+//                 is not evidence the card was sold.
+//   cardStates    merged per CARD, not per field. A card the incoming writer
+//                 never mentioned keeps its stored answers; a card it did
+//                 mention is replaced entirely, so clearing an answer (the
+//                 user un-ticking "Rogers service linked") still works.
+//   everything    last writer wins. switchThreshold, valuationsCad, carry and
+//   else          ownerStateVersion are whole-object preferences, not a set
+//                 union — averaging two of them would produce a third setting
+//                 neither client asked for.
+//   defaultCardId incoming, if the union can honour it; else the stored one;
+//                 else the first owned id. Never left dangling.
+// ---------------------------------------------------------------------------
+
+type MergeableOwnerState = {
+  ownedCardIds: string[];
+  defaultCardId: string;
+  cardStates: Record<string, unknown>;
+};
+
+function extractCardStates(stateData: unknown): Record<string, unknown> {
+  if (stateData === null || typeof stateData !== "object" || Array.isArray(stateData)) return {};
+  const { cardStates } = stateData as Record<string, unknown>;
+  if (cardStates === null || typeof cardStates !== "object" || Array.isArray(cardStates)) return {};
+  return cardStates as Record<string, unknown>;
+}
+
+export function mergeOwnerState<T extends MergeableOwnerState>(stored: unknown, incoming: T): T {
+  const prior = extractOwnedIds(stored as Prisma.JsonValue);
+  // Unusable stored data is treated as absent rather than fatal — the same
+  // posture extractOwnedIds already takes for a corrupt record. Refusing the
+  // write instead would strand a user behind data they cannot reach to fix.
+  if (!prior) return incoming;
+
+  const ownedCardIds: string[] = [];
+  const seen = new Set<string>();
+  for (const id of [...prior.ownedCardIds, ...incoming.ownedCardIds]) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    ownedCardIds.push(id);
+  }
+
+  const defaultCardId = seen.has(incoming.defaultCardId)
+    ? incoming.defaultCardId
+    : seen.has(prior.defaultCardId)
+      ? prior.defaultCardId
+      : ownedCardIds[0];
+
+  return {
+    ...incoming,
+    ownedCardIds,
+    defaultCardId,
+    cardStates: { ...extractCardStates(stored), ...incoming.cardStates },
+  };
+}

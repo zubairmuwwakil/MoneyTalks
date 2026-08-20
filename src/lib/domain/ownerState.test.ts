@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { RecommendationEngine, Catalogue } from "@/engine/cards-twin";
-import { defaultOwnerState, ensureOwnerStateRecord } from "./ownerState";
+import { defaultOwnerState, ensureOwnerStateRecord, mergeOwnerState } from "./ownerState";
 
 const catalogue = JSON.parse(
   fs.readFileSync(path.resolve(process.cwd(), "contracts/card-catalogue.json"), "utf-8"),
@@ -247,5 +247,82 @@ describe("ensureOwnerStateRecord", () => {
     const result = await ensureOwnerStateRecord(db as any, "user-1");
 
     expect(result).toBe(concurrentlyWritten);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mergeOwnerState — the two-writer contract (ratified 2026-08-19).
+//
+// PickMe and the web both author owner state. Before this existed, the iOS
+// PUT replaced `stateData` wholesale, so a card set or a condition answer
+// authored on the web vanished the next time the phone saved its wallet.
+// ---------------------------------------------------------------------------
+describe("mergeOwnerState", () => {
+  const base = {
+    ownerStateVersion: "wallet-setup-1",
+    ownedCardIds: ["amex-cobalt"],
+    defaultCardId: "amex-cobalt",
+    switchThreshold: { minAdvantagePercentagePoints: 0.5, minAdvantageCad: 0.25, semantics: "both" as const },
+    carry: { drawerCards: [] },
+    cardStates: {} as Record<string, unknown>,
+    valuationsCad: { cashBack: { cadPerDollar: 1 } },
+  };
+
+  it("returns the incoming state unchanged when nothing is stored", () => {
+    expect(mergeOwnerState(null, base)).toEqual(base);
+  });
+
+  it("unions owned cards and never drops one the writer could not see", () => {
+    const stored = { ...base, ownedCardIds: ["amex-cobalt", "td-aeroplan-visa-infinite"] };
+    const incoming = { ...base, ownedCardIds: ["amex-cobalt", "rogers-red-we"] };
+    expect(mergeOwnerState(stored, incoming).ownedCardIds).toEqual([
+      "amex-cobalt", "td-aeroplan-visa-infinite", "rogers-red-we",
+    ]);
+  });
+
+  it("keeps a card state the incoming writer never mentioned", () => {
+    const stored = {
+      ...base,
+      ownedCardIds: ["amex-cobalt", "tangerine-moneyback-world"],
+      cardStates: {
+        "tangerine-moneyback-world": { selectedCategories: ["groceries", "gas"] },
+        "amex-cobalt": { capProgress: { "cobalt-eats-cap": 100 } },
+      } as Record<string, unknown>,
+    };
+    const incoming = {
+      ...base,
+      cardStates: { "amex-cobalt": { capProgress: { "cobalt-eats-cap": 250 } } } as Record<string, unknown>,
+    };
+    const merged = mergeOwnerState(stored, incoming);
+    expect(merged.cardStates["tangerine-moneyback-world"]).toEqual({ selectedCategories: ["groceries", "gas"] });
+    expect(merged.cardStates["amex-cobalt"]).toEqual({ capProgress: { "cobalt-eats-cap": 250 } });
+  });
+
+  it("lets the incoming writer clear a field on a card it did mention", () => {
+    const stored = { ...base, cardStates: { "rogers-red-we": { rogersEligibleServiceLinked: true } } as Record<string, unknown> };
+    const incoming = { ...base, cardStates: { "rogers-red-we": {} } as Record<string, unknown> };
+    expect(mergeOwnerState(stored, incoming).cardStates["rogers-red-we"]).toEqual({});
+  });
+
+  it("takes the incoming settings wholesale — last writer wins off the card set", () => {
+    const stored = { ...base, switchThreshold: { minAdvantagePercentagePoints: 9, minAdvantageCad: 9, semantics: "either" as const } };
+    const incoming = { ...base, switchThreshold: { minAdvantagePercentagePoints: 0.5, minAdvantageCad: 0.25, semantics: "both" as const } };
+    expect(mergeOwnerState(stored, incoming).switchThreshold).toEqual(incoming.switchThreshold);
+  });
+
+  it("keeps the default card inside the union", () => {
+    const stored = { ...base, ownedCardIds: ["amex-cobalt"], defaultCardId: "amex-cobalt" };
+    const incoming = { ...base, ownedCardIds: ["rogers-red-we"], defaultCardId: "rogers-red-we" };
+    expect(mergeOwnerState(stored, incoming).defaultCardId).toBe("rogers-red-we");
+  });
+
+  it("repoints a default that the union cannot honour rather than storing a dangling id", () => {
+    const stored = { ...base, ownedCardIds: ["amex-cobalt"] };
+    const incoming = { ...base, ownedCardIds: ["amex-cobalt"], defaultCardId: "sold-this-one" };
+    expect(mergeOwnerState(stored, incoming).defaultCardId).toBe("amex-cobalt");
+  });
+
+  it("treats unusable stored data as absent instead of throwing", () => {
+    expect(mergeOwnerState("not an object" as never, base)).toEqual(base);
   });
 });
