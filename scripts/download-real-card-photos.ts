@@ -8,6 +8,10 @@ if (!fs.existsSync(outputDir)) {
 
 // Verified high-res transparent card photography URLs
 const CARD_IMAGE_URLS: Record<string, string> = {
+  "amex-cobalt": "https://icm.aexp-static.com/Internet/internationalcardshop/en_ca/images/cards/American_Express_Cobalt_Card.png",
+  "amex-simplycash": "https://icm.aexp-static.com/Internet/internationalcardshop/en_ca/images/cards/SimplyCash_Card.png",
+  "amex-platinum": "https://kqphqqvkrdovtyhdapud.supabase.co/storage/v1/object/public/media/2020/06/AmexPlatinumCard.png",
+  "amex-bonvoy": "https://milesopedia.com/wp-content/uploads/2020/09/carte-de-credit-marriot-bonvoy.png",
   "scotia-gold-amex": "https://milesopedia.com/wp-content/uploads/2026/02/Scotiabank-Amex-Gold-new-02-2026-EN-1.png",
   "scotia-momentum-vi-plus": "https://milesopedia.com/wp-content/uploads/2026/05/Momentum-Infinite-Plus-Chip-E-RGB-1.png",
   "scotia-passport-visa-infinite-plus": "https://milesopedia.com/wp-content/uploads/2026/05/SB-Visa-Infinite-Plus-chip-E-PMS-0326.png",
@@ -25,8 +29,6 @@ const CARD_IMAGE_URLS: Record<string, string> = {
   "cibc-aventura-visa": "https://milesopedia.com/wp-content/uploads/2021/09/CIBC_Dividend_Visa_classic_front_eng.png",
   "rbc-avion-visa-infinite": "https://kqphqqvkrdovtyhdapud.supabase.co/storage/v1/object/public/media/2020/11/RBC-Avion.png",
   "rbc-ion-plus-visa": "https://milesopedia.com/wp-content/uploads/2024/06/RBC_AvionRewards_ION_Card_FRONT_RGB_ENG.webp",
-  "amex-platinum": "https://kqphqqvkrdovtyhdapud.supabase.co/storage/v1/object/public/media/2020/06/AmexPlatinumCard.png",
-  "amex-bonvoy": "https://milesopedia.com/wp-content/uploads/2020/09/carte-de-credit-marriot-bonvoy.png",
   "westjet-rbc-world-elite": "https://milesopedia.com/wp-content/uploads/2025/08/WestJet-RBC-World-Elite-Mastercard-for-Business-EN.png",
   "tangerine-moneyback-world": "https://milesopedia.com/wp-content/uploads/2026/04/tangerine-rewards-world-elite-mastercard.png",
 };

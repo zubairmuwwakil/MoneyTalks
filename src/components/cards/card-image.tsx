@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { getCardArtworkUrl } from "@/lib/cards/cardArt";
 import { getCardBranding } from "@/lib/cards/cardPresentation";
@@ -50,28 +50,43 @@ export function CardImage({
   className = "",
   priority = false,
 }: CardImageProps) {
-  const artworkUrl = getCardArtworkUrl(contractCardId, customUrl);
-  const [currentSrc, setCurrentSrc] = useState<string | null>(artworkUrl);
+  const initialUrl = getCardArtworkUrl(contractCardId, customUrl);
+  const [currentSrc, setCurrentSrc] = useState<string | null>(initialUrl);
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [triedFallback, setTriedFallback] = useState(false);
+  const [fallbackStep, setFallbackStep] = useState(0);
 
   const branding = getCardBranding(network, issuer, nickname, contractCardId);
   const sizeConfig = SIZE_CONFIGS[size];
 
-  // Update currentSrc when contractCardId / customUrl changes
-  const targetUrl = getCardArtworkUrl(contractCardId, customUrl);
-  if (targetUrl !== artworkUrl && targetUrl !== currentSrc && !triedFallback) {
-    setCurrentSrc(targetUrl);
+  // Sync state whenever card selection changes
+  useEffect(() => {
+    const nextUrl = getCardArtworkUrl(contractCardId, customUrl);
+    setCurrentSrc(nextUrl);
     setHasError(false);
     setIsLoaded(false);
-  }
+    setFallbackStep(0);
+  }, [contractCardId, customUrl]);
 
   const handleImageError = () => {
-    if (!triedFallback && contractCardId) {
-      setTriedFallback(true);
-      // Fallback to local static asset
-      setCurrentSrc(`/cards/${contractCardId.trim().toLowerCase()}.svg`);
+    const cardId = contractCardId?.trim().toLowerCase();
+    if (!cardId) {
+      setHasError(true);
+      return;
+    }
+
+    if (fallbackStep === 0) {
+      // Step 1: try local .webp (real photo)
+      setFallbackStep(1);
+      setCurrentSrc(`/cards/${cardId}.webp`);
+    } else if (fallbackStep === 1) {
+      // Step 2: try local .png (real photo)
+      setFallbackStep(2);
+      setCurrentSrc(`/cards/${cardId}.png`);
+    } else if (fallbackStep === 2) {
+      // Step 3: try local .svg
+      setFallbackStep(3);
+      setCurrentSrc(`/cards/${cardId}.svg`);
     } else {
       setHasError(true);
     }
