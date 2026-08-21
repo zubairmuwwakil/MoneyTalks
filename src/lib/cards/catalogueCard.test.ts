@@ -6,6 +6,8 @@ import {
   effectiveAnnualFeeMinor,
   feeWaiverNote,
   catalogueChoices,
+  getCardPerksSummary,
+  POPULAR_CARD_IDS,
 } from "./catalogueCard";
 
 describe("catalogueCard", () => {
@@ -112,3 +114,25 @@ describe("catalogueChoices", () => {
     expect(new Set(issuers).size).toBe(issuers.filter((v, i) => issuers[i - 1] !== v).length);
   });
 });
+
+describe("getCardPerksSummary", () => {
+  it("extracts top multipliers, zero fx, credits, and waiver details for cards", () => {
+    const cobalt = getCardPerksSummary("amex-cobalt");
+    expect(cobalt).not.toBeNull();
+    expect(cobalt?.programName).toBe("Membership Rewards");
+    expect(cobalt?.topMultipliers.length).toBeGreaterThan(0);
+    expect(cobalt?.topMultipliers[0].earnText).toBe("5x");
+
+    const scotiaPassport = getCardPerksSummary("scotia-passport-visa-infinite-plus");
+    expect(scotiaPassport?.hasZeroFx).toBe(true);
+
+    const amexPlat = getCardPerksSummary("amex-platinum");
+    expect(amexPlat?.credits.length).toBe(2);
+  });
+
+  it("returns null for non-existent card ID or null", () => {
+    expect(getCardPerksSummary(null)).toBeNull();
+    expect(getCardPerksSummary("not-a-card")).toBeNull();
+  });
+});
+

@@ -87,6 +87,99 @@ export interface CatalogueChoice {
   annualFeeMinor: number;
 }
 
+export interface CardPerksSummary {
+  programName: string;
+  programUnit: string;
+  topMultipliers: Array<{ earnText: string; categoryText: string }>;
+  credits: Array<{ label: string; valueCad: number; period: string }>;
+  fxRatePct: number;
+  hasZeroFx: boolean;
+  waiverNote: string | null;
+}
+
+const PROGRAM_DISPLAY_NAMES: Record<string, string> = {
+  amexMembershipRewards: "Membership Rewards",
+  aeroplan: "Aeroplan",
+  scotiaScenePlus: "Scene+ Rewards",
+  rbcAvion: "RBC Avion Rewards",
+  cibcRewards: "CIBC Rewards",
+  bmoRewards: "BMO Rewards",
+  tdRewards: "TD Rewards",
+  rogersBank: "Rogers Cash Back",
+  tangerineCashback: "Tangerine Cash Back",
+  triangleRewards: "Triangle Rewards",
+  mbnaRewards: "MBNA Rewards",
+  pcOptimum: "PC Optimum",
+  cashback: "Cash Back",
+  marriottBonvoy: "Marriott Bonvoy",
+};
+
+export function getCardPerksSummary(contractCardId: string | null | undefined): CardPerksSummary | null {
+  const card = catalogueCard(contractCardId);
+  if (!card) return null;
+
+  const topMultipliers: Array<{ earnText: string; categoryText: string }> = [];
+  for (const rule of card.earnRules) {
+    let earnText = "";
+    if (rule.earn.type === "points") {
+      earnText = `${rule.earn.pointsPerCad}x`;
+    } else if (rule.earn.type === "cashback") {
+      const ratePct = rule.earn.rate * 100;
+      earnText = `${ratePct % 1 === 0 ? ratePct.toFixed(0) : ratePct.toFixed(1)}%`;
+    } else if (rule.earn.type === "centsPerLitre") {
+      earnText = `${rule.earn.premiumCentsPerLitre ?? rule.earn.otherCentsPerLitre ?? 0}¢/L`;
+    }
+
+    const cats = rule.predicate.categories ?? [];
+    const categoryText = cats.length > 0
+      ? cats.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(", ")
+      : "All spend";
+
+    topMultipliers.push({ earnText, categoryText });
+  }
+
+  // Sort multipliers so highest rates appear first
+  topMultipliers.sort((a, b) => {
+    const numA = parseFloat(a.earnText) || 0;
+    const numB = parseFloat(b.earnText) || 0;
+    return numB - numA;
+  });
+
+  const credits = (card.credits ?? []).map(c => ({
+    label: c.label,
+    valueCad: c.valueCad,
+    period: c.period === "calendarMonth" ? "month" : "year",
+  }));
+
+  const fxRate = card.fxRules[0]?.rate ?? 0.025;
+  const fxRatePct = Math.round(fxRate * 1000) / 10;
+  const hasZeroFx = fxRate === 0;
+
+  const rawProg = card.program.programId;
+  const programName = PROGRAM_DISPLAY_NAMES[rawProg] ?? (rawProg.charAt(0).toUpperCase() + rawProg.slice(1));
+
+  return {
+    programName,
+    programUnit: card.program.unit === "cashback" ? "Cash Back" : "Points",
+    topMultipliers: topMultipliers.slice(0, 4),
+    credits,
+    fxRatePct,
+    hasZeroFx,
+    waiverNote: card.fee.waiver ?? null,
+  };
+}
+
+export const POPULAR_CARD_IDS = [
+  "amex-cobalt",
+  "scotia-gold-amex",
+  "td-aeroplan-vi",
+  "rogers-red-we",
+  "tangerine-money-back-we",
+  "amex-platinum",
+  "scotia-passport-visa-infinite-plus",
+  "rbc-avion-vi",
+];
+
 /// The add-card picker's options. Deliberately carries identity and fee only —
 /// no rates, caps or multipliers are ever copied onto a user's row, because
 /// copying them is precisely how the two rate models diverged in the first place.
@@ -103,3 +196,4 @@ export function catalogueChoices(): CatalogueChoice[] {
       a.issuer === b.issuer ? a.officialName.localeCompare(b.officialName) : a.issuer.localeCompare(b.issuer),
     );
 }
+

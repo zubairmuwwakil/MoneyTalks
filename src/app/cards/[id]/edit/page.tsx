@@ -32,7 +32,7 @@ export default async function EditCardPage({ params }: { params: Promise<{ id: s
   };
 
   return (
-    <main className="max-w-5xl space-y-6 py-6 sm:py-8">
+    <main className="max-w-6xl mx-auto space-y-6 py-6 sm:py-8">
       <div>
         <Link
           href={`/cards/${card.id}`}
@@ -42,9 +42,8 @@ export default async function EditCardPage({ params }: { params: Promise<{ id: s
           <span>Back to Card</span>
         </Link>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Edit {card.nickname}</h1>
-        <p className="text-sm text-muted-foreground">
-          Update the details specific to your copy of this card. Its rates, caps and credits come
-          from the shared catalogue.
+        <p className="mt-1 text-sm text-muted-foreground">
+          Update your nickname, fee rebates, renewal schedule, and account settings.
         </p>
       </div>
 

@@ -8,7 +8,7 @@ export default async function NewCardPage() {
   await requireUserId();
 
   return (
-    <main className="max-w-5xl space-y-6 py-6 sm:py-8">
+    <main className="max-w-6xl mx-auto space-y-6 py-6 sm:py-8">
       <div>
         <Link
           href="/cards"
@@ -17,9 +17,9 @@ export default async function NewCardPage() {
           <ArrowLeft className="size-3.5" />
           <span>Back to Wallet</span>
         </Link>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Add card</h1>
-        <p className="text-sm text-muted-foreground">
-          Pick your card from the shared catalogue — its rates, caps and credits come with it, identical to PickMe — then add the details that are specific to your copy.
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Add Card</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Choose your card from our verified catalogue to instantly unlock real-time reward multipliers, fee schedules, and perk tracking.
         </p>
       </div>
 
@@ -29,3 +29,4 @@ export default async function NewCardPage() {
     </main>
   );
 }
+
