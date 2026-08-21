@@ -1,12 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { bulkUpdateCardRenewalDates } from "./actions";
+import { bulkUpdateCardRenewalDates, createCard } from "./actions";
 
 vi.mock("@/lib/require-user", () => ({ requireUserId: vi.fn(async () => "user-1") }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT:${url}`);
+  }),
+}));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    creditCard: { updateMany: vi.fn(), findFirst: vi.fn() },
+    creditCard: {
+      updateMany: vi.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+    },
   },
 }));
 
@@ -55,5 +66,97 @@ describe("bulkUpdateCardRenewalDates", () => {
   it("returns error for empty list", async () => {
     const result = await bulkUpdateCardRenewalDates([]);
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("createCard nickname derivation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.creditCard.create).mockResolvedValue({ id: "card-new" } as never);
+  });
+
+  function formData(nickname = "Amex Cobalt") {
+    const fd = new FormData();
+    fd.set(
+      "cardJson",
+      JSON.stringify({
+        nickname,
+        issuer: "American Express",
+        network: "AMEX",
+        contractCardId: "amex-cobalt",
+      }),
+    );
+    return fd;
+  }
+
+  /** createCard redirects on success, and redirect() throws by design. */
+  async function run(fd: FormData) {
+    try {
+      return { state: await createCard({}, fd), redirected: false };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.startsWith("NEXT_REDIRECT:")) return { state: null, redirected: true };
+      throw error;
+    }
+  }
+
+  function savedNickname(): string {
+    const call = vi.mocked(prisma.creditCard.create).mock.calls[0]?.[0] as
+      | { data: { nickname: string } }
+      | undefined;
+    return call?.data.nickname ?? "";
+  }
+
+  it("uses the catalogue name when the owner has no card by that name", async () => {
+    vi.mocked(prisma.creditCard.findMany).mockResolvedValue([] as never);
+
+    const result = await run(formData());
+
+    expect(result.redirected).toBe(true);
+    expect(savedNickname()).toBe("Amex Cobalt");
+  });
+
+  it("adds a second copy of a card the owner already holds", async () => {
+    vi.mocked(prisma.creditCard.findMany).mockResolvedValue([{ nickname: "Amex Cobalt" }] as never);
+
+    const result = await run(formData());
+
+    expect(result.redirected).toBe(true);
+    expect(savedNickname()).toBe("Amex Cobalt (2)");
+  });
+
+  it("keeps counting past the second copy", async () => {
+    vi.mocked(prisma.creditCard.findMany).mockResolvedValue([
+      { nickname: "Amex Cobalt" },
+      { nickname: "Amex Cobalt (2)" },
+    ] as never);
+
+    const result = await run(formData());
+
+    expect(result.redirected).toBe(true);
+    expect(savedNickname()).toBe("Amex Cobalt (3)");
+  });
+
+  it("does not mistake a longer card name for a copy", async () => {
+    vi.mocked(prisma.creditCard.findMany).mockResolvedValue([
+      { nickname: "Amex Cobalt Gold" },
+    ] as never);
+
+    const result = await run(formData());
+
+    expect(result.redirected).toBe(true);
+    expect(savedNickname()).toBe("Amex Cobalt");
+  });
+
+  it("reports a visible error when the write loses a race, never a hidden field error", async () => {
+    vi.mocked(prisma.creditCard.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.creditCard.create).mockRejectedValue({ code: "P2002" } as never);
+
+    const result = await run(formData());
+
+    expect(result.redirected).toBe(false);
+    // Create mode renders no nickname input, so an error parked only on that
+    // field would be invisible: the owner would tap Add and see nothing happen.
+    expect(result.state?.error).toBeTruthy();
   });
 });

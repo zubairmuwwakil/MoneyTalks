@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
-import { ownerStateInput } from "@/lib/validation/owner-state";
+import { ownerStateForWire, ownerStateInput } from "@/lib/validation/owner-state";
 import { ensureOwnerStateRecord, mergeOwnerState } from "@/lib/domain/ownerState";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export async function GET() {
   // rather than an error state.
   if (!record) return NextResponse.json({ ownerState: null, updatedAt: null });
   return NextResponse.json({
-    ownerState: record.stateData,
+    ownerState: ownerStateForWire(record.stateData),
     updatedAt: record.updatedAt.toISOString(),
   });
 }
@@ -54,7 +54,10 @@ export async function PUT(req: NextRequest) {
           data: { userId, stateData: parsed.data as unknown as Prisma.InputJsonValue },
           select: { stateData: true, updatedAt: true },
         });
-        return NextResponse.json({ ownerState: created.stateData, updatedAt: created.updatedAt.toISOString() });
+        return NextResponse.json({
+          ownerState: ownerStateForWire(created.stateData),
+          updatedAt: created.updatedAt.toISOString(),
+        });
       } catch {
         // A concurrent request created the row first (userId is unique). Fall
         // through to the next attempt, which will find it and merge into it —
@@ -77,7 +80,7 @@ export async function PUT(req: NextRequest) {
         select: { stateData: true, updatedAt: true },
       });
       return NextResponse.json({
-        ownerState: latest?.stateData ?? merged,
+        ownerState: ownerStateForWire(latest?.stateData ?? merged),
         updatedAt: (latest?.updatedAt ?? new Date()).toISOString(),
       });
     }

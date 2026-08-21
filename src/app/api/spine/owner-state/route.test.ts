@@ -28,6 +28,21 @@ const state = {
   valuationsCad: valuations,
 };
 
+const modernPrograms = {
+  amexMembershipRewards: { model: "points", centsPerPoint: 1, floorCentsPerPoint: 1 },
+  marriottBonvoy: { model: "points", centsPerPoint: 0.8, low: 0.6, high: 1 },
+  mbnaRewards: { model: "points", centsPerPoint: 1, floorCentsPerPoint: 0.833333 },
+  ctMoney: { model: "ctMoney", cadPerUnit: 1, optionalUsabilityFactor: 0.95, usabilityFactorApplied: true },
+  cro: {
+    model: "cro", redemptionModel: "reward-currency",
+    faceValueFactorIfAutoSold: 1, defaultHeldRiskFactor: 0.8,
+  },
+  cashback: { model: "cashback", cadPerDollar: 1 },
+  aeroplan: { model: "points", centsPerPoint: 1.5 },
+};
+
+const modernState = { ...state, valuationsCad: { programs: modernPrograms } };
+
 const put = (body: unknown) =>
   PUT(new NextRequest("http://localhost/api/spine/owner-state", { method: "PUT", body: JSON.stringify(body) }));
 
@@ -59,6 +74,26 @@ describe("PUT /api/spine/owner-state", () => {
     expect(prisma.ownerStateRecord.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ userId: "user-1" }) }),
     );
+  });
+
+  it("accepts PickMe's modern program dictionary without dropping newer programs", async () => {
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.ownerStateRecord.create).mockResolvedValue(stored(modernState));
+
+    expect((await put(modernState)).status).toBe(200);
+
+    const written = (vi.mocked(prisma.ownerStateRecord.create).mock.calls[0][0].data as {
+      stateData: {
+        valuationsCad: {
+          programs: Record<string, unknown>;
+          cro: { model: string };
+          cashBack: { cadPerDollar: number };
+        };
+      };
+    }).stateData.valuationsCad;
+    expect(written.programs.aeroplan).toEqual(modernPrograms.aeroplan);
+    expect(written.cro.model).toBe("reward-currency");
+    expect(written.cashBack.cadPerDollar).toBe(1);
   });
 
   // The regression this endpoint's merge exists for: PickMe saving its wallet
@@ -132,10 +167,40 @@ describe("GET /api/spine/owner-state", () => {
     expect(await response.json()).toEqual({ ownerState: null, updatedAt: null });
   });
 
-  it("returns the stored wallet so a fresh install does not re-enter it", async () => {
+  it("returns the stored wallet in PickMe's modern valuation shape", async () => {
     vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(stored(state));
     vi.mocked(prisma.creditCard.findMany).mockResolvedValue([] as never);
-    expect((await GET()).status).toBe(200);
-    expect((await (await GET()).json()).ownerState).toEqual(state);
+    const response = await GET();
+    expect(response.status).toBe(200);
+    const ownerState = (await response.json()).ownerState;
+    expect(ownerState).toEqual({
+      ...state,
+      valuationsCad: { programs: modernProgramsWithoutAeroplan() },
+    });
+  });
+
+  it("normalizes records that already use the renamed CRO redemption field", async () => {
+    const renamedCroState = {
+      ...state,
+      valuationsCad: {
+        ...valuations,
+        cro: {
+          redemptionModel: "reward-currency",
+          faceValueFactorIfAutoSold: 1,
+          defaultHeldRiskFactor: 0.8,
+        },
+        rogersEligibleServiceRedemption: { redemptionFactor: 1.5 },
+      },
+    };
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(stored(renamedCroState));
+    vi.mocked(prisma.creditCard.findMany).mockResolvedValue([] as never);
+
+    const ownerState = (await (await GET()).json()).ownerState;
+    expect(ownerState.valuationsCad.programs.cro).toEqual(modernPrograms.cro);
+    expect(ownerState.valuationsCad.rogersEligibleServiceRedemption).toBeUndefined();
   });
 });
+
+function modernProgramsWithoutAeroplan() {
+  return Object.fromEntries(Object.entries(modernPrograms).filter(([programId]) => programId !== "aeroplan"));
+}
