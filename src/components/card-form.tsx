@@ -170,46 +170,34 @@ export function CardForm({
       <input type="hidden" name="network" value={values.network} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* ─── Left Column: Card Selection & Details ───────────────── */}
+        {/* ─── Left Column: Form Controls ─────────────────────────── */}
         <div className="lg:col-span-7 space-y-6">
           
-          {/* Section 1: Card Selection */}
-          <section className="scroll-mt-20 rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-2xs space-y-4">
-            <div>
-              <h2 className="text-base font-bold tracking-tight text-foreground">
-                1. Select Card
-              </h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Choose your card from our verified catalogue to unlock real-time reward rates and perk tracking.
-              </p>
-            </div>
+          {mode === "create" ? (
+            /* ─── Create Mode: Clean, fast card selection ────────── */
+            <section className="scroll-mt-20 rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-2xs space-y-5">
+              <div>
+                <h2 className="text-base font-bold tracking-tight text-foreground">
+                  Select Card
+                </h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Choose your card from our verified catalogue to unlock real-time reward rates and perk tracking.
+                </p>
+              </div>
 
-            <CardPicker
-              choices={choices}
-              value={values.contractCardId}
-              onChange={selectCatalogueCard}
-            />
-            {fieldError("contractCardId") ? (
-              <p ref={firstErrorRef} className="mt-1.5 text-xs font-semibold text-destructive">
-                {fieldError("contractCardId")}
-              </p>
-            ) : null}
-          </section>
+              <CardPicker
+                choices={choices}
+                value={values.contractCardId}
+                onChange={selectCatalogueCard}
+              />
+              {fieldError("contractCardId") ? (
+                <p ref={firstErrorRef} className="mt-1 text-xs font-semibold text-destructive">
+                  {fieldError("contractCardId")}
+                </p>
+              ) : null}
 
-          {/* Section 2: Card Details */}
-          <section className="scroll-mt-20 rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-2xs space-y-5">
-            <div>
-              <h2 className="text-base font-bold tracking-tight text-foreground">
-                2. Card Details
-              </h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Customize your card nickname, fee schedule, and banking rebates.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {/* Nickname */}
-              <div className="sm:col-span-2">
+              {/* Nickname (Pre-filled on selection, customizable) */}
+              <div className="pt-2 border-t border-border/60">
                 <label className={labelBase} htmlFor="nickname">
                   Card Nickname
                   {nicknameAutoFilled && (
@@ -228,208 +216,247 @@ export function CardForm({
                     if (nicknameAutoFilled) setNicknameAutoFilled(false);
                   }}
                   onBlur={() => handleBlur("nickname")}
-                  placeholder="e.g. Cobalt, Everyday Groceries"
+                  placeholder="e.g. Cobalt, Main Groceries"
                 />
                 {fieldError("nickname") ? (
                   <p className="mt-1 text-xs text-destructive">{fieldError("nickname")}</p>
-                ) : null}
-              </div>
-
-              {/* Annual fee */}
-              <div>
-                <label className={labelBase} htmlFor="annualFee">
-                  Annual Fee (CAD)
-                  {selected && (
-                    <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">(verified catalogue)</span>
-                  )}
-                </label>
-                <input
-                  id="annualFee"
-                  name="annualFee"
-                  className={`${inputBase} ${selected ? "bg-muted/40 text-foreground font-medium" : ""}`}
-                  inputMode="decimal"
-                  value={values.annualFee}
-                  onChange={(event) => set("annualFee", event.target.value)}
-                  readOnly={Boolean(selected)}
-                  placeholder="0.00"
-                />
-              </div>
-
-              {/* Fee rebate */}
-              <div>
-                <label className={labelBase} htmlFor="feeRebate">
-                  Bank Fee Rebate (CAD)
-                  <span className="ml-1 text-[10px] font-normal text-muted-foreground">optional</span>
-                </label>
-                <input
-                  id="feeRebate"
-                  name="feeRebate"
-                  className={`${inputBase} ${fieldError("feeRebate") ? "border-destructive ring-destructive/20" : ""}`}
-                  inputMode="decimal"
-                  value={values.feeRebate}
-                  onChange={(event) => set("feeRebate", event.target.value)}
-                  onBlur={() => handleBlur("feeRebate")}
-                  placeholder="0.00"
-                />
-                {fieldError("feeRebate") ? (
-                  <p className="mt-1 text-xs text-destructive">{fieldError("feeRebate")}</p>
                 ) : (
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    If your bank package waives or rebates this fee.
+                    How this card will be identified throughout your wallet.
                   </p>
                 )}
               </div>
-
-              {/* Fee month-day */}
-              <div>
-                <label className={labelBase} htmlFor="feeMonthDay">
-                  Annual Fee Renewal Date
-                  <span className="ml-1 text-[10px] font-normal text-muted-foreground">optional</span>
-                </label>
-                <input
-                  id="feeMonthDay"
-                  name="feeMonthDay"
-                  className={`${inputBase} ${fieldError("feeMonthDay") ? "border-destructive ring-destructive/20" : ""}`}
-                  value={values.feeMonthDay}
-                  onChange={(event) => set("feeMonthDay", event.target.value)}
-                  onBlur={() => handleBlur("feeMonthDay")}
-                  placeholder="e.g. 03-15 (MM-DD)"
-                />
-                {fieldError("feeMonthDay") ? (
-                  <p className="mt-1 text-xs text-destructive">{fieldError("feeMonthDay")}</p>
-                ) : (
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    MM-DD format for fee renewal alerts.
+            </section>
+          ) : (
+            /* ─── Edit Mode: Full Card Customization ─────────────── */
+            <>
+              <section className="scroll-mt-20 rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-2xs space-y-5">
+                <div>
+                  <h2 className="text-base font-bold tracking-tight text-foreground">
+                    Card & Billing Details
+                  </h2>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Update your card nickname, fee schedule, and banking rebates.
                   </p>
-                )}
-              </div>
+                </div>
 
-              {/* Cancellation Grace Days */}
-              <div>
-                <label className={labelBase} htmlFor="feeCancelGraceDays">
-                  Grace Period to Cancel (Days)
-                </label>
-                <input
-                  id="feeCancelGraceDays"
-                  name="feeCancelGraceDays"
-                  className={inputBase}
-                  inputMode="numeric"
-                  value={values.feeCancelGraceDays}
-                  onChange={(event) => set("feeCancelGraceDays", event.target.value)}
-                  placeholder="30"
-                />
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Days after fee posts to cancel without penalty.
-                </p>
-              </div>
-            </div>
-
-            {/* ─── Optional Account Details Accordion ───────────────── */}
-            <div className="border-t border-border/60 pt-4">
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-semibold text-foreground/80 hover:text-foreground hover:bg-muted/60 transition-colors -ml-2 cursor-pointer"
-                onClick={() => setShowOptional((open) => !open)}
-              >
-                <ChevronDown
-                  className={`size-3.5 transition-transform duration-200 ${showOptional ? "rotate-180" : ""}`}
-                />
-                <span>
-                  {showOptional
-                    ? "Hide additional account details"
-                    : "Add optional account details (last 4 digits, credit limit, due date)"}
-                </span>
-              </button>
-
-              {showOptional ? (
-                <div className="grid gap-4 sm:grid-cols-2 mt-4 animate-in fade-in slide-in-from-top-1 duration-200">
-                  <div>
-                    <label className={labelBase} htmlFor="lastFour">
-                      Last Four Digits
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {/* Nickname */}
+                  <div className="sm:col-span-2">
+                    <label className={labelBase} htmlFor="nickname">
+                      Card Nickname
                     </label>
                     <input
-                      id="lastFour"
-                      name="lastFour"
-                      className={`${inputBase} ${fieldError("lastFour") ? "border-destructive ring-destructive/20" : ""}`}
-                      inputMode="numeric"
-                      maxLength={4}
-                      value={values.lastFour}
-                      onChange={(event) => set("lastFour", event.target.value)}
-                      onBlur={() => handleBlur("lastFour")}
-                      placeholder="e.g. 1234"
+                      id="nickname"
+                      name="nickname"
+                      className={`${inputBase} ${fieldError("nickname") ? "border-destructive ring-destructive/20" : ""}`}
+                      value={values.nickname}
+                      onChange={(event) => set("nickname", event.target.value)}
+                      onBlur={() => handleBlur("nickname")}
+                      placeholder="e.g. Cobalt, Everyday Groceries"
                     />
-                    {fieldError("lastFour") ? (
-                      <p className="mt-1 text-xs text-destructive">{fieldError("lastFour")}</p>
+                    {fieldError("nickname") ? (
+                      <p className="mt-1 text-xs text-destructive">{fieldError("nickname")}</p>
+                    ) : null}
+                  </div>
+
+                  {/* Annual fee */}
+                  <div>
+                    <label className={labelBase} htmlFor="annualFee">
+                      Annual Fee (CAD)
+                      {selected && (
+                        <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">(verified catalogue)</span>
+                      )}
+                    </label>
+                    <input
+                      id="annualFee"
+                      name="annualFee"
+                      className={`${inputBase} ${selected ? "bg-muted/40 text-foreground font-medium" : ""}`}
+                      inputMode="decimal"
+                      value={values.annualFee}
+                      onChange={(event) => set("annualFee", event.target.value)}
+                      readOnly={Boolean(selected)}
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  {/* Fee rebate */}
+                  <div>
+                    <label className={labelBase} htmlFor="feeRebate">
+                      Bank Fee Rebate (CAD)
+                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">optional</span>
+                    </label>
+                    <input
+                      id="feeRebate"
+                      name="feeRebate"
+                      className={`${inputBase} ${fieldError("feeRebate") ? "border-destructive ring-destructive/20" : ""}`}
+                      inputMode="decimal"
+                      value={values.feeRebate}
+                      onChange={(event) => set("feeRebate", event.target.value)}
+                      onBlur={() => handleBlur("feeRebate")}
+                      placeholder="0.00"
+                    />
+                    {fieldError("feeRebate") ? (
+                      <p className="mt-1 text-xs text-destructive">{fieldError("feeRebate")}</p>
                     ) : (
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        Embossed live on your card preview.
+                        If your bank package waives or rebates this fee.
                       </p>
                     )}
                   </div>
 
+                  {/* Fee month-day */}
                   <div>
-                    <label className={labelBase} htmlFor="limit">
-                      Credit Limit (CAD)
+                    <label className={labelBase} htmlFor="feeMonthDay">
+                      Annual Fee Renewal Date
+                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">optional</span>
                     </label>
                     <input
-                      id="limit"
-                      name="limit"
-                      className={inputBase}
-                      inputMode="decimal"
-                      value={values.limit}
-                      onChange={(event) => set("limit", event.target.value)}
-                      placeholder="e.g. 10000"
+                      id="feeMonthDay"
+                      name="feeMonthDay"
+                      className={`${inputBase} ${fieldError("feeMonthDay") ? "border-destructive ring-destructive/20" : ""}`}
+                      value={values.feeMonthDay}
+                      onChange={(event) => set("feeMonthDay", event.target.value)}
+                      onBlur={() => handleBlur("feeMonthDay")}
+                      placeholder="e.g. 03-15 (MM-DD)"
                     />
+                    {fieldError("feeMonthDay") ? (
+                      <p className="mt-1 text-xs text-destructive">{fieldError("feeMonthDay")}</p>
+                    ) : (
+                      <p className="mt-1 text-[11px] text-muted-foreground">
+                        MM-DD format for fee renewal alerts.
+                      </p>
+                    )}
                   </div>
 
+                  {/* Cancellation Grace Days */}
                   <div>
-                    <label className={labelBase} htmlFor="statementDay">
-                      Statement Closing Day (1–28)
+                    <label className={labelBase} htmlFor="feeCancelGraceDays">
+                      Grace Period to Cancel (Days)
                     </label>
                     <input
-                      id="statementDay"
-                      name="statementDay"
+                      id="feeCancelGraceDays"
+                      name="feeCancelGraceDays"
                       className={inputBase}
                       inputMode="numeric"
-                      value={values.statementDay}
-                      onChange={(event) => set("statementDay", event.target.value)}
-                      placeholder="e.g. 15"
+                      value={values.feeCancelGraceDays}
+                      onChange={(event) => set("feeCancelGraceDays", event.target.value)}
+                      placeholder="30"
                     />
-                  </div>
-
-                  <div>
-                    <label className={labelBase} htmlFor="dueDay">
-                      Payment Due Day (1–28)
-                    </label>
-                    <input
-                      id="dueDay"
-                      name="dueDay"
-                      className={inputBase}
-                      inputMode="numeric"
-                      value={values.dueDay}
-                      onChange={(event) => set("dueDay", event.target.value)}
-                      placeholder="e.g. 5"
-                    />
-                  </div>
-
-                  <div>
-                    <label className={labelBase} htmlFor="aprPct">
-                      Purchase APR (%)
-                    </label>
-                    <input
-                      id="aprPct"
-                      name="aprPct"
-                      className={inputBase}
-                      inputMode="decimal"
-                      value={values.aprPct}
-                      onChange={(event) => set("aprPct", event.target.value)}
-                      placeholder="e.g. 20.99"
-                    />
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Days after fee posts to cancel without penalty.
+                    </p>
                   </div>
                 </div>
-              ) : null}
-            </div>
-          </section>
+
+                {/* ─── Optional Account Details Accordion ───────────────── */}
+                <div className="border-t border-border/60 pt-4">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-semibold text-foreground/80 hover:text-foreground hover:bg-muted/60 transition-colors -ml-2 cursor-pointer"
+                    onClick={() => setShowOptional((open) => !open)}
+                  >
+                    <ChevronDown
+                      className={`size-3.5 transition-transform duration-200 ${showOptional ? "rotate-180" : ""}`}
+                    />
+                    <span>
+                      {showOptional
+                        ? "Hide additional account details"
+                        : "Add optional account details (last 4 digits, credit limit, due date)"}
+                    </span>
+                  </button>
+
+                  {showOptional ? (
+                    <div className="grid gap-4 sm:grid-cols-2 mt-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <div>
+                        <label className={labelBase} htmlFor="lastFour">
+                          Last Four Digits
+                        </label>
+                        <input
+                          id="lastFour"
+                          name="lastFour"
+                          className={`${inputBase} ${fieldError("lastFour") ? "border-destructive ring-destructive/20" : ""}`}
+                          inputMode="numeric"
+                          maxLength={4}
+                          value={values.lastFour}
+                          onChange={(event) => set("lastFour", event.target.value)}
+                          onBlur={() => handleBlur("lastFour")}
+                          placeholder="e.g. 1234"
+                        />
+                        {fieldError("lastFour") ? (
+                          <p className="mt-1 text-xs text-destructive">{fieldError("lastFour")}</p>
+                        ) : (
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            Embossed live on your card preview.
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className={labelBase} htmlFor="limit">
+                          Credit Limit (CAD)
+                        </label>
+                        <input
+                          id="limit"
+                          name="limit"
+                          className={inputBase}
+                          inputMode="decimal"
+                          value={values.limit}
+                          onChange={(event) => set("limit", event.target.value)}
+                          placeholder="e.g. 10000"
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelBase} htmlFor="statementDay">
+                          Statement Closing Day (1–28)
+                        </label>
+                        <input
+                          id="statementDay"
+                          name="statementDay"
+                          className={inputBase}
+                          inputMode="numeric"
+                          value={values.statementDay}
+                          onChange={(event) => set("statementDay", event.target.value)}
+                          placeholder="e.g. 15"
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelBase} htmlFor="dueDay">
+                          Payment Due Day (1–28)
+                        </label>
+                        <input
+                          id="dueDay"
+                          name="dueDay"
+                          className={inputBase}
+                          inputMode="numeric"
+                          value={values.dueDay}
+                          onChange={(event) => set("dueDay", event.target.value)}
+                          placeholder="e.g. 5"
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelBase} htmlFor="aprPct">
+                          Purchase APR (%)
+                        </label>
+                        <input
+                          id="aprPct"
+                          name="aprPct"
+                          className={inputBase}
+                          inputMode="decimal"
+                          value={values.aprPct}
+                          onChange={(event) => set("aprPct", event.target.value)}
+                          placeholder="e.g. 20.99"
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+            </>
+          )}
 
           {/* Form-level error */}
           {state.error ? (
@@ -562,18 +589,32 @@ export function CardForm({
                 </div>
               )}
 
-              {/* Real-time Net Fee Calculation */}
-              <div className="rounded-xl border border-border/60 bg-muted/30 p-3 flex items-center justify-between text-xs">
-                <div className="space-y-0.5">
-                  <span className="font-medium text-foreground">Effective Net Annual Fee</span>
-                  <p className="text-[10px] text-muted-foreground">
-                    ${annualFeeNum.toFixed(2)} fee - ${rebateNum.toFixed(2)} rebate
-                  </p>
+              {/* Fee Summary */}
+              {mode === "edit" ? (
+                <div className="rounded-xl border border-border/60 bg-muted/30 p-3 flex items-center justify-between text-xs">
+                  <div className="space-y-0.5">
+                    <span className="font-medium text-foreground">Effective Net Annual Fee</span>
+                    <p className="text-[10px] text-muted-foreground">
+                      ${annualFeeNum.toFixed(2)} fee - ${rebateNum.toFixed(2)} rebate
+                    </p>
+                  </div>
+                  <span className="font-bold text-base text-foreground tabular-nums">
+                    ${netFeeNum.toFixed(2)}/yr
+                  </span>
                 </div>
-                <span className="font-bold text-base text-foreground tabular-nums">
-                  ${netFeeNum.toFixed(2)}/yr
-                </span>
-              </div>
+              ) : (
+                <div className="rounded-xl border border-border/60 bg-muted/30 p-3 flex items-center justify-between text-xs">
+                  <div className="space-y-0.5">
+                    <span className="font-medium text-foreground">Published Annual Fee</span>
+                    <p className="text-[10px] text-muted-foreground">
+                      Verified from card catalogue
+                    </p>
+                  </div>
+                  <span className="font-bold text-sm text-foreground tabular-nums">
+                    {annualFeeNum === 0 ? "No Annual Fee" : `$${annualFeeNum.toFixed(2)}/yr`}
+                  </span>
+                </div>
+              )}
 
               {perks.waiverNote && (
                 <p className="text-[11px] text-muted-foreground border-t border-border/50 pt-2.5">
