@@ -8,7 +8,6 @@ import {
   CreditCard,
   Info,
   LogOut,
-  PlusCircle,
   RefreshCw,
   ShieldAlert,
   Sparkles,
@@ -17,14 +16,14 @@ import {
 } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
 import { refreshFxRates } from "@/app/actions/refresh";
-import { NetWorthSparkline } from "@/components/net-worth-sparkline";
+import { NetWorthHistory } from "@/components/net-worth-history";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { accountBalanceWithCurrency, holdingsValuation } from "@/engine/balance";
 import { billOccurrences } from "@/engine/billforecast";
 import { MissingFxRateError, type FxRateInput } from "@/engine/fx";
 import { formatMinorUnits, type Currency } from "@/engine/money";
-import { netWorth, netWorthSeries, type SnapshotRow } from "@/engine/networth";
+import { netWorth } from "@/engine/networth";
 import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
 import { ALL_RULES, applyDismissals, evaluateRules } from "@/engine/rules";
 import { prisma } from "@/lib/prisma";
@@ -32,6 +31,7 @@ import { getOrCreateProfile } from "@/lib/profile";
 import { getOptionalUser } from "@/lib/require-user";
 import { MarketingContent } from "@/components/marketing/marketing-content";
 import { buildSnapshot } from "@/lib/snapshot";
+import { buildNetWorthHistory } from "@/lib/domain/net-worth/netWorthHistory";
 import { cn } from "@/lib/utils";
 
 const CURRENCIES: Currency[] = ["CAD", "USD", "JMD"];
@@ -58,7 +58,23 @@ export default async function Home({
   const [accounts, fxRates] = await Promise.all([
     prisma.financialAccount.findMany({
       where: { userId },
-      include: { transactions: true, snapshots: true, holdings: true },
+      include: {
+        transactions: true,
+        snapshots: true,
+        holdings: true,
+        investmentSnapshots: {
+          select: {
+            asOf: true,
+            createdAt: true,
+            currency: true,
+            totalMinor: true,
+            displayCurrency: true,
+            displayTotalMinor: true,
+            status: true,
+          },
+          orderBy: { asOf: "asc" },
+        },
+      },
       orderBy: { name: "asc" },
     }),
     prisma.fxRate.findMany({ where: { userId } }),
@@ -140,25 +156,31 @@ export default async function Home({
       ? `Balance unavailable for ${unavailableRows.map((row) => row.name).join(", ")}. Add a balance snapshot before net worth can be computed.`
       : null;
 
-  const snapshotRows: SnapshotRow[] = accounts.flatMap((a) =>
-    a.snapshots.map((s) => ({
-      accountId: a.id,
-      balanceMinor: s.balanceMinor,
-      currency: s.currency as Currency,
-      asOf: s.asOf.toISOString(),
-    })),
-  );
   const todayDate = new Date();
   const today = todayDate.toISOString().slice(0, 10);
-  const from = new Date(todayDate.getTime() - 89 * 86_400_000)
-    .toISOString()
-    .slice(0, 10);
-  let series: Array<{ date: string; totalMinor: number }> = [];
-  try {
-    series = netWorthSeries(snapshotRows, display, rates, from, today);
-  } catch {
-    // Missing FX rate for a historical snapshot: the optional sparkline is unavailable.
-  }
+  const history = buildNetWorthHistory(
+    accounts.map((account) => ({
+      id: account.id,
+      name: account.name,
+      trackingFrom: account.createdAt.toISOString(),
+      hasSetupData:
+        account.holdings.length > 0 ||
+        account.transactions.length > 0 ||
+        account.snapshots.length > 0,
+      snapshots: account.investmentSnapshots.map((snapshot) => ({
+        asOf: snapshot.asOf.toISOString(),
+        capturedAt: snapshot.createdAt.toISOString(),
+        currency: snapshot.currency as Currency,
+        totalMinor: snapshot.totalMinor,
+        displayCurrency: snapshot.displayCurrency as Currency,
+        displayTotalMinor: snapshot.displayTotalMinor,
+        status: snapshot.status,
+      })),
+    })),
+    display,
+    rates,
+    todayDate,
+  );
 
   const [profile, dismissals, bills, dueCards] = await Promise.all([
     getOrCreateProfile(userId),
@@ -420,7 +442,7 @@ export default async function Home({
         </CardHeader>
 
         <CardContent className="pt-2">
-          <NetWorthSparkline data={series} currency={display} />
+          <NetWorthHistory view={history} currency={display} />
         </CardContent>
       </Card>
 
