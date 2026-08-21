@@ -89,7 +89,7 @@ async function uploadFile(fileName: string, fileData: Buffer, mimeType: string) 
       "x-amz-content-sha256": payloadHash,
       Authorization: authorizationHeader,
     },
-    body: fileData,
+    body: new Uint8Array(fileData),
   });
 
   if (!response.ok) {
