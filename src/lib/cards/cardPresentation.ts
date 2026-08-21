@@ -1,5 +1,4 @@
 import { cardCatalogue, benefitsCatalogue, type CardProduct } from "@/lib/contracts/cardCatalogue";
-import type { FeeScheduleCard } from "./feeSchedule";
 
 export interface EarnHighlight {
   label: string;

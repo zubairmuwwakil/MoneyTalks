@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Edit2, Shield, Gift, Sparkles, AlertCircle, FileSpreadsheet } from "lucide-react";
+import { ChevronRight, Edit2, Shield, Gift, AlertCircle, FileSpreadsheet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatMinorUnits, type Currency } from "@/engine/money";
 import { FeeCycleNote } from "@/components/fee-cycle-note";
@@ -10,7 +10,7 @@ import {
   getCardInsuranceHighlights,
 } from "@/lib/cards/cardPresentation";
 import { catalogueCard, catalogueCredits } from "@/lib/cards/catalogueCard";
-import type { CardCredit } from "@/lib/contracts/cardCatalogue";
+import { CardImage } from "@/components/cards/card-image";
 
 export interface CardTileData {
   id: string;
@@ -56,27 +56,42 @@ export function CardTile({
       {/* Top Identity Row */}
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href={`/cards/${card.id}`}
-                className="font-bold text-base text-foreground tracking-tight hover:underline underline-offset-2 flex items-center gap-1.5"
-              >
-                <span>{card.nickname}</span>
-                <ChevronRight className="size-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-              </Link>
-              <Badge variant="outline" className={`text-[10px] font-mono font-semibold ${branding.badgeClass}`}>
-                {card.network}
-              </Badge>
-              {card.lastFour ? (
-                <span className="text-[11px] font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
-                  •••• {card.lastFour}
-                </span>
-              ) : null}
+          <div className="flex items-start gap-3 min-w-0">
+            <Link
+              href={`/cards/${card.id}`}
+              className="shrink-0 transition-transform group-hover:scale-105"
+            >
+              <CardImage
+                contractCardId={card.contractCardId}
+                nickname={card.nickname}
+                issuer={card.issuer}
+                network={card.network}
+                lastFour={card.lastFour}
+                size="avatar"
+              />
+            </Link>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href={`/cards/${card.id}`}
+                  className="font-bold text-base text-foreground tracking-tight hover:underline underline-offset-2 flex items-center gap-1.5"
+                >
+                  <span className="truncate">{card.nickname}</span>
+                  <ChevronRight className="size-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                </Link>
+                <Badge variant="outline" className={`text-[10px] font-mono font-semibold ${branding.badgeClass}`}>
+                  {card.network}
+                </Badge>
+                {card.lastFour ? (
+                  <span className="text-[11px] font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+                    •••• {card.lastFour}
+                  </span>
+                ) : null}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                {card.issuer} {product?.kind ? `· ${product.kind} card` : ""}
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {card.issuer} {product?.kind ? `· ${product.kind} card` : ""}
-            </p>
           </div>
 
           {/* Annual Fee & Renewal Status */}

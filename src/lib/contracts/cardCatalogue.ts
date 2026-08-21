@@ -170,6 +170,7 @@ const cardProductSchema = annotatedObject({
   redemptionFactors: z.array(z.unknown()).optional(),
   // Optional: absence means the card grants no credits, never "unknown".
   credits: z.array(cardCreditSchema).optional(),
+  imageUrl: z.string().optional(),
 });
 
 export const cardCatalogueSchema = annotatedObject({

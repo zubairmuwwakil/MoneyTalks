@@ -6,6 +6,7 @@ import { createCard, updateCard, type CardFormState } from "@/app/cards/actions"
 import type { CatalogueChoice } from "@/lib/cards/catalogueCard";
 import { minorToDollarInput } from "@/engine/money";
 import type { Network } from "@/lib/cards/types";
+import { CardImage } from "@/components/cards/card-image";
 
 /**
  * What the hub lets you edit about a card: YOUR copy of it.
@@ -155,7 +156,39 @@ export function CardForm({
           <p className="mt-1 text-xs text-destructive">{fieldError("contractCardId")}</p>
         ) : null}
 
-        {selected ? null : (
+        {selected ? (
+          <div className="mt-4 rounded-xl border border-border/80 bg-muted/20 p-4 sm:p-5 flex flex-col sm:flex-row items-center sm:items-start gap-4">
+            <CardImage
+              contractCardId={values.contractCardId}
+              nickname={values.nickname || selected.officialName}
+              issuer={values.issuer}
+              network={values.network}
+              lastFour={values.lastFour}
+              size="preview"
+              priority
+            />
+            <div className="flex-1 space-y-2 text-center sm:text-left">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5">
+                <span className="text-xs font-bold text-foreground">{selected.officialName}</span>
+                <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                  {values.network}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Official card identity from verified catalogue. Published annual fee:{" "}
+                <span className="font-semibold text-foreground">${values.annualFee}/yr</span>
+              </p>
+              <div className="pt-1 flex flex-wrap justify-center sm:justify-start gap-1.5">
+                <span className="inline-flex items-center rounded-md bg-background px-2 py-0.5 text-[11px] font-medium text-foreground border border-border/70 shadow-2xs">
+                  ✓ Verified Rewards
+                </span>
+                <span className="inline-flex items-center rounded-md bg-background px-2 py-0.5 text-[11px] font-medium text-foreground border border-border/70 shadow-2xs">
+                  ✓ Instant Scoring
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : (
           <p className="mt-3 text-xs text-muted-foreground">
             Can&apos;t find your card?{" "}
             <Link href="/cards/request" className="underline underline-offset-2">

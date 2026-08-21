@@ -19,6 +19,7 @@ import type { CardDef } from "@/lib/cards/types";
 import { formatMinorUnits, minorToDollarInput, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
+import { CardImage } from "@/components/cards/card-image";
 
 const inputStyle =
   "flex h-8 rounded-lg border border-input bg-background px-2.5 py-1 text-xs shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring";
@@ -100,39 +101,62 @@ export default async function CardDetailPage({
           <span>Back to Wallet</span>
         </Link>
 
-        <header className="space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{card.nickname}</h1>
-              <Badge variant="outline" className="text-xs font-mono">
-                {card.network}
-              </Badge>
+        <header className="rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/20 p-5 sm:p-6 shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6">
+            <div className="shrink-0 w-full max-w-[280px] sm:max-w-[320px]">
+              <CardImage
+                contractCardId={card.contractCardId}
+                nickname={card.nickname}
+                issuer={card.issuer}
+                network={card.network}
+                lastFour={card.lastFour}
+                size="hero"
+                priority
+              />
             </div>
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/cards/${card.id}/edit`} className="flex items-center gap-1.5">
-                <Edit2 className="size-3" />
-                <span>Edit card</span>
-              </Link>
-            </Button>
+
+            <div className="flex-1 min-w-0 w-full space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{card.nickname}</h1>
+                  <Badge variant="outline" className="text-xs font-mono font-bold">
+                    {card.network}
+                  </Badge>
+                  {card.lastFour ? (
+                    <span className="text-xs font-mono text-muted-foreground bg-muted/80 px-2 py-0.5 rounded">
+                      •••• {card.lastFour}
+                    </span>
+                  ) : null}
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/cards/${card.id}/edit`} className="flex items-center gap-1.5">
+                    <Edit2 className="size-3" />
+                    <span>Edit card</span>
+                  </Link>
+                </Button>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                {card.issuer} {product?.kind ? `· ${product.kind} card` : ""} · effective fee{" "}
+                <span className="font-semibold text-foreground">{formatMinorUnits(effectiveFee, "CAD")}/yr</span>
+                {effectiveFee !== card.annualFeeMinor
+                  ? ` (published ${formatMinorUnits(card.annualFeeMinor, "CAD")})`
+                  : ""}
+              </p>
+
+              {feeCycle ? (
+                <FeeCycleNote cycle={feeCycle} today={now} currency={card.currency as Currency} className="mt-1 block" />
+              ) : effectiveFee > 0 && !card.feeMonthDay ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  No renewal date set —{" "}
+                  <Link href={`/cards/${card.id}/edit`} className="underline underline-offset-2">
+                    add one
+                  </Link>{" "}
+                  to see how long you have to cancel.
+                </p>
+              ) : null}
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {card.issuer} - {card.network}
-            {card.lastFour ? ` - ...${card.lastFour}` : ""} - effective fee {formatMinorUnits(effectiveFee, "CAD")}/yr
-            {effectiveFee !== card.annualFeeMinor
-              ? ` (published ${formatMinorUnits(card.annualFeeMinor, "CAD")})`
-              : ""}
-          </p>
-          {feeCycle ? (
-            <FeeCycleNote cycle={feeCycle} today={now} currency={card.currency as Currency} className="mt-1 block" />
-          ) : effectiveFee > 0 && !card.feeMonthDay ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              No renewal date set —{" "}
-              <Link href={`/cards/${card.id}/edit`} className="underline underline-offset-2">
-                add one
-              </Link>{" "}
-              to see how long you have to cancel.
-            </p>
-          ) : null}
         </header>
       </div>
 
