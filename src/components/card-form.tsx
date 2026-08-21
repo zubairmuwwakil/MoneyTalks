@@ -134,22 +134,21 @@ export function CardForm({
   function selectCatalogueCard(contractCardId: string) {
     const choice = choices.find((c) => c.contractCardId === contractCardId);
     if (!choice) {
-      set("contractCardId", "");
-      setNicknameAutoFilled(false);
+      setValues((current) => ({
+        ...current,
+        contractCardId: "",
+        nickname: mode === "create" ? "" : current.nickname,
+      }));
       return;
     }
-    setValues((current) => {
-      const willAutoFill = current.nickname.trim() === "" || nicknameAutoFilled;
-      if (willAutoFill) setNicknameAutoFilled(true);
-      return {
-        ...current,
-        contractCardId: choice.contractCardId,
-        issuer: choice.issuer,
-        network: choice.network,
-        annualFee: minorToDollarInput(choice.annualFeeMinor),
-        nickname: willAutoFill ? choice.officialName : current.nickname,
-      };
-    });
+    setValues((current) => ({
+      ...current,
+      contractCardId: choice.contractCardId,
+      issuer: choice.issuer,
+      network: choice.network,
+      annualFee: minorToDollarInput(choice.annualFeeMinor),
+      nickname: mode === "create" ? choice.officialName : (current.nickname.trim() === "" ? choice.officialName : current.nickname),
+    }));
   }
 
   const fieldError = (name: string) => state.fieldErrors?.[name] || blurErrors[name];
@@ -174,8 +173,8 @@ export function CardForm({
         <div className="lg:col-span-7 space-y-6">
           
           {mode === "create" ? (
-            /* ─── Create Mode: Clean, fast card selection ────────── */
-            <section className="scroll-mt-20 rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-2xs space-y-5">
+            /* ─── Create Mode: Strictly card selection ─────────── */
+            <section className="scroll-mt-20 rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-2xs space-y-4">
               <div>
                 <h2 className="text-base font-bold tracking-tight text-foreground">
                   Select Card
@@ -195,37 +194,6 @@ export function CardForm({
                   {fieldError("contractCardId")}
                 </p>
               ) : null}
-
-              {/* Nickname (Pre-filled on selection, customizable) */}
-              <div className="pt-2 border-t border-border/60">
-                <label className={labelBase} htmlFor="nickname">
-                  Card Nickname
-                  {nicknameAutoFilled && (
-                    <span className="ml-1.5 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary animate-in fade-in duration-200">
-                      Auto-filled
-                    </span>
-                  )}
-                </label>
-                <input
-                  id="nickname"
-                  name="nickname"
-                  className={`${inputBase} ${fieldError("nickname") ? "border-destructive ring-destructive/20" : ""}`}
-                  value={values.nickname}
-                  onChange={(event) => {
-                    set("nickname", event.target.value);
-                    if (nicknameAutoFilled) setNicknameAutoFilled(false);
-                  }}
-                  onBlur={() => handleBlur("nickname")}
-                  placeholder="e.g. Cobalt, Main Groceries"
-                />
-                {fieldError("nickname") ? (
-                  <p className="mt-1 text-xs text-destructive">{fieldError("nickname")}</p>
-                ) : (
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    How this card will be identified throughout your wallet.
-                  </p>
-                )}
-              </div>
             </section>
           ) : (
             /* ─── Edit Mode: Full Card Customization ─────────────── */
