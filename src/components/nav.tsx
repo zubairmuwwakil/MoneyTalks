@@ -96,11 +96,11 @@ export function Nav() {
     <>
       {/* Mobile Top Header */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border/80 bg-background/90 px-4 backdrop-blur-md sm:hidden">
-        <Link href={isSignedIn ? "/" : "/marketing"} className="flex items-center gap-2 font-bold tracking-tight">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden">
+        <Link href={isSignedIn ? "/" : "/marketing"} className="flex shrink-0 items-center gap-2 font-bold tracking-tight">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden shrink-0">
             <Image src="/icon.svg" alt="In Unity" width={20} height={20} className="size-5" />
           </div>
-          <span className="text-sm font-bold tracking-tight">In Unity</span>
+          <span className="text-sm font-bold tracking-tight whitespace-nowrap">In Unity</span>
         </Link>
         <div className="flex items-center gap-2">
           <button
@@ -163,12 +163,12 @@ export function Nav() {
           <div className="flex items-center gap-6">
             <Link
               href={isSignedIn ? "/" : "/marketing"}
-              className="flex items-center gap-2.5 font-bold tracking-tight transition-opacity hover:opacity-90"
+              className="flex shrink-0 items-center gap-2.5 font-bold tracking-tight transition-opacity hover:opacity-90"
             >
-              <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/10 text-foreground shadow-xs overflow-hidden">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/10 text-foreground shadow-xs overflow-hidden shrink-0">
                 <Image src="/icon.svg" alt="In Unity" width={24} height={24} className="size-6" />
               </div>
-              <span className="text-base font-semibold tracking-tight">In Unity</span>
+              <span className="text-base font-semibold tracking-tight whitespace-nowrap">In Unity</span>
             </Link>
 
             {/* Navigation Switcher: Public Route Header vs In-App Authenticated Header */}

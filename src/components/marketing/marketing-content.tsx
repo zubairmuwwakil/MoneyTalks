@@ -173,11 +173,11 @@ export function MarketingContent() {
 
           <div className="overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-b from-card to-muted/30 p-4 sm:p-6 shadow-xl text-left">
             <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden">
+              <div className="flex shrink-0 items-center gap-2.5">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden shrink-0">
                   <Image src="/icon.svg" alt="In Unity" width={20} height={20} className="size-5" />
                 </div>
-                <span className="font-semibold text-sm">In Unity Command Surface</span>
+                <span className="font-semibold text-sm whitespace-nowrap">In Unity Command Surface</span>
               </div>
               <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />

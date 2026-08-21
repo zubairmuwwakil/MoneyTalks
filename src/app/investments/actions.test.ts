@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { addTransaction, deleteTransaction, setCashBalance, updateTransaction } from "./actions";
+import { addTransaction, createAccount, deleteTransaction, setCashBalance, updateTransaction } from "./actions";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { recomputeSnapshotFlows } from "@/lib/domain/investments/captureInvestmentSnapshots";
@@ -25,9 +25,11 @@ vi.mock("@/lib/prisma", () => ({
     const delegates = {
     financialAccount: {
       findFirst: vi.fn(),
+      create: vi.fn(),
     },
     balanceSnapshot: {
       upsert: vi.fn(),
+      create: vi.fn(),
     },
     transaction: {
       create: vi.fn(),
@@ -51,6 +53,95 @@ vi.mock("@/lib/prisma", () => ({
     };
   })(),
 }));
+
+describe("Investment Actions - createAccount", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(requireUserId).mockResolvedValue("user-1");
+  });
+
+  it("creates an account and returns the generated account ID", async () => {
+    vi.mocked(prisma.financialAccount.create).mockResolvedValue({
+      id: "acc-new-1",
+      name: "Wealthsimple TFSA",
+      institution: "Wealthsimple",
+      type: "TFSA",
+      country: "CA",
+      currency: "CAD",
+      isUSSitus: false,
+      userId: "user-1",
+    } as never);
+
+    const formData = new FormData();
+    formData.append("name", "Wealthsimple TFSA");
+    formData.append("institution", "Wealthsimple");
+    formData.append("type", "TFSA");
+    formData.append("country", "CA");
+    formData.append("currency", "CAD");
+    formData.append("isUSSitus", "false");
+
+    const result = await createAccount(formData);
+    expect(result).toEqual({ ok: true, id: "acc-new-1" });
+    expect(prisma.financialAccount.create).toHaveBeenCalledWith({
+      data: {
+        name: "Wealthsimple TFSA",
+        institution: "Wealthsimple",
+        type: "TFSA",
+        country: "CA",
+        currency: "CAD",
+        isUSSitus: false,
+        userId: "user-1",
+      },
+    });
+  });
+
+  it("creates an initial cash balance snapshot when initialCashBalance is provided", async () => {
+    vi.mocked(prisma.financialAccount.create).mockResolvedValue({
+      id: "acc-new-2",
+      name: "Questrade RRSP",
+      institution: "Questrade",
+      type: "RRSP",
+      country: "CA",
+      currency: "CAD",
+      isUSSitus: false,
+      userId: "user-1",
+    } as never);
+    vi.mocked(prisma.balanceSnapshot.create).mockResolvedValue({} as never);
+
+    const formData = new FormData();
+    formData.append("name", "Questrade RRSP");
+    formData.append("institution", "Questrade");
+    formData.append("type", "RRSP");
+    formData.append("country", "CA");
+    formData.append("currency", "CAD");
+    formData.append("initialCashBalance", "5,000.50");
+
+    const result = await createAccount(formData);
+    expect(result).toEqual({ ok: true, id: "acc-new-2" });
+    expect(prisma.balanceSnapshot.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          accountId: "acc-new-2",
+          balanceMinor: 500050,
+          currency: "CAD",
+        }),
+      }),
+    );
+  });
+
+  it("rejects invalid initial cash balance string", async () => {
+    const formData = new FormData();
+    formData.append("name", "Questrade RRSP");
+    formData.append("institution", "Questrade");
+    formData.append("type", "RRSP");
+    formData.append("country", "CA");
+    formData.append("currency", "CAD");
+    formData.append("initialCashBalance", "not-a-number");
+
+    const result = await createAccount(formData);
+    expect(result.ok).toBe(false);
+  });
+});
 
 describe("Investment Actions - Smart Sync & Set Cash", () => {
   beforeEach(() => {

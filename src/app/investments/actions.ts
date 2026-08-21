@@ -14,8 +14,9 @@ import {
 import { isMarketLensConfigured } from "@/lib/services/marketlens";
 import { refreshHoldingPrices } from "@/lib/domain/investments/refreshHoldingPrices";
 import { recomputeSnapshotFlows } from "@/lib/domain/investments/captureInvestmentSnapshots";
+import { parseDollarsToMinor } from "@/engine/money";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+export type ActionResult = { ok: true; id?: string } | { ok: false; error: string };
 
 function fail(error: unknown): ActionResult {
   return { ok: false, error: error instanceof Error ? error.message : "Invalid input" };
@@ -42,14 +43,40 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const parsed = accountInput.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0]?.message);
+
+  const initialCashStr = String(formData.get("initialCashBalance") ?? "").trim();
+  let initialBalanceMinor: number | null = null;
+  if (initialCashStr) {
+    initialBalanceMinor = parseDollarsToMinor(initialCashStr);
+    if (initialBalanceMinor === null) {
+      return { ok: false, error: "Invalid initial cash balance" };
+    }
+  }
+
+  let accountId: string;
   try {
-    await prisma.financialAccount.create({ data: { ...parsed.data, userId } });
+    const created = await prisma.financialAccount.create({ data: { ...parsed.data, userId } });
+    accountId = created.id;
+
+    if (initialBalanceMinor !== null && initialBalanceMinor > 0) {
+      const now = new Date();
+      const snapshotDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), 0);
+      await prisma.balanceSnapshot.create({
+        data: {
+          accountId: created.id,
+          balanceMinor: initialBalanceMinor,
+          currency: created.currency,
+          asOf: snapshotDate,
+        },
+      });
+    }
   } catch (e) {
     return fail(e);
   }
   revalidatePath("/investments");
+  revalidatePath(`/investments/${accountId}`);
   revalidatePath("/");
-  return { ok: true };
+  return { ok: true, id: accountId };
 }
 
 export async function deleteAccount(formData: FormData): Promise<ActionResult> {
@@ -126,8 +153,6 @@ export async function addHolding(formData: FormData): Promise<ActionResult> {
   revalidatePath(`/investments/${accountId}`);
   return { ok: true };
 }
-
-import { parseDollarsToMinor } from "@/engine/money";
 
 export async function setCashBalance(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();

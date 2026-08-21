@@ -15,7 +15,7 @@ export default async function LoginPage() {
             <Image src="/icon.svg" alt="In Unity" width={40} height={40} className="size-10" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">In Unity</h1>
+            <h1 className="text-2xl font-bold tracking-tight whitespace-nowrap">In Unity</h1>
             <p className="text-xs text-muted-foreground mt-0.5">Personal finance command center</p>
           </div>
         </div>

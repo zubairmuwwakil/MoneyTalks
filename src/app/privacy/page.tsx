@@ -140,12 +140,12 @@ export default function PrivacyPolicyPage() {
         <header className="space-y-5 border-b border-border pb-8">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 font-bold tracking-tight transition-opacity hover:opacity-90"
+            className="inline-flex shrink-0 items-center gap-2 font-bold tracking-tight transition-opacity hover:opacity-90"
           >
-            <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden shrink-0">
               <img src="/icon.svg" alt="In Unity" className="size-6" />
             </div>
-            <span className="text-base font-semibold">In Unity</span>
+            <span className="text-base font-semibold whitespace-nowrap">In Unity</span>
           </Link>
 
           <div className="space-y-2">

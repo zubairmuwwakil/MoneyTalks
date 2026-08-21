@@ -411,7 +411,7 @@ export function CommandPalette() {
             <span>↵ to select</span>
             <span>esc to close</span>
           </div>
-          <span className="font-semibold text-foreground/80">In Unity Command Surface</span>
+          <span className="font-semibold text-foreground/80 whitespace-nowrap shrink-0">In Unity Command Surface</span>
         </div>
       </div>
     </div>
