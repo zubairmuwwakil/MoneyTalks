@@ -73,6 +73,49 @@ describe("cardImportEntry", () => {
     expect(cardImportEntry.safeParse({ ...good, dueDay: 31 }).success).toBe(false);
   });
 
+  it("accepts empty strings for optional fields as submitted by the browser form", () => {
+    const parsed = cardImportEntry.safeParse({
+      contractCardId: "amex-platinum",
+      nickname: "The Platinum Card from American Express",
+      issuer: "American Express Canada",
+      network: "AMEX",
+      lastFour: "",
+      country: "CA",
+      currency: "CAD",
+      limit: "",
+      statementDay: "",
+      dueDay: "",
+      aprPct: "",
+      annualFee: "799.00",
+      feeRebate: "0",
+      feeMonthDay: "",
+      feeCancelGraceDays: "30",
+    });
+
+    expect(parsed).toMatchObject({
+      success: true,
+      data: {
+        contractCardId: "amex-platinum",
+        nickname: "The Platinum Card from American Express",
+        issuer: "American Express Canada",
+        network: "AMEX",
+        annualFeeMinor: 79_900,
+        feeRebateMinor: 0,
+        feeCancelGraceDays: 30,
+        country: "CA",
+        currency: "CAD",
+      },
+    });
+    if (parsed.success) {
+      expect(parsed.data.lastFour).toBeUndefined();
+      expect(parsed.data.limitMinor).toBeUndefined();
+      expect(parsed.data.statementDay).toBeUndefined();
+      expect(parsed.data.dueDay).toBeUndefined();
+      expect(parsed.data.aprPct).toBeUndefined();
+      expect(parsed.data.feeMonthDay).toBeUndefined();
+    }
+  });
+
   it("rejects a fee rebate above the card's annual fee", () => {
     expect(
       cardImportEntry.safeParse({

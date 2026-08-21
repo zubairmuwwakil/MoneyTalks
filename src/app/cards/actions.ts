@@ -22,21 +22,31 @@ async function ownedCard(userId: string, cardId: string) {
   return card;
 }
 
+async function resolveUniqueNickname(userId: string, requested: string): Promise<string> {
+  const existing = await prisma.creditCard.findMany({
+    where: { userId, nickname: { startsWith: requested } },
+    select: { nickname: true },
+  });
+  const names = new Set(existing.map((c) => c.nickname));
+  if (!names.has(requested)) return requested;
+  let counter = 2;
+  while (names.has(`${requested} (${counter})`)) {
+    counter++;
+  }
+  return `${requested} (${counter})`;
+}
+
 export async function createCard(_previousState: CardFormState, formData: FormData): Promise<CardFormState> {
   const userId = await requireUserId();
   const parsed = parsedCardFromForm(formData);
   if (!parsed.success) return parsed.state;
 
   const core = parsed.data;
-  const existing = await prisma.creditCard.findUnique({
-    where: { userId_nickname: { userId, nickname: core.nickname } },
-    select: { id: true },
-  });
-  if (existing) return nicknameTakenState();
+  const nickname = await resolveUniqueNickname(userId, core.nickname);
 
   let cardId: string;
   try {
-    const card = await prisma.creditCard.create({ data: { ...core, userId }, select: { id: true } });
+    const card = await prisma.creditCard.create({ data: { ...core, nickname, userId }, select: { id: true } });
     cardId = card.id;
   } catch (error) {
     if (isUniqueConstraintError(error)) return nicknameTakenState();
@@ -117,7 +127,10 @@ function parsedCardFromForm(formData: FormData):
 }
 
 function nicknameTakenState(): CardFormState {
-  return { fieldErrors: { nickname: "You already have a card with this nickname." } };
+  return {
+    error: "You already have a card with this nickname.",
+    fieldErrors: { nickname: "You already have a card with this nickname." },
+  };
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
