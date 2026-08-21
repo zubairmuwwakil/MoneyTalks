@@ -50,15 +50,34 @@ export function CardImage({
   className = "",
   priority = false,
 }: CardImageProps) {
+  const artworkUrl = getCardArtworkUrl(contractCardId, customUrl);
+  const [currentSrc, setCurrentSrc] = useState<string | null>(artworkUrl);
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [triedFallback, setTriedFallback] = useState(false);
 
-  const artworkUrl = getCardArtworkUrl(contractCardId, customUrl);
   const branding = getCardBranding(network, issuer, nickname, contractCardId);
   const sizeConfig = SIZE_CONFIGS[size];
 
-  // If we have an artwork URL and it hasn't errored out, render Next.js Image
-  const canShowImage = Boolean(artworkUrl) && !hasError;
+  // Update currentSrc when contractCardId / customUrl changes
+  const targetUrl = getCardArtworkUrl(contractCardId, customUrl);
+  if (targetUrl !== artworkUrl && targetUrl !== currentSrc && !triedFallback) {
+    setCurrentSrc(targetUrl);
+    setHasError(false);
+    setIsLoaded(false);
+  }
+
+  const handleImageError = () => {
+    if (!triedFallback && contractCardId) {
+      setTriedFallback(true);
+      // Fallback to local static asset
+      setCurrentSrc(`/cards/${contractCardId.trim().toLowerCase()}.svg`);
+    } else {
+      setHasError(true);
+    }
+  };
+
+  const canShowImage = Boolean(currentSrc) && !hasError;
 
   return (
     <div
@@ -67,12 +86,13 @@ export function CardImage({
       } ${className}`}
       data-card-id={contractCardId || "custom"}
     >
-      {canShowImage && artworkUrl ? (
+      {canShowImage && currentSrc ? (
         <>
           <Image
-            src={artworkUrl}
+            src={currentSrc}
             alt={nickname || "Credit Card"}
             fill
+            unoptimized
             sizes={
               size === "hero"
                 ? "(max-width: 768px) 100vw, 360px"
@@ -85,7 +105,7 @@ export function CardImage({
               isLoaded ? "opacity-100" : "opacity-0"
             }`}
             onLoad={() => setIsLoaded(true)}
-            onError={() => setHasError(true)}
+            onError={handleImageError}
           />
           {/* Subtle sheen layer on top of image for physical realism */}
           <div className="absolute inset-0 bg-gradient-to-tr from-black/10 via-transparent to-white/10 pointer-events-none" />
