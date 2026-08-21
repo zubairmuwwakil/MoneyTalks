@@ -20,6 +20,7 @@ import { formatMinorUnits, minorToDollarInput, type Currency } from "@/engine/mo
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { CardImage } from "@/components/cards/card-image";
+import { CardCreatedToast } from "@/components/cards/card-created-toast";
 
 const inputStyle =
   "flex h-8 rounded-lg border border-input bg-background px-2.5 py-1 text-xs shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring";
@@ -92,6 +93,7 @@ export default async function CardDetailPage({
 
   return (
     <main className="space-y-8 py-6 sm:py-8">
+      <CardCreatedToast />
       <div>
         <Link
           href="/cards"

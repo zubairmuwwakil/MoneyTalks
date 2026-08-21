@@ -4,6 +4,7 @@ import { Nav } from "@/components/nav";
 import { CommandPalette } from "@/components/command-palette";
 import { SiteFooter } from "@/components/site-footer";
 import { SwRegister } from "@/components/sw-register";
+import { SonnerProvider } from "@/components/sonner-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -81,6 +82,7 @@ export default function RootLayout({
             {children}
           </div>
           <SiteFooter />
+          <SonnerProvider />
         </body>
       </html>
     </ClerkProvider>

@@ -44,7 +44,7 @@ export async function createCard(_previousState: CardFormState, formData: FormDa
   }
 
   revalidateCardRoutes(cardId);
-  redirect(`/cards/${cardId}`);
+  redirect(`/cards/${cardId}?created=1`);
 }
 
 export async function updateCard(_previousState: CardFormState, formData: FormData): Promise<CardFormState> {
