@@ -4,6 +4,7 @@ import { isAuthorizedCronRequest } from "@/lib/security/cronAuth";
 import { sendEmail } from "@/lib/services/email";
 import { buildDigestForUser } from "@/lib/domain/notifications/digestBuilder";
 import { claimDueDigestJobs, nextRetrySendAt, scheduleNextDigestJob } from "@/lib/domain/notifications/digestJobScheduler";
+import { sendServiceFailureAlert } from "@/lib/services/alerting";
 
 export const runtime = "nodejs";
 
@@ -66,115 +67,132 @@ async function runDigestCron(req: NextRequest) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  const appUrl = process.env.APP_URL || "http://localhost:3000";
-  const now = new Date();
+  try {
+    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    const now = new Date();
 
-  const { jobs } = await claimDueDigestJobs(25);
+    const { jobs } = await claimDueDigestJobs(25);
 
-  let sent = 0;
-  let skipped = 0;
-  let failed = 0;
-  const errors: Array<{ userId: string; jobId: string; error: string }> = [];
+    let sent = 0;
+    let skipped = 0;
+    let failed = 0;
+    const errors: Array<{ userId: string; jobId: string; error: string }> = [];
 
-  for (const job of jobs) {
-    const userId = job.userId as string;
+    for (const job of jobs) {
+      const userId = job.userId as string;
 
-    const pref = await prisma.notificationPreference.findUnique({
-      where: { userId },
-      select: { emailDigestEnabled: true, timezone: true, digestHourLocal: true, primaryEmail: true },
-    });
-
-    // If user disabled digest after job was created
-    if (!pref?.emailDigestEnabled) {
-      await prisma.notificationJob.update({
-        where: { id: job.id },
-        data: { status: "CANCELED", lockedAt: null, lockId: null },
+      const pref = await prisma.notificationPreference.findUnique({
+        where: { userId },
+        select: { emailDigestEnabled: true, timezone: true, digestHourLocal: true, primaryEmail: true },
       });
-      skipped++;
-      continue;
-    }
 
-    const to = pref.primaryEmail;
-    if (!to) {
-      await prisma.notificationJob.update({
-        where: { id: job.id },
-        data: { status: "CANCELED", lastError: "Missing primaryEmail", lockedAt: null, lockId: null },
-      });
-      skipped++;
-      continue;
-    }
+      // If user disabled digest after job was created
+      if (!pref?.emailDigestEnabled) {
+        await prisma.notificationJob.update({
+          where: { id: job.id },
+          data: { status: "CANCELED", lockedAt: null, lockId: null },
+        });
+        skipped++;
+        continue;
+      }
 
-    try {
-      const tz = pref.timezone ?? "America/Toronto";
-      const built = await buildDigestForUser(userId, now, tz);
-      if (!built) {
-        // nothing to send today — still mark sent and schedule next day
+      const to = pref.primaryEmail;
+      if (!to) {
+        await prisma.notificationJob.update({
+          where: { id: job.id },
+          data: { status: "CANCELED", lastError: "Missing primaryEmail", lockedAt: null, lockId: null },
+        });
+        skipped++;
+        continue;
+      }
+
+      try {
+        const tz = pref.timezone ?? "America/Toronto";
+        const built = await buildDigestForUser(userId, now, tz);
+        if (!built) {
+          // nothing to send today — still mark sent and schedule next day
+          await prisma.notificationJob.update({
+            where: { id: job.id },
+            data: { status: "SENT", sentAt: now, lockedAt: null, lockId: null, lastError: null },
+          });
+
+          await scheduleNextDigestJob(userId, { timezone: tz, digestHourLocal: pref.digestHourLocal }, now);
+          skipped++;
+          continue;
+        }
+
+        const { digest, notificationIds } = built;
+
+        await sendEmail({
+          to,
+          subject: digest.subject,
+          html: renderDigestEmail({ appUrl, digest }),
+        });
+
+        await prisma.notification.updateMany({
+          where: { id: { in: notificationIds } },
+          data: { emailedAt: now },
+        });
+
         await prisma.notificationJob.update({
           where: { id: job.id },
           data: { status: "SENT", sentAt: now, lockedAt: null, lockId: null, lastError: null },
         });
 
-        await scheduleNextDigestJob(userId, { timezone: tz, digestHourLocal: pref.digestHourLocal }, now);
-        skipped++;
-        continue;
+        // chain schedule the next job
+        await scheduleNextDigestJob(
+          userId,
+          { timezone: tz, digestHourLocal: pref.digestHourLocal },
+          now
+        );
+
+        sent++;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        errors.push({ userId, jobId: job.id, error: message });
+
+        // retry with backoff
+        const retryAt = nextRetrySendAt(now, job.attempts as number);
+
+        await prisma.notificationJob.update({
+          where: { id: job.id },
+          data: {
+            status: "PENDING",
+            sendAt: retryAt,
+            lastError: message,
+            lockedAt: null,
+            lockId: null,
+          },
+        });
+
+        failed++;
       }
-
-      const { digest, notificationIds } = built;
-
-      await sendEmail({
-        to,
-        subject: digest.subject,
-        html: renderDigestEmail({ appUrl, digest }),
-      });
-
-      await prisma.notification.updateMany({
-        where: { id: { in: notificationIds } },
-        data: { emailedAt: now },
-      });
-
-      await prisma.notificationJob.update({
-        where: { id: job.id },
-        data: { status: "SENT", sentAt: now, lockedAt: null, lockId: null, lastError: null },
-      });
-
-      // chain schedule the next job
-      await scheduleNextDigestJob(
-        userId,
-        { timezone: tz, digestHourLocal: pref.digestHourLocal },
-        now
-      );
-
-      sent++;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      errors.push({ userId, jobId: job.id, error: message });
-
-      // retry with backoff
-      const retryAt = nextRetrySendAt(now, job.attempts as number);
-
-      await prisma.notificationJob.update({
-        where: { id: job.id },
-        data: {
-          status: "PENDING",
-          sendAt: retryAt,
-          lastError: message,
-          lockedAt: null,
-          lockId: null,
-        },
-      });
-
-      failed++;
     }
-  }
 
-  return NextResponse.json({
-    ok: true,
-    claimed: jobs.length,
-    sent,
-    skipped,
-    failed,
-    errors,
-  });
+    if (errors.length > 0) {
+      await sendServiceFailureAlert({
+        serviceName: "cron/digest",
+        summary: `Failed to deliver ${errors.length} digest job(s)`,
+        details: { claimed: jobs.length, sent, failed, errors },
+      });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      claimed: jobs.length,
+      sent,
+      skipped,
+      failed,
+      errors,
+    });
+  } catch (error) {
+    await sendServiceFailureAlert({
+      serviceName: "cron/digest",
+      summary: "Unhandled error in digest cron sweep",
+      error,
+    });
+    return NextResponse.json({ ok: false, error: "Internal Server Error" }, { status: 500 });
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -184,3 +202,4 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   return runDigestCron(req);
 }
+

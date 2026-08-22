@@ -1,24 +1,16 @@
 import Link from "next/link";
-import {
-  AlertTriangle,
-  ArrowRight,
-  Calendar,
-  CheckCircle2,
-  ChevronRight,
-  CreditCard,
-  Info,
-  LogOut,
-  RefreshCw,
-  ShieldAlert,
-  Sparkles,
-  UploadCloud,
-  Wallet,
-} from "lucide-react";
+import { LogOut, RefreshCw } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
 import { refreshFxRates } from "@/app/actions/refresh";
 import { NetWorthHistory } from "@/components/net-worth-history";
+import {
+  DashboardPulseBarAndDrawer,
+  type DrawerAccountItem,
+  type DrawerAlertItem,
+  type DrawerBillItem,
+} from "@/components/dashboard-drawer";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { accountBalanceWithCurrency, holdingsValuation } from "@/engine/balance";
 import { billOccurrences } from "@/engine/billforecast";
 import { MissingFxRateError, type FxRateInput } from "@/engine/fx";
@@ -240,23 +232,80 @@ export default async function Home({
   const snapshotForRules = await buildSnapshot(userId, today);
   const { alerts } = evaluateRules(profile, snapshotForRules, ALL_RULES);
   const { active } = applyDismissals(alerts, dismissals);
-  const topAlerts = active.slice(0, 3);
+
+  // Prepared drawer data
+  const drawerAccounts: DrawerAccountItem[] = accounts.map((a) => {
+    const matchingTotal = total?.perAccount.find((pa) => pa.id === a.id);
+    const balanceRow = balanceRows.find((br) => br.id === a.id);
+
+    if (matchingTotal) {
+      return {
+        id: a.id,
+        name: a.name,
+        type: a.type as string,
+        institution: a.institution,
+        currency: a.currency as Currency,
+        balanceMinor: matchingTotal.balanceMinor,
+        displayMinor: matchingTotal.displayMinor,
+        ok: true,
+      };
+    }
+
+    if (balanceRow?.ok) {
+      return {
+        id: a.id,
+        name: a.name,
+        type: a.type as string,
+        institution: a.institution,
+        currency: balanceRow.currency,
+        balanceMinor: balanceRow.balanceMinor,
+        ok: true,
+      };
+    }
+
+    return {
+      id: a.id,
+      name: a.name,
+      type: a.type as string,
+      institution: a.institution,
+      ok: false,
+      error: balanceRow && !balanceRow.ok ? balanceRow.error : "Balance unavailable",
+    };
+  });
+
+  const drawerBills: DrawerBillItem[] = upcoming.map((o) => ({
+    billId: o.billId,
+    billName: o.billName,
+    date: o.date,
+    amountMinor: o.amountMinor,
+    currency: o.currency,
+    autopay: o.autopay,
+    paid: o.paid,
+  }));
+
+  const drawerAlerts: DrawerAlertItem[] = active.map((a) => ({
+    ruleKey: a.ruleKey,
+    entityRef: a.entityRef,
+    title: a.title,
+    action: a.action,
+    severity: a.severity as "critical" | "warning" | "info",
+  }));
 
   return (
-    <main className="space-y-6 py-6 sm:py-8">
-      {/* Top Header / Account Status Bar */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <main className="space-y-5 py-5 sm:py-7">
+      {/* Minimal Top Header */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Signed in as <span className="font-medium text-foreground">{user.email}</span>
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <SignOutButton redirectUrl="/login">
             <button
               type="button"
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/80 bg-background px-3 text-xs font-medium text-muted-foreground shadow-2xs transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-border/80 bg-background px-3 text-xs font-medium text-muted-foreground shadow-2xs transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
             >
               <LogOut className="size-3.5" />
               <span>Sign out</span>
@@ -265,83 +314,15 @@ export default async function Home({
         </div>
       </header>
 
-      {/* Quick Action Strip */}
-      <section aria-label="Quick Actions" className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-5">
-        <Link
-          href="/cards/new"
-          className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/90 p-2.5 shadow-2xs transition-all hover:border-foreground/30 hover:bg-muted/40 hover:shadow-xs"
-        >
-          <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/5 text-foreground shrink-0">
-            <CreditCard className="size-3.5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-foreground truncate">+ Add Card</p>
-            <p className="text-[10px] text-muted-foreground truncate">Wallet copilot</p>
-          </div>
-        </Link>
-
-        <Link
-          href="/receipts/upload"
-          className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/90 p-2.5 shadow-2xs transition-all hover:border-foreground/30 hover:bg-muted/40 hover:shadow-xs"
-        >
-          <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/5 text-foreground shrink-0">
-            <UploadCloud className="size-3.5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-foreground truncate">Upload Receipt</p>
-            <p className="text-[10px] text-muted-foreground truncate">Return catch-net</p>
-          </div>
-        </Link>
-
-        <Link
-          href="/bills/new"
-          className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/90 p-2.5 shadow-2xs transition-all hover:border-foreground/30 hover:bg-muted/40 hover:shadow-xs"
-        >
-          <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/5 text-foreground shrink-0">
-            <Calendar className="size-3.5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-foreground truncate">+ Record Bill</p>
-            <p className="text-[10px] text-muted-foreground truncate">Cashflow forecast</p>
-          </div>
-        </Link>
-
-        <Link
-          href="/investments/new"
-          className="flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/90 p-2.5 shadow-2xs transition-all hover:border-foreground/30 hover:bg-muted/40 hover:shadow-xs"
-        >
-          <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/5 text-foreground shrink-0">
-            <Wallet className="size-3.5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-foreground truncate">+ Add Account</p>
-            <p className="text-[10px] text-muted-foreground truncate">Native balances</p>
-          </div>
-        </Link>
-
-        <Link
-          href="/money-finder"
-          className="hidden lg:flex items-center gap-2.5 rounded-xl border border-border/80 bg-card/90 p-2.5 shadow-2xs transition-all hover:border-foreground/30 hover:bg-muted/40 hover:shadow-xs"
-        >
-          <div className="flex size-7 items-center justify-center rounded-lg bg-foreground/5 text-foreground shrink-0">
-            <Sparkles className="size-3.5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-foreground truncate">Tax &amp; Rules</p>
-            <p className="text-[10px] text-muted-foreground truncate">24 checks active</p>
-          </div>
-        </Link>
-      </section>
-
-      {/* Hero Net Worth Card */}
-      <Card className="relative overflow-hidden border-border/90 bg-gradient-to-b from-card to-muted/20 shadow-xs">
+      {/* Prominent Hero Net Worth Section */}
+      <Card className="relative overflow-hidden border-border/90 bg-gradient-to-b from-card to-muted/15 shadow-sm">
         <CardHeader className="flex flex-col gap-4 pb-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {allMode ? `Net worth (all currencies, ${display})` : `Net worth (${display})`}
             </h2>
             {total ? (
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-2.5">
                 <span className="text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
                   {formatMinorUnits(total.totalMinor, display)}
                 </span>
@@ -426,7 +407,9 @@ export default async function Home({
                       href={`/?ccy=ALL&display=${c}`}
                       className={cn(
                         "rounded px-2 py-0.5 font-medium transition-colors",
-                        c === display ? "bg-foreground text-background font-semibold" : "text-muted-foreground hover:text-foreground"
+                        c === display
+                          ? "bg-foreground text-background font-semibold"
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                     >
                       {c}
@@ -446,243 +429,13 @@ export default async function Home({
         </CardContent>
       </Card>
 
-      {/* Accounts Breakdown Grid */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Wallet className="size-4 text-muted-foreground" />
-            <h2 className="text-base font-semibold tracking-tight">Accounts & Balances</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/investments/import"
-              className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            >
-              Import
-            </Link>
-            <span className="text-muted-foreground/40">·</span>
-            <Link
-              href="/investments/new"
-              className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            >
-              + Add account
-            </Link>
-          </div>
-        </div>
-
-        {accounts.length === 0 ? (
-          <Card className="border-dashed p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              No accounts yet —{" "}
-              <Link href="/investments/new" className="font-medium text-foreground underline">
-                add an account
-              </Link>{" "}
-              or{" "}
-              <Link href="/investments/import" className="font-medium text-foreground underline">
-                import your data
-              </Link>
-              .
-            </p>
-          </Card>
-        ) : total ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {total.perAccount.map((a) => (
-              <Link
-                key={a.id}
-                href={`/investments/${a.id}`}
-                className="group relative flex flex-col justify-between rounded-xl border border-border/80 bg-card p-4 shadow-2xs transition-all hover:border-foreground/30 hover:shadow-xs"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-foreground group-hover:text-primary">{a.name}</p>
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <Badge variant="secondary" className="text-[10px] font-medium">
-                        {a.type}
-                      </Badge>
-                    </div>
-                  </div>
-                  <ChevronRight className="size-4 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-                </div>
-                <div className="mt-3 flex items-baseline justify-between border-t border-border/40 pt-2.5">
-                  <span className="text-xs text-muted-foreground">Calculated balance</span>
-                  <p className="text-base font-semibold tabular-nums text-foreground">
-                    {formatMinorUnits(a.displayMinor, display)}
-                    {a.currency !== display ? (
-                      <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                        ({formatMinorUnits(a.balanceMinor, a.currency)} {a.currency})
-                      </span>
-                    ) : null}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              {rows.map((a) => (
-                <Link
-                  key={a.id}
-                  href={`/investments/${a.id}`}
-                  className="group flex flex-col justify-between rounded-xl border border-border/80 bg-card p-4 shadow-2xs transition-all hover:border-foreground/30 hover:shadow-xs"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-semibold text-foreground group-hover:text-primary">{a.name}</p>
-                      <Badge variant="secondary" className="mt-1 text-[10px]">
-                        {a.type}
-                      </Badge>
-                    </div>
-                    <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-foreground" />
-                  </div>
-                  <div className="mt-3 flex items-baseline justify-between border-t border-border/40 pt-2.5">
-                    <span className="text-xs text-muted-foreground">Native balance</span>
-                    <p className="text-base font-semibold tabular-nums">
-                      {formatMinorUnits(a.balanceMinor, a.currency)} {a.currency}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-              {unavailableRows.map((a) => (
-                <Link
-                  key={a.id}
-                  href={`/investments/${a.id}`}
-                  className="group flex flex-col justify-between rounded-xl border border-red-500/30 bg-red-500/5 p-4 shadow-2xs transition-all hover:border-red-500/50"
-                >
-                  <div>
-                    <p className="font-semibold text-foreground">{a.name}</p>
-                    <Badge variant="secondary" className="mt-1 text-[10px]">
-                      {a.type}
-                    </Badge>
-                    <p className="mt-2 text-xs font-medium text-red-600">{a.error}</p>
-                  </div>
-                  <div className="mt-2 flex items-center justify-end text-xs text-red-600 underline">
-                    Add snapshot →
-                  </div>
-                </Link>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Account balances are shown in their native currencies until an FX rate is available.
-            </p>
-          </div>
-        )}
-      </section>
-
-      {/* Two Column Grid: Alerts & Upcoming Bills */}
-      <section className="grid gap-4 sm:grid-cols-2">
-        {/* Alerts & Opportunities Card */}
-        <Card className="flex flex-col justify-between">
-          <div>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="size-4 text-muted-foreground" />
-                <CardTitle className="text-sm font-semibold">Alerts &amp; opportunities</CardTitle>
-              </div>
-              <Link
-                href="/money-finder"
-                className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-              >
-                all ({active.length})
-              </Link>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
-                {topAlerts.map((a) => (
-                  <li
-                    key={`${a.ruleKey}:${a.entityRef}`}
-                    className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-muted/30 p-2.5 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="mt-0.5 shrink-0">
-                      {a.severity === "critical" ? (
-                        <ShieldAlert className="size-4 text-red-600" />
-                      ) : a.severity === "warning" ? (
-                        <AlertTriangle className="size-4 text-amber-600" />
-                      ) : (
-                        <Info className="size-4 text-sky-600" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground text-xs leading-snug truncate">{a.title}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{a.action}</p>
-                    </div>
-                  </li>
-                ))}
-                {topAlerts.length === 0 ? (
-                  <li className="py-4 text-center text-xs text-muted-foreground">All clear. No active alerts.</li>
-                ) : null}
-              </ul>
-            </CardContent>
-          </div>
-          {active.length > 0 ? (
-            <div className="border-t border-border/60 px-5 py-2.5">
-              <Link
-                href="/money-finder"
-                className="flex items-center justify-between text-xs font-medium text-muted-foreground hover:text-foreground"
-              >
-                <span>View all compliance &amp; tax rules</span>
-                <ArrowRight className="size-3" />
-              </Link>
-            </div>
-          ) : null}
-        </Card>
-
-        {/* Next 14 Days Cashflow Card */}
-        <Card className="flex flex-col justify-between">
-          <div>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <div className="flex items-center gap-2">
-                <Calendar className="size-4 text-muted-foreground" />
-                <CardTitle className="text-sm font-semibold">Next 14 days</CardTitle>
-              </div>
-              <Link
-                href="/bills"
-                className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-              >
-                bills
-              </Link>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm tabular-nums">
-                {upcoming.map((o) => (
-                  <li
-                    key={`${o.billId}:${o.date}`}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/30 p-2.5 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="shrink-0 text-xs font-medium text-muted-foreground">{o.date.slice(5)}</span>
-                      <span className="truncate text-xs font-medium text-foreground">{o.billName}</span>
-                      {o.autopay ? (
-                        <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-                          auto
-                        </Badge>
-                      ) : null}
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-foreground">
-                      <span>{o.amountMinor === 0 ? "—" : formatMinorUnits(o.amountMinor, o.currency as Currency)}</span>
-                      {o.paid ? <CheckCircle2 className="size-3.5 text-emerald-600" /> : null}
-                    </div>
-                  </li>
-                ))}
-                {upcoming.length === 0 ? (
-                  <li className="py-4 text-center text-xs text-muted-foreground">Nothing due in the next 14 days.</li>
-                ) : null}
-              </ul>
-            </CardContent>
-          </div>
-          {upcoming.length > 0 ? (
-            <div className="border-t border-border/60 px-5 py-2.5">
-              <Link
-                href="/bills/forecast"
-                className="flex items-center justify-between text-xs font-medium text-muted-foreground hover:text-foreground"
-              >
-                <span>View 12-month bill forecast</span>
-                <ArrowRight className="size-3" />
-              </Link>
-            </div>
-          ) : null}
-        </Card>
-      </section>
+      {/* Interactive Pulse Bar & Slide-Over Drawer Hub */}
+      <DashboardPulseBarAndDrawer
+        accounts={drawerAccounts}
+        upcoming={drawerBills}
+        alerts={drawerAlerts}
+        display={display}
+      />
     </main>
   );
 }

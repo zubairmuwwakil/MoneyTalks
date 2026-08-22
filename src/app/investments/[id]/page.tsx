@@ -1,17 +1,13 @@
 import {
   ArrowLeft,
   FileSpreadsheet,
-  Plus,
-  Save,
-  Trash2,
-  TrendingUp,
-  History,
-  Settings2,
-  Calendar,
   Layers,
+  Coins,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import {
   addHolding,
   addSnapshot,
@@ -31,26 +27,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   UrlStatusBanner,
   RefreshPricesButton,
-  CopyTickerBadge,
   PortfolioAllocationBar,
   SetCashModal,
-  AccountTabNav,
+  AccountDetailInteractiveView,
+  type HoldingViewItem,
+  type TransactionViewItem,
+  type SnapshotViewItem,
+  type AllocationItem,
 } from "@/components/investments/account-detail-client";
+import {
+  AccountDataHealthCard,
+  AccountStatusBadge,
+} from "@/components/investments/account-data-health";
+import { diagnoseAccountDataHealth } from "@/lib/domain/investments/accountDataHealth";
 import { accountBalanceWithCurrency, holdingValueMinor, holdingsValuation } from "@/engine/balance";
 import type { FxRateInput } from "@/engine/fx";
-import { formatMinorUnits, minorToDollarInput, type Currency } from "@/engine/money";
+import { formatMinorUnits, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
-
-const TX_TYPES = ["CONTRIBUTION", "WITHDRAWAL", "BUY", "SELL", "DIVIDEND", "INTEREST", "FEE"] as const;
-const ACCOUNT_TYPES = ["RRSP", "TFSA", "RDSP", "FHSA", "ROTH_IRA", "NON_REGISTERED", "CASH", "CHEQUING", "CRYPTO"] as const;
-
-function accountErrorPath(accountId: string, form: string, message: string) {
-  return `/investments/${accountId}?errorForm=${form}&error=${encodeURIComponent(message)}`;
-}
-
-const inputStyle =
-  "flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 export default async function AccountDetailPage({
   params,
@@ -62,6 +56,8 @@ export default async function AccountDetailPage({
   const userId = await requireUserId();
   const { id } = await params;
   const { error, errorForm, pricesOk, pricesError } = await searchParams;
+  const now = new Date();
+
   const [account, fxRatesRaw] = await Promise.all([
     prisma.financialAccount.findFirst({
       where: { id, userId },
@@ -69,13 +65,15 @@ export default async function AccountDetailPage({
         holdings: { orderBy: { symbol: "asc" } },
         transactions: { orderBy: { date: "desc" } },
         snapshots: { orderBy: { asOf: "desc" }, take: 20 },
+        investmentSnapshots: { orderBy: { asOf: "desc" }, take: 10 },
       },
     }),
     prisma.fxRate.findMany({
-      where: { userId, asOf: { lte: new Date() } },
+      where: { userId, asOf: { lte: now } },
       orderBy: [{ quote: "asc" }, { asOf: "desc" }],
     }),
   ]);
+
   if (!account) notFound();
 
   const rates: FxRateInput[] = fxRatesRaw.map((r) => ({
@@ -91,6 +89,7 @@ export default async function AccountDetailPage({
     currency: s.currency as Currency,
     asOf: s.asOf.toISOString(),
   }));
+
   const balance = accountBalanceWithCurrency(
     account.transactions.map((t) => ({
       type: t.type,
@@ -101,6 +100,7 @@ export default async function AccountDetailPage({
     snapshotInputs,
     currency,
   );
+
   const valuation = holdingsValuation(
     account.holdings.map((h) => ({
       symbol: h.symbol,
@@ -111,9 +111,9 @@ export default async function AccountDetailPage({
     currency,
     rates,
   );
+
   const convertedMap = new Map(valuation.converted.map((c) => [c.symbol, c]));
   const holdingsValue = valuation.valueMinor;
-  const displayedTransactions = account.transactions.slice(0, 50);
 
   const totalBookCostMinor = account.holdings.reduce((sum, h) => sum + (h.bookCostMinor ?? 0), 0);
   const holdingsWithBookCost = account.holdings.filter((h) => h.bookCostMinor !== null);
@@ -122,79 +122,86 @@ export default async function AccountDetailPage({
       ? holdingsValue - totalBookCostMinor
       : null;
 
-  async function submitHolding(formData: FormData) {
-    "use server";
-    const result = await addHolding(formData);
-    if (!result.ok) redirect(accountErrorPath(id, "holding", result.error));
-    redirect(`/investments/${id}`);
-  }
+  const healthReport = diagnoseAccountDataHealth({
+    id: account.id,
+    name: account.name,
+    currency: account.currency,
+    type: account.type,
+    country: account.country,
+    holdings: account.holdings,
+    transactions: account.transactions,
+    snapshots: account.snapshots,
+    investmentSnapshots: account.investmentSnapshots,
+    fxRates: rates,
+    today: now,
+  });
 
-  async function submitAccount(formData: FormData) {
-    "use server";
-    const result = await updateAccount(formData);
-    if (!result.ok) redirect(accountErrorPath(id, "account", result.error));
-    redirect(`/investments/${id}`);
-  }
+  const totalAccountValueMinor = balance.ok ? balance.balanceMinor + holdingsValue : holdingsValue;
 
-  async function submitDeleteHolding(formData: FormData) {
-    "use server";
-    const result = await deleteHolding(formData);
-    if (!result.ok) redirect(accountErrorPath(id, "holding", result.error));
-    redirect(`/investments/${id}`);
-  }
+  const holdingsViewItems: HoldingViewItem[] = account.holdings.map((h) => {
+    const converted = convertedMap.get(h.symbol);
+    const convertedValue = converted
+      ? converted.convertedValueMinor
+      : holdingValueMinor(Number(h.quantity), h.lastPriceMinor);
+    const weight = totalAccountValueMinor > 0 ? (convertedValue / totalAccountValueMinor) * 100 : 0;
+    return {
+      id: h.id,
+      symbol: h.symbol,
+      name: h.name,
+      domicileCountry: h.domicileCountry,
+      quantity: Number(h.quantity),
+      lastPriceMinor: h.lastPriceMinor,
+      priceCurrency: h.priceCurrency,
+      priceAsOf: h.priceAsOf.toISOString(),
+      priceStatus: h.priceStatus,
+      priceSource: h.priceSource,
+      bookCostMinor: h.bookCostMinor,
+      convertedValueMinor: convertedValue,
+      weightPercentage: weight,
+    };
+  });
 
-  async function submitTransaction(formData: FormData) {
-    "use server";
-    const result = await addTransaction(formData);
-    if (!result.ok) redirect(accountErrorPath(id, "transaction", result.error));
-    redirect(`/investments/${id}`);
-  }
+  const transactionsViewItems: TransactionViewItem[] = account.transactions.map((t) => ({
+    id: t.id,
+    type: t.type,
+    amountMinor: t.amountMinor,
+    currency: t.currency,
+    date: t.date.toISOString(),
+    description: t.description,
+  }));
 
-  async function submitSetCash(formData: FormData) {
-    "use server";
-    const result = await setCashBalance(formData);
-    if (!result.ok) redirect(accountErrorPath(id, "snapshot", result.error));
-    redirect(`/investments/${id}`);
-  }
+  const snapshotsViewItems: SnapshotViewItem[] = account.snapshots.map((s) => ({
+    id: s.id,
+    balanceMinor: s.balanceMinor,
+    currency: s.currency,
+    asOf: s.asOf.toISOString(),
+  }));
 
-  async function submitUpdateTransaction(formData: FormData) {
-    "use server";
-    const result = await updateTransaction(formData);
-    if (!result.ok) redirect(accountErrorPath(id, "transaction", result.error));
-    redirect(`/investments/${id}`);
-  }
+  const allocationHoldings: AllocationItem[] = account.holdings.map((h) => ({
+    id: h.id,
+    symbol: h.symbol,
+    name: h.name,
+    valueMinor: convertedMap.has(h.symbol)
+      ? convertedMap.get(h.symbol)!.convertedValueMinor
+      : holdingValueMinor(Number(h.quantity), h.lastPriceMinor),
+  }));
 
-  async function submitDeleteTransaction(formData: FormData) {
-    "use server";
-    const result = await deleteTransaction(formData);
-    if (!result.ok) redirect(accountErrorPath(id, "transaction", result.error));
-    redirect(`/investments/${id}`);
-  }
-
-  async function submitSnapshot(formData: FormData) {
-    "use server";
-    const result = await addSnapshot(formData);
-    if (!result.ok) redirect(accountErrorPath(id, "snapshot", result.error));
-    redirect(`/investments/${id}`);
-  }
-
-  async function submitDeleteSnapshot(formData: FormData) {
-    "use server";
-    const result = await deleteSnapshot(formData);
-    if (!result.ok) redirect(accountErrorPath(id, "snapshot", result.error));
-    redirect(`/investments/${id}`);
-  }
-
-  async function submitDelete(formData: FormData) {
-    "use server";
-    const result = await deleteAccount(formData);
-    if (!result.ok) redirect(accountErrorPath(id, "delete", result.error));
-    redirect("/investments");
-  }
+  const actions = {
+    addHolding,
+    deleteHolding,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    addSnapshot,
+    deleteSnapshot,
+    setCashBalance,
+    updateAccount,
+    deleteAccount,
+  };
 
   return (
     <main className="space-y-6 py-6 sm:py-8">
-      {/* Back link & Top Header */}
+      {/* Top Header & Breadcrumbs */}
       <div>
         <Link
           href="/investments"
@@ -211,12 +218,19 @@ export default async function AccountDetailPage({
                 {account.type}
               </Badge>
               {account.isUSSitus ? <Badge variant="warning">US-Situs</Badge> : null}
+              <AccountStatusBadge status={healthReport.status} />
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
               {account.institution} · {account.country} · {account.currency}
             </p>
           </div>
+
           <div className="flex items-center gap-2">
+            <RefreshPricesButton
+              accountId={account.id}
+              action={refreshPrices}
+              isCrypto={account.type === "CRYPTO"}
+            />
             <Button asChild variant="outline" size="sm">
               <Link href={`/investments/${account.id}/csv`} className="flex items-center gap-1.5">
                 <FileSpreadsheet className="size-3.5" />
@@ -227,7 +241,7 @@ export default async function AccountDetailPage({
         </header>
       </div>
 
-      {/* URL Status & Error Banner with Auto-cleanup */}
+      {/* URL Status & Error Bridge (Toasts) */}
       <UrlStatusBanner
         pricesOk={pricesOk}
         pricesError={pricesError}
@@ -235,7 +249,15 @@ export default async function AccountDetailPage({
         errorForm={errorForm}
       />
 
-      {/* Balance Summary Hero */}
+      {/* Account Data Health Diagnostic Card */}
+      <AccountDataHealthCard
+        report={healthReport}
+        accountId={account.id}
+        refreshAction={refreshPrices}
+        isCrypto={account.type === "CRYPTO"}
+      />
+
+      {/* Hero Balance Summary Card */}
       <Card className="bg-gradient-to-b from-card via-card to-muted/20 border-border/80 shadow-xs">
         <CardContent className="p-5 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-4">
@@ -244,48 +266,44 @@ export default async function AccountDetailPage({
                 Total Account Value
               </p>
               <p className="mt-1 text-3xl font-bold tracking-tight tabular-nums sm:text-4xl text-foreground">
-                {balance.ok
-                  ? formatMinorUnits(balance.balanceMinor + holdingsValue, currency)
-                  : formatMinorUnits(holdingsValue, currency)}
+                {formatMinorUnits(totalAccountValueMinor, currency)}
               </p>
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
+
+              {/* Metric Breakdown Row */}
+              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+                {/* Cash Pill */}
+                <span className="inline-flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded-lg border border-border/60">
                   <span>Cash:</span>
                   <strong className="font-semibold text-foreground">
                     {balance.ok ? formatMinorUnits(balance.balanceMinor, currency) : "Unavailable"}
                   </strong>
-                  {balance.ok ? (
-                    <span className="text-muted-foreground/75 text-[11px]">
-                      ({balance.source === "snapshot"
-                        ? `snapshot ${balance.asOf?.slice(0, 10)}`
-                        : account.transactions.length > 0
-                        ? "transactions"
-                        : "no transactions recorded"})
-                    </span>
-                  ) : null}
                   <SetCashModal
                     accountId={account.id}
                     currentCashMinor={balance.ok ? balance.balanceMinor : 0}
                     currency={currency}
-                    action={submitSetCash}
+                    action={setCashBalance}
                   />
                 </span>
+
+                {/* Holdings Pill */}
                 {account.holdings.length > 0 ? (
-                  <span>
-                    Holdings:{" "}
+                  <span className="inline-flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded-lg border border-border/60">
+                    <span>Invested:</span>
                     <strong className="font-semibold text-foreground">
                       {formatMinorUnits(holdingsValue, currency)}
                     </strong>
                     {valuation.converted.length > 0 ? (
-                      <span className="text-muted-foreground/75 text-[11px] ml-1">
-                        ({valuation.converted.length} converted to {currency})
+                      <span className="text-[10px] text-muted-foreground" title="Automatically converted using BoC exchange rates">
+                        ({valuation.converted.length} foreign FX)
                       </span>
                     ) : null}
                   </span>
                 ) : null}
+
+                {/* Unrealized Return Pill */}
                 {totalGainLossMinor !== null && totalBookCostMinor > 0 ? (
-                  <span>
-                    Unrealized Return:{" "}
+                  <span className="inline-flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded-lg border border-border/60">
+                    <span>Unrealized P&L:</span>
                     <strong
                       className={`font-semibold tabular-nums ${
                         totalGainLossMinor >= 0
@@ -301,16 +319,13 @@ export default async function AccountDetailPage({
                   </span>
                 ) : null}
               </div>
-              {!balance.ok && balance.error ? (
-                <p className="mt-1 text-sm font-medium text-red-600">{balance.error}</p>
-              ) : null}
             </div>
 
             {account.holdings.length > 0 ? (
               <div className="sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-border/60">
-                <p className="text-xs text-muted-foreground">Holdings Market Value</p>
+                <p className="text-xs text-muted-foreground">Positions Count</p>
                 <p className="text-lg font-semibold tabular-nums text-foreground">
-                  {formatMinorUnits(holdingsValue, currency)}
+                  {account.holdings.length} {account.holdings.length === 1 ? "position" : "positions"}
                 </p>
               </div>
             ) : null}
@@ -320,615 +335,34 @@ export default async function AccountDetailPage({
           <PortfolioAllocationBar
             cashMinor={balance.ok ? balance.balanceMinor : 0}
             currency={currency}
-            holdings={account.holdings.map((h) => ({
-              id: h.id,
-              symbol: h.symbol,
-              name: h.name,
-              valueMinor: convertedMap.has(h.symbol)
-                ? convertedMap.get(h.symbol)!.convertedValueMinor
-                : holdingValueMinor(Number(h.quantity), h.lastPriceMinor),
-            }))}
+            holdings={allocationHoldings}
           />
         </CardContent>
       </Card>
 
-      {/* Quick Section Navigation Bar */}
-      <AccountTabNav
-        holdingsCount={account.holdings.length}
-        transactionsCount={account.transactions.length}
-        snapshotsCount={account.snapshots.length}
+      {/* Main Interactive Controller (Tabs, Modals, Action Drawers & Lists) */}
+      <AccountDetailInteractiveView
+        account={{
+          id: account.id,
+          name: account.name,
+          institution: account.institution,
+          type: account.type,
+          country: account.country,
+          currency: account.currency,
+          isUSSitus: account.isUSSitus,
+        }}
+        currency={currency}
+        holdings={holdingsViewItems}
+        transactions={transactionsViewItems}
+        snapshots={snapshotsViewItems}
+        cashMinor={balance.ok ? balance.balanceMinor : 0}
+        totalValueMinor={totalAccountValueMinor}
+        totalBookCostMinor={totalBookCostMinor}
+        totalGainLossMinor={totalGainLossMinor}
+        allocationHoldings={allocationHoldings}
+        actions={actions}
       />
-
-      {/* Holdings Section */}
-      <section
-        id="section-holdings"
-        className="relative rounded-xl border border-border/80 bg-card p-5 shadow-2xs space-y-4"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-semibold tracking-tight">Holdings</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Current investment positions and valuations
-            </p>
-          </div>
-          <RefreshPricesButton
-            accountId={account.id}
-            action={refreshPrices}
-            isCrypto={account.type === "CRYPTO"}
-          />
-        </div>
-
-        {valuation.excluded.length > 0 ? (
-          <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-            Not included in this account&apos;s total:{" "}
-            {valuation.excluded.map((e) => `${e.symbol} (priced in ${e.priceCurrency})`).join(", ")} — a
-            price in another currency could not be converted to {currency} (no matching FX rate).
-          </p>
-        ) : null}
-        {valuation.assumedCurrency.length > 0 ? (
-          <p className="text-xs text-muted-foreground">
-            Assumed to be in {currency} (entered before prices carried a currency):{" "}
-            {valuation.assumedCurrency.join(", ")}. Refreshing records the real one.
-          </p>
-        ) : null}
-
-        <ul className="divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
-          {account.holdings.map((h) => (
-            <li
-              key={h.id}
-              className="flex items-center justify-between gap-3 px-4 py-3.5 text-sm hover:bg-muted/30 transition-colors"
-            >
-              <div>
-                <div className="flex items-center gap-2">
-                  <CopyTickerBadge symbol={h.symbol} />
-                  <span className="font-semibold text-foreground">{h.name}</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground flex flex-wrap items-center gap-x-2">
-                  <span>Domicile: {h.domicileCountry}</span>
-                  <span>·</span>
-                  <span>
-                    {h.priceSource ? `${h.priceSource} close ` : "entered "}
-                    {h.priceAsOf.toISOString().slice(0, 10)}
-                    {h.priceCurrency ? ` ${h.priceCurrency}` : ""}
-                  </span>
-                  {h.priceStatus === "STALE" ? (
-                    <Badge variant="outline" className="text-[10px] text-amber-700 dark:text-amber-400 border-amber-500/40">
-                      Stale
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-400 border-emerald-500/40">
-                      Fresh
-                    </Badge>
-                  )}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <span className="text-sm font-semibold tabular-nums text-foreground block">
-                    {h.priceCurrency && h.priceCurrency !== currency ? (
-                      convertedMap.has(h.symbol) ? (
-                        <span>
-                          <span className="font-bold">
-                            {formatMinorUnits(convertedMap.get(h.symbol)!.convertedValueMinor, currency)}
-                          </span>
-                          <span className="block text-[11px] text-muted-foreground font-normal">
-                            {Number(h.quantity)} @ {formatMinorUnits(h.lastPriceMinor, h.priceCurrency as Currency)}
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="text-amber-700 dark:text-amber-400">
-                          {Number(h.quantity)} × {h.lastPriceMinor / 100} {h.priceCurrency}
-                        </span>
-                      )
-                    ) : (
-                      <>
-                        <span className="font-bold">
-                          {formatMinorUnits(
-                            holdingValueMinor(Number(h.quantity), h.lastPriceMinor),
-                            currency,
-                          )}
-                        </span>
-                        <span className="block text-[11px] text-muted-foreground font-normal">
-                          {Number(h.quantity)} @ {formatMinorUnits(h.lastPriceMinor, currency)}
-                        </span>
-                      </>
-                    )}
-                  </span>
-                  {h.bookCostMinor && h.bookCostMinor > 0 ? (
-                    (() => {
-                      const currentVal = convertedMap.has(h.symbol)
-                        ? convertedMap.get(h.symbol)!.convertedValueMinor
-                        : holdingValueMinor(Number(h.quantity), h.lastPriceMinor);
-                      const gl = currentVal - h.bookCostMinor;
-                      const glPct = (gl / h.bookCostMinor) * 100;
-                      const pos = gl >= 0;
-                      return (
-                        <p className="text-xs font-medium tabular-nums mt-0.5">
-                          <span className="text-muted-foreground">Cost {formatMinorUnits(h.bookCostMinor, currency)} · </span>
-                          <span
-                            className={
-                              pos
-                                ? "text-emerald-700 dark:text-emerald-400"
-                                : "text-rose-600 dark:text-rose-400"
-                            }
-                          >
-                            {pos ? "+" : ""}
-                            {formatMinorUnits(gl, currency)} ({pos ? "+" : ""}
-                            {glPct.toFixed(1)}%)
-                          </span>
-                        </p>
-                      );
-                    })()
-                  ) : null}
-                </div>
-                <form action={submitDeleteHolding}>
-                  <input type="hidden" name="holdingId" value={h.id} />
-                  <button
-                    type="submit"
-                    aria-label={`Delete ${h.symbol} holding`}
-                    title="Delete holding"
-                    className="p-1.5 text-muted-foreground transition-colors hover:text-red-600 active:scale-90 cursor-pointer"
-                  >
-                    <Trash2 className="size-4" aria-hidden="true" />
-                  </button>
-                </form>
-              </div>
-            </li>
-          ))}
-          {account.holdings.length === 0 ? (
-            <li className="px-4 py-6 text-center text-xs text-muted-foreground">
-              No holdings added yet. Use the form below to track positions.
-            </li>
-          ) : null}
-        </ul>
-
-        {/* Add Holding Form */}
-        <div className="border-t border-border/60 pt-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-            <Plus className="size-3.5" />
-            <span>Add or update position</span>
-          </p>
-          <form action={submitHolding} className="space-y-3 max-w-2xl text-sm">
-            <input type="hidden" name="accountId" value={account.id} />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs text-muted-foreground font-medium mb-1 block">
-                  Ticker Symbol
-                </label>
-                <input
-                  name="symbol"
-                  placeholder="e.g. XEQT.TO, AAPL, RY.TO"
-                  required
-                  className={inputStyle}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground font-medium mb-1 block">Quantity</label>
-                <input
-                  name="quantity"
-                  placeholder="e.g. 100"
-                  type="number"
-                  step="any"
-                  required
-                  className={inputStyle}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-muted/30 p-3 border border-border/60 space-y-2">
-              <p className="text-[11px] font-medium text-muted-foreground">
-                Optional Details (auto-resolved via MarketLens if omitted)
-              </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                <div>
-                  <label className="text-[10px] text-muted-foreground block mb-0.5">Book Cost ($)</label>
-                  <input name="bookCost" placeholder="Total cost" className={inputStyle} />
-                </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground block mb-0.5">Asset Name</label>
-                  <input name="name" placeholder="Auto from symbol" className={inputStyle} />
-                </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground block mb-0.5">Domicile</label>
-                  <input
-                    name="domicileCountry"
-                    placeholder={account.country}
-                    pattern="[A-Za-z]{2}"
-                    className={inputStyle}
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground block mb-0.5">Manual Price ($)</label>
-                  <input name="lastPrice" placeholder="Auto-quoted" className={inputStyle} />
-                </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground block mb-0.5">Price Date</label>
-                  <input name="priceAsOf" type="date" className={inputStyle} />
-                </div>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-muted-foreground">
-              Tip: In CAD accounts, enter TSX tickers with{" "}
-              <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">.TO</code> (e.g.{" "}
-              <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">RY.TO</code>,{" "}
-              <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">XEQT.TO</code>). US
-              stocks (e.g. <code className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">AAPL</code>
-              ) will automatically be converted to CAD using Bank of Canada exchange rates.
-            </p>
-
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-muted/60 px-4 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted active:scale-[0.98] cursor-pointer transition-all"
-            >
-              <Plus className="size-3.5" />
-              <span>Add / update holding</span>
-            </button>
-          </form>
-          {errorForm === "holding" && error ? (
-            <p className="mt-2 text-xs font-medium text-red-600" role="alert">
-              {error}
-            </p>
-          ) : null}
-        </div>
-      </section>
-
-      {/* Transaction Logging Section */}
-      <section
-        id="section-transactions"
-        className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs space-y-4"
-      >
-        <div>
-          <h2 className="text-base font-semibold tracking-tight">Log a transaction</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Record contributions, withdrawals, dividends, buys, sells, or fees.
-          </p>
-        </div>
-
-        <form action={submitTransaction} className="space-y-3 max-w-2xl text-sm">
-          <input type="hidden" name="accountId" value={account.id} />
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div>
-              <label className="text-[10px] text-muted-foreground block mb-0.5 font-medium">Type</label>
-              <select name="type" className={inputStyle}>
-                {TX_TYPES.map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] text-muted-foreground block mb-0.5 font-medium">Amount ($)</label>
-              <input name="amount" placeholder="e.g. 1000.00" required className={inputStyle} />
-            </div>
-            <div>
-              <label className="text-[10px] text-muted-foreground block mb-0.5 font-medium">Date</label>
-              <input name="date" type="date" required className={inputStyle} />
-            </div>
-            <div>
-              <label className="text-[10px] text-muted-foreground block mb-0.5 font-medium">
-                Description (optional)
-              </label>
-              <input name="description" placeholder="Notes" className={inputStyle} />
-            </div>
-          </div>
-
-          <div className="rounded-lg bg-muted/30 p-2.5 border border-border/60">
-            <p className="text-[11px] font-medium text-muted-foreground mb-1.5">
-              Trade Auto-Sync (optional — for BUY / SELL to auto-update holdings):
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[10px] text-muted-foreground block mb-0.5">Ticker Symbol</label>
-                <input name="symbol" placeholder="e.g. TSLA, XEQT.TO" className={inputStyle} />
-              </div>
-              <div>
-                <label className="text-[10px] text-muted-foreground block mb-0.5">Shares / Quantity</label>
-                <input name="quantity" type="number" step="any" placeholder="e.g. 10" className={inputStyle} />
-              </div>
-            </div>
-          </div>
-
-          {account.type === "ROTH_IRA" ? (
-            <label className="flex items-center gap-2 text-xs text-red-600 font-medium">
-              <input type="checkbox" name="confirmRoth" value="true" />
-              I understand a contribution while Canadian-resident may permanently taint the Roth treaty election.
-            </label>
-          ) : null}
-
-          <button
-            type="submit"
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-xs hover:bg-foreground/90 active:scale-[0.98] cursor-pointer transition-all"
-          >
-            <Plus className="size-3.5" />
-            <span>Add transaction</span>
-          </button>
-        </form>
-
-        <ul className="divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
-          {displayedTransactions.map((t) => (
-            <li key={t.id} className="p-3.5 text-sm transition-colors hover:bg-muted/30">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-[10px] font-semibold">
-                    {t.type}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">{t.date.toISOString().slice(0, 10)}</span>
-                  {t.description ? <span className="text-xs text-foreground/80 truncate">· {t.description}</span> : null}
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold tabular-nums">
-                    {formatMinorUnits(t.amountMinor, t.currency as Currency)}
-                  </span>
-                  <form action={submitDeleteTransaction}>
-                    <input type="hidden" name="transactionId" value={t.id} />
-                    <button
-                      type="submit"
-                      aria-label={`Delete ${t.type.toLowerCase()} transaction`}
-                      title="Delete transaction"
-                      className="p-1 text-muted-foreground transition-colors hover:text-red-600 active:scale-90 cursor-pointer"
-                    >
-                      <Trash2 className="size-3.5" aria-hidden="true" />
-                    </button>
-                  </form>
-                </div>
-              </div>
-              <details className="mt-2 text-xs">
-                <summary className="cursor-pointer font-medium text-muted-foreground hover:text-foreground">
-                  Edit transaction
-                </summary>
-                <form
-                  action={submitUpdateTransaction}
-                  className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 rounded-lg bg-muted/40 p-3 border border-border/60"
-                >
-                  <input type="hidden" name="transactionId" value={t.id} />
-                  <div>
-                    <label className="text-[10px] text-muted-foreground block mb-0.5">Type</label>
-                    <select name="type" defaultValue={t.type} aria-label="Transaction type" className={inputStyle}>
-                      {TX_TYPES.map((type) => (
-                        <option key={type}>{type}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-muted-foreground block mb-0.5">Amount ($)</label>
-                    <input
-                      name="amount"
-                      defaultValue={minorToDollarInput(t.amountMinor)}
-                      required
-                      aria-label="Amount in dollars"
-                      className={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-muted-foreground block mb-0.5">Date</label>
-                    <input
-                      name="date"
-                      type="date"
-                      defaultValue={t.date.toISOString().slice(0, 10)}
-                      required
-                      aria-label="Transaction date"
-                      className={inputStyle}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-muted-foreground block mb-0.5">Description</label>
-                    <input
-                      name="description"
-                      defaultValue={t.description ?? ""}
-                      aria-label="Description"
-                      className={inputStyle}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="col-span-2 inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-foreground px-3 text-xs font-semibold text-background shadow-xs hover:bg-foreground/90 sm:col-span-4 active:scale-[0.98] cursor-pointer transition-all"
-                  >
-                    <Save className="size-3" aria-hidden="true" /> Save transaction
-                  </button>
-                </form>
-              </details>
-            </li>
-          ))}
-          {displayedTransactions.length === 0 ? (
-            <li className="px-4 py-6 text-center text-xs text-muted-foreground">
-              No transactions recorded yet.
-            </li>
-          ) : null}
-        </ul>
-        {errorForm === "transaction" && error ? (
-          <p className="mt-2 text-xs font-medium text-red-600" role="alert">
-            {error}
-          </p>
-        ) : null}
-      </section>
-
-      {/* Balance Snapshots Section */}
-      <section
-        id="section-snapshots"
-        className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs space-y-4"
-      >
-        <div>
-          <h2 className="text-base font-semibold tracking-tight">Balance snapshots</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Take a point-in-time snapshot of your balance from your statement or banking app.
-          </p>
-        </div>
-
-        <form action={submitSnapshot} className="flex flex-wrap max-w-md gap-2 text-sm">
-          <input type="hidden" name="accountId" value={account.id} />
-          <input
-            name="balance"
-            placeholder="Balance ($)"
-            required
-            className={`flex-1 min-w-[140px] ${inputStyle}`}
-          />
-          <input name="asOf" type="date" required className={`w-36 ${inputStyle}`} />
-          <button
-            type="submit"
-            className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-border/80 bg-muted/60 px-3.5 text-xs font-semibold text-foreground shadow-2xs hover:bg-muted active:scale-[0.98] cursor-pointer transition-all"
-          >
-            <span>Snapshot</span>
-          </button>
-        </form>
-
-        <ul className="divide-y divide-border/60 rounded-lg border border-border/80 bg-background overflow-hidden">
-          {account.snapshots.map((s) => (
-            <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-              <span className="text-xs font-medium text-foreground">{s.asOf.toISOString().slice(0, 10)}</span>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold tabular-nums text-foreground">
-                  {formatMinorUnits(s.balanceMinor, s.currency as Currency)}
-                </span>
-                <form action={submitDeleteSnapshot}>
-                  <input type="hidden" name="snapshotId" value={s.id} />
-                  <button
-                    type="submit"
-                    aria-label={`Delete ${s.asOf.toISOString().slice(0, 10)} snapshot`}
-                    title="Delete snapshot"
-                    className="p-1 text-muted-foreground transition-colors hover:text-red-600 active:scale-90 cursor-pointer"
-                  >
-                    <Trash2 className="size-3.5" aria-hidden="true" />
-                  </button>
-                </form>
-              </div>
-            </li>
-          ))}
-          {account.snapshots.length === 0 ? (
-            <li className="px-4 py-6 text-center text-xs text-muted-foreground">
-              No snapshots logged. Add one above to anchor net worth calculations.
-            </li>
-          ) : null}
-        </ul>
-        {errorForm === "snapshot" && error ? (
-          <p className="mt-2 text-xs font-medium text-red-600" role="alert">
-            {error}
-          </p>
-        ) : null}
-      </section>
-
-      {/* Account Details Form Section */}
-      <section
-        id="section-details"
-        className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs"
-      >
-        <details open className="group">
-          <summary className="flex cursor-pointer items-center justify-between list-none">
-            <div>
-              <h2 className="text-base font-semibold tracking-tight inline-block">Account details</h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Update account configuration, country domicile, or US-situs classification.
-              </p>
-            </div>
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground border border-border/80 rounded-md px-2.5 py-1 hover:bg-muted transition-colors">
-              <span className="group-open:hidden">Edit settings ↓</span>
-              <span className="hidden group-open:inline">Hide ↑</span>
-            </span>
-          </summary>
-          <form
-            action={submitAccount}
-            className="mt-4 grid max-w-2xl grid-cols-2 gap-3 text-sm sm:grid-cols-3 pt-3 border-t border-border/60"
-          >
-            <input type="hidden" name="accountId" value={account.id} />
-            <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1 block">Account name</label>
-              <input
-                name="name"
-                defaultValue={account.name}
-                required
-                aria-label="Account name"
-                className={inputStyle}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1 block">Institution</label>
-              <input
-                name="institution"
-                defaultValue={account.institution}
-                required
-                aria-label="Institution"
-                className={inputStyle}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1 block">Account type</label>
-              <select
-                name="type"
-                defaultValue={account.type}
-                required
-                aria-label="Account type"
-                className={inputStyle}
-              >
-                {ACCOUNT_TYPES.map((type) => (
-                  <option key={type}>{type}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1 block">Country (2-letter)</label>
-              <input
-                name="country"
-                defaultValue={account.country}
-                required
-                pattern="[A-Z]{2}"
-                aria-label="Country"
-                className={inputStyle}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground font-medium mb-1 block">Currency</label>
-              <input
-                name="currency"
-                value={account.currency}
-                readOnly
-                aria-label="Currency"
-                className={`${inputStyle} bg-muted/60 text-muted-foreground cursor-not-allowed`}
-              />
-            </div>
-            <div className="flex flex-col justify-end">
-              <label className="flex h-9 items-center gap-2 rounded-lg border border-input px-3 text-xs font-medium cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="isUSSitus"
-                  value="true"
-                  defaultChecked={account.isUSSitus}
-                  className="rounded text-foreground"
-                />{" "}
-                US-situs
-              </label>
-            </div>
-            <button
-              type="submit"
-              className="col-span-2 inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-xs transition-colors hover:bg-foreground/90 sm:col-span-3 active:scale-[0.98] cursor-pointer"
-            >
-              <Save className="size-3.5" aria-hidden="true" /> Save account
-            </button>
-          </form>
-          {errorForm === "account" && error ? (
-            <p className="mt-3 text-xs font-medium text-red-600" role="alert">
-              {error}
-            </p>
-          ) : null}
-        </details>
-      </section>
-
-      {/* Destructive Delete Zone */}
-      <div className="border-t border-border/60 pt-6">
-        <form action={submitDelete}>
-          <input type="hidden" name="id" value={account.id} />
-          <button
-            type="submit"
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/5 px-4 text-xs font-semibold text-destructive shadow-2xs hover:bg-destructive/15 active:scale-[0.98] transition-colors cursor-pointer"
-          >
-            <Trash2 className="size-3.5" />
-            <span>Delete account (and all its data)</span>
-          </button>
-          {errorForm === "delete" && error ? (
-            <p className="mt-2 text-xs font-medium text-red-600" role="alert">
-              {error}
-            </p>
-          ) : null}
-        </form>
-      </div>
     </main>
   );
 }
+

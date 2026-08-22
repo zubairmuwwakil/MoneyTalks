@@ -1,0 +1,26 @@
+[    1368ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[    1427ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:776
+[    2226ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://clerk.inunity.ca/v1/client?__clerk_api_version=2026-05-12&_clerk_js_version=6.29.2:0
+[    2247ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://clerk.inunity.ca/v1/environment?__clerk_api_version=2026-05-12&_clerk_js_version=6.29.2:0
+[    2248ms] [ERROR] e: Clerk: Production Keys are only allowed for domain "inunity.ca". 
+API Error: The Request HTTP Origin header must be equal to or a subdomain of the requesting URL.
+    at https://clerk.inunity.ca/npm/@clerk/clerk-js@6/dist/clerk.browser.js:17:8984
+    at il._baseFetch (https://clerk.inunity.ca/npm/@clerk/clerk-js@6/dist/clerk.browser.js:18:38)
+    at async io.execute (https://clerk.inunity.ca/npm/@clerk/clerk-js@6/dist/clerk.browser.js:17:6812)
+    at async rA._baseGet (https://clerk.inunity.ca/npm/@clerk/clerk-js@6/dist/clerk.browser.js:18:497)
+    at async Promise.all (index 1)
+    at async #eY (https://clerk.inunity.ca/npm/@clerk/clerk-js@6/dist/clerk.browser.js:18:236310)
+    at async s7.load (https://clerk.inunity.ca/npm/@clerk/clerk-js@6/dist/clerk.browser.js:18:193944)
+    at async IsomorphicClerk.getEntryChunks (http://localhost:3000/_next/static/chunks/node_modules_%40clerk_react_dist_1nvzawa._.js:1467:17) @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:1052
+[    2481ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://clerk.inunity.ca/v1/environment?__clerk_api_version=2026-05-12&_clerk_js_version=6.29.2:0
+[    2482ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://clerk.inunity.ca/v1/client?__clerk_api_version=2026-05-12&_clerk_js_version=6.29.2:0
+[    2482ms] [ERROR] e: Clerk: Production Keys are only allowed for domain "inunity.ca". 
+API Error: The Request HTTP Origin header must be equal to or a subdomain of the requesting URL.
+    at https://clerk.inunity.ca/npm/@clerk/clerk-js@6/dist/clerk.browser.js:17:8984
+    at il._baseFetch (https://clerk.inunity.ca/npm/@clerk/clerk-js@6/dist/clerk.browser.js:18:38)
+    at async io.execute (https://clerk.inunity.ca/npm/@clerk/clerk-js@6/dist/clerk.browser.js:17:6812)
+    at async rA._baseGet (https://clerk.inunity.ca/npm/@clerk/clerk-js@6/dist/clerk.browser.js:18:497)
+    at async Promise.all (index 1)
+    at async #eY (https://clerk.inunity.ca/npm/@clerk/clerk-js@6/dist/clerk.browser.js:18:236310)
+    at async s7.load (https://clerk.inunity.ca/npm/@clerk/clerk-js@6/dist/clerk.browser.js:18:193944)
+    at async IsomorphicClerk.getEntryChunks (http://localhost:3000/_next/static/chunks/node_modules_%40clerk_react_dist_1nvzawa._.js:1467:17) @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js:1052
