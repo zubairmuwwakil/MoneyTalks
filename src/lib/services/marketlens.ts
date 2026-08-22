@@ -41,12 +41,14 @@ export type QuoteBatch = {
 const MAX_SYMBOLS_PER_REQUEST = 50;
 
 /**
- * Short by design. This runs inside a serverless function with a hard wall-clock
- * limit, and MarketLens sits on a plan that spins down when idle, so a cold start
- * can outlast the caller. Timing out is the expected path, not an error path —
- * holdings keep their cached last-known price and are labelled stale.
+ * Matches the cron's budget so a manual refresh can survive a MarketLens cold
+ * start instead of falsely reporting "unreachable". The button already shows a
+ * spinner and disables itself, so the user knows something is happening. A true
+ * failure (MarketLens actually down) takes 20 s instead of 8, but a false
+ * failure on cold start is far worse UX than waiting a few extra seconds on a
+ * real one.
  */
-const DEFAULT_TIMEOUT_MS = 8_000;
+const DEFAULT_TIMEOUT_MS = 20_000;
 
 export function isMarketLensConfigured(): boolean {
   return Boolean(process.env.MARKETLENS_BASE_URL?.trim() && process.env.MARKETLENS_API_KEY?.trim());

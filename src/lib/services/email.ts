@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 
-export const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy");
+const apiKey = process.env.RESEND_API_KEY || process.env.AUTH_RESEND_KEY;
+export const resend = new Resend(apiKey || "re_dummy");
 
 export async function sendEmail(opts: {
   to: string;
@@ -8,9 +9,9 @@ export async function sendEmail(opts: {
   html: string;
   text?: string;
 }) {
-  const rawFrom = process.env.EMAIL_FROM;
+  const rawFrom = process.env.EMAIL_FROM || process.env.AUTH_EMAIL_FROM;
   if (!rawFrom) throw new Error("EMAIL_FROM missing");
-  if (!process.env.RESEND_API_KEY) throw new Error("RESEND_API_KEY missing");
+  if (!apiKey) throw new Error("RESEND_API_KEY missing");
 
   const from = rawFrom.includes("<") ? rawFrom : `PickMe <${rawFrom}>`;
 
@@ -22,3 +23,4 @@ export async function sendEmail(opts: {
     text: opts.text,
   });
 }
+

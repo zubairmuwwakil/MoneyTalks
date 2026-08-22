@@ -8,6 +8,7 @@ import { RecommendationEngine, PurchaseContext, OwnerState, Catalogue } from "@/
 import { parseWalletCapturePayload } from "@/lib/domain/wallet/capturePayload";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
+import { Prisma } from "@prisma/client";
 
 function loadCatalogue(): Catalogue {
   const p = path.resolve(process.cwd(), "contracts/card-catalogue.json");
@@ -17,7 +18,7 @@ function loadCatalogue(): Catalogue {
 export async function POST(req: Request) {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return new NextResponse("Unauthorized", { status: 401 });
+    return NextResponse.json({ disposition: "authenticationRequired" }, { status: 401 });
   }
   const token = authHeader.substring(7);
   const tokenHash = createHash("sha256").update(token).digest("hex");
@@ -27,21 +28,21 @@ export async function POST(req: Request) {
   });
 
   if (!installation || installation.revokedAt) {
-    return new NextResponse("Unauthorized", { status: 401 });
+    return NextResponse.json({ disposition: "authenticationRequired" }, { status: 401 });
   }
 
   // Double check with constant-time compare just in case, though DB lookup on unique constraint is already exact.
   if (!secretEquals(installation.tokenHash, tokenHash)) {
-    return new NextResponse("Unauthorized", { status: 401 });
+    return NextResponse.json({ disposition: "authenticationRequired" }, { status: 401 });
   }
 
   const rawBody = await req.json().catch(() => null);
   if (rawBody == null) {
-    return NextResponse.json({ error: "invalid payload", final: true }, { status: 400 });
+    return NextResponse.json({ disposition: "invalid", error: "invalid payload", final: true }, { status: 400 });
   }
   const parsed = parseWalletCapturePayload(rawBody);
   if (!parsed.ok) {
-    return NextResponse.json({ error: "invalid payload", final: true, details: parsed.error }, { status: 400 });
+    return NextResponse.json({ disposition: "invalid", error: "invalid payload", final: true, details: parsed.error }, { status: 400 });
   }
 
   const data = parsed.data;
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
     where: { eventId: data.eventId }
   });
   if (existing) {
-    return NextResponse.json({ accepted: true, duplicate: true, final: true, eventId: data.eventId });
+    return NextResponse.json({ disposition: "duplicate", accepted: true, duplicate: true, final: true, eventId: data.eventId });
   }
 
   // An unparseable device timestamp must not cost us the transaction; the
@@ -82,11 +83,20 @@ export async function POST(req: Request) {
   const merchantAlias = data.merchantRaw
     ? await prisma.merchantAlias.findUnique({ where: { rawString: data.merchantRaw } })
     : null;
-  const cardAlias = data.cardRaw
+  const cardResolutionRaw = data.cardRaw ?? data.paymentMethodRaw;
+  const cardAlias = cardResolutionRaw
     ? await prisma.cardAlias.findUnique({
-        where: { userId_rawString: { userId: installation.userId, rawString: data.cardRaw } },
+        where: { userId_rawString: { userId: installation.userId, rawString: cardResolutionRaw } },
       })
     : null;
+
+  const missingFields = [
+    ...(!data.merchantRaw && !data.transactionNameRaw ? ["merchantRaw", "transactionNameRaw"] : []),
+    ...(data.amountDecodeStatus === "absent" ? ["amountRaw"] : []),
+    ...(data.amountDecodeStatus === "undecodable" ? ["amountDecimal"] : []),
+    ...(!data.cardRaw ? ["cardRaw"] : []),
+    ...(data.paymentMethodFallback ? ["paymentMethodRaw:fellBackToTransactionName"] : []),
+  ];
 
   const createdEvent = await prisma.walletEvent.create({
     data: {
@@ -96,19 +106,30 @@ export async function POST(req: Request) {
       source: data.source,
       schemaVersion: data.schemaVersion,
       shortcutVersion: data.shortcutVersion,
+      captureVersion: data.captureVersion,
+      transport: data.transport,
       capturedAt,
       capturedAtRaw: data.capturedAtRaw,
       capturedTimezone: data.capturedTimezone,
       merchantRaw: data.merchantRaw,
       transactionNameRaw: data.transactionNameRaw,
       amountRaw: data.amount,
+      amountTextRaw: data.amountTextRaw,
+      amountDeviceDecimal: data.amountDeviceDecimal,
+      amountDecodeStatus: data.amountDecodeStatus,
+      amountDisagreement: data.amountDisagreement,
       currencyRaw: currency,
       cardRaw: data.cardRaw,
+      paymentMethodRaw: data.paymentMethodRaw,
+      paymentMethodFallback: data.paymentMethodFallback,
       merchantNormalized: merchantAlias?.normalizedName ?? null,
       resolvedCardId: cardAlias?.cardId ?? null,
       latitude: data.latitude,
       longitude: data.longitude,
       locationAccuracyMeters: data.locationAccuracyMeters,
+      locationCapturedAt: data.locationCapturedAt,
+      clientMetadata: data.client as Prisma.InputJsonValue | undefined,
+      missingFields,
       rawPayload: rawBody,
       assumedCurrency,
       processingStatus,
@@ -175,8 +196,8 @@ export async function POST(req: Request) {
 
   // Instantly normalize and promote the event so it shows up in real-time on the purchases page
   try {
-    const { processWalletEvents } = await import("@/lib/domain/wallet/walletNormalization");
-    await processWalletEvents();
+    const { processWalletEvent } = await import("@/lib/domain/wallet/walletNormalization");
+    await processWalletEvent(data.eventId);
   } catch (e) {
     console.error("Error processing wallet events synchronously", e);
   }
@@ -186,9 +207,12 @@ export async function POST(req: Request) {
   // failures (network, 5xx, platform errors) never produce this shape.
   // `notification` is the ready-to-show text, present only when there is one.
   return NextResponse.json({
+    disposition: "accepted",
     accepted: true,
     eventId: data.eventId,
     final: true,
+    normalizationState: processingStatus === "POSSIBLE_DUPLICATE" ? "possibleDuplicate" : "processed",
+    refinement: { verdict, warning },
     feedback: { verdict, warning },
     ...(warning ? { notification: warning } : {}),
   });

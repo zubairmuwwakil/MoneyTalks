@@ -138,15 +138,15 @@ export async function sendServiceFailureAlert(opts: ServiceFailureAlertOptions):
 
   // 3. Send email via Resend
   const recipient = resolveRecipient();
-  const rawFrom = process.env.EMAIL_FROM;
-  const apiKey = process.env.RESEND_API_KEY;
+  const rawFrom = process.env.EMAIL_FROM || process.env.AUTH_EMAIL_FROM;
+  const apiKey = process.env.RESEND_API_KEY || process.env.AUTH_RESEND_KEY;
 
   if (!recipient || !rawFrom || !apiKey) {
     console.warn(
       `[alerting] Email alert skipped for ${opts.serviceName}: missing ${[
         !recipient && "ADMIN_ALERT_EMAIL/ALLOWED_EMAILS",
-        !rawFrom && "EMAIL_FROM",
-        !apiKey && "RESEND_API_KEY",
+        !rawFrom && "EMAIL_FROM/AUTH_EMAIL_FROM",
+        !apiKey && "RESEND_API_KEY/AUTH_RESEND_KEY",
       ]
         .filter(Boolean)
         .join(", ")}`,

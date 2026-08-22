@@ -6,7 +6,7 @@ import { applyCapAccrual } from "@/lib/spine/cap-usage";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    walletEvent: { findMany: vi.fn() },
+    walletEvent: { findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
     merchantAlias: { findUnique: vi.fn(), create: vi.fn() },
     cardAlias: { findUnique: vi.fn() },
     $transaction: vi.fn(),
@@ -200,5 +200,29 @@ describe("processWalletEvents", () => {
     // Cap accrual skipped because no card alias
     expect(applyCapAccrual).not.toHaveBeenCalled();
   });
-});
 
+  it("moves 100 merchant-null events out of OBSERVED so the next event can normalize", async () => {
+    const blocked = Array.from({ length: 100 }, (_, index) => ({
+      id: `blocked-${index}`, userId: "user-1", eventId: `wevt_blocked_${index}`,
+      merchantRaw: null, transactionNameRaw: null, cardRaw: null, paymentMethodRaw: null,
+      amountRaw: null, currencyRaw: "CAD", capturedAt: new Date("2026-08-16T22:00:00Z"),
+    }));
+    const good = {
+      id: "evt-after", userId: "user-1", eventId: "wevt_after",
+      merchantRaw: "Fresh Cafe", transactionNameRaw: null, cardRaw: null, paymentMethodRaw: null,
+      amountRaw: new Prisma.Decimal("4.25"), currencyRaw: "CAD",
+      capturedAt: new Date("2026-08-16T22:30:00Z"),
+    };
+    vi.mocked(prisma.walletEvent.findMany)
+      .mockResolvedValueOnce(blocked as any).mockResolvedValueOnce([])
+      .mockResolvedValueOnce([good] as any).mockResolvedValueOnce([]);
+    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Fresh Cafe", category: null } as any);
+    tx.purchase.findFirst.mockResolvedValue(null); tx.purchase.findMany.mockResolvedValue([]);
+    tx.purchase.create.mockResolvedValue({ id: "purchase-after", currency: "CAD" });
+    tx.ownerStateRecord.findUnique.mockResolvedValue(null); tx.creditCard.findMany.mockResolvedValue([]);
+
+    expect(await processWalletEvents()).toBe(0);
+    expect(vi.mocked(prisma.walletEvent.update)).toHaveBeenCalledTimes(100);
+    expect(await processWalletEvents()).toBe(1);
+  });
+});

@@ -70,7 +70,7 @@ const tHash = createHash("sha256").update(token).digest("hex");
     
     const res = await POST(mockReq(payload));
     const json = await res.json();
-    expect(json).toEqual({ accepted: true, duplicate: true, final: true, eventId: "wevt_123" });
+    expect(json).toEqual({ disposition: "duplicate", accepted: true, duplicate: true, final: true, eventId: "wevt_123" });
   });
 
   it("marks fuzzy dup but never deletes", async () => {

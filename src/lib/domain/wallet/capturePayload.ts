@@ -12,24 +12,36 @@ export interface WalletCaptureData {
   source: string;
   schemaVersion: number;
   shortcutVersion: number;
+  captureVersion: number | null;
+  transport: string | null;
   capturedAt: Date | null;
   capturedAtRaw: string;
   capturedTimezone: string | null;
-  merchantRaw: string;
+  merchantRaw: string | null;
   transactionNameRaw: string | null;
-  amount: string | null; // exact decimal string, ready for a Prisma Decimal column
+  /** Canonical exact decimal string, preferring the device decode for schema 2. */
+  amount: string | null;
+  /** Verbatim Apple-supplied text. Schema 1 cannot always preserve this outside rawPayload. */
+  amountTextRaw: string | null;
+  amountDeviceDecimal: string | null;
+  amountDecodeStatus: "decoded" | "undecodable" | "absent";
+  amountDisagreement: boolean;
   currency: string | null;
   cardRaw: string | null;
+  paymentMethodRaw: string | null;
+  paymentMethodFallback: boolean;
   latitude: number | null;
   longitude: number | null;
   locationAccuracyMeters: number | null;
+  locationCapturedAt: Date | null;
+  client: Record<string, string | number | boolean | null> | null;
 }
 
 export type WalletCaptureParseResult =
   | { ok: true; data: WalletCaptureData }
   | { ok: false; error: z.ZodError };
 
-const envelopeSchema = z.object({
+const schema1Envelope = z.object({
   schemaVersion: z.literal(1),
   shortcutVersion: z.coerce.number().int(),
   source: z.literal("apple_wallet_shortcuts"),
@@ -38,6 +50,33 @@ const envelopeSchema = z.object({
   timezone: z.string().nullable().optional(),
   transaction: z.unknown(),
   location: z.unknown().optional(),
+});
+
+const schema2Envelope = z.object({
+  schemaVersion: z.literal(2),
+  captureVersion: z.coerce.number().int().positive(),
+  source: z.literal("apple_wallet_automation"),
+  transport: z.literal("pickme_app_intent"),
+  eventId: z.string().min(1),
+  capturedAt: z.string().min(1),
+  timezone: z.string().nullable().optional(),
+  transaction: z.object({
+    merchantRaw: z.unknown().optional(),
+    transactionNameRaw: z.unknown().optional(),
+    amountRaw: z.unknown().optional(),
+    amountDecimal: z.unknown().optional(),
+    amountDecodeStatus: z.enum(["decoded", "undecodable", "absent"]),
+    currencyRaw: z.unknown().optional(),
+    cardRaw: z.unknown().optional(),
+    paymentMethodRaw: z.unknown().optional(),
+  }),
+  location: z.object({
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    horizontalAccuracyMeters: z.number().nonnegative(),
+    capturedAt: z.string().min(1),
+  }).optional(),
+  client: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 });
 
 const transactionSchema = z.object({
@@ -109,6 +148,13 @@ function toDecimalString(v: unknown): string | null {
   return null;
 }
 
+function decimalDiffers(a: string | null, b: string | null): boolean {
+  if (a == null || b == null) return false;
+  const left = Number(a);
+  const right = Number(b);
+  return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) > 0.00005;
+}
+
 function toFiniteNumber(v: unknown): number | null {
   if (typeof v === "number") return Number.isFinite(v) ? v : null;
   if (typeof v === "string" && v.trim() !== "") {
@@ -165,7 +211,58 @@ function parseCapturedAt(rawString: string, zone: string | null): Date | null {
 }
 
 export function parseWalletCapturePayload(rawBody: unknown): WalletCaptureParseResult {
-  const parsed = envelopeSchema.safeParse(trimKeys(rawBody));
+  const trimmed = trimKeys(rawBody);
+  const version = typeof trimmed === "object" && trimmed != null && !Array.isArray(trimmed)
+    ? (trimmed as Record<string, unknown>).schemaVersion
+    : undefined;
+
+  if (version === 2) {
+    const parsed = schema2Envelope.safeParse(trimmed);
+    if (!parsed.success) return { ok: false, error: parsed.error };
+    const env = parsed.data;
+    const rawAmount = optionalString(env.transaction.amountRaw);
+    const deviceAmount = toDecimalString(env.transaction.amountDecimal);
+    const serverAmount = toDecimalString(rawAmount);
+    const status = env.transaction.amountDecodeStatus;
+    const canonicalAmount = status === "decoded" && deviceAmount != null ? deviceAmount : serverAmount;
+    const transactionNameRaw = optionalString(env.transaction.transactionNameRaw);
+    const observedPaymentMethod = optionalString(env.transaction.paymentMethodRaw);
+    const paymentMethodFallback = observedPaymentMethod != null && observedPaymentMethod === transactionNameRaw;
+    const capturedTimezone = env.timezone != null && IANAZone.isValidZone(env.timezone) ? env.timezone : null;
+
+    return {
+      ok: true,
+      data: {
+        eventId: env.eventId,
+        source: env.source,
+        schemaVersion: 2,
+        shortcutVersion: 0,
+        captureVersion: env.captureVersion,
+        transport: env.transport,
+        capturedAt: parseCapturedAt(env.capturedAt, capturedTimezone),
+        capturedAtRaw: env.capturedAt,
+        capturedTimezone,
+        merchantRaw: optionalString(env.transaction.merchantRaw),
+        transactionNameRaw,
+        amount: canonicalAmount,
+        amountTextRaw: rawAmount,
+        amountDeviceDecimal: deviceAmount,
+        amountDecodeStatus: status,
+        amountDisagreement: decimalDiffers(deviceAmount, serverAmount),
+        currency: optionalString(env.transaction.currencyRaw),
+        cardRaw: optionalString(env.transaction.cardRaw),
+        paymentMethodRaw: paymentMethodFallback ? null : observedPaymentMethod,
+        paymentMethodFallback,
+        latitude: env.location?.latitude ?? null,
+        longitude: env.location?.longitude ?? null,
+        locationAccuracyMeters: env.location?.horizontalAccuracyMeters ?? null,
+        locationCapturedAt: env.location ? parseCapturedAt(env.location.capturedAt, capturedTimezone) : null,
+        client: env.client ?? null,
+      },
+    };
+  }
+
+  const parsed = schema1Envelope.safeParse(trimmed);
   if (!parsed.success) return { ok: false, error: parsed.error };
   const env = parsed.data;
 
@@ -182,15 +279,26 @@ export function parseWalletCapturePayload(rawBody: unknown): WalletCaptureParseR
       source: env.source,
       schemaVersion: env.schemaVersion,
       shortcutVersion: env.shortcutVersion,
+      captureVersion: null,
+      transport: null,
       capturedAt: parseCapturedAt(env.capturedAt, capturedTimezone),
       capturedAtRaw: env.capturedAt,
       capturedTimezone,
       merchantRaw: transaction.data.merchantRaw,
       transactionNameRaw: optionalString(transaction.data.transactionNameRaw),
       amount: toDecimalString(transaction.data.amount),
+      amountTextRaw: optionalString(transaction.data.amount),
+      amountDeviceDecimal: null,
+      amountDecodeStatus: transaction.data.amount == null || transaction.data.amount === ""
+        ? "absent" : (toDecimalString(transaction.data.amount) == null ? "undecodable" : "decoded"),
+      amountDisagreement: false,
       currency: optionalString(transaction.data.currency),
       cardRaw: optionalString(transaction.data.cardRaw),
+      paymentMethodRaw: null,
+      paymentMethodFallback: false,
       ...parseLocation(env.location),
+      locationCapturedAt: null,
+      client: null,
     },
   };
 }

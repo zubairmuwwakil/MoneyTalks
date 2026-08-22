@@ -836,16 +836,27 @@ model WalletEvent {
   source                 String
   schemaVersion          Int
   shortcutVersion        Int
+  captureVersion         Int?
+  transport              String?
   capturedAt             DateTime
   uploadedAt             DateTime                    @default(now())
   merchantRaw            String?
   transactionNameRaw     String?
   amountRaw              Decimal?                    @db.Decimal(15, 4)
+  amountTextRaw          String?
+  amountDeviceDecimal    Decimal?                    @db.Decimal(15, 4)
+  amountDecodeStatus     String?
+  amountDisagreement     Boolean                     @default(false)
   currencyRaw            String?
   cardRaw                String?
+  paymentMethodRaw       String?
+  paymentMethodFallback  Boolean                     @default(false)
   latitude               Float?
   longitude              Float?
   locationAccuracyMeters Float?
+  locationCapturedAt     DateTime?
+  clientMetadata         Json?
+  missingFields          Json?
   assumedCurrency        Boolean                     @default(false)
   processingStatus       WalletEventProcessingStatus @default(OBSERVED)
   createdAt              DateTime                    @default(now())
@@ -1087,4 +1098,5 @@ enum WalletEventProcessingStatus {
   POSSIBLE_DUPLICATE
   RECONCILED
   REVERSED
+  INCOMPLETE
 }
