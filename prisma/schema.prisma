@@ -40,6 +40,7 @@ model User {
   providerCredentials         ProviderCredential[]
   purchases                   Purchase[]
   purchaseDuplicateDismissals PurchaseDuplicateDismissal[]
+  purchaseCorrections         PurchaseCorrection[]
   receiptDocuments            ReceiptDocument[]
   receiptUploads              ReceiptUpload[]
   refundCases                 RefundCase[]
@@ -53,6 +54,7 @@ model User {
   valueEvents                 ValueEvent[]
   walletEvents                WalletEvent[]
   walletInstallations         WalletInstallation[]
+  walletCaptureDiagnostics    WalletCaptureDiagnostic[]
 }
 
 model Account {
@@ -520,12 +522,29 @@ model Purchase {
   returns                   ReturnItem[]
   statementLines            StatementLine[]
   walletEvents              WalletEvent[]
+  financialState            PurchaseFinancialState       @default(NORMALIZED)
+  corrections               PurchaseCorrection[]
 
   @@unique([userId, sourceEmailId])
   @@unique([userId, sourceEventId])
   @@index([userId, purchasedAt])
   @@index([purchasedAt])
   @@index([userId, merchant])
+}
+
+model PurchaseCorrection {
+  id          String    @id @default(cuid())
+  userId      String
+  purchaseId  String
+  kind        String
+  beforeState Json
+  afterState  Json
+  createdAt   DateTime  @default(now())
+  undoneAt    DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purchase    Purchase  @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purchaseId, createdAt])
 }
 
 model PurchaseDuplicateDismissal {
@@ -859,6 +878,7 @@ model WalletEvent {
   missingFields          Json?
   assumedCurrency        Boolean                     @default(false)
   processingStatus       WalletEventProcessingStatus @default(OBSERVED)
+  financialState         WalletEventFinancialState   @default(CAPTURED)
   createdAt              DateTime                    @default(now())
   updatedAt              DateTime                    @updatedAt
   feedbackVerdict        String?
@@ -872,10 +892,27 @@ model WalletEvent {
   purchase               Purchase?                   @relation(fields: [purchaseId], references: [id])
   user                   User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
   walletInstallation     WalletInstallation          @relation(fields: [walletInstallationId], references: [id], onDelete: Cascade)
+  diagnostics            WalletCaptureDiagnostic[]
 
   @@index([userId, eventId])
   @@index([userId, capturedAt])
   @@index([purchaseId])
+}
+
+model WalletCaptureDiagnostic {
+  id                         String       @id @default(cuid())
+  userId                     String
+  walletEventId              String?
+  clientReportId             String       @unique
+  includedTransactionDetails Boolean      @default(false)
+  snapshot                   Json
+  submittedAt                DateTime     @default(now())
+  expiresAt                  DateTime
+  user                       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  walletEvent                WalletEvent? @relation(fields: [walletEventId], references: [id], onDelete: SetNull)
+
+  @@index([userId, submittedAt])
+  @@index([expiresAt])
 }
 
 model MerchantAlias {
@@ -1099,4 +1136,21 @@ enum WalletEventProcessingStatus {
   RECONCILED
   REVERSED
   INCOMPLETE
+}
+
+enum WalletEventFinancialState {
+  CAPTURED
+  NORMALIZED
+  RECONCILED
+  ADJUSTED
+  DECLINED
+  REVERSED
+}
+
+enum PurchaseFinancialState {
+  NORMALIZED
+  RECONCILED
+  ADJUSTED
+  DECLINED
+  REVERSED
 }

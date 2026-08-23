@@ -112,6 +112,20 @@ describe("cap usage", () => {
     expect(memory.totals.get(key)).toBe(12_345);
   });
 
+  it("removes a reversed idempotency row so Undo can restore cap usage", async () => {
+    const memory = memoryLedger();
+    const state = ownerState({ "amex-cobalt": {} });
+    const key = memory.ledgerKey({ userId: "user-1", cardId: "amex-cobalt", capId: "cobalt-eats-monthly", periodKey: "2026-08" });
+
+    await applyCapAccrual(memory.tx as never, source(), state);
+    await reverseCapAccrual(memory.tx as never, "wallet:event-1");
+    expect(memory.totals.get(key)).toBe(0);
+
+    expect(await removeCapAccrual(memory.tx as never, "wallet:event-1")).toBe(true);
+    await applyCapAccrual(memory.tx as never, source(), state);
+    expect(memory.totals.get(key)).toBe(12_345);
+  });
+
   it("converts a USD-measured cap using the twin's 0.73 fallback", () => {
     const accrual = resolveCapAccrual(source({
       cardId: "cryptocom-royal-indigo",

@@ -58,6 +58,7 @@ describe("processWalletEvents", () => {
       where: { id: "evt-1" },
       data: {
         processingStatus: "NORMALIZED",
+        financialState: "NORMALIZED",
         merchantNormalized: "Cafe",
         resolvedCardId: "amex-cobalt",
         purchaseId: "purch-1",
@@ -192,6 +193,7 @@ describe("processWalletEvents", () => {
       where: { id: "evt-5" },
       data: {
         processingStatus: "NORMALIZED",
+        financialState: "NORMALIZED",
         merchantNormalized: "Metro",
         resolvedCardId: null,
         purchaseId: "purch-5",
@@ -199,6 +201,35 @@ describe("processWalletEvents", () => {
     });
     // Cap accrual skipped because no card alias
     expect(applyCapAccrual).not.toHaveBeenCalled();
+  });
+
+  it("tries a distinct payment method as a secondary card-resolution key", async () => {
+    const event = {
+      id: "evt-6", userId: "user-1", eventId: "wevt_6",
+      merchantRaw: "Metro", cardRaw: "Unknown Wallet label", paymentMethodRaw: "Amex Cobalt",
+      amountRaw: new Prisma.Decimal("32.10"), currencyRaw: "CAD",
+      capturedAt: new Date("2026-08-17T14:00:00Z"),
+    };
+    vi.mocked(prisma.walletEvent.findMany)
+      .mockResolvedValueOnce([event] as any)
+      .mockResolvedValueOnce([]);
+    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Metro", category: "grocery" } as any);
+    vi.mocked(prisma.cardAlias.findUnique)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ cardId: "amex-cobalt" } as any);
+    tx.purchase.findFirst.mockResolvedValue(null);
+    tx.purchase.findMany.mockResolvedValue([]);
+    tx.purchase.create.mockResolvedValue({ id: "purch-6", currency: "CAD" });
+    tx.ownerStateRecord.findUnique.mockResolvedValue(null);
+    tx.creditCard.findMany.mockResolvedValue([]);
+
+    expect(await processWalletEvents()).toBe(1);
+    expect(prisma.cardAlias.findUnique).toHaveBeenNthCalledWith(2, {
+      where: { userId_rawString: { userId: "user-1", rawString: "Amex Cobalt" } },
+    });
+    expect(tx.walletEvent.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ resolvedCardId: "amex-cobalt" }),
+    }));
   });
 
   it("moves 100 merchant-null events out of OBSERVED so the next event can normalize", async () => {

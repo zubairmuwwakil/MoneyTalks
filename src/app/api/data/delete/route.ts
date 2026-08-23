@@ -35,6 +35,7 @@ async function wipeUserOwnedData(userId: string) {
 
     // The merged foreign keys cascade return children and purchase children.
     await tx.returnItem.deleteMany({ where: { userId } });
+    await tx.purchaseCorrection.deleteMany({ where: { userId } });
     await tx.subscriptionPayment.deleteMany({ where: { userId } });
     await tx.subscription.deleteMany({ where: { userId } });
     await tx.purchase.deleteMany({ where: { userId } });
@@ -49,6 +50,7 @@ async function wipeUserOwnedData(userId: string) {
 
     // The purchase spine the iOS app writes into. Omitted before this chunk, which left a
     // "delete my data" that quietly kept every captured wallet event and cap ledger row.
+    await tx.walletCaptureDiagnostic.deleteMany({ where: { userId } });
     await tx.walletEvent.deleteMany({ where: { userId } });
     await tx.walletInstallation.deleteMany({ where: { userId } });
     await tx.capAccrual.deleteMany({ where: { userId } });

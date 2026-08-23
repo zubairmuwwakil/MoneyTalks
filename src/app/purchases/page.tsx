@@ -126,6 +126,7 @@ export default async function PurchasesInboxPage({
   // Construct query where clause based on active filters
   const where: Prisma.PurchaseWhereInput = {
     userId,
+    financialState: { notIn: ["DECLINED", "REVERSED"] },
     ...(q ? { merchant: { contains: q, mode: "insensitive" as const } } : {}),
   };
 
@@ -176,7 +177,7 @@ export default async function PurchasesInboxPage({
       orderBy: { asOf: "desc" },
     }),
     prisma.purchase.findMany({
-      where: { userId },
+      where: { userId, financialState: { notIn: ["DECLINED", "REVERSED"] } },
       select: {
         id: true,
         merchant: true,

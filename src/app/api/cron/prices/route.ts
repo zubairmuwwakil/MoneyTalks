@@ -13,8 +13,28 @@ export const runtime = "nodejs";
  * the night pays a cold start. A cron is exactly where that is affordable — and
  * it is the reason this job exists: it keeps stored prices warm so a page render
  * never has to wait on a live fetch.
+ *
+ * maxDuration is 120 s because a Java/Spring cold start can take 30–60 s alone,
+ * and the original 60 s left no margin after the warmup + quote fetch + snapshot
+ * capture sequence.
  */
-export const maxDuration = 60;
+export const maxDuration = 120;
+
+/** Absorb MarketLens' cold start so the real quote fetch doesn't time out. */
+async function warmUpMarketLens(): Promise<void> {
+  const baseUrl = process.env.MARKETLENS_BASE_URL?.trim();
+  if (!baseUrl) return;
+  try {
+    await fetch(baseUrl.replace(/\/+$/, ""), {
+      method: "HEAD",
+      cache: "no-store",
+      signal: AbortSignal.timeout(55_000),
+    });
+  } catch {
+    // Swallowed: if the warmup itself fails the quote fetch will too, and that
+    // path already handles the failure gracefully.
+  }
+}
 
 async function runPriceCron(req: NextRequest) {
   if (!(await isAuthorizedCronRequest(req))) {
@@ -27,6 +47,13 @@ async function runPriceCron(req: NextRequest) {
   }
 
   try {
+    // Wake MarketLens before the clock starts on any per-user fetch timeout.
+    // A Java/Spring cold start can take 30–60 s; absorbing it here means the
+    // per-user refreshHoldingPrices call sees a warm service.
+    if (marketLensConfigured) {
+      await warmUpMarketLens();
+    }
+
     // Cash-only accounts still need a daily valuation, so account ownership — not
     // the presence of a priceable holding — determines who participates.
     const users = await prisma.user.findMany({
@@ -48,10 +75,14 @@ async function runPriceCron(req: NextRequest) {
       let validatedHoldingIds: string[] = [];
       if (hasHoldings && marketLensConfigured) {
         try {
-          const outcome = await refreshHoldingPrices(prisma, user.id, { timeoutMs: 20_000 });
+          const outcome = await refreshHoldingPrices(prisma, user.id, { timeoutMs: 45_000 });
           validatedHoldingIds = outcome.validatedHoldingIds;
           updated += outcome.updated;
           if (outcome.updated > 0) usersRefreshed += 1;
+          if (outcome.reason) {
+            console.warn(`[cron/prices] refresh degraded for user ${user.id}: ${outcome.reason}`);
+            refreshFailures.push({ userId: user.id, error: outcome.reason });
+          }
         } catch (err) {
           // Snapshot capture still runs: the stale inputs are useful diagnostics,
           // while their partial status keeps them out of performance math.

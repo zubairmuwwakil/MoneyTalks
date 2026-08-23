@@ -32,12 +32,19 @@ async function processObservedWalletEvent(event: NonNullable<WalletEventForNorma
     }
   }
 
-  const cardObservation = event.cardRaw ?? event.paymentMethodRaw;
-  const cardAlias = cardObservation
+  const primaryCardAlias = event.cardRaw
     ? await prisma.cardAlias.findUnique({
-        where: { userId_rawString: { userId: event.userId, rawString: cardObservation } },
+        where: { userId_rawString: { userId: event.userId, rawString: event.cardRaw } },
       })
     : null;
+  // A genuinely distinct payment-method value is only a secondary signal.
+  // It must not replace cardRaw, but it can rescue resolution when cardRaw is
+  // present and unknown (the common null-coalescing form could not do that).
+  const cardAlias = primaryCardAlias ?? (event.paymentMethodRaw && event.paymentMethodRaw !== event.cardRaw
+    ? await prisma.cardAlias.findUnique({
+        where: { userId_rawString: { userId: event.userId, rawString: event.paymentMethodRaw } },
+      })
+    : null);
 
   if (!merchantAlias) {
     await prisma.walletEvent.update({
@@ -112,6 +119,7 @@ async function processObservedWalletEvent(event: NonNullable<WalletEventForNorma
       where: { id: event.id },
       data: {
         processingStatus: "NORMALIZED",
+        financialState: "NORMALIZED",
         merchantNormalized: merchantAlias.normalizedName,
         resolvedCardId: cardAlias?.cardId ?? null,
         purchaseId: spine.id,

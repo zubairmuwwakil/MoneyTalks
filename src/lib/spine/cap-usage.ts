@@ -259,19 +259,25 @@ export async function applyCapAccrual(tx: LedgerTransaction, source: CapUsageSou
  */
 export async function removeCapAccrual(tx: LedgerTransaction, sourceKey: string): Promise<boolean> {
   const accrual = await tx.capAccrual.findUnique({ where: { sourceKey } });
-  if (!accrual || accrual.reversedAt) return false;
+  if (!accrual) return false;
 
-  await tx.capUsageLedger.update({
-    where: {
-      userId_cardId_capId_periodKey: {
-        userId: accrual.userId,
-        cardId: accrual.cardId,
-        capId: accrual.capId,
-        periodKey: accrual.periodKey,
+  // An already-reversed row contributes nothing to the aggregate, but its
+  // idempotency key must still be removed when the canonical projection is
+  // being replaced. Otherwise Undo would restore the purchase while
+  // applyCapAccrual silently refused to restore its cap usage.
+  if (!accrual.reversedAt) {
+    await tx.capUsageLedger.update({
+      where: {
+        userId_cardId_capId_periodKey: {
+          userId: accrual.userId,
+          cardId: accrual.cardId,
+          capId: accrual.capId,
+          periodKey: accrual.periodKey,
+        },
       },
-    },
-    data: { usedMinor: { decrement: accrual.usedMinor } },
-  });
+      data: { usedMinor: { decrement: accrual.usedMinor } },
+    });
+  }
   await tx.capAccrual.delete({ where: { id: accrual.id } });
   return true;
 }

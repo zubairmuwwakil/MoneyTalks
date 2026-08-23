@@ -5,10 +5,114 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
-import { reverseCapAccrual } from "@/lib/spine/cap-usage";
+import { applyCapAccrual, removeCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
 import { orderedPurchasePair } from "@/lib/domain/spine/purchaseMerge";
+import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
+import type { OwnerState } from "@/engine/cards-twin";
+import type { Prisma } from "@prisma/client";
 
 const idInput = z.string().min(1);
+
+type PurchaseSnapshot = { merchant: string; totalCents: number | null; currency: string | null;
+  paymentMethod: string | null; financialState: "NORMALIZED" | "RECONCILED" | "ADJUSTED" | "DECLINED" | "REVERSED" };
+const snapshot = (p: PurchaseSnapshot) => ({ merchant: p.merchant, totalCents: p.totalCents,
+  currency: p.currency, paymentMethod: p.paymentMethod, financialState: p.financialState });
+
+async function replacePurchaseAccrual(tx: Prisma.TransactionClient, purchase: PurchaseSnapshot & { id: string; userId: string; category: string | null; purchasedAt: Date }) {
+  await removeCapAccrual(tx, `purchase:${purchase.id}`);
+  if (["DECLINED", "REVERSED"].includes(purchase.financialState) || purchase.totalCents == null ||
+      !purchase.paymentMethod || purchase.currency?.toUpperCase() !== "CAD") return;
+  const owner = await ensureOwnerStateRecord(tx, purchase.userId);
+  if (!owner) return;
+  await applyCapAccrual(tx, { sourceKey: `purchase:${purchase.id}`, userId: purchase.userId,
+    cardId: purchase.paymentMethod, category: purchase.category, merchantBrand: purchase.merchant,
+    amountMinor: purchase.totalCents, currency: purchase.currency, occurredAt: purchase.purchasedAt },
+    owner.stateData as unknown as OwnerState);
+}
+
+async function setFinancialState(purchaseIdRaw: unknown, state: "DECLINED" | "REVERSED") {
+  const userId = await requireUserId(); const parsed = idInput.safeParse(purchaseIdRaw);
+  if (!parsed.success) return { ok: false as const, error: "invalid input" };
+  const changed = await prisma.$transaction(async (tx) => {
+    const purchase = await tx.purchase.findFirst({ where: { id: parsed.data, userId } });
+    if (!purchase) return "missing" as const;
+    if (purchase.financialState === "DECLINED" || purchase.financialState === "REVERSED") {
+      return "invalidTransition" as const;
+    }
+    const before = snapshot(purchase); const after = { ...before, financialState: state };
+    await reverseCapAccrual(tx, `purchase:${purchase.id}`);
+    await tx.purchase.update({ where: { id: purchase.id }, data: { financialState: state } });
+    await tx.walletEvent.updateMany({ where: { purchaseId: purchase.id }, data: { financialState: state } });
+    await tx.purchaseCorrection.create({ data: { userId, purchaseId: purchase.id, kind: state.toLowerCase(), beforeState: before, afterState: after } });
+    return "changed" as const;
+  });
+  if (changed !== "changed") return { ok: false as const,
+    error: changed === "missing" ? "purchase not found" : "Undo the terminal status before changing it" };
+  revalidatePath(`/purchases/${parsed.data}`); revalidatePath("/purchases"); return { ok: true as const };
+}
+
+export async function markPurchaseDeclined(purchaseId: unknown) { return setFinancialState(purchaseId, "DECLINED"); }
+export async function markPurchaseReversed(purchaseId: unknown) { return setFinancialState(purchaseId, "REVERSED"); }
+
+export async function correctPurchaseDetails(formData: FormData) {
+  const userId = await requireUserId(); const id = idInput.safeParse(formData.get("purchaseId"));
+  const merchant = z.string().trim().min(1).max(200).safeParse(formData.get("merchant"));
+  const currency = z.string().trim().length(3).transform((v) => v.toUpperCase()).safeParse(formData.get("currency"));
+  const amountRaw = String(formData.get("amount") ?? "").trim();
+  const amount = amountRaw === "" ? null : Number(amountRaw);
+  if (!id.success || !merchant.success || !currency.success || (amount != null && (!Number.isFinite(amount) || amount < 0))) return { ok: false as const, error: "invalid details" };
+  const paymentMethod = String(formData.get("paymentMethod") ?? "").trim() || null;
+  const corrected = await prisma.$transaction(async (tx) => {
+    const purchase = await tx.purchase.findFirst({ where: { id: id.data, userId } });
+    if (!purchase) return "missing" as const;
+    if (purchase.financialState === "DECLINED" || purchase.financialState === "REVERSED") {
+      return "invalidTransition" as const;
+    }
+    const before = snapshot(purchase);
+    const updated = await tx.purchase.update({ where: { id: purchase.id }, data: { merchant: merchant.data,
+      totalCents: amount == null ? null : Math.round(amount * 100), currency: currency.data,
+      paymentMethod, financialState: "ADJUSTED" } });
+    await tx.walletEvent.updateMany({ where: { purchaseId: purchase.id }, data: { financialState: "ADJUSTED" } });
+    await replacePurchaseAccrual(tx, updated);
+    await tx.purchaseCorrection.create({ data: { userId, purchaseId: purchase.id, kind: "details",
+      beforeState: before, afterState: snapshot(updated) } });
+    return "changed" as const;
+  });
+  if (corrected !== "changed") return { ok: false as const,
+    error: corrected === "missing" ? "purchase not found" : "Undo the terminal status before editing details" };
+  revalidatePath(`/purchases/${id.data}`); revalidatePath("/purchases"); return { ok: true as const };
+}
+
+export async function undoLatestPurchaseCorrection(purchaseIdRaw: unknown) {
+  const userId = await requireUserId(); const parsed = idInput.safeParse(purchaseIdRaw);
+  if (!parsed.success) return { ok: false as const, error: "invalid input" };
+  const undone = await prisma.$transaction(async (tx) => {
+    const correction = await tx.purchaseCorrection.findFirst({ where: { purchaseId: parsed.data, userId, undoneAt: null }, orderBy: { createdAt: "desc" } });
+    if (!correction) return false;
+    const before = correction.beforeState as unknown as PurchaseSnapshot;
+    const purchase = await tx.purchase.update({ where: { id: parsed.data }, data: before });
+    await tx.walletEvent.updateMany({ where: { purchaseId: parsed.data }, data: { financialState: before.financialState } });
+    await replacePurchaseAccrual(tx, purchase);
+    await tx.purchaseCorrection.update({ where: { id: correction.id }, data: { undoneAt: new Date() } });
+    return true;
+  });
+  if (!undone) return { ok: false as const, error: "nothing safe to undo" };
+  revalidatePath(`/purchases/${parsed.data}`); revalidatePath("/purchases"); return { ok: true as const };
+}
+
+export async function permanentlyDeletePurchase(purchaseIdRaw: unknown) {
+  const userId = await requireUserId(); const parsed = idInput.safeParse(purchaseIdRaw);
+  if (!parsed.success) return { ok: false as const, error: "invalid input" };
+  const deleted = await prisma.$transaction(async (tx) => {
+    const purchase = await tx.purchase.findFirst({ where: { id: parsed.data, userId }, select: { id: true } });
+    if (!purchase) return false;
+    await reverseCapAccrual(tx, `purchase:${purchase.id}`);
+    await tx.walletEvent.deleteMany({ where: { purchaseId: purchase.id, userId } });
+    await tx.purchase.delete({ where: { id: purchase.id } }); return true;
+  });
+  if (!deleted) return { ok: false as const, error: "purchase not found" };
+  revalidatePath("/purchases"); return { ok: true as const };
+}
 
 // User confirmed a flagged near-match IS the same purchase: fold the flagged
 // row into its canonical counterpart — observations, items, attachments, and

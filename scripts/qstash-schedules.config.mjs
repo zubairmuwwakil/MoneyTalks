@@ -31,6 +31,7 @@ export const schedules = [
   { name: "purchase-merge", scheduleId: "moneytalks-purchase-merge", path: "/api/cron/purchase-merge", cronEnv: "QSTASH_PURCHASE_MERGE_CRON", cronDefault: "30 3 * * *" },
   { name: "fx",             scheduleId: "moneytalks-fx",             path: "/api/cron/fx",             cronEnv: "QSTASH_FX_CRON",             cronDefault: "0 11 * * *" },
   { name: "prices",         scheduleId: "moneytalks-prices",         path: "/api/cron/prices",         cronEnv: "QSTASH_PRICES_CRON",         cronDefault: "0 2 * * *" },
+  { name: "wallet-diagnostics", scheduleId: "moneytalks-wallet-diagnostics", path: "/api/cron/wallet-diagnostics", cronEnv: "QSTASH_WALLET_DIAGNOSTICS_CRON", cronDefault: "15 4 * * *" },
 ];
 
 export function expected(env = process.env) {

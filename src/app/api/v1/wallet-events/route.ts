@@ -83,12 +83,16 @@ export async function POST(req: Request) {
   const merchantAlias = data.merchantRaw
     ? await prisma.merchantAlias.findUnique({ where: { rawString: data.merchantRaw } })
     : null;
-  const cardResolutionRaw = data.cardRaw ?? data.paymentMethodRaw;
-  const cardAlias = cardResolutionRaw
+  const primaryCardAlias = data.cardRaw
     ? await prisma.cardAlias.findUnique({
-        where: { userId_rawString: { userId: installation.userId, rawString: cardResolutionRaw } },
+        where: { userId_rawString: { userId: installation.userId, rawString: data.cardRaw } },
       })
     : null;
+  const cardAlias = primaryCardAlias ?? (data.paymentMethodRaw && data.paymentMethodRaw !== data.cardRaw
+    ? await prisma.cardAlias.findUnique({
+        where: { userId_rawString: { userId: installation.userId, rawString: data.paymentMethodRaw } },
+      })
+    : null);
 
   const missingFields = [
     ...(!data.merchantRaw && !data.transactionNameRaw ? ["merchantRaw", "transactionNameRaw"] : []),
@@ -136,6 +140,19 @@ export async function POST(req: Request) {
     }
   });
 
+  // Targeted request-time normalization owns only this event. It runs before
+  // refinement so a newly learned merchant/card alias can participate in the
+  // server's cap-aware verdict.
+  try {
+    const { processWalletEvent } = await import("@/lib/domain/wallet/walletNormalization");
+    await processWalletEvent(data.eventId);
+  } catch (e) {
+    console.error("Error processing wallet event synchronously", e);
+  }
+  const normalizedEvent = await prisma.walletEvent.findUnique({ where: { eventId: data.eventId } });
+  const resolvedCardId = normalizedEvent?.resolvedCardId ?? cardAlias?.cardId ?? null;
+  const normalizedMerchant = normalizedEvent?.merchantNormalized ?? merchantAlias?.normalizedName ?? null;
+
   // Sync verdict
   let verdict = "unknown";
   let warning: string | undefined = undefined;
@@ -144,7 +161,7 @@ export async function POST(req: Request) {
   try {
     const ownerStateRecord = await ensureOwnerStateRecord(prisma, installation.userId);
 
-    if (ownerStateRecord && cardAlias && merchantAlias && amountNumber != null && currency === "CAD") {
+    if (ownerStateRecord && resolvedCardId && normalizedMerchant && amountNumber != null && currency === "CAD") {
       // Category is unknown at capture time; the engine falls back to base
       // earn until async categorization improves the record.
       const ownerState = ownerStateRecord.stateData as unknown as OwnerState;
@@ -152,12 +169,12 @@ export async function POST(req: Request) {
         amountCad: amountNumber,
         currency,
         category: "unknown",
-        merchantBrand: merchantAlias.normalizedName,
+        merchantBrand: normalizedMerchant,
       };
 
       const engine = new RecommendationEngine(loadCatalogue(), ownerState);
       const recommendation = engine.recommend(purchaseContext, capturedAt.toISOString().split("T")[0]);
-      const usedCardId = cardAlias.cardId;
+      const usedCardId = resolvedCardId;
 
       const best = recommendation.winner;
       if (best.cardId === usedCardId) {
@@ -194,14 +211,6 @@ export async function POST(req: Request) {
     data: { feedbackVerdict: verdict, feedbackWarning: warning ?? null },
   });
 
-  // Instantly normalize and promote the event so it shows up in real-time on the purchases page
-  try {
-    const { processWalletEvent } = await import("@/lib/domain/wallet/walletNormalization");
-    await processWalletEvent(data.eventId);
-  } catch (e) {
-    console.error("Error processing wallet events synchronously", e);
-  }
-
   // `final: true` marks every definitive JSON verdict (2xx and 4xx) so the
   // Shortcut can use one flat check to delete its outbox file; transient
   // failures (network, 5xx, platform errors) never produce this shape.
@@ -211,7 +220,8 @@ export async function POST(req: Request) {
     accepted: true,
     eventId: data.eventId,
     final: true,
-    normalizationState: processingStatus === "POSSIBLE_DUPLICATE" ? "possibleDuplicate" : "processed",
+    normalizationState: processingStatus === "POSSIBLE_DUPLICATE" ? "possibleDuplicate"
+      : (normalizedEvent?.processingStatus?.toLowerCase() ?? "acceptedForProcessing"),
     refinement: { verdict, warning },
     feedback: { verdict, warning },
     ...(warning ? { notification: warning } : {}),

@@ -16,7 +16,6 @@ import {
   Clock,
 } from "lucide-react";
 import { InlineCategoryPicker } from "../ui/InlineCategoryPicker";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/utils/calendarEvents";
 import { requireUserId } from "@/lib/require-user";
@@ -26,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import DuplicateResolution from "./DuplicateResolution";
 import { createReturnForPurchase } from "./actions";
+import PurchaseCorrections from "./PurchaseCorrections";
 
 function formatSource(source: string) {
   switch (source) {
@@ -84,6 +84,7 @@ export default async function PurchaseDetailPage({
         },
         orderBy: { capturedAt: "asc" },
       },
+      corrections: { where: { undoneAt: null }, orderBy: { createdAt: "desc" }, take: 1, select: { id: true } },
       emailTransactions: {
         select: { id: true, fromEmail: true, subject: true, orderId: true, purchasedAt: true, provider: true },
       },
@@ -246,6 +247,12 @@ export default async function PurchaseDetailPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left Column (2 spans): Payment Details, Items & Receipts */}
         <div className="space-y-6 lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold">Corrections</CardTitle><CardDescription>Raw Wallet evidence is preserved unless you permanently delete it.</CardDescription></CardHeader>
+            <CardContent><PurchaseCorrections purchaseId={purchase.id} merchant={purchase.merchant}
+              totalCents={purchase.totalCents} currency={purchase.currency} paymentMethod={purchase.paymentMethod}
+              financialState={purchase.financialState} canUndo={purchase.corrections.length > 0} /></CardContent>
+          </Card>
           {/* Card: Core Details */}
           <Card>
             <CardHeader className="pb-3">
@@ -545,4 +552,3 @@ export default async function PurchaseDetailPage({
     </main>
   );
 }
-

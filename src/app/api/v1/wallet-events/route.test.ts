@@ -340,4 +340,28 @@ const tHash = createHash("sha256").update(token).digest("hex");
     expect(json.feedback.verdict).toBe("unknown");
     expect(json.feedback.warning).toBeUndefined();
   });
+
+  it("accepts schema 2, prefers its device decimal, and preserves unknown raw keys", async () => {
+    vi.mocked(prisma.walletInstallation.findUnique).mockResolvedValue({
+      id: "inst-1", userId: "user-1", tokenHash: tHash, revokedAt: null, label: "Test", createdAt: new Date(),
+    });
+    vi.mocked(prisma.walletEvent.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.walletEvent.findFirst).mockResolvedValue(null);
+    const payload = {
+      schemaVersion: 2, captureVersion: 1, source: "apple_wallet_automation",
+      transport: "pickme_app_intent", eventId: "native-schema-2",
+      capturedAt: "2026-08-23T10:00:00-04:00", timezone: "America/St_Lucia",
+      transaction: { merchantRaw: "Cafe", transactionNameRaw: "Cafe", amountRaw: "1.234,56 €",
+        amountDecimal: "1234.56", amountDecodeStatus: "decoded", currencyRaw: "EUR",
+        cardRaw: "Wallet card", paymentMethodRaw: null },
+      client: { appVersion: "1.0", locale: "de_DE" },
+      futureAppleField: { survives: true },
+    };
+
+    const response = await POST(mockReq(payload));
+    expect(response.status).toBe(200);
+    const created = vi.mocked(prisma.walletEvent.create).mock.calls[0][0].data as any;
+    expect(created).toMatchObject({ schemaVersion: 2, amountRaw: "1234.56", amountTextRaw: "1.234,56 €" });
+    expect(created.rawPayload).toEqual(payload);
+  });
 });

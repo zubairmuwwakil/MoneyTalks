@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { reverseCapAccrual } from "@/lib/spine/cap-usage";
-import { createReturnForPurchase, keepSeparatePurchase, mergeDuplicatePurchase } from "./actions";
+import { removeCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
+import { createReturnForPurchase, keepSeparatePurchase, mergeDuplicatePurchase,
+  markPurchaseDeclined, markPurchaseReversed, undoLatestPurchaseCorrection, permanentlyDeletePurchase } from "./actions";
 
 vi.mock("@/lib/require-user", () => ({ requireUserId: vi.fn(async () => "user-1") }));
-vi.mock("@/lib/spine/cap-usage", () => ({ reverseCapAccrual: vi.fn() }));
+vi.mock("@/lib/spine/cap-usage", () => ({ reverseCapAccrual: vi.fn(), removeCapAccrual: vi.fn(), applyCapAccrual: vi.fn() }));
+vi.mock("@/lib/domain/ownerState", () => ({ ensureOwnerStateRecord: vi.fn(async () => null) }));
 vi.mock("@/lib/domain/notifications/eventNotificationScheduler", () => ({
   scheduleReturnDeadlineSoon: vi.fn(async () => {}),
 }));
@@ -25,7 +27,7 @@ vi.mock("@/lib/prisma", () => ({
 describe("mergeDuplicatePurchase", () => {
   const tx = {
     purchase: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn(), delete: vi.fn() },
-    walletEvent: { updateMany: vi.fn() },
+    walletEvent: { updateMany: vi.fn(), deleteMany: vi.fn() },
     emailTransaction: { updateMany: vi.fn() },
     statementLine: { updateMany: vi.fn() },
     purchaseItem: { updateMany: vi.fn() },
@@ -33,6 +35,7 @@ describe("mergeDuplicatePurchase", () => {
     returnItem: { updateMany: vi.fn() },
     capAccrual: { findUnique: vi.fn() },
     purchaseDuplicateDismissal: { upsert: vi.fn() },
+    purchaseCorrection: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
   };
 
   const flagged = {
@@ -114,6 +117,62 @@ describe("mergeDuplicatePurchase", () => {
       },
       data: { possibleDuplicateOfId: null },
     });
+  });
+});
+
+describe("purchase financial corrections", () => {
+  const purchase = {
+    id: "purchase-1", userId: "user-1", merchant: "Store", totalCents: 1000, currency: "CAD",
+    paymentMethod: "card-1", financialState: "NORMALIZED", category: "grocery", purchasedAt: new Date(),
+  };
+  const tx = {
+    purchase: { findFirst: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    walletEvent: { updateMany: vi.fn(), deleteMany: vi.fn() },
+    purchaseCorrection: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+  };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(tx));
+    tx.purchase.findFirst.mockResolvedValue(purchase);
+    tx.purchase.update.mockImplementation(async ({ data }: any) => ({ ...purchase, ...data }));
+    vi.mocked(reverseCapAccrual).mockResolvedValue(true);
+  });
+
+  it("marks a declined payment, reverses its accrual, and keeps an undo snapshot", async () => {
+    expect(await markPurchaseDeclined("purchase-1")).toEqual({ ok: true });
+    expect(reverseCapAccrual).toHaveBeenCalledWith(tx, "purchase:purchase-1");
+    expect(tx.purchase.update).toHaveBeenCalledWith({ where: { id: "purchase-1" }, data: { financialState: "DECLINED" } });
+    expect(tx.purchaseCorrection.create).toHaveBeenCalledWith({ data: expect.objectContaining({ kind: "declined", userId: "user-1" }) });
+  });
+
+  it("distinguishes a reversal from a decline", async () => {
+    expect(await markPurchaseReversed("purchase-1")).toEqual({ ok: true });
+    expect(tx.purchase.update).toHaveBeenCalledWith({ where: { id: "purchase-1" }, data: { financialState: "REVERSED" } });
+    expect(tx.walletEvent.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { financialState: "REVERSED" } }));
+  });
+
+  it("does not cross a terminal financial state without Undo", async () => {
+    tx.purchase.findFirst.mockResolvedValue({ ...purchase, financialState: "DECLINED" });
+    expect(await markPurchaseReversed("purchase-1")).toEqual({
+      ok: false, error: "Undo the terminal status before changing it",
+    });
+    expect(reverseCapAccrual).not.toHaveBeenCalled();
+    expect(tx.purchase.update).not.toHaveBeenCalled();
+  });
+
+  it("undoes the latest non-undone correction", async () => {
+    tx.purchaseCorrection.findFirst.mockResolvedValue({ id: "correction-1", beforeState: {
+      merchant: "Store", totalCents: 1000, currency: "CAD", paymentMethod: "card-1", financialState: "NORMALIZED",
+    } });
+    expect(await undoLatestPurchaseCorrection("purchase-1")).toEqual({ ok: true });
+    expect(removeCapAccrual).toHaveBeenCalledWith(tx, "purchase:purchase-1");
+    expect(tx.purchaseCorrection.update).toHaveBeenCalledWith({ where: { id: "correction-1" }, data: { undoneAt: expect.any(Date) } });
+  });
+
+  it("permanent deletion removes underlying Wallet evidence and cannot be undone", async () => {
+    await expect(permanentlyDeletePurchase("purchase-1")).resolves.toEqual({ ok: true });
+    expect(tx.walletEvent.deleteMany).toHaveBeenCalledWith({ where: { purchaseId: "purchase-1", userId: "user-1" } });
+    expect(tx.purchase.delete).toHaveBeenCalledWith({ where: { id: "purchase-1" } });
   });
 });
 
