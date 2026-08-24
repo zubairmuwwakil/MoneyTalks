@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pickme.local/contracts/card-catalogue.schema.json",
   "title": "PickMe card catalogue",
-  "description": "Documents the shape of card-catalogue.json exactly as decoded by Engine/Sources/CardCopilotEngine/Models/CatalogueModels.swift \u2014 it does not redesign the shape (spec \u00a74). Two distinct 'unused' markers appear below: \"x-status\": \"declared-not-computed\" means the field IS a Swift struct property but no scoring/matching logic (RuleMatcher, Scorer, CapMath, PortfolioAnalyzer) ever reads it; \"x-status\": \"documentation-only\" means the field has NO corresponding Swift property at all, so JSONDecoder silently drops it on load \u2014 it is pure human-facing metadata. Three behaviors are engine-defined rather than data-defined: ownerConditions ids, program.programId (which the Scorer's valuation dispatch switches on), and the pseudo-categories/categoryParents RuleMatcher special-cases. This schema enumerates their current legal values; adding a new one is an engine code change, not a catalogue edit.",
+  "description": "Documents the shape of card-catalogue.json exactly as decoded by Engine/Sources/CardCopilotEngine/Models/CatalogueModels.swift \u2014 it does not redesign the shape (spec \u00a74). Two distinct 'unused' markers appear below: \"x-status\": \"declared-not-computed\" means the field IS a Swift struct property but no scoring/matching logic (RuleMatcher, Scorer, CapMath, PortfolioAnalyzer) ever reads it; \"x-status\": \"documentation-only\" means the field has NO corresponding Swift property at all, so JSONDecoder silently drops it on load \u2014 it is pure human-facing metadata. Two behaviors are engine-defined rather than data-defined: ownerConditions ids and the pseudo-categories/categoryParents RuleMatcher special-cases. This schema enumerates their current legal values; adding a new one is an engine code change, not a catalogue edit. program.programId used to be a third \u2014 the Scorer switched its valuation dispatch on that string \u2014 but since 2026-08-20 valuations are keyed data (programs.json, overridable per programId by owner state) and the Scorer dispatches on the valuation's model instead.",
   "type": "object",
   "required": [
     "catalogueVersion",
@@ -34,6 +34,27 @@
     }
   },
   "$defs": {
+    "programId": {
+      "enum": [
+        "amexMembershipRewards",
+        "marriottBonvoy",
+        "mbnaRewards",
+        "ctMoney",
+        "cro",
+        "cashback",
+        "scenePlus",
+        "aeroplan",
+        "rbcAvion",
+        "tdRewards",
+        "bmoRewards",
+        "aventura",
+        "nbcRewards",
+        "pcOptimum",
+        "westJetPoints",
+        "amazonRewards"
+      ],
+      "description": "The key a card's rewards currency is valued under. Hoisted into $defs on 2026-08-20 so programs.schema.json can reference the one list instead of keeping a second copy in step. Since that date this is a DATA key, not an engine dispatch key: Scorer.valueCad switches on the valuation's model, so a new programId needs an entry in programs.json (or an owner-state override) and no engine code change. A programId with neither has no valuation. NOTE: as of this bump Scorer.valueCad still returns 0.0 for it rather than excluding the card \u2014 the current gap is pinned in CatalogueIntegrityTests.knownUnvaluedPrograms and closing it is separate work."
+    },
     "cardProduct": {
       "type": "object",
       "description": "Mirrors CardProduct \u2014 every listed property below is non-optional in Swift and therefore required here.",
@@ -196,25 +217,7 @@
       },
       "properties": {
         "programId": {
-          "enum": [
-            "amexMembershipRewards",
-            "marriottBonvoy",
-            "mbnaRewards",
-            "ctMoney",
-            "cro",
-            "cashback",
-            "scenePlus",
-            "aeroplan",
-            "rbcAvion",
-            "tdRewards",
-            "bmoRewards",
-            "aventura",
-            "nbcRewards",
-            "pcOptimum",
-            "westJetPoints",
-            "amazonRewards"
-          ],
-          "description": "Engine-defined valuation dispatch key \u2014 Scorer.valueCad switches on this string against OwnerState.valuationsCad. A new programId requires an engine code change, not just a catalogue edit."
+          "$ref": "#/$defs/programId"
         },
         "unit": {
           "type": "string",
@@ -366,18 +369,51 @@
         "ownerConditions": {
           "type": "array",
           "items": {
-            "enum": [
+            "type": "string",
+            "x-known-values": [
               "rogersEligibleServiceLinked",
               "cryptoLevelUpProActive",
               "tangerineCategorySelected",
               "amazonEligiblePrimeLinked"
             ]
           },
-          "description": "Engine-defined gate ids \u2014 RuleMatcher.conditionsResolveTrue switches on these exact strings and treats any unknown id as unresolved (fails closed). A new id requires an engine code change."
+          "description": "OPEN vocabulary, same rules as benefits-catalogue.schema.json's family/kind \u2014 deliberately NOT a closed enum. RuleMatcher.conditionsResolveTrue switches on the known strings above and treats any unknown id as unresolved (fails closed), so unrecognised ids decode fine and simply never match rather than rejecting the whole catalogue load. A closed enum here is exactly what let amazonEligiblePrimeLinked ship with no RuleMatcher case and no schema complaint; opening it doesn't add a handler, but it stops the schema from claiming one exists. A new id still requires an engine code change to actually gate on."
         },
         "scoredInV1": {
           "type": "boolean",
-          "description": "false excludes the rule from RuleMatcher.isLive regardless of dates. Absent means true."
+          "x-status": "deprecated \u2014 superseded by requires/outOfScope",
+          "description": "false excludes the rule from RuleMatcher.isLive regardless of dates. Absent means true. Deprecated: a hand-set boolean carries no machine-readable reason and can't turn itself on when its blocker is fixed. New disabled rules should use requires or outOfScope instead; scoredInV1: false without either is only valid for a rule whose blocker is still unconfirmed (see the rule's _note)."
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "cap.calendarMonth",
+              "cap.calendarYear",
+              "cap.accountYear",
+              "cap.statementYear",
+              "cap.globalGroup",
+              "predicate.merchantPartnerList",
+              "predicate.mccStrict",
+              "earn.perLitre",
+              "earn.marginal"
+            ]
+          },
+          "description": "Engine capabilities this rule needs, matching EngineCapability's raw values (Engine/Sources/CardCopilotEngine/Models/EngineCapability.swift). RuleMatcher.isLive treats the rule as live only if every named capability is in EngineCapability.supported; an unrecognised or unsupported string skips the rule, same as scoredInV1: false did. Absent means no capability is needed. Turns the rule on automatically the day the named capability ships \u2014 no catalogue edit required. Mutually exclusive with outOfScope."
+        },
+        "outOfScope": {
+          "type": "object",
+          "required": [
+            "reason"
+          ],
+          "properties": {
+            "reason": {
+              "type": "string",
+              "description": "Why this rule will never be scored by this engine, e.g. an online booking channel PickMe (an at-the-register copilot) does not cover. Human-facing; RuleMatcher.isLive only checks presence, not content."
+            }
+          },
+          "description": "Set when the rule is permanently out of scope \u2014 never to be built, as distinct from requires' \"not yet\". RuleMatcher.isLive always returns false when this is present, regardless of requires or scoredInV1. Mutually exclusive with requires: a rule ruled out permanently must not also declare a capability it is waiting on."
         }
       }
     },
@@ -585,8 +621,7 @@
         "valueCad",
         "period",
         "sourceType",
-        "lastVerifiedAt",
-        "sources"
+        "lastVerifiedAt"
       ],
       "properties": {
         "creditId": {
@@ -617,15 +652,36 @@
         },
         "sources": {
           "type": "array",
-          "minItems": 1,
           "items": {
-            "type": "string",
-            "format": "uri"
+            "type": "string"
           },
-          "x-status": "documentation-only",
-          "description": "Issuer URLs that support this specific credit's amount, cadence, eligibility and expiry. CardCredit has no sources property in Swift, so this is provenance metadata only."
+          "description": "Issuer pages the amount and period were read from. Required when sourceType is issuerConfirmed (enforced by allOf below) and optional otherwise \u2014 an inferred credit has no citation by definition, and requiring one would force either deleting unverified data or inventing a source for it."
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "sourceType": {
+                "const": "issuerConfirmed"
+              }
+            },
+            "required": [
+              "sourceType"
+            ]
+          },
+          "then": {
+            "required": [
+              "sources"
+            ],
+            "properties": {
+              "sources": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

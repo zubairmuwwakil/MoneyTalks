@@ -1,4 +1,7 @@
-import { CardProduct, PurchaseContext, OwnerState, EarnRule, FxRule, CardState, Predicate, Earn } from './models';
+import {
+  CardProduct, PurchaseContext, OwnerState, EarnRule, FxRule, CardState, Predicate, Earn,
+  KNOWN_ENGINE_CAPABILITIES, SUPPORTED_ENGINE_CAPABILITIES,
+} from './models';
 
 export type RuleResolution = 
   | { type: 'applied'; rule: EarnRule }
@@ -42,11 +45,35 @@ export const RuleMatcher = {
     );
   },
 
+  // Mirrors Swift's RuleMatcher.isLive = isScheduleLive && capabilityGap == nil.
+  //
+  // The twin checked only `scoredInV1` until 2026-08-24 and knew nothing of the
+  // requires/outOfScope refactor, so it scored rules Swift skips. No fixture could
+  // catch it while the twin also ignored ownedCardIds and scored the whole
+  // catalogue — the two omissions cancelled out.
   isLive(rule: EarnRule, asOf: string): boolean {
+    return RuleMatcher.isScheduleLive(rule, asOf) && RuleMatcher.capabilityGap(rule) === null;
+  },
+
+  /// Liveness that is NOT about capability — dates, `scoredInV1`, and the permanent
+  /// `outOfScope` verdict. "Never" is not a gap awaiting a fix, so it is not reportable.
+  isScheduleLive(rule: EarnRule, asOf: string): boolean {
+    if (rule.outOfScope) return false;
     if (rule.scoredInV1 === false) return false;
     const fromOk = rule.effectiveFrom ? rule.effectiveFrom <= asOf : true;
     const toOk = rule.effectiveTo ? asOf <= rule.effectiveTo : true;
     return fromOk && toOk;
+  },
+
+  /// Capability names this rule needs and this build lacks, or null when fully supported.
+  /// Unknown strings fail closed and are reported by name: an unrecognised capability is a
+  /// data error, and assuming support would score a rule the engine cannot honour.
+  capabilityGap(rule: EarnRule): string[] | null {
+    if (!rule.requires) return null;
+    const missing = rule.requires.filter(
+      (name) => !KNOWN_ENGINE_CAPABILITIES.has(name) || !SUPPORTED_ENGINE_CAPABILITIES.has(name),
+    );
+    return missing.length === 0 ? null : missing;
   },
 
   conditionsResolveTrue(conditions: string[] | undefined, state: CardState): boolean {

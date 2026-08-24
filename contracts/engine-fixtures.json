@@ -1,5 +1,5 @@
 {
-  "fixturesVersion": "1.1",
+  "fixturesVersion": "1.2",
   "_note": "Executable spec for RecommendationEngine. Amounts CAD unless stated. Expected values are exact engine outputs (unrounded beyond 4dp); UI rounds to cents at display. Valuations: MR pinned to 1.8¢ by pinnedValuations below (owner-state.json now ranks at the 1.0¢ floor), MBNA 1.0¢, Bonvoy 0.8¢, cash 1:1, CT ×0.95, CRO ×1.0 auto-sold / ×0.8 held. Default card wealthsimple-vip; threshold both(0.5pp, $0.25). Base owner state per owner-state.json: rogersEligibleServiceLinked=false, cryptoLevelUpProActive=false, Tangerine treatAsAllSelected (2% hypothetical everywhere — can only tie WS, never clears threshold), Scotia 4% cap progress $12,500. Ties rank the default card first. Every case is evaluated at asOf 2026-08-20 unless it declares its own \"asOf\" — effective-dating is the one rule family that cannot be exercised at a single fixed date.",
   "pinnedValuations": {
     "amexMembershipRewards": 1.8,
@@ -23,9 +23,9 @@
       "purchase": { "amountCad": 200, "currency": "CAD", "category": "wholesaleClub", "mcc": 5300, "merchantBrand": "costco", "recurringIndicator": false, "acceptedNetworks": ["mastercard"] },
       "expected": {
         "winner": "rogers-red-we", "winnerValueCad": 3.00, "winnerRule": "rogers-base-1_5",
-        "runnerUp": "mbna-rewards-we", "runnerUpValueCad": 2.00,
+        "runnerUp": "westjet-rbc-world-elite", "runnerUpValueCad": 3.00,
         "switchFromDefault": true, "defaultNotAccepted": true,
-        "notes": "Default WS (Visa) gated out by acceptance. MBNA grocery 5x does NOT fire (5300 ∉ {5411,5462,5499}); Triangle grocery excluded by merchantExclude AND MCC. Rogers 1.5% = $3.00 (service not linked). With rogersEligibleServiceLinked=true, winner value becomes $4.00."
+        "notes": "Default WS (Visa) gated out by acceptance. MBNA grocery 5x does NOT fire (5300 ∉ {5411,5462,5499}); Triangle grocery excluded by merchantExclude AND MCC. Rogers 1.5% = $3.00 (service not linked). With rogersEligibleServiceLinked=true, winner value becomes $4.00. WestJet base 1.5x = 200 x 1.5 = 300 pts x 1.0c = $3.00; MBNA base 1x = 200 x 1.0c = $2.00 drops to third. 2026-08-20: westjet-rbc-world-elite became scorable when programs.json valued westJetPoints, and it TIES the winner exactly — 1.5 WestJet points per dollar at the posted 1.0¢ is 1.5%, the same rate Rogers pays in cash. rank() breaks the tie on cardId ascending, so 'rogers-red-we' < 'westjet-rbc-world-elite' keeps the winner unchanged and takes second place off MBNA. The tie itself is pinned separately by westjet-rogers-exact-tie-100."
       }
     },
     {
@@ -80,9 +80,9 @@
       "purchase": { "amountCad": 165, "currency": "USD", "category": "other", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
       "expected": {
         "winner": "wealthsimple-vip", "winnerValueCad": 3.30, "winnerRule": "wealthsimple-2pct",
-        "runnerUp": "rogers-red-we", "runnerUpValueCad": 0.825,
+        "runnerUp": "scotia-gold-amex", "runnerUpValueCad": 1.65,
         "switchFromDefault": false,
-        "notes": "WS 2% no FX. Rogers USD 3% − 2.5% FX = $0.825 net. Cobalt nets NEGATIVE: $2.97 − $4.125 FX = −$1.155. Crypto excluded (Pro inactive)."
+        "notes": "WS 2% no FX. Rogers USD 3% − 2.5% FX = $0.825 net. Cobalt nets NEGATIVE: $2.97 − $4.125 FX = −$1.155. Crypto excluded (Pro inactive). 2026-08-20: the runner-up moved from Rogers $0.825 to scotia-gold-amex $1.65 for TWO reasons that landed together. scenePlus gained a valuation, so Scotia Gold scores at all: base 1x = 165 pts x 1.0c = $1.65, and Scotia Gold charges NO fx fee (rate 0.0), so nothing is deducted. scotia-passport-visa-infinite-plus computes the identical $1.65 on the same program and the same 0% FX; cardId ascending picks scotia-gold-amex. Separately, cibc-aventura-visa briefly took this slot with a WRONG $1.65 because it shipped an empty fxRules and Scorer read that as fee-free - fixed in catalogueVersion 1.4 and gated by CatalogueIntegrityTests.testEveryCardDeclaresAnFxRule. That this case is the one that caught it is the argument for asserting runnerUp at all."
       }
     },
     {
@@ -257,10 +257,10 @@
       "ownerStateOverrides": { "cardStates": { "rogers-red-we": { "rogersEligibleServiceLinked": true, "capProgress": { "rogers-enhanced-accountYear": 61000 } } } },
       "expected": {
         "winner": "rogers-red-we", "winnerValueCad": 6.00, "winnerRule": "rogers-base-2-with-service",
-        "runnerUp": "mbna-rewards-we", "runnerUpValueCad": 4.00,
+        "runnerUp": "westjet-rbc-world-elite", "runnerUpValueCad": 6.00,
         "switchFromDefault": true, "defaultNotAccepted": true,
         "warnings": ["capNearlyExhausted"], "valuationSensitive": false,
-        "notes": "Usage $61,000 = limit $61,000, so room is $0: in-cap $0, over-cap $400, a pure postCapEarn case. It is the complement of cobalt-cap-exhausted-100, which asserts that exhaustion makes the winner FLIP; here the exhausted card still wins, at its post-cap rate, so the post-cap arithmetic is itself the asserted number. Earn = $0 x 2% + $400 x 1.5% = $6.00. Pairing winnerRule 'rogers-base-2-with-service' with a 1.5% outcome is deliberate: appliedRuleId names the rule that MATCHED, never the rate actually paid, and any UI that renders '2%' from appliedRuleId would overstate this checkout by $2.00. Field - Mastercard only, so WS and Scotia (Visa) and all three Amex cards are gated out, hence defaultNotAccepted: MBNA base 1x = 400 x 1.0c = $4.00; Triangle base 1% = CT$4.00 x 0.95 = $3.80; Tangerine base 0.5% = $2.00 ('other' unselected). capNearlyExhausted: $61,000 >= 90% x $61,000."
+        "notes": "Usage $61,000 = limit $61,000, so room is $0: in-cap $0, over-cap $400, a pure postCapEarn case. It is the complement of cobalt-cap-exhausted-100, which asserts that exhaustion makes the winner FLIP; here the exhausted card still wins, at its post-cap rate, so the post-cap arithmetic is itself the asserted number. Earn = $0 x 2% + $400 x 1.5% = $6.00. Pairing winnerRule 'rogers-base-2-with-service' with a 1.5% outcome is deliberate: appliedRuleId names the rule that MATCHED, never the rate actually paid, and any UI that renders '2%' from appliedRuleId would overstate this checkout by $2.00. Field - Mastercard only, so WS and Scotia (Visa) and all three Amex cards are gated out, hence defaultNotAccepted: MBNA base 1x = 400 x 1.0c = $4.00; Triangle base 1% = CT$4.00 x 0.95 = $3.80; Tangerine base 0.5% = $2.00 ('other' unselected). capNearlyExhausted: $61,000 >= 90% x $61,000. WestJet base 1.5x = 400 x 1.5 = 600 pts x 1.0c = $6.00; MBNA's $4.00 drops to third. 2026-08-20: westjet-rbc-world-elite became scorable when programs.json valued westJetPoints, and it TIES the winner exactly — 1.5 WestJet points per dollar at the posted 1.0¢ is 1.5%, the same rate Rogers pays in cash. rank() breaks the tie on cardId ascending, so 'rogers-red-we' < 'westjet-rbc-world-elite' keeps the winner unchanged and takes second place off MBNA. The tie itself is pinned separately by westjet-rogers-exact-tie-100."
       }
     },
     {
@@ -323,9 +323,20 @@
       "ownerStateOverrides": { "cardStates": { "rogers-red-we": { "unsetFields": ["rogersEligibleServiceLinked"] } } },
       "expected": {
         "winner": "rogers-red-we", "winnerValueCad": 4.50, "winnerRule": "rogers-base-1_5",
-        "runnerUp": "mbna-rewards-we", "runnerUpValueCad": 3.00,
+        "runnerUp": "westjet-rbc-world-elite", "runnerUpValueCad": 4.50,
         "switchFromDefault": true, "defaultNotAccepted": true, "valuationSensitive": false,
-        "notes": "conditionsResolveTrue tests `state.rogersEligibleServiceLinked == true`, so nil and false take the same branch: the rule is dropped, never guessed in either direction. rogers-base-2-with-service is skipped and the unconditional rogers-base-1_5 carries the card at 1.5% x $300 = $4.50 (cap room $61,000, no split). Had the condition resolved true the same purchase would earn 2% = $6.00, so asserting BOTH winnerRule and $4.50 is what pins fail-closed. owner-state.json resolves this field to false rather than nil, so the fixture uses unsetFields to reach the genuinely-unresolved state; the outcome is identical, and that identity is itself the contract a TS twin must reproduce - unresolved is not a third state at the engine boundary, it collapses into 'condition not met'. Compare utilities-nil-mcc-permissive-fallback-80, where unknown DATA (a nil MCC) resolves permissively while unknown OWNER STATE resolves restrictively. Field: MBNA base 1x = 300 x 1.0c = $3.00; Triangle base 1% = CT$3.00 x 0.95 = $2.85; Tangerine base 0.5% = $1.50 ('other' unselected). WS and Scotia are Visa and the Amex cards are gated, hence defaultNotAccepted."
+        "notes": "conditionsResolveTrue tests `state.rogersEligibleServiceLinked == true`, so nil and false take the same branch: the rule is dropped, never guessed in either direction. rogers-base-2-with-service is skipped and the unconditional rogers-base-1_5 carries the card at 1.5% x $300 = $4.50 (cap room $61,000, no split). Had the condition resolved true the same purchase would earn 2% = $6.00, so asserting BOTH winnerRule and $4.50 is what pins fail-closed. owner-state.json resolves this field to false rather than nil, so the fixture uses unsetFields to reach the genuinely-unresolved state; the outcome is identical, and that identity is itself the contract a TS twin must reproduce - unresolved is not a third state at the engine boundary, it collapses into 'condition not met'. Compare utilities-nil-mcc-permissive-fallback-80, where unknown DATA (a nil MCC) resolves permissively while unknown OWNER STATE resolves restrictively. Field: MBNA base 1x = 300 x 1.0c = $3.00; Triangle base 1% = CT$3.00 x 0.95 = $2.85; Tangerine base 0.5% = $1.50 ('other' unselected). WS and Scotia are Visa and the Amex cards are gated, hence defaultNotAccepted. WestJet base 1.5x = 300 x 1.5 = 450 pts x 1.0c = $4.50, an exact tie with the winner, so it takes second place off MBNA's $3.00 on cardId ascending; see westjet-rogers-exact-tie-100."
+      }
+    },
+    {
+      "caseId": "westjet-rogers-exact-tie-100",
+      "description": "$100 at a Mastercard-only merchant where WestJet's 1.5 points/$ at 1.0¢ and Rogers' 1.5% cash are worth exactly the same — the tie is broken by cardId, not by value",
+      "purchase": { "amountCad": 100, "currency": "CAD", "category": "other", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["mastercard"] },
+      "expected": {
+        "winner": "rogers-red-we", "winnerValueCad": 1.50, "winnerRule": "rogers-base-1_5",
+        "runnerUp": "westjet-rbc-world-elite", "runnerUpValueCad": 1.50,
+        "switchFromDefault": true, "defaultNotAccepted": true, "valuationSensitive": false,
+        "notes": "Exists because three other cases (costco-mastercard-only-200, rogers-cap-exhausted-postcap-400, owner-condition-unresolved-rogers-300) started depending on a tie-break nobody had asserted. WestJet earns 1.5 points per dollar and westJetPoints is valued at the posted 1.0c, so 100 x 1.5 = 150 pts x 1.0c = $1.50 - identical, to the cent, to Rogers paying 1.5 percent cash on $100. rank() sorts on value descending and falls through to cardId ASCENDING, so 'rogers-red-we' < 'westjet-rbc-world-elite' decides it. That is deterministic but arbitrary: the engine is not claiming Rogers is better, it is claiming the two are indistinguishable and something had to go first. Pinning it here means a future re-order, a renamed cardId, or a WestJet revaluation fails ONE case that says why, instead of three that look like unrelated regressions. valuationSensitive is false and that is the second fact worth having: westJetPoints has no cash-out, so it sets no floorCentsPerPoint and Scorer falls back to centsPerPoint - the floor band collapses onto the declared band, and the engine cannot warn that this tie rests entirely on WestJet points being worth face value to an owner who flies WestJet. Field - Mastercard only, so WS and Scotia (Visa) and the Amex cards are gated, hence defaultNotAccepted: MBNA base 1x = 100 x 1.0c = $1.00; NBC base 1x = 100 x 1.0c = $1.00; Amazon base 1x = 100 x 1.0c = $1.00; Triangle base 1 percent = CT$1.00 x 0.95 = $0.95; BMO Ascend base 1x = 100 x 0.666667c = $0.67; PC Insiders base 10ppd = 1,000 pts x 0.1c = $1.00; Tangerine base 0.5 percent = $0.50 ('other' unselected)."
       }
     }
   ]

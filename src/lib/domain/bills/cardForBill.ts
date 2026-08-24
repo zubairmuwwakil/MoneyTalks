@@ -1,4 +1,5 @@
 import { RecommendationEngine } from "@/engine/cards-twin";
+import { programDefaults } from "@/lib/contracts/cardCatalogue";
 import type {
   Catalogue,
   Earn,
@@ -603,7 +604,7 @@ export function recommendCardForBill(
 
   let recommendation: Recommendation;
   try {
-    const engine = new RecommendationEngine(ownedCatalogue, ownerState);
+    const engine = new RecommendationEngine(ownedCatalogue, ownerState, programDefaults);
     recommendation = engine.recommend(built.context, asOfISODate);
   } catch (e) {
     return { status: "engine-error", detail: e instanceof Error ? e.message : String(e) };

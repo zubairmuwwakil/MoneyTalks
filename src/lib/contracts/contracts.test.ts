@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -30,6 +31,8 @@ const EXPECTED_FILES = [
   "card-catalogue.json",
   "benefits-catalogue.json",
   "engine-fixtures.json",
+  "owner-state.json",
+  "programs.json",
   "schema/card-catalogue.schema.json",
   "schema/benefits-catalogue.schema.json",
   "schema/engine-fixtures.schema.json",
@@ -56,5 +59,68 @@ describe("vendored contracts", () => {
     const recorded = manifest[file];
     expect(recorded, DRIFT_MESSAGE).toBeDefined();
     expect(sha256(path.join(CONTRACTS_DIR, file)), DRIFT_MESSAGE).toBe(recorded);
+  });
+});
+
+/**
+ * The cross-repo half of the guard, added 2026-08-24.
+ *
+ * The suite above answers "has our copy been edited since the last sync?" by
+ * comparing our bytes to our own manifest. It cannot answer "is the manifest
+ * telling the truth about PickMe?", and that gap was not theoretical: a
+ * manifest was found recording `_upstream.commit 670d1fe` alongside
+ * `_upstream.files["card-catalogue.json"] = e2c6375a…`, bytes that appear in
+ * NO PickMe commit. Both checks stayed green while the two repos disagreed
+ * about 13 whole cards.
+ *
+ * `scripts/sync-contracts.sh` now refuses to write such a manifest. This test
+ * catches one already written — including the one in the tree today.
+ *
+ * It needs a sibling PickMe checkout, so it self-skips where there isn't one
+ * (CI vendors contracts without cloning PickMe). A skip is honest: it means
+ * "not checked here", and the networked `contracts-freshness` job is what
+ * covers that case.
+ */
+describe("vendored contracts vs the PickMe checkout", () => {
+  const PICKME_ROOT = path.resolve(CONTRACTS_DIR, "../../PickMe");
+  const manifest: Record<string, unknown> = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
+  const upstream = manifest._upstream as { commit?: string } | undefined;
+
+  function pickMeIsAvailable(): boolean {
+    try {
+      execFileSync("git", ["-C", PICKME_ROOT, "rev-parse", "HEAD"], { stdio: "pipe" });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  const available = pickMeIsAvailable();
+
+  it.runIf(available)("records a commit that PickMe actually contains", () => {
+    expect(upstream?.commit, "MANIFEST.json is missing _upstream.commit").toBeTruthy();
+    expect(
+      () => execFileSync("git", ["-C", PICKME_ROOT, "cat-file", "-e", `${upstream!.commit}^{commit}`], { stdio: "pipe" }),
+      `_upstream.commit ${upstream?.commit} is not a commit in PickMe`,
+    ).not.toThrow();
+  });
+
+  it.each(EXPECTED_FILES)("%s matches PickMe at the recorded commit", (file) => {
+    if (!available) return; // covered by the networked freshness job instead
+    const commit = upstream?.commit;
+    if (!commit || commit === "unknown" || commit.endsWith("-dirty")) {
+      throw new Error(`_upstream.commit is "${commit}" — provenance cannot be verified. Re-sync from a clean PickMe checkout.`);
+    }
+    const committed = execFileSync("git", ["-C", PICKME_ROOT, "show", `${commit}:contracts/${file}`], {
+      stdio: ["pipe", "pipe", "pipe"],
+      maxBuffer: 32 * 1024 * 1024,
+    });
+    const committedSha = createHash("sha256").update(committed).digest("hex");
+    expect(
+      sha256(path.join(CONTRACTS_DIR, file)),
+      `contracts/${file} does not match PickMe at ${commit.slice(0, 10)}. ` +
+        `PickMe owns these files (CLAUDE.md: "Swift stays canonical; contract changes land in Swift + fixtures first"). ` +
+        `Land the change in PickMe, then re-run scripts/sync-contracts.sh.`,
+    ).toBe(committedSha);
   });
 });

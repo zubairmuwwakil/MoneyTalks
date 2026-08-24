@@ -18,11 +18,55 @@ export interface Recommendation {
   allCandidates: CandidateScore[];
 }
 
+/// Catalogue defaults merged BENEATH anything the owner has declared — mirrors Swift's
+/// `OwnerState.applyingCatalogueValuationDefaults()`, applied at the engine constructor because
+/// that is the single funnel every scoring path reaches, including owner states restored from a
+/// device that never load seed files. Without it contracts/programs.json is data nothing reads.
+export function applyCatalogueValuationDefaults(
+  ownerState: OwnerState,
+  // Deliberately `unknown`, not a pre-narrowed ProgramValuation: `model` is an OPEN vocabulary,
+  // and Scorer.valueCad infers the model at use time. Narrowing here would make a valuation model
+  // PickMe adds a hard build break the moment the catalogue syncs — the same trap `programId`
+  // already sprang on 2026-08-18.
+  defaults: Record<string, unknown>,
+): OwnerState {
+  return {
+    ...ownerState,
+    valuationsCad: { ...defaults, ...ownerState.valuationsCad },
+  };
+}
+
 export class RecommendationEngine {
-  constructor(private catalogue: Catalogue, private ownerState: OwnerState) {}
+  private catalogue: Catalogue;
+  private ownerState: OwnerState;
+
+  constructor(catalogue: Catalogue, ownerState: OwnerState, programDefaults?: Record<string, unknown>) {
+    this.catalogue = catalogue;
+    this.ownerState = programDefaults
+      ? applyCatalogueValuationDefaults(ownerState, programDefaults)
+      : ownerState;
+  }
 
   recommend(purchase: PurchaseContext, asOf: string): Recommendation {
-    const scores = this.catalogue.cards
+    // Score only what the owner actually holds — mirrors Swift's
+    // RecommendationEngine.recommend, which this class is the twin of.
+    //
+    // This filter was MISSING here until 2026-08-24, and no fixture could catch
+    // it: card-catalogue.json used to be exactly the owner's wallet, so "every
+    // card in the catalogue" and "every card they hold" were the same set. The
+    // moment the catalogue became the full product corpus, the twin started
+    // recommending cards the owner does not own — 21 fixtures failed in TS while
+    // all 27 passed in Swift, which is precisely the divergence the shared
+    // fixture suite exists to expose.
+    //
+    // The empty case follows Swift too: an owner with no declared wallet falls
+    // back to the whole catalogue rather than refusing to advise.
+    const candidateCards =
+      this.ownerState.ownedCardIds.length === 0
+        ? this.catalogue.cards
+        : this.catalogue.cards.filter(card => this.ownerState.ownedCardIds.includes(card.cardId));
+
+    const scores = candidateCards
       .map(card => Scorer.score(card, purchase, this.ownerState, asOf))
       .filter(score => !score.excluded);
     

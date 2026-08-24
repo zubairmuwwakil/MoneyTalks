@@ -39,10 +39,13 @@ describe('Engine Fixtures', () => {
   const engineFixturesPath = path.resolve(__dirname, '../../../contracts/engine-fixtures.json');
   const cardCataloguePath = path.resolve(__dirname, '../../../contracts/card-catalogue.json');
   const ownerStatePath = path.resolve(__dirname, '../../../contracts/owner-state.json');
+  const programsPath = path.resolve(__dirname, '../../../contracts/programs.json');
 
   const file = JSON.parse(fs.readFileSync(engineFixturesPath, 'utf-8'));
   const catalogue = JSON.parse(fs.readFileSync(cardCataloguePath, 'utf-8')) as Catalogue;
   const baseState = JSON.parse(fs.readFileSync(ownerStatePath, 'utf-8')) as OwnerState;
+  // Catalogue-level defaults, exactly as Swift's SeedLoader supplies them.
+  const programDefaults = JSON.parse(fs.readFileSync(programsPath, 'utf-8')).defaults;
 
   // Pinned rather than inherited
   baseState.valuationsCad.amexMembershipRewards.centsPerPoint = file.pinnedValuations.amexMembershipRewards;
@@ -89,7 +92,7 @@ describe('Engine Fixtures', () => {
         }
       }
 
-      const engine = new RecommendationEngine(catalogue, state);
+      const engine = new RecommendationEngine(catalogue, state, programDefaults);
       const r = engine.recommend(fixture.purchase, fixture.asOf ?? defaultAsOf);
       const e = fixture.expected;
 

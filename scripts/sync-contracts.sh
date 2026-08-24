@@ -27,6 +27,10 @@ UPSTREAM_REPO="https://github.com/zubairmuwwakil/PickMe"
 MODE="local"
 REF=""
 LOCAL_SOURCE=""
+# Records provenance for bytes that are NOT at the recorded commit. Off by
+# default: see the dirty-source guard below for why a "dirty" manifest is
+# worse than no manifest.
+ALLOW_DIRTY=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -42,6 +46,10 @@ while [ $# -gt 0 ]; do
     --ref=*)
       MODE="remote"
       REF="${1#--ref=}"
+      shift
+      ;;
+    --allow-dirty)
+      ALLOW_DIRTY=1
       shift
       ;;
     -h|--help)
@@ -61,6 +69,8 @@ FILES=(
   "card-catalogue.json"
   "benefits-catalogue.json"
   "engine-fixtures.json"
+  "owner-state.json"
+  "programs.json"
   "schema/card-catalogue.schema.json"
   "schema/benefits-catalogue.schema.json"
   "schema/engine-fixtures.schema.json"
@@ -138,6 +148,16 @@ else
     UPSTREAM_REF="unknown"
   fi
 
+  # Refuse to sync the destination onto itself. Passing MoneyTalks' own
+  # contracts/ as the source produces a manifest whose _upstream block
+  # describes our copy while claiming to describe PickMe's — provenance that
+  # asserts something no PickMe commit ever contained.
+  if [ "$(cd "$SOURCE" && pwd)" = "$DEST" ]; then
+    echo "sync-contracts: source and destination are the same directory ($DEST)." >&2
+    echo "sync-contracts: the source must be PickMe's contracts/, which owns these files." >&2
+    exit 1
+  fi
+
   for f in "${FILES[@]}"; do
     src="$SOURCE/$f"
     if [ ! -f "$src" ]; then
@@ -145,6 +165,37 @@ else
       exit 1
     fi
     hash=$(sha256_of "$src")
+
+    # THE GUARD THIS SCRIPT EXISTS FOR.
+    #
+    # UPSTREAM_COMMIT is `git rev-parse HEAD`, but the bytes above come from
+    # the WORKING TREE. If PickMe has uncommitted contract edits, the manifest
+    # ends up attesting "PickMe at <sha> had <bytes>" for a pairing that has
+    # never existed in PickMe's history — and because MoneyTalks' local drift
+    # test only compares our copy against our own manifest, both stay green
+    # while the two repos genuinely disagree. That happened: a manifest was
+    # written claiming commit 670d1fe carried bytes e2c6375a, which appear in
+    # no PickMe commit at all (found 2026-08-24).
+    #
+    # A provenance record that cannot be checked is worse than none, so this
+    # fails closed rather than recording a caveat nobody reads.
+    if [ "$UPSTREAM_COMMIT" != "unknown" ]; then
+      committed_hash="$(git -C "$PICKME_ROOT" show "$UPSTREAM_COMMIT:contracts/$f" 2>/dev/null | sha256_of /dev/stdin || true)"
+      if [ -n "$committed_hash" ] && [ "$committed_hash" != "$hash" ]; then
+        if [ "$ALLOW_DIRTY" -eq 1 ]; then
+          echo "sync-contracts: WARNING: $f differs from $UPSTREAM_COMMIT; recording commit as dirty" >&2
+          UPSTREAM_COMMIT="${UPSTREAM_COMMIT}-dirty"
+        else
+          echo "sync-contracts: $f in $SOURCE does not match PickMe commit $UPSTREAM_COMMIT." >&2
+          echo "sync-contracts: PickMe has uncommitted contract changes, so any commit recorded" >&2
+          echo "sync-contracts: as their provenance would be false. Commit them in PickMe first" >&2
+          echo "sync-contracts: (contract changes land in Swift + fixtures first — see CLAUDE.md)," >&2
+          echo "sync-contracts: or re-run with --allow-dirty to record an explicitly dirty sync." >&2
+          exit 1
+        fi
+      fi
+    fi
+
     SOURCE_SHAS+=("$hash")
     cp "$src" "$DEST/$f"
   done

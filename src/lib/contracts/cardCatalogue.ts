@@ -1,6 +1,7 @@
 import { z } from "zod";
 import cardCatalogueRaw from "../../../contracts/card-catalogue.json";
 import benefitsCatalogueRaw from "../../../contracts/benefits-catalogue.json";
+import programsRaw from "../../../contracts/programs.json";
 
 /**
  * Zod mirror of PickMe's contracts/schema/card-catalogue.schema.json (spec:
@@ -134,6 +135,15 @@ const earnRuleSchema = annotatedObject({
   capId: z.string().nullable(),
   ownerConditions: z.array(z.string()).optional(),
   scoredInV1: z.boolean().optional(),
+  // Engine capabilities the rule waits on ("not yet"). Deliberately z.string() and NOT a closed
+  // enum, mirroring Swift's `[String]`: an unrecognised capability name must be a gating decision
+  // made in code, never a decode failure that loses the whole catalogue. This is the same lesson
+  // `program.programId` cost us on 2026-08-18 — a closed enum here makes every capability PickMe
+  // adds a hard MoneyTalks build break the moment the catalogue syncs.
+  requires: z.array(z.string()).optional(),
+  // Set when the rule will never be scored ("never"), as distinct from `requires`. Mutually
+  // exclusive with it; PickMe's CapabilityGatingTests enforces that, so it is not re-checked here.
+  outOfScope: annotatedObject({ reason: z.string() }).optional(),
 });
 
 // Statement credits granted for holding the card. Mirrors `$defs/cardCredit`
@@ -148,9 +158,23 @@ const cardCreditSchema = annotatedObject({
   period: z.enum(["calendarMonth", "calendarYear", "accountYear"]),
   sourceType: sourceTypeSchema,
   lastVerifiedAt: z.string(),
-  // Documentation-only in Swift, but required here so a displayed credit can
-  // always be traced back to the issuer's source rather than a card-wide URL.
-  sources: z.array(z.string().url()).min(1),
+  // Traceability, conditioned on the claim being made. `sources` was briefly
+  // required unconditionally, which is a stronger rule than intended: it makes
+  // an honestly-labelled `inferred` credit impossible to express, so the only
+  // ways to satisfy it are to delete unverified data or to invent a citation
+  // for it. Both are worse than saying "we have not checked this".
+  sources: z.array(z.string().url()).min(1).optional(),
+}).superRefine((credit, ctx) => {
+  // The invariant that actually matters: a credit claiming issuer confirmation
+  // must be traceable to the issuer. Anything weaker may stand uncited, because
+  // its sourceType already says so.
+  if (credit.sourceType === "issuerConfirmed" && !credit.sources?.length) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["sources"],
+      message: `credit ${credit.creditId} is issuerConfirmed but cites no source`,
+    });
+  }
 });
 
 const cardProductSchema = annotatedObject({
@@ -277,3 +301,28 @@ export function parseBenefitsCatalogue(data: unknown): BenefitsCatalogue {
 
 export const cardCatalogue: CardCatalogue = parseCardCatalogue(cardCatalogueRaw);
 export const benefitsCatalogue: BenefitsCatalogue = parseBenefitsCatalogue(benefitsCatalogueRaw);
+
+/**
+ * Catalogue-level default program valuations (contracts/programs.json), merged BENEATH whatever
+ * the owner has declared. Nothing read this file until 2026-08-24, so 11 of the corpus's 16
+ * programs were valued at nothing here while Swift valued them correctly — cards in those
+ * programs silently lost every recommendation they should have won.
+ *
+ * `model` is an OPEN vocabulary for the same reason `programId` is: Swift decodes an unknown
+ * model as a decode failure for that ENTRY, not for the file, and a new valuation model must not
+ * become a hard MoneyTalks build break the moment the catalogue syncs.
+ */
+// Open by design (`catchall`), unlike every other schema in this file. A valuation entry carries
+// fields specific to its model — `cro` alone has `redemptionModel` — and the set grows whenever a
+// new model appears. `model` is what must be present; the rest is the model's own business, read
+// by Scorer.valueCad at use time. Closing this cost one build break within minutes of writing it.
+const programValuationSchema = z
+  .object({ model: z.string(), basis: z.string().optional() })
+  .catchall(z.unknown());
+
+export const programDefaultsSchema = annotatedObject({
+  programsVersion: z.string(),
+  defaults: z.record(z.string(), programValuationSchema),
+});
+
+export const programDefaults = programDefaultsSchema.parse(programsRaw).defaults;

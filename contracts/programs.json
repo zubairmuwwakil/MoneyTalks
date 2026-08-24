@@ -1,0 +1,104 @@
+{
+  "programsVersion": "1.1",
+  "_provenance": "Defaults are DISCLOSED ASSUMPTIONS, not issuer facts. Each basis names its source and says what it assumes. Owner state overrides any entry per programId; see docs/plans/2026-08-20-catalogue-scalability-program-design.md §3.1.",
+  "_method": "One rule, applied uniformly, so the numbers mean the same thing on every card. centsPerPoint is the best POSTED FIXED conversion the program publishes — a rate, never a forecast of what a redemption might be worth. floorCentsPerPoint is the rate obtainable with nothing but the card: an unconditional statement credit or cash-out, no qualifying purchase and no second account. It is OMITTED where the program has no cash redemption at all, because Scorer falls back to centsPerPoint and a fabricated floor would pass an assumption off as a guarantee. aspirationalCentsPerPoint carries a published benchmark ONLY where the benchmark exceeds the ranked value; it is a ceiling for disclosing upside breakevens and is never used for ranking. Every programId the catalogue declares is valued here, so CatalogueIntegrityTests.knownUnvaluedPrograms is empty and its ratchet is set to zero.",
+  "defaults": {
+    "cashback": {
+      "model": "cashback",
+      "cadPerDollar": 1.0,
+      "basis": "A dollar of cash back is a dollar. The only entry in this file that is an issuer fact rather than an assumption."
+    },
+    "amexMembershipRewards": {
+      "model": "points",
+      "centsPerPoint": 1.0,
+      "floorCentsPerPoint": 1.0,
+      "aspirationalCentsPerPoint": 2.2,
+      "basis": "Ranked at the guaranteed cash floor — 1.0¢ is Amex Canada's statement-credit rate, which is an issuer fact. Anything above it is a forecast of redemption behaviour and is not assumed here. aspirationalCentsPerPoint 2.2 is the published Canadian transfer-partner benchmark (Prince of Travel, 2026-07-29) and is used ONLY as the plausibility ceiling for disclosing upside breakevens, never for ranking."
+    },
+    "marriottBonvoy": {
+      "model": "points",
+      "centsPerPoint": 0.8,
+      "low": 0.6,
+      "high": 1.0,
+      "basis": "ASSUMPTION: 0.8¢ per point on hotel award nights, range 0.6–1.0¢ across property tiers. Bonvoy has no cash-out floor, so there is no issuer fact to anchor to; an owner who redeems differently should override this."
+    },
+    "mbnaRewards": {
+      "model": "points",
+      "centsPerPoint": 1.0,
+      "floorCentsPerPoint": 0.833333,
+      "basis": "1.0¢ on the travel-redemption schedule. floorCentsPerPoint 0.833333 is the guaranteed cash-back rate (100 points = $0.83), an issuer fact; the 1.0¢ above it assumes travel redemption."
+    },
+    "ctMoney": {
+      "model": "ctMoney",
+      "cadPerUnit": 1.0,
+      "optionalUsabilityFactor": 0.95,
+      "usabilityFactorApplied": true,
+      "basis": "Face value is 1 CT Money = $1.00 at Canadian Tire, an issuer fact. ASSUMPTION: a 0.95 usability factor, applied by default, because CT Money spends only in one retailer's stores and a dollar locked to one merchant is not a dollar. Set usabilityFactorApplied false to value it at face."
+    },
+    "cro": {
+      "model": "cro",
+      "redemptionModel": "reward-currency",
+      "faceValueFactorIfAutoSold": 1.0,
+      "defaultHeldRiskFactor": 0.8,
+      "basis": "CRO is paid as a crypto asset, so its CAD value is only fixed at the moment it is sold. faceValueFactorIfAutoSold 1.0 applies when cardState.croHandling is autoSell — sold on receipt, so face value is realised. ASSUMPTION: 0.8 when held, a haircut for price risk between earning and selling. This is a risk discount, not a price forecast."
+    },
+    "scenePlus": {
+      "model": "points",
+      "centsPerPoint": 1.0,
+      "floorCentsPerPoint": 0.666667,
+      "basis": "Scotiabank posts a fixed 100 points = $1 for Scene+ Travel, Empire-banner groceries and Cineplex, so 1.0¢ is a published rate rather than a forecast (Scotiabank Scene+ points and rewards calculator, checked 2026-08-20). floorCentsPerPoint 0.666667 is the cash-out: Points for Credit starts at 3,000 points for a $20 statement credit (Ratehub, checked 2026-08-20). Prince of Travel (Q2 2026) and Milesopedia (2026-01-01) both benchmark Scene+ at 1.0¢, so there is no upside band to disclose. ASSUMPTION: that the owner redeems at the posted rate rather than taking the credit — one who always takes the credit should override centsPerPoint to the floor."
+    },
+    "aeroplan": {
+      "model": "points",
+      "centsPerPoint": 1.0,
+      "aspirationalCentsPerPoint": 2.0,
+      "basis": "Aeroplan has NO cash-out and posts no fixed conversion — flight rewards are dynamically priced — so floorCentsPerPoint is deliberately absent rather than invented, and the floor band falls back to the ranked value. Ranked at 1.0¢ by transfer parity: Amex Membership Rewards converts to Aeroplan 1:1 and is ranked in this file at 1.0¢, so valuing Aeroplan above that would make one point worth more after a free transfer than before it. 1.0¢ is independently the rate Air Canada gift cards clear at in the Aeroplan eStore, the program's best fixed-value redemption; other gift cards run about 0.7¢ (Ratehub, checked 2026-08-20). aspirationalCentsPerPoint 2.0 is the published benchmark (Prince of Travel Q2 2026, as of 2026-05-01; Milesopedia agrees at 2.0¢) and is the plausibility ceiling for disclosing upside breakevens, never for ranking. Raise centsPerPoint only from a realised rate the owner has actually achieved."
+    },
+    "rbcAvion": {
+      "model": "points",
+      "centsPerPoint": 0.58,
+      "floorCentsPerPoint": 0.58,
+      "aspirationalCentsPerPoint": 2.0,
+      "basis": "0.58¢ is the one posted rate true for BOTH currencies this programId covers, which is the only reason a single number is defensible. rbc-avion-visa-infinite earns Avion Elite points — statement credit 0.58¢, flexible travel credit 1.0¢, Air Travel Redemption Schedule up to about 2.3¢ — while rbc-ion-plus-visa earns Avion Premium points, whose only fixed redemption is a travel credit at 0.58¢ and which cannot transfer to airlines at all (Prince of Travel, checked 2026-08-20). KNOWN DEFECT: one programId, two currencies that differ by ~1.7×. An Avion Elite owner who takes the 1.0¢ travel credit should override, but the override is per programId, so doing that also over-values the ION+ card. Splitting the programId is the real fix. aspirationalCentsPerPoint 2.0 is the published Elite-transfer benchmark (Prince of Travel Q2 2026, as of 2026-05-01; Milesopedia 2026-01-01 says 1.6¢) and is a disclosure ceiling only."
+    },
+    "tdRewards": {
+      "model": "points",
+      "centsPerPoint": 0.5,
+      "floorCentsPerPoint": 0.25,
+      "basis": "0.5¢ is TD's posted rate — 200 TD Points = $1 booked through Expedia for TD — and the program's best fixed-value redemption. floorCentsPerPoint 0.25 is the unconditional cash-out: 400 points = $1 as a statement credit, the same rate gift cards clear at (Ratehub, checked 2026-08-20). Prince of Travel (Q2 2026) and Milesopedia (2026-01-01) both benchmark TD Rewards at 0.5¢, so there is no upside band to disclose. Booking travel any other way is worth less, not more: the first $1,200 of a self-booked trip clears at 250 points = $1."
+    },
+    "bmoRewards": {
+      "model": "points",
+      "centsPerPoint": 0.666667,
+      "floorCentsPerPoint": 0.333333,
+      "basis": "0.666667¢ is BMO's posted rate, reachable two independent ways: 150 points = $1 applied to a travel purchase through Pay with Points, and 15,000 points = $100 cashed into a BMO investment account (Prince of Travel, checked 2026-08-20). floorCentsPerPoint 0.333333 is the unconditional cash-out — 15,000 points = $50 as a statement credit — which needs neither a qualifying travel purchase nor a second BMO account. Prince of Travel benchmarks 0.7¢ and Milesopedia 0.67¢, both at or below the ranked value, so no upside band is disclosed. Gift cards and merchandise sit between the two at roughly 0.54–0.56¢."
+    },
+    "aventura": {
+      "model": "points",
+      "centsPerPoint": 1.0,
+      "floorCentsPerPoint": 0.625,
+      "basis": "1.0¢ is CIBC's posted rate — 100 Aventura points = $1 through the CIBC Rewards Travel Centre, or via Shopping with Points applied to a travel charge already on the card. floorCentsPerPoint 0.625 is the cash-out: a minimum 4,000 points for a $25 statement credit (Frugal Flyer, checked 2026-08-20). No aspirational band is set even though the Aventura Airline Rewards Chart can exceed 2¢ on some itineraries, because that value depends on the itinerary rather than on a posted rate; Prince of Travel's whole-program benchmark is 1.0¢, the value ranked here (Milesopedia says 1.2¢)."
+    },
+    "nbcRewards": {
+      "model": "points",
+      "centsPerPoint": 1.0,
+      "floorCentsPerPoint": 0.4,
+      "basis": "1.0¢ is National Bank's posted rate: 10,000 à la carte points = $100 booked through the À la carte travel agency. floorCentsPerPoint 0.4 is the unconditional cash-out — a statement credit against any purchase, the program's worst posted rate (Frugal Flyer and Money We Have agree, checked 2026-08-20). The spread here is unusually wide and worth seeing: a credit against travel the owner booked themselves, and an RRSP/TFSA contribution, both clear 12,000 points = $100, or 0.833¢. Milesopedia benchmarks the program at 0.9¢, below the ranked value, so no upside band is disclosed; an owner who only ever takes the plain statement credit should override centsPerPoint to 0.4."
+    },
+    "pcOptimum": {
+      "model": "points",
+      "centsPerPoint": 0.1,
+      "basis": "0.1¢ is the program's only rate and it is fixed: 10,000 PC Optimum points = $10 off a purchase, redeemable in 10,000-point increments at Loblaw-family grocers, Shoppers Drug Mart/Pharmaprix, Joe Fresh and Esso (PC Financial; Milesopedia agrees at 0.1¢, checked 2026-08-20). There is no cash-out, so floorCentsPerPoint is absent and the floor band falls back to this same rate — honest here, because the rate does not vary. ASSUMPTION: that $1 of Loblaw-family credit is worth $1 to the owner. That is the same store-lock question CT Money carries a 0.95 usability factor for; the points model has no such factor, so an owner who rarely shops those banners should override centsPerPoint downward."
+    },
+    "westJetPoints": {
+      "model": "points",
+      "centsPerPoint": 1.0,
+      "basis": "1.0¢ is WestJet's posted rate: 100 WestJet points = C$1 off base fare, carrier surcharges, bags and seats (westjet.com, checked 2026-08-20). The catalogue's earn figures are WestJet POINTS, not the retired WestJet dollars — the program converted on 2025-04-30 — which is what makes this unit sane: 1.5 points per dollar × 1.0¢ reproduces the card's marketed 1.5% return, and RBC's own product page states the earn as 1.5 and 2 points per dollar. Taxes and fees redeem worse, at 105–115 points per $1. There is no cash-out, so floorCentsPerPoint is absent and the floor band falls back to this rate. ASSUMPTION: that the owner flies WestJet; the points buy nothing else at this rate."
+    },
+    "amazonRewards": {
+      "model": "points",
+      "centsPerPoint": 1.0,
+      "basis": "1.0¢ is the posted rate and the only one: 100 points = $1, redeemed as an Amazon.ca gift card loaded to the owner's account (MBNA, checked 2026-08-20). It is also the value that reconciles the catalogue's earn figures with MBNA's own marketing — 1 point per dollar is advertised as 1% back, 2.5 points per dollar as 2.5% — so any other number would contradict the earn data this file is scored against. There is no statement credit and no cash-out, so floorCentsPerPoint is absent and the floor band falls back to this rate. ASSUMPTION: that $1 of Amazon.ca credit is worth $1 to the owner; one who does not shop Amazon should override centsPerPoint downward."
+    }
+  }
+}

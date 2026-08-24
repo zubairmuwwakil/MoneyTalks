@@ -59,11 +59,26 @@ describe("parseCardCatalogue", () => {
     expect(cardCatalogueSchema.safeParse(cardCatalogueRaw).success).toBe(true);
   });
 
-  it("requires issuer provenance for every catalogue credit", () => {
+  // The rule is conditional, not blanket. Demanding every credit be issuerConfirmed sounds
+  // stricter, but its only effects are to delete honestly-unverified data or to dress it up as
+  // confirmed. What must never happen is a credit CLAIMING confirmation it cannot show.
+  it("requires issuer provenance for every credit that claims it", () => {
     const credits = cardCatalogue.cards.flatMap((card) => card.credits ?? []);
     expect(credits).not.toHaveLength(0);
-    expect(credits.every((credit) => credit.sourceType === "issuerConfirmed")).toBe(true);
-    expect(credits.every((credit) => credit.sources.every((source) => new URL(source).protocol === "https:"))).toBe(true);
+
+    const confirmed = credits.filter((credit) => credit.sourceType === "issuerConfirmed");
+    expect(confirmed).not.toHaveLength(0);
+    expect(confirmed.every((credit) => (credit.sources ?? []).length > 0)).toBe(true);
+    expect(
+      confirmed.every((credit) =>
+        (credit.sources ?? []).every((source) => new URL(source).protocol === "https:"),
+      ),
+    ).toBe(true);
+
+    // Anything not claiming confirmation must still say what it is, so a reader can tell an
+    // unchecked figure from a checked one without opening the file.
+    const unconfirmed = credits.filter((credit) => credit.sourceType !== "issuerConfirmed");
+    expect(unconfirmed.every((credit) => credit.sourceType === "inferred" || credit.sourceType === "ownerObserved")).toBe(true);
   });
 
   it("rejects a credit without its issuer source URL", () => {

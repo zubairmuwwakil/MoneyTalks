@@ -11,7 +11,24 @@
     "rogers-red-we",
     "triangle-we",
     "wealthsimple-vip",
-    "cryptocom-royal-indigo"
+    "cryptocom-royal-indigo",
+    "scotia-gold-amex",
+    "td-aeroplan-visa-infinite",
+    "rbc-avion-visa-infinite",
+    "cibc-dividend-visa-infinite",
+    "scotia-passport-visa-infinite-plus",
+    "td-first-class-travel-visa-infinite",
+    "bmo-eclipse-visa-infinite",
+    "cibc-aventura-visa-infinite",
+    "national-bank-world-elite",
+    "pc-insiders-world-elite",
+    "rbc-ion-plus-visa",
+    "td-cash-back-visa-infinite",
+    "bmo-ascend-world-elite",
+    "westjet-rbc-world-elite",
+    "amazon-ca-rewards-mastercard",
+    "cibc-aventura-visa",
+    "amex-simplycash"
   ],
   "defaultCardId": "wealthsimple-vip",
   "switchThreshold": {
@@ -39,7 +56,7 @@
     "marriottBonvoy": { "centsPerPoint": 0.8, "low": 0.6, "high": 1.0, "basis": "hotel award nights actually used" },
     "mbnaRewards": { "centsPerPoint": 1.0, "floorCentsPerPoint": 0.833333, "basis": "travel redemption; cash floor" },
     "ctMoney": { "cadPerUnit": 1.0, "optionalUsabilityFactor": 0.95, "usabilityFactorApplied": true },
-    "cro": { "model": "reward-currency", "faceValueFactorIfAutoSold": 1.0, "defaultHeldRiskFactor": 0.8 },
+    "cro": { "redemptionModel": "reward-currency", "faceValueFactorIfAutoSold": 1.0, "defaultHeldRiskFactor": 0.8 },
     "cashBack": { "cadPerDollar": 1.0 },
     "rogersEligibleServiceRedemption": { "redemptionFactor": 1.5, "appliedAtCheckout": false }
   }

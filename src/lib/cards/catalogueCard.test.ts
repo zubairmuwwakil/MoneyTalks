@@ -92,8 +92,10 @@ describe("feeWaiverNote", () => {
 describe("catalogueChoices", () => {
   it("offers every catalogue card to the picker", () => {
     const choices = catalogueChoices();
-    expect(choices).toHaveLength(27);
-    expect(new Set(choices.map((c) => c.contractCardId)).size).toBe(27);
+    // 41 since the one-corpus collapse (2026-08-24): the 27 the seed owner holds, its 6
+    // researched candidates, and 8 further products — minus pc-money-account, which is not a card.
+    expect(choices).toHaveLength(41);
+    expect(new Set(choices.map((c) => c.contractCardId)).size).toBe(41);
   });
 
   it("carries the facts the add-card form prefills, and no rate data", () => {

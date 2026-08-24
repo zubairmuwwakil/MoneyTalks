@@ -8,6 +8,7 @@ import { RecommendationEngine, PurchaseContext, OwnerState, Catalogue } from "@/
 import { parseWalletCapturePayload } from "@/lib/domain/wallet/capturePayload";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
+import { programDefaults } from "@/lib/contracts/cardCatalogue";
 import { Prisma } from "@prisma/client";
 
 function loadCatalogue(): Catalogue {
@@ -172,7 +173,7 @@ export async function POST(req: Request) {
         merchantBrand: normalizedMerchant,
       };
 
-      const engine = new RecommendationEngine(loadCatalogue(), ownerState);
+      const engine = new RecommendationEngine(loadCatalogue(), ownerState, programDefaults);
       const recommendation = engine.recommend(purchaseContext, capturedAt.toISOString().split("T")[0]);
       const usedCardId = resolvedCardId;
 
