@@ -33,6 +33,8 @@ const EXPECTED_FILES = [
   "engine-fixtures.json",
   "owner-state.json",
   "programs.json",
+  "candidate-catalogue.json",
+  "RELEASE.json",
   "schema/card-catalogue.schema.json",
   "schema/benefits-catalogue.schema.json",
   "schema/engine-fixtures.schema.json",
@@ -122,5 +124,65 @@ describe("vendored contracts vs the PickMe checkout", () => {
         `PickMe owns these files (CLAUDE.md: "Swift stays canonical; contract changes land in Swift + fixtures first"). ` +
         `Land the change in PickMe, then re-run scripts/sync-contracts.sh.`,
     ).toBe(committedSha);
+  });
+});
+
+/**
+ * The self-verifying half, added 2026-08-24.
+ *
+ * Everything above proves our copy is internally consistent, or matches a sibling PickMe
+ * checkout. Neither answers the question a consumer actually has — "which published version of
+ * the contract is this?" — without another repo present, and the `_upstream.commit` claim that
+ * tried to answer it was found asserting a (commit, bytes) pairing that never existed.
+ *
+ * RELEASE.json is content-addressed: its digest is computed FROM the files it describes, so it
+ * cannot claim bytes it does not have. Recomputing it here needs no sibling checkout, no network
+ * and no git, which means it runs identically in CI, on a fresh clone, and in any other consumer
+ * — iOS, Android, or one not yet written. That portability is the point: there are already four
+ * copies of this catalogue across two repos.
+ */
+describe("vendored contracts are a known published release", () => {
+  const manifest: Record<string, unknown> = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
+  const release = JSON.parse(readFileSync(path.join(CONTRACTS_DIR, "RELEASE.json"), "utf8")) as {
+    release: string;
+    catalogueVersion: string;
+    digest: string;
+    files: Record<string, string>;
+  };
+
+  // Must mirror scripts/release-catalogue.sh exactly: "name<TAB>sha256" lines, sorted by name
+  // (byte order — the names are ASCII, so JS's default sort matches the shell's LC_ALL=C), each
+  // terminated by a newline. Sorted so the digest does not depend on file order, and over names
+  // as well as bytes so a rename changes the release.
+  function recomputeDigest(files: string[]): string {
+    const lines = files
+      .map((file) => `${file}\t${sha256(path.join(CONTRACTS_DIR, file))}`)
+      .sort();
+    return `sha256:${createHash("sha256").update(lines.join("\n") + "\n").digest("hex")}`;
+  }
+
+  it("recomputes the release digest from the bytes we actually hold", () => {
+    expect(recomputeDigest(Object.keys(release.files)), `contracts/ does not hash to ${release.release}`)
+      .toBe(release.digest);
+  });
+
+  it("holds every file the release publishes", () => {
+    for (const [file, expected] of Object.entries(release.files)) {
+      expect(sha256(path.join(CONTRACTS_DIR, file)), `${file} differs from ${release.release}`).toBe(expected);
+    }
+  });
+
+  // The release id must move whenever the bytes move, or one published id would describe two
+  // different contracts. release-catalogue.sh --check enforces this upstream; this is the
+  // consumer-side half of the same rule.
+  it("names the catalogue version it actually vendored", () => {
+    const catalogue = JSON.parse(readFileSync(path.join(CONTRACTS_DIR, "card-catalogue.json"), "utf8"));
+    expect(release.catalogueVersion).toBe(catalogue.catalogueVersion);
+    expect(release.release).toBe(`card-contracts@${catalogue.catalogueVersion}`);
+  });
+
+  it("records in MANIFEST.json which release was vendored", () => {
+    const upstream = manifest._upstream as { release?: string } | undefined;
+    expect(upstream?.release, "sync-contracts.sh should record the release it pulled").toBe(release.release);
   });
 });

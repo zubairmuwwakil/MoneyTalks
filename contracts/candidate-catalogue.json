@@ -1,0 +1,12 @@
+{
+  "candidateCatalogueVersion": "2.0",
+  "_provenance": "Card definitions live in card-catalogue.json and NOWHERE else. This file names which of those products are researched acquisition candidates; it does not redefine them. Before 2026-08-24 it carried full duplicate definitions, and they had already drifted from the same cards elsewhere \u2014 identical rates under different ruleIds (bmo-cashback-we-gas-3pct vs bmo-cb-we-gas-ev-3pct), plus two ids for Simplii. A card defined in two places always drifts; a card referenced by id cannot.",
+  "cardIds": [
+    "simplii-cashback-visa",
+    "amex-simplycash-preferred",
+    "bmo-cashback-world-elite",
+    "mbna-smart-cash-world",
+    "home-trust-preferred-visa",
+    "rbc-cashback-preferred-we"
+  ]
+}

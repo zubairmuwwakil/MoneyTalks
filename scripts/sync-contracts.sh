@@ -71,6 +71,8 @@ FILES=(
   "engine-fixtures.json"
   "owner-state.json"
   "programs.json"
+  "candidate-catalogue.json"
+  "RELEASE.json"
   "schema/card-catalogue.schema.json"
   "schema/benefits-catalogue.schema.json"
   "schema/engine-fixtures.schema.json"
@@ -201,6 +203,14 @@ else
   done
 fi
 
+# Recorded from the release stamp we just vendored. Unlike the commit, this is a claim the
+# consumer can check on its own: contracts.test.ts recomputes the digest from the bytes.
+if [ -f "$DEST/RELEASE.json" ]; then
+  UPSTREAM_RELEASE="$(node -e 'process.stdout.write(require(process.argv[1]).release)' "$DEST/RELEASE.json")"
+else
+  UPSTREAM_RELEASE="unknown"
+fi
+
 manifest="$DEST/MANIFEST.json"
 tmp_manifest="$manifest.tmp"
 {
@@ -208,6 +218,7 @@ tmp_manifest="$manifest.tmp"
   echo "  \"_upstream\": {"
   printf '    "repo": "%s",\n' "$UPSTREAM_REPO"
   printf '    "ref": "%s",\n' "$UPSTREAM_REF"
+  printf '    "release": "%s",\n' "$UPSTREAM_RELEASE"
   printf '    "commit": "%s",\n' "$UPSTREAM_COMMIT"
   echo "    \"files\": {"
   last_index=$((${#FILES[@]} - 1))

@@ -1,0 +1,16 @@
+{
+  "release": "card-contracts@1.5",
+  "catalogueVersion": "1.5",
+  "digest": "sha256:94c232f27fb102abe46d9aaa7346c7b7500f1d6ec6a8328f20427f047e83ec25",
+  "files": {
+    "card-catalogue.json": "46ccb65e97d1d8db95f25c29cca37885701ff2f2d95aa48a5efc75b2dcf3d97f",
+    "benefits-catalogue.json": "08bf768f4c39f0f85a366f9182ce3a1fe82aa745ee6045eb711defc207c10c1d",
+    "engine-fixtures.json": "7228753904e5a6ec7d2606cc2dfd88d68d4218dedc8558e6fcda7bb81f223963",
+    "owner-state.json": "b3338b458d2cb6178a655809b629eb167ad4645726acbb612213ed414c428794",
+    "programs.json": "b49edbc141c3e397ab69ce81bfd4443199b933eb99cf8c2bc9cce3d31e36f801",
+    "candidate-catalogue.json": "9b8fde9661cf00bfc59e20443dc0a415042b910487865670c87c16cf9b5e9a43",
+    "schema/card-catalogue.schema.json": "2eacdaa1f9a9b241d20fb5b4f36f7c80631d5b62e0f9f1f042afbfb4233cfda5",
+    "schema/benefits-catalogue.schema.json": "055c498a1c78b2ad091f249cbbb50b99c5c20ebeda99fd17aff8113bcd502888",
+    "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db"
+  }
+}
