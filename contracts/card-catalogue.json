@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "1.2",
+  "catalogueVersion": "1.3",
   "currency": "CAD",
   "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md \u2014 all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
@@ -92,21 +92,27 @@
       "credits": [
         {
           "creditId": "platinum-travel-credit",
-          "label": "Annual travel credit",
+          "label": "Annual Travel Credit",
           "valueCad": 200.0,
-          "period": "calendarYear",
-          "sourceType": "inferred",
-          "lastVerifiedAt": "2026-08-19",
-          "_note": "Migrated 2026-08-19 from the Inunity hub's hand-authored card presets, which carried no issuer citation. Labelled inferred, NOT issuerConfirmed: it is the only non-issuer-confirmed data in this catalogue and must be verified against the issuer page before launch (D3's sourcing bar). Promote to issuerConfirmed with a real lastVerifiedAt at that point."
+          "period": "accountYear",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-23",
+          "sources": [
+            "https://www.americanexpress.com/en-ca/benefits/travel/the-platinum-card/index.shtml"
+          ],
+          "_note": "Basic Cardmember: one C$200 credit per Cardmembership anniversary year for one C$200+ travel booking charged to the Platinum Card through American Express Travel Online or Platinum Card Travel Service. Account must be in good standing. Must be used in the anniversary year issued; no carry-forward; cancelling after use does not restore it."
         },
         {
           "creditId": "platinum-dining-credit",
-          "label": "Annual dining credit",
+          "label": "Annual Dining Credit",
           "valueCad": 200.0,
           "period": "calendarYear",
-          "sourceType": "inferred",
-          "lastVerifiedAt": "2026-08-19",
-          "_note": "Migrated 2026-08-19 from the Inunity hub's hand-authored card presets, which carried no issuer citation. Labelled inferred, NOT issuerConfirmed: it is the only non-issuer-confirmed data in this catalogue and must be verified against the issuer page before launch (D3's sourcing bar). Promote to issuerConfirmed with a real lastVerifiedAt at that point."
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-23",
+          "sources": [
+            "https://www.americanexpress.com/ca/en/credit-cards/card-types/rewards-cards/index.html"
+          ],
+          "_note": "Basic Cardmember must enrol through Amex Offers. One C$200 statement credit per calendar-year redemption period follows one C$200+ transaction (tax and gratuity included) at a participating restaurant; charge must be made directly by the restaurant. Supplementary Card spend is ineligible."
         }
       ]
     },
@@ -1164,27 +1170,7 @@
       "sources": [
         "https://help.crypto.com/en/articles/2742447-crypto-com-prepaid-card-rewards-benefits"
       ],
-      "lastVerifiedAt": "2026-08-15",
-      "credits": [
-        {
-          "creditId": "cro-indigo-spotify-rebate",
-          "label": "Monthly Spotify rebate",
-          "valueCad": 14.99,
-          "period": "calendarMonth",
-          "sourceType": "inferred",
-          "lastVerifiedAt": "2026-08-19",
-          "_note": "Migrated 2026-08-19 from the Inunity hub's hand-authored card presets, which carried no issuer citation. Labelled inferred, NOT issuerConfirmed: it is the only non-issuer-confirmed data in this catalogue and must be verified against the issuer page before launch (D3's sourcing bar). Promote to issuerConfirmed with a real lastVerifiedAt at that point."
-        },
-        {
-          "creditId": "cro-indigo-netflix-rebate",
-          "label": "Monthly Netflix rebate",
-          "valueCad": 14.99,
-          "period": "calendarMonth",
-          "sourceType": "inferred",
-          "lastVerifiedAt": "2026-08-19",
-          "_note": "Migrated 2026-08-19 from the Inunity hub's hand-authored card presets, which carried no issuer citation. Labelled inferred, NOT issuerConfirmed: it is the only non-issuer-confirmed data in this catalogue and must be verified against the issuer page before launch (D3's sourcing bar). Promote to issuerConfirmed with a real lastVerifiedAt at that point."
-        }
-      ]
+      "lastVerifiedAt": "2026-08-15"
     },
     {
       "cardId": "scotia-gold-amex",
@@ -1898,12 +1884,15 @@
       "credits": [
         {
           "creditId": "td-fct-expedia-credit",
-          "label": "Annual Expedia For TD travel credit",
+          "label": "Annual TD Travel Credit",
           "valueCad": 100.0,
           "period": "calendarYear",
-          "sourceType": "inferred",
-          "lastVerifiedAt": "2026-08-19",
-          "_note": "Migrated 2026-08-19 from the Inunity hub's hand-authored card presets, which carried no issuer citation. Labelled inferred, NOT issuerConfirmed: it is the only non-issuer-confirmed data in this catalogue and must be verified against the issuer page before launch (D3's sourcing bar). Promote to issuerConfirmed with a real lastVerifiedAt at that point."
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-23",
+          "sources": [
+            "https://www.td.com/ca/en/personal-banking/products/credit-cards/travel-rewards/first-class-travel-visa-infinite-card"
+          ],
+          "_note": "One C$100 credit on the first eligible C$500+ Expedia For TD purchase posted in a calendar year: a hotel, motel, lodging or vacation-rental purchase, or a vacation package combining lodging with transportation. Account must be open, active and in good standing."
         }
       ]
     },
@@ -2041,12 +2030,16 @@
       "credits": [
         {
           "creditId": "bmo-eclipse-lifestyle-credit",
-          "label": "Annual lifestyle credit",
+          "label": "Anniversary Lifestyle Credit",
           "valueCad": 50.0,
-          "period": "calendarYear",
-          "sourceType": "inferred",
-          "lastVerifiedAt": "2026-08-19",
-          "_note": "Migrated 2026-08-19 from the Inunity hub's hand-authored card presets, which carried no issuer citation. Labelled inferred, NOT issuerConfirmed: it is the only non-issuer-confirmed data in this catalogue and must be verified against the issuer page before launch (D3's sourcing bar). Promote to issuerConfirmed with a real lastVerifiedAt at that point."
+          "period": "accountYear",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-23",
+          "sources": [
+            "https://www.bmo.com/pdf/bmo-eclipse-visa-infinite-benefit-guide-en.pdf",
+            "https://www.bmo.com/main/personal/credit-cards/bmo-eclipse-visa-infinite/"
+          ],
+          "_note": "Primary Cardholder: one C$50 statement credit in each annual period starting at the account anniversary/annual-fee renewal, after a C$50+ purchase posts while the account is open and in good standing; paid within two statement cycles. Issuer terms state the cadence but do not state a carry-forward rule, so no carry-forward is modelled."
         }
       ]
     },
@@ -2269,12 +2262,15 @@
       "credits": [
         {
           "creditId": "nbc-we-travel-credit",
-          "label": "Annual travel enhancement credit (airport parking, baggage, seat selection)",
+          "label": "Annual travel-expense reimbursement",
           "valueCad": 150.0,
           "period": "calendarYear",
-          "sourceType": "inferred",
-          "lastVerifiedAt": "2026-08-19",
-          "_note": "Migrated 2026-08-19 from the Inunity hub's hand-authored card presets, which carried no issuer citation. Labelled inferred, NOT issuerConfirmed: it is the only non-issuer-confirmed data in this catalogue and must be verified against the issuer page before launch (D3's sourcing bar). Promote to issuerConfirmed with a real lastVerifiedAt at that point."
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-23",
+          "sources": [
+            "https://www.nbc.ca/personal/mastercard-credit-cards/world-elite.html"
+          ],
+          "_note": "Primary cardholder only, with account in good standing: up to C$150 per account from January 1 to December 31 for charged airport parking, baggage, seat-selection, worldwide airport-lounge-access or airline-ticket-upgrade fees. Submit proof within 60 days; unused amount does not carry forward."
         }
       ]
     },

@@ -10,6 +10,7 @@ import {
   catalogueCard,
   catalogueCredits,
   catalogueCreditsRealizedMinor,
+  creditPeriodKey,
   effectiveAnnualFeeMinor,
   feeWaiverNote,
   type RedeemedCredit,
@@ -67,7 +68,7 @@ export default async function CardDetailPage({
   const now = new Date();
   const feeCycle = currentFeeCycle(def, now);
   const realizedMinor =
-    catalogueCreditsRealizedMinor(credits, redeemed, today) + (card.state?.rewardsEstimateMinor ?? 0);
+    catalogueCreditsRealizedMinor(credits, redeemed, today, card.feeMonthDay) + (card.state?.rewardsEstimateMinor ?? 0);
   const netMinor = realizedMinor - effectiveFee;
 
   async function toggleCreditAction(formData: FormData) {
@@ -278,13 +279,14 @@ export default async function CardDetailPage({
         <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
           <h2 className="text-base font-semibold tracking-tight">Recurring credits</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Mark a credit only after you use it in this month or year, so the fee verdict reflects
+            Mark a credit only after you use it in its current issuer period, so the fee verdict reflects
             real value.
           </p>
           <ul className="mt-4 divide-y divide-border/60 overflow-hidden rounded-lg border border-border/80 bg-background">
             {credits.map((credit) => {
-              const key = credit.period === "calendarMonth" ? today.slice(0, 7) : today.slice(0, 4);
+              const key = creditPeriodKey(credit.period, today, card.feeMonthDay);
               const done = redeemed.some((r) => r.creditId === credit.creditId && r.periodKey === key);
+              const unavailable = key === null;
               return (
                 <li
                   key={credit.creditId}
@@ -294,8 +296,13 @@ export default async function CardDetailPage({
                     <span className="font-medium text-foreground">{credit.label}</span>{" "}
                     <span className="text-xs text-muted-foreground">
                       ({formatMinorUnits(Math.round(credit.valueCad * 100), "CAD")}/
-                      {credit.period === "calendarMonth" ? "month" : "year"})
+                      {credit.period === "calendarMonth" ? "month" : credit.period === "accountYear" ? "anniversary year" : "calendar year"})
                     </span>
+                    {unavailable ? (
+                      <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                        Add the card&apos;s fee anniversary on the edit page before tracking this credit.
+                      </p>
+                    ) : null}
                   </div>
                   <form action={toggleCreditAction}>
                     <input type="hidden" name="cardId" value={card.id} />
@@ -303,8 +310,9 @@ export default async function CardDetailPage({
                     <button
                       type="submit"
                       className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-border/80 bg-muted/60 px-3 text-xs font-semibold text-foreground shadow-2xs transition-colors hover:bg-muted"
+                      disabled={unavailable}
                     >
-                      {done ? "redeemed - undo" : "mark redeemed"}
+                      {unavailable ? "anniversary required" : done ? "redeemed - undo" : "mark redeemed"}
                     </button>
                   </form>
                 </li>

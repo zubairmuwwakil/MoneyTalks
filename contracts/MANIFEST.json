@@ -12,10 +12,10 @@
       "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db"
     }
   },
-  "card-catalogue.json": "6b79fb2dbe5c9c127889f1a42bc786dd1e41db07bccaaae7f7bfa2ac62989793",
+  "card-catalogue.json": "9ec20850bd87b128247da88648bfd867cad8004c4e325b47a2b88b672c16690a",
   "benefits-catalogue.json": "08bf768f4c39f0f85a366f9182ce3a1fe82aa745ee6045eb711defc207c10c1d",
   "engine-fixtures.json": "ddf1ababa02cb855a6cf9a39ab3c271e0108509deb7374bd954cdb78b2c88c46",
-  "schema/card-catalogue.schema.json": "f6b6fd7062e15b55adb8309fe979609d8f3da93ba30686da5c070c751e1fe1db",
+  "schema/card-catalogue.schema.json": "73c85927042c12c88ec68662717432dcbf4a0adfa33a9c3d86cb8e1ea4a51d92",
   "schema/benefits-catalogue.schema.json": "055c498a1c78b2ad091f249cbbb50b99c5c20ebeda99fd17aff8113bcd502888",
   "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db"
 }

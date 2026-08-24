@@ -45,8 +45,37 @@ export function feeWaiverNote(contractCardId: string | null | undefined): string
   return catalogueCard(contractCardId)?.fee.waiver ?? null;
 }
 
-function periodKeyFor(period: CardCredit["period"], today: string): string {
-  return period === "calendarMonth" ? today.slice(0, 7) : today.slice(0, 4);
+const MONTH_DAY = /^(\d{2})-(\d{2})$/;
+
+/**
+ * The redemption window used to be silently calendar-year for every annual
+ * credit. Issuers such as Amex Platinum and BMO eclipse instead reset on the
+ * card anniversary. `feeMonthDay` is the owner-confirmed anniversary proxy;
+ * without it an account-year credit remains intentionally untracked rather
+ * than being attributed to an invented calendar window.
+ */
+export function creditPeriodKey(
+  period: CardCredit["period"],
+  asOf: string,
+  feeMonthDay: string | null | undefined,
+): string | null {
+  if (period === "calendarMonth") return asOf.slice(0, 7);
+  if (period === "calendarYear") return asOf.slice(0, 4);
+
+  const match = feeMonthDay ? MONTH_DAY.exec(feeMonthDay) : null;
+  if (!match) return null;
+  const anchorMonth = Number(match[1]);
+  const anchorDay = Number(match[2]);
+  if (anchorMonth < 1 || anchorMonth > 12 || anchorDay < 1 || anchorDay > 31) return null;
+
+  const asOfMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(asOf);
+  if (!asOfMatch) return null;
+  const year = Number(asOfMatch[1]);
+  const month = Number(asOfMatch[2]);
+  const day = Number(asOfMatch[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const hasReachedAnniversary = month > anchorMonth || (month === anchorMonth && day >= anchorDay);
+  return `${hasReachedAnniversary ? year : year - 1}-${match[1]}-${match[2]}`;
 }
 
 export interface RedeemedCredit {
@@ -61,9 +90,11 @@ export function catalogueCreditsRealizedMinor(
   credits: CardCredit[],
   redeemed: RedeemedCredit[],
   today: string,
+  feeMonthDay?: string | null,
 ): number {
   return credits.reduce((sum, credit) => {
-    const key = periodKeyFor(credit.period, today);
+    const key = creditPeriodKey(credit.period, today, feeMonthDay);
+    if (!key) return sum;
     const wasRedeemed = redeemed.some((r) => r.creditId === credit.creditId && r.periodKey === key);
     // Math.round, not truncation: 14.99 * 100 is 1498.9999... in binary float,
     // and a monthly credit that quietly loses a cent every month is a bug that
@@ -196,4 +227,3 @@ export function catalogueChoices(): CatalogueChoice[] {
       a.issuer === b.issuer ? a.officialName.localeCompare(b.officialName) : a.issuer.localeCompare(b.issuer),
     );
 }
-

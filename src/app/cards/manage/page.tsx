@@ -74,7 +74,7 @@ export default async function ManageCardsPage() {
           const def = defs[i];
           const redeemed = (c.state?.creditsRedeemed as unknown as RedeemedCredit[]) ?? [];
           const realizedMinor =
-            catalogueCreditsRealizedMinor(catalogueCredits(def.contractCardId), redeemed, today) +
+            catalogueCreditsRealizedMinor(catalogueCredits(def.contractCardId), redeemed, today, c.feeMonthDay) +
             (c.state?.rewardsEstimateMinor ?? 0);
           const netMinor = realizedMinor - effectiveAnnualFeeMinor(def.annualFeeMinor, def.feeRebateMinor);
           return (

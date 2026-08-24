@@ -148,6 +148,9 @@ const cardCreditSchema = annotatedObject({
   period: z.enum(["calendarMonth", "calendarYear", "accountYear"]),
   sourceType: sourceTypeSchema,
   lastVerifiedAt: z.string(),
+  // Documentation-only in Swift, but required here so a displayed credit can
+  // always be traced back to the issuer's source rather than a card-wide URL.
+  sources: z.array(z.string().url()).min(1),
 });
 
 const cardProductSchema = annotatedObject({

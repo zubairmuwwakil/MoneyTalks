@@ -585,7 +585,8 @@
         "valueCad",
         "period",
         "sourceType",
-        "lastVerifiedAt"
+        "lastVerifiedAt",
+        "sources"
       ],
       "properties": {
         "creditId": {
@@ -613,6 +614,16 @@
         },
         "lastVerifiedAt": {
           "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "x-status": "documentation-only",
+          "description": "Issuer URLs that support this specific credit's amount, cadence, eligibility and expiry. CardCredit has no sources property in Swift, so this is provenance metadata only."
         }
       }
     }

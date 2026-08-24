@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
-import { catalogueCredits, type RedeemedCredit } from "@/lib/cards/catalogueCard";
+import { catalogueCredits, creditPeriodKey, type RedeemedCredit } from "@/lib/cards/catalogueCard";
 import { parseDollarsToMinor } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -159,7 +159,10 @@ export async function toggleCredit(formData: FormData): Promise<ActionResult> {
     const card = await ownedCard(userId, cardId);
     const credit = catalogueCredits(card.contractCardId).find((c) => c.creditId === creditId);
     if (!credit) return { ok: false, error: "Unknown credit for this card" };
-    const periodKey = credit.period === "calendarMonth" ? today().slice(0, 7) : today().slice(0, 4);
+    const periodKey = creditPeriodKey(credit.period, today(), card.feeMonthDay);
+    if (!periodKey) {
+      return { ok: false, error: "Add this card's fee anniversary before tracking its account-year credit." };
+    }
     let redeemed = ((card.state?.creditsRedeemed as unknown as RedeemedCredit[]) ?? []).slice();
     const already = redeemed.some((r) => r.creditId === creditId && r.periodKey === periodKey);
     redeemed = already
@@ -256,4 +259,3 @@ export async function bulkUpdateCardRenewalDates(
     return { ok: false, error: e instanceof Error ? e.message : "Failed to update renewal dates" };
   }
 }
-

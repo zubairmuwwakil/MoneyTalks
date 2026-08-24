@@ -80,6 +80,8 @@ export interface CardCredit {
   period: CapPeriod;
   sourceType: SourceType;
   lastVerifiedAt: string;
+  /** Documentation-only issuer provenance; Swift ignores this field. */
+  sources: string[];
 }
 
 export interface CardProduct {

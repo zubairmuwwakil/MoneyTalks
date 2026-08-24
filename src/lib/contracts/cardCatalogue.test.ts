@@ -58,6 +58,21 @@ describe("parseCardCatalogue", () => {
   it("exposes the same shape via the exported schema directly", () => {
     expect(cardCatalogueSchema.safeParse(cardCatalogueRaw).success).toBe(true);
   });
+
+  it("requires issuer provenance for every catalogue credit", () => {
+    const credits = cardCatalogue.cards.flatMap((card) => card.credits ?? []);
+    expect(credits).not.toHaveLength(0);
+    expect(credits.every((credit) => credit.sourceType === "issuerConfirmed")).toBe(true);
+    expect(credits.every((credit) => credit.sources.every((source) => new URL(source).protocol === "https:"))).toBe(true);
+  });
+
+  it("rejects a credit without its issuer source URL", () => {
+    const mutated = structuredClone(cardCatalogueRaw) as Record<string, unknown>;
+    const cards = mutated.cards as Array<Record<string, unknown>>;
+    const credits = cards[0].credits as Array<Record<string, unknown>>;
+    delete credits[0].sources;
+    expect(() => parseCardCatalogue(mutated)).toThrow(/sources/);
+  });
 });
 
 describe("parseBenefitsCatalogue", () => {

@@ -3,6 +3,7 @@ import {
   catalogueCard,
   catalogueCredits,
   catalogueCreditsRealizedMinor,
+  creditPeriodKey,
   effectiveAnnualFeeMinor,
   feeWaiverNote,
   catalogueChoices,
@@ -40,21 +41,24 @@ describe("catalogueCreditsRealizedMinor", () => {
   const credits = catalogueCredits("amex-platinum");
 
   it("counts only credits the owner marked redeemed in the current period", () => {
-    const redeemed = [{ creditId: "platinum-travel-credit", periodKey: "2026" }];
-    expect(catalogueCreditsRealizedMinor(credits, redeemed, "2026-08-19")).toBe(20_000);
+    const redeemed = [{ creditId: "platinum-travel-credit", periodKey: "2026-07-01" }];
+    expect(catalogueCreditsRealizedMinor(credits, redeemed, "2026-08-19", "07-01")).toBe(20_000);
   });
 
   it("ignores a redemption from a previous period", () => {
     const redeemed = [{ creditId: "platinum-travel-credit", periodKey: "2025" }];
+    expect(catalogueCreditsRealizedMinor(credits, redeemed, "2026-08-19", "07-01")).toBe(0);
+  });
+
+  it("does not invent an account-year window without an owner-confirmed anniversary", () => {
+    const redeemed = [{ creditId: "platinum-travel-credit", periodKey: "2026-07-01" }];
     expect(catalogueCreditsRealizedMinor(credits, redeemed, "2026-08-19")).toBe(0);
   });
 
-  it("keys a monthly credit by month, not year", () => {
-    const monthly = catalogueCredits("cryptocom-royal-indigo");
-    expect(monthly.length).toBe(2);
-    const redeemed = [{ creditId: "cro-indigo-spotify-rebate", periodKey: "2026-08" }];
-    // 14.99 -> 1499 minor: the conversion must not drift on a non-round value.
-    expect(catalogueCreditsRealizedMinor(monthly, redeemed, "2026-08-19")).toBe(1499);
+  it("keys account-year credits from the recorded anniversary, not January 1", () => {
+    expect(creditPeriodKey("accountYear", "2026-06-30", "07-01")).toBe("2025-07-01");
+    expect(creditPeriodKey("accountYear", "2026-07-01", "07-01")).toBe("2026-07-01");
+    expect(creditPeriodKey("accountYear", "2026-08-19", null)).toBeNull();
   });
 });
 
@@ -135,4 +139,3 @@ describe("getCardPerksSummary", () => {
     expect(getCardPerksSummary("not-a-card")).toBeNull();
   });
 });
-
