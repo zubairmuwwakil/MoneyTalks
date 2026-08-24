@@ -52,4 +52,51 @@ describe("schema 2 Wallet capture payload", () => {
     expect(absent.ok && absent.data.amountDecodeStatus).toBe("absent");
     expect(bad.ok && bad.data.amountDecodeStatus).toBe("undecodable");
   });
+
+  it("fails closed when a decoded v2 amount is not a canonical decimal", () => {
+    const parsed = parseWalletCapturePayload({
+      ...base,
+      transaction: { ...base.transaction, amountDecimal: "EC$17.49", amountDecodeStatus: "decoded" },
+    });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.data.amount).toBeNull();
+    expect(parsed.data.amountDecodeStatus).toBe("undecodable");
+  });
+});
+
+describe("schema 1 Wallet Shortcut display amounts", () => {
+  const base = {
+    schemaVersion: 1,
+    shortcutVersion: 1,
+    source: "apple_wallet_shortcuts",
+    eventId: "legacy-xcd-1",
+    capturedAt: "2026-08-22T14:23:34-04:00",
+    transaction: { merchantRaw: "Massy Stores", amount: "EC$17.49", currency: "XCD" },
+  } as const;
+
+  it("uses the supplied ISO code to parse an ICU regional currency symbol", () => {
+    const parsed = parseWalletCapturePayload(base);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.data.amount).toBe("17.49");
+    expect(parsed.data.amountDecodeStatus).toBe("decoded");
+  });
+
+  it.each([
+    ["XAF", "FCFA17.49"],
+    ["JPY", "JP¥1749"],
+  ])("parses other ICU currency labels when paired with %s", (currency, amount) => {
+    const parsed = parseWalletCapturePayload({ ...base, transaction: { ...base.transaction, currency, amount } });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.data.amount).toBe(currency === "JPY" ? "1749" : "17.49");
+  });
+
+  it("refuses a regional symbol that does not match the supplied ISO code", () => {
+    const parsed = parseWalletCapturePayload({ ...base, transaction: { ...base.transaction, currency: "CAD" } });
+    expect(parsed.ok).toBe(true);
+    expect(parsed.ok && parsed.data.amount).toBeNull();
+    expect(parsed.ok && parsed.data.amountDecodeStatus).toBe("undecodable");
+  });
 });

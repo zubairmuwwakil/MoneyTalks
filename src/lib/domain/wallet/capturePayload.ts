@@ -123,7 +123,53 @@ function optionalString(v: unknown): string | null {
 // numeric(15,4) holds 11 integer digits; anything larger is garbage, not money.
 const MAX_AMOUNT_MAGNITUDE = 1e11;
 
-function toDecimalString(v: unknown): string | null {
+function isSafeDecimal(value: string): boolean {
+  return /^-?\d+(\.\d+)?$/.test(value)
+    && Number.isFinite(Number(value))
+    && Math.abs(Number(value)) < MAX_AMOUNT_MAGNITUDE;
+}
+
+/** Schema 2 carries this as a machine value, never a localized display string. */
+function toCanonicalDecimalString(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const value = v.trim();
+  return isSafeDecimal(value) ? value : null;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * ICU supplies the region-specific currency labels (for example, `EC$` for
+ * XCD). Schema 1 did not include a locale, so stable Caribbean/North American
+ * fallbacks complement the ISO code without ever accepting arbitrary text.
+ */
+function currencyTokens(currency: string | null, locale?: string | null): string[] {
+  const code = currency?.trim().toUpperCase();
+  if (!code || !/^[A-Z]{3}$/.test(code)) return [];
+
+  const locales = [...new Set([locale, "en-US", "en-CA", "en-LC"].filter((value): value is string => Boolean(value)))];
+  const tokens = new Set<string>([code]);
+  for (const candidateLocale of locales) {
+    for (const currencyDisplay of ["symbol", "narrowSymbol", "code"] as const) {
+      try {
+        const parts = new Intl.NumberFormat(candidateLocale, {
+          style: "currency",
+          currency: code,
+          currencyDisplay,
+        }).formatToParts(0);
+        for (const part of parts) if (part.type === "currency" && part.value) tokens.add(part.value);
+      } catch {
+        // A malformed client locale must leave the amount undecodable rather
+        // than cause us to invent a plausible financial value.
+      }
+    }
+  }
+  return [...tokens].sort((left, right) => right.length - left.length);
+}
+
+function toDecimalString(v: unknown, currency: string | null = null, locale?: string | null): string | null {
   if (typeof v === "number" && Number.isFinite(v) && Math.abs(v) < MAX_AMOUNT_MAGNITUDE) {
     return String(v);
   }
@@ -132,8 +178,17 @@ function toDecimalString(v: unknown): string | null {
     // fr-CA "1 234,56 $". Strip symbols/spaces, then disambiguate the comma:
     // alongside a period it's a thousands separator; alone before 1-2 digits
     // it's a decimal comma; otherwise thousands.
-    let s = v
-      .replace(/[$€£¥]|CA\$|US\$|CAD|USD/gi, "")
+    let s = v.trim()
+      // These were accepted before schema 1 carried Currency Code reliably.
+      // Remove multi-character labels before a generic `$` can split them.
+      .replace(/CA\$|US\$|CAD|USD/gi, "");
+    for (const token of currencyTokens(currency, locale)) {
+      s = s.replace(new RegExp(escapeRegExp(token), "gi"), "");
+    }
+    // Retain compatibility for old captures that omitted Currency Code. A
+    // region-qualified label such as EC$ is only accepted with its ISO code.
+    s = s
+      .replace(/[$€£¥]/g, "")
       .replace(/[\s  ]/g, "")
       .trim();
     if (s.includes(",")) {
@@ -141,9 +196,7 @@ function toDecimalString(v: unknown): string | null {
       else if (/^-?\d+,\d{1,2}$/.test(s)) s = s.replace(",", ".");
       else s = s.replace(/,/g, "");
     }
-    if (!/^-?\d+(\.\d+)?$/.test(s)) return null;
-    if (Math.abs(Number(s)) >= MAX_AMOUNT_MAGNITUDE) return null;
-    return s;
+    return isSafeDecimal(s) ? s : null;
   }
   return null;
 }
@@ -221,10 +274,17 @@ export function parseWalletCapturePayload(rawBody: unknown): WalletCaptureParseR
     if (!parsed.success) return { ok: false, error: parsed.error };
     const env = parsed.data;
     const rawAmount = optionalString(env.transaction.amountRaw);
-    const deviceAmount = toDecimalString(env.transaction.amountDecimal);
-    const serverAmount = toDecimalString(rawAmount);
-    const status = env.transaction.amountDecodeStatus;
-    const canonicalAmount = status === "decoded" && deviceAmount != null ? deviceAmount : serverAmount;
+    const currency = optionalString(env.transaction.currencyRaw);
+    const clientLocale = typeof env.client?.locale === "string" ? env.client.locale : null;
+    const deviceAmount = toCanonicalDecimalString(env.transaction.amountDecimal);
+    const serverAmount = toDecimalString(rawAmount, currency, clientLocale);
+    // `amountDecimal` is the v2 source of truth. A malformed machine value is
+    // recoverable through its retained raw text, but must never be promoted as
+    // a plausible purchase by falling back to formatted display text.
+    const status = env.transaction.amountDecodeStatus === "decoded" && deviceAmount == null
+      ? "undecodable"
+      : env.transaction.amountDecodeStatus;
+    const canonicalAmount = status === "decoded" ? deviceAmount : null;
     const transactionNameRaw = optionalString(env.transaction.transactionNameRaw);
     const observedPaymentMethod = optionalString(env.transaction.paymentMethodRaw);
     const paymentMethodFallback = observedPaymentMethod != null && observedPaymentMethod === transactionNameRaw;
@@ -249,7 +309,7 @@ export function parseWalletCapturePayload(rawBody: unknown): WalletCaptureParseR
         amountDeviceDecimal: deviceAmount,
         amountDecodeStatus: status,
         amountDisagreement: decimalDiffers(deviceAmount, serverAmount),
-        currency: optionalString(env.transaction.currencyRaw),
+        currency,
         cardRaw: optionalString(env.transaction.cardRaw),
         paymentMethodRaw: paymentMethodFallback ? null : observedPaymentMethod,
         paymentMethodFallback,
@@ -286,11 +346,11 @@ export function parseWalletCapturePayload(rawBody: unknown): WalletCaptureParseR
       capturedTimezone,
       merchantRaw: transaction.data.merchantRaw,
       transactionNameRaw: optionalString(transaction.data.transactionNameRaw),
-      amount: toDecimalString(transaction.data.amount),
+      amount: toDecimalString(transaction.data.amount, optionalString(transaction.data.currency)),
       amountTextRaw: optionalString(transaction.data.amount),
       amountDeviceDecimal: null,
       amountDecodeStatus: transaction.data.amount == null || transaction.data.amount === ""
-        ? "absent" : (toDecimalString(transaction.data.amount) == null ? "undecodable" : "decoded"),
+        ? "absent" : (toDecimalString(transaction.data.amount, optionalString(transaction.data.currency)) == null ? "undecodable" : "decoded"),
       amountDisagreement: false,
       currency: optionalString(transaction.data.currency),
       cardRaw: optionalString(transaction.data.cardRaw),

@@ -1,6 +1,6 @@
 # Wallet Capture — Shortcut assembly guide (v2)
 
-Matches the server contract as of 2026-08-17. Key architecture fact discovered during assembly: **a called shortcut cannot see Wallet transaction properties** (Merchant, Amount…) — only the automation editor can. So each card's automation extracts the fields into a small dictionary and passes it; the shared Wallet Capture shortcut builds the envelope, saves to the outbox, and uploads. The server accepts the dictionary nested as JSON text, locale-formatted amounts ("$6.42", "1 234,56 $"), numeric-string coordinates, and offset-less timestamps.
+Matches the server contract as of 2026-08-17. Key architecture fact discovered during assembly: **a called shortcut cannot see Wallet transaction properties** (Merchant, Amount…) — only the automation editor can. So each card's automation extracts the fields into a small dictionary and passes it; the shared Wallet Capture shortcut builds the envelope, saves to the outbox, and uploads. The server accepts the dictionary nested as JSON text, locale-formatted amounts ("$6.42", "EC$17.49", "1 234,56 $"), numeric-string coordinates, and offset-less timestamps. Formatted amounts remain a legacy fallback; native capture schema 2 sends a separate canonical decimal.
 
 ## 0. Before the phone
 
@@ -15,7 +15,7 @@ Shortcuts → Automation → **+** → **Transaction** → pick one card → **R
    - `merchantRaw` → **Merchant**
    - `transactionNameRaw` → **Name**
    - `amount` → **Amount** (renders like "$6.42" — fine, server strips it)
-   - `currency` → Amount chip → **Currency Code** (optional; delete the key if fiddly — server assumes CAD and records the assumption)
+   - `currency` → Amount chip → **Currency Code** (**required**; it makes region-specific display symbols such as `EC$` unambiguous)
    - `cardRaw` → **Card or Pass**
 2. **Run Shortcut** — Wallet Capture · Input: the **Dictionary**.
 
@@ -53,4 +53,4 @@ Run Wallet Capture manually once to surface Files/Location/network permission pr
 
 - **No Merchant/Amount properties when tapping Shortcut Input inside Wallet Capture** — expected; that's why extraction lives in the automation (§1).
 - **`VV` prints something odd** — harmless; capturedAt carries the offset so the instant stays correct.
-- **Amount renders as `$6.42` / `1 234,56 $`** — fine; the server normalizes locale currency text.
+- **Amount renders as `$6.42` / `EC$17.49` / `1 234,56 $`** — fine when the automation also sends Currency Code; the server uses that code to disambiguate the display symbol.

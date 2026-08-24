@@ -40,7 +40,7 @@ describe("processWalletEvents", () => {
       capturedAt: new Date("2026-08-16T22:25:31Z"),
     };
     vi.mocked(prisma.walletEvent.findMany)
-      .mockResolvedValueOnce([event] as any)
+      .mockResolvedValueOnce([event] as never)
       .mockResolvedValueOnce([]);
     vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Cafe", category: "dining" } as any);
     vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue({ cardId: "amex-cobalt" } as any);
@@ -152,6 +152,26 @@ describe("processWalletEvents", () => {
     expect(prisma.walletEvent.update).toHaveBeenCalledWith({
       where: { id: "evt-4" },
       data: expect.objectContaining({ processingStatus: "INCOMPLETE", missingFields: ["currencyRaw"] }),
+    });
+    expect(tx.purchase.create).not.toHaveBeenCalled();
+    expect(applyCapAccrual).not.toHaveBeenCalled();
+  });
+
+  it("keeps an undecodable amount incomplete instead of creating an amountless purchase", async () => {
+    const event = {
+      id: "evt-no-amount", userId: "user-1", eventId: "wevt_no_amount",
+      merchantRaw: "Massy Stores", cardRaw: "Scotiabank Visa Card",
+      amountRaw: null, currencyRaw: "XCD",
+      capturedAt: new Date("2026-08-22T18:23:36Z"),
+    };
+    vi.mocked(prisma.walletEvent.findMany)
+      .mockResolvedValueOnce([event] as never)
+      .mockResolvedValueOnce([]);
+
+    expect(await processWalletEvents()).toBe(0);
+    expect(prisma.walletEvent.update).toHaveBeenCalledWith({
+      where: { id: "evt-no-amount" },
+      data: expect.objectContaining({ processingStatus: "INCOMPLETE", missingFields: ["amountRaw"] }),
     });
     expect(tx.purchase.create).not.toHaveBeenCalled();
     expect(applyCapAccrual).not.toHaveBeenCalled();
