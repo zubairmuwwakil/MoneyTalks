@@ -295,6 +295,142 @@ const STYLES: Record<string, CardStyle> = {
       <circle cx="320" cy="120" r="50" fill="none" stroke="#a5b4fc" stroke-width="2" opacity="0.3"/>
     `,
   },
+  "amex-aeroplan-reserve": {
+    bgStart: "#1e293b",
+    bgEnd: "#020617",
+    textColor: "#ffffff",
+    subtextColor: "#94a3b8",
+    accent: "#ef4444",
+    badgeBg: "#0f172a",
+    extraSvg: `
+      <path d="M 330 40 L 360 100 L 300 100 Z" fill="#ef4444" opacity="0.3"/>
+      <line x1="30" y1="210" x2="370" y2="210" stroke="#ef4444" stroke-width="1" opacity="0.4"/>
+    `,
+  },
+  "td-aeroplan-visa-infinite-privilege": {
+    bgStart: "#064e3b",
+    bgEnd: "#022c22",
+    textColor: "#ffffff",
+    subtextColor: "#a7f3d0",
+    accent: "#34d399",
+    badgeBg: "#065f46",
+    extraSvg: `
+      <rect x="20" y="20" width="360" height="212" rx="14" fill="none" stroke="#34d399" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.4"/>
+    `,
+  },
+  "cibc-aeroplan-visa-infinite-privilege": {
+    bgStart: "#4c0519",
+    bgEnd: "#1c0108",
+    textColor: "#ffffff",
+    subtextColor: "#fecdd3",
+    accent: "#f43f5e",
+    badgeBg: "#881337",
+    extraSvg: `
+      <rect x="20" y="20" width="360" height="212" rx="14" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.4"/>
+    `,
+  },
+  "amex-simplycash-preferred": {
+    bgStart: "#0369a1",
+    bgEnd: "#0c4a6e",
+    textColor: "#ffffff",
+    subtextColor: "#bae6fd",
+    accent: "#38bdf8",
+    badgeBg: "#0284c7",
+    extraSvg: `
+      <path d="M 0 160 Q 200 40 400 100" fill="none" stroke="#38bdf8" stroke-width="2" opacity="0.35"/>
+    `,
+  },
+  "amex-gold-rewards": {
+    bgStart: "#d97706",
+    bgEnd: "#78350f",
+    textColor: "#ffffff",
+    subtextColor: "#fef3c7",
+    accent: "#fbbf24",
+    badgeBg: "#92400e",
+    extraSvg: `
+      <rect x="20" y="20" width="360" height="212" rx="14" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6"/>
+      <circle cx="200" cy="126" r="45" fill="none" stroke="#fbbf24" stroke-width="1" opacity="0.3"/>
+    `,
+  },
+  "bmo-cashback-world-elite": {
+    bgStart: "#0284c7",
+    bgEnd: "#082f49",
+    textColor: "#ffffff",
+    subtextColor: "#bae6fd",
+    accent: "#38bdf8",
+    badgeBg: "#0369a1",
+    extraSvg: `
+      <path d="M -20 180 Q 150 50 420 100" fill="none" stroke="#38bdf8" stroke-width="2" opacity="0.25"/>
+    `,
+  },
+  "simplii-cashback-visa": {
+    bgStart: "#ea580c",
+    bgEnd: "#7c2d12",
+    textColor: "#ffffff",
+    subtextColor: "#ffedd5",
+    accent: "#fdba74",
+    badgeBg: "#c2410c",
+    extraSvg: `
+      <circle cx="340" cy="60" r="70" fill="#fdba74" opacity="0.08"/>
+    `,
+  },
+  "pc-financial-mastercard": {
+    bgStart: "#dc2626",
+    bgEnd: "#991b1b",
+    textColor: "#ffffff",
+    subtextColor: "#fee2e2",
+    accent: "#fca5a5",
+    badgeBg: "#ef4444",
+  },
+  "pc-financial-world-mastercard": {
+    bgStart: "#7f1d1d",
+    bgEnd: "#450a0a",
+    textColor: "#ffffff",
+    subtextColor: "#fecaca",
+    accent: "#f87171",
+    badgeBg: "#991b1b",
+    extraSvg: `
+      <circle cx="340" cy="80" r="50" fill="none" stroke="#f87171" stroke-width="1.5" opacity="0.3"/>
+    `,
+  },
+  "pc-financial-world-elite": {
+    bgStart: "#991b1b",
+    bgEnd: "#450a0a",
+    textColor: "#ffffff",
+    subtextColor: "#fecaca",
+    accent: "#f87171",
+    badgeBg: "#b91c1c",
+  },
+  "pc-money-account": {
+    bgStart: "#0d9488",
+    bgEnd: "#115e59",
+    textColor: "#ffffff",
+    subtextColor: "#ccfbf1",
+    accent: "#5eead4",
+    badgeBg: "#0f766e",
+    extraSvg: `
+      <path d="M 0 170 Q 200 60 400 120" fill="none" stroke="#5eead4" stroke-width="2" opacity="0.4"/>
+    `,
+  },
+  "desjardins-odyssey-world-elite": {
+    bgStart: "#047857",
+    bgEnd: "#064e3b",
+    textColor: "#ffffff",
+    subtextColor: "#a7f3d0",
+    accent: "#34d399",
+    badgeBg: "#059669",
+    extraSvg: `
+      <path d="M 0 190 Q 200 80 400 130" fill="none" stroke="#34d399" stroke-width="2" opacity="0.3"/>
+    `,
+  },
+  "home-trust-preferred-visa": {
+    bgStart: "#1d4ed8",
+    bgEnd: "#1e3a8a",
+    textColor: "#ffffff",
+    subtextColor: "#bfdbfe",
+    accent: "#60a5fa",
+    badgeBg: "#2563eb",
+  },
 };
 
 function generateCardSvg(cardId: string, officialName: string, issuer: string, network: string): string {
