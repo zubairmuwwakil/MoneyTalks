@@ -6,7 +6,7 @@ import { applyCapAccrual } from "@/lib/spine/cap-usage";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    walletEvent: { findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+    walletEvent: { findMany: vi.fn(), findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     merchantAlias: { findUnique: vi.fn(), create: vi.fn() },
     cardAlias: { findUnique: vi.fn() },
     $transaction: vi.fn(),
@@ -22,12 +22,14 @@ describe("processWalletEvents", () => {
     purchase: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
     ownerStateRecord: { findUnique: vi.fn(), create: vi.fn() },
     creditCard: { findMany: vi.fn() },
-    walletEvent: { update: vi.fn() },
+    walletEvent: { findUnique: vi.fn(), update: vi.fn() },
   };
 
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(tx));
+    vi.mocked(prisma.walletEvent.updateMany).mockResolvedValue({ count: 1 } as never);
+    tx.walletEvent.findUnique.mockResolvedValue({ purchaseId: null });
   });
 
   it("stamps merchantNormalized and resolvedCardId when normalizing", async () => {
@@ -135,7 +137,7 @@ describe("processWalletEvents", () => {
     }));
   });
 
-  it("preserves an unknown currency and does not accrue it as CAD", async () => {
+  it("keeps an unknown currency incomplete instead of creating or accruing a guessed purchase", async () => {
     const event = {
       id: "evt-4", userId: "user-1", eventId: "wevt_4",
       merchantRaw: "Cafe", cardRaw: "Amex Cobalt",
@@ -145,19 +147,39 @@ describe("processWalletEvents", () => {
     vi.mocked(prisma.walletEvent.findMany)
       .mockResolvedValueOnce([event] as any)
       .mockResolvedValueOnce([]);
-    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Cafe", category: "dining" } as any);
-    vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue({ cardId: "amex-cobalt" } as any);
+    expect(await processWalletEvents()).toBe(0);
+
+    expect(prisma.walletEvent.update).toHaveBeenCalledWith({
+      where: { id: "evt-4" },
+      data: expect.objectContaining({ processingStatus: "INCOMPLETE", missingFields: ["currencyRaw"] }),
+    });
+    expect(tx.purchase.create).not.toHaveBeenCalled();
+    expect(applyCapAccrual).not.toHaveBeenCalled();
+  });
+
+  it("lets only one worker claim an observed event", async () => {
+    const event = {
+      id: "evt-claim", userId: "user-1", eventId: "wevt_claim",
+      processingStatus: "OBSERVED",
+      merchantRaw: "Cafe", cardRaw: null,
+      amountRaw: new Prisma.Decimal("6.42"), currencyRaw: "CAD",
+      capturedAt: new Date("2026-08-16T22:25:31Z"),
+    };
+    vi.mocked(prisma.walletEvent.findUnique).mockResolvedValue(event as any);
+    vi.mocked(prisma.walletEvent.updateMany)
+      .mockResolvedValueOnce({ count: 1 } as never)
+      .mockResolvedValueOnce({ count: 0 } as never);
+    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Cafe", category: null } as any);
     tx.purchase.findFirst.mockResolvedValue(null);
     tx.purchase.findMany.mockResolvedValue([]);
-    tx.purchase.create.mockResolvedValue({ id: "purch-4", currency: null });
-    tx.ownerStateRecord.findUnique.mockResolvedValue({ stateData: { cardStates: {} } });
+    tx.purchase.create.mockResolvedValue({ id: "purchase-claim", currency: "CAD" });
+    tx.ownerStateRecord.findUnique.mockResolvedValue(null);
+    tx.creditCard.findMany.mockResolvedValue([]);
 
-    await processWalletEvents();
-
-    expect(tx.purchase.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ currency: null }),
-    }));
-    expect(applyCapAccrual).not.toHaveBeenCalled();
+    const { processWalletEvent } = await import("./walletNormalization");
+    expect(await processWalletEvent("wevt_claim")).toBe(true);
+    expect(await processWalletEvent("wevt_claim")).toBe(false);
+    expect(tx.purchase.create).toHaveBeenCalledTimes(1);
   });
 
   it("normalizes an event with unmapped cardRaw (no cardAlias) — paymentMethod stays null, no cap accrual", async () => {

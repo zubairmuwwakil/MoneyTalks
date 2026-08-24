@@ -163,7 +163,7 @@ export default async function PurchasesInboxPage({
   }
 
   // Execute parallel queries for stats, cards, timezone, and list
-  const [pref, userCards, fxRatesRaw, allPurchasesSummary, purchasesWithNextPage] = await Promise.all([
+  const [pref, userCards, fxRatesRaw, allPurchasesSummary, purchasesWithNextPage, incompleteCaptureCount] = await Promise.all([
     prisma.notificationPreference.findUnique({
       where: { userId },
       select: { timezone: true },
@@ -227,6 +227,9 @@ export default async function PurchasesInboxPage({
       orderBy,
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE + 1,
+    }),
+    prisma.walletEvent.count({
+      where: { userId, processingStatus: "INCOMPLETE" },
     }),
   ]);
 
@@ -364,6 +367,15 @@ export default async function PurchasesInboxPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+            {incompleteCaptureCount > 0 ? (
+              <Button asChild size="sm" variant="outline" className="border-amber-500/40 text-amber-800 hover:bg-amber-500/10 dark:text-amber-300">
+                <Link href="/purchases/recovery" className="flex items-center gap-2">
+                  <AlertTriangle className="size-4" />
+                  <span>Recover captures</span>
+                  <Badge variant="warning" size="sm">{incompleteCaptureCount}</Badge>
+                </Link>
+              </Button>
+            ) : null}
             <Button
               asChild
               size="sm"

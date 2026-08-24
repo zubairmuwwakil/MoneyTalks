@@ -6,31 +6,57 @@ import { findMatchingPurchase } from "@/lib/domain/spine/purchaseMerge";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
 
 type WalletEventForNormalization = Awaited<ReturnType<typeof prisma.walletEvent.findFirst>>;
+const STALE_PROCESSING_MS = 5 * 60 * 1000;
 
-async function processObservedWalletEvent(event: NonNullable<WalletEventForNormalization>): Promise<boolean> {
-  const merchantObservation = event.merchantRaw ?? event.transactionNameRaw;
-  if (!merchantObservation) {
+function capturedMissingFields(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((field): field is string => typeof field === "string")
+    : [];
+}
+
+async function processClaimedWalletEvent(event: NonNullable<WalletEventForNormalization>): Promise<boolean> {
+  const merchantObservation = event.merchantRaw ?? event.transactionNameRaw ?? event.correctedMerchant;
+  const amount = event.correctedAmount ?? event.amountRaw;
+  const currency = normalizeCurrencyCode(event.correctedCurrency ?? event.currencyRaw);
+  const blockingMissingFields = [
+    ...(!merchantObservation ? ["merchantRaw", "transactionNameRaw"] : []),
+    ...(amount == null ? ["amountRaw"] : []),
+    ...(currency == null ? ["currencyRaw"] : []),
+  ];
+
+  if (blockingMissingFields.length > 0) {
     await prisma.walletEvent.update({
       where: { id: event.id },
-      data: { processingStatus: "INCOMPLETE", missingFields: ["merchantRaw", "transactionNameRaw"] },
+      data: {
+        processingStatus: "INCOMPLETE",
+        // Keep the capture-time diagnostics as evidence even after the row is
+        // later recovered; append only newly discovered blockers.
+        missingFields: [...new Set([...capturedMissingFields(event.missingFields), ...blockingMissingFields])],
+      },
     });
     return false;
   }
+  // The blocking check above establishes these effective values. Naming the
+  // narrowed forms keeps every downstream write explicitly non-null.
+  const merchantKey = merchantObservation!;
+  const normalizedAmount = amount!;
+  const normalizedCurrency = currency!;
 
   let merchantAlias = await prisma.merchantAlias.findUnique({
-    where: { rawString: merchantObservation },
+    where: { rawString: merchantKey },
   });
   if (!merchantAlias) {
     try {
       merchantAlias = await prisma.merchantAlias.create({
-        data: { rawString: merchantObservation, normalizedName: merchantObservation.trim() },
+        data: { rawString: merchantKey, normalizedName: merchantKey.trim() },
       });
     } catch {
       merchantAlias = await prisma.merchantAlias.findUnique({
-        where: { rawString: merchantObservation },
+        where: { rawString: merchantKey },
       });
     }
   }
+  const normalizedMerchant = event.correctedMerchant?.trim() || merchantAlias?.normalizedName;
 
   const primaryCardAlias = event.cardRaw
     ? await prisma.cardAlias.findUnique({
@@ -45,21 +71,34 @@ async function processObservedWalletEvent(event: NonNullable<WalletEventForNorma
         where: { userId_rawString: { userId: event.userId, rawString: event.paymentMethodRaw } },
       })
     : null);
+  // A recovery choice is explicit owner input and takes precedence over the
+  // aliases inferred from raw Wallet labels. The action that writes it checks
+  // ownership first; raw labels and payload evidence remain untouched.
+  const resolvedCardId = event.correctedCardId ?? cardAlias?.cardId ?? null;
 
-  if (!merchantAlias) {
+  if (!merchantAlias || !normalizedMerchant) {
     await prisma.walletEvent.update({
       where: { id: event.id },
-      data: { processingStatus: "INCOMPLETE", missingFields: ["merchantResolution"] },
+      data: {
+        processingStatus: "INCOMPLETE",
+        missingFields: [...new Set([...capturedMissingFields(event.missingFields), "merchantResolution"])],
+      },
     });
     return false;
   }
 
   await prisma.$transaction(async (tx) => {
-    const amountMinor = walletAmountMinor(event.amountRaw);
-    const eventCurrency = normalizeCurrencyCode(event.currencyRaw);
-    let spine = await tx.purchase.findFirst({
-      where: { userId: event.userId, source: "WALLET", sourceEventId: event.eventId }
+    const amountMinor = walletAmountMinor(normalizedAmount);
+    const eventCurrency = normalizedCurrency;
+    const latestEvent = await tx.walletEvent.findUnique({
+      where: { id: event.id },
+      select: { purchaseId: true },
     });
+    let spine = latestEvent?.purchaseId
+      ? await tx.purchase.findFirst({ where: { id: latestEvent.purchaseId, userId: event.userId } })
+      : await tx.purchase.findFirst({
+          where: { userId: event.userId, source: "WALLET", sourceEventId: event.eventId },
+        });
 
     if (!spine) {
       const match = amountMinor != null
@@ -67,8 +106,8 @@ async function processObservedWalletEvent(event: NonNullable<WalletEventForNorma
             userId: event.userId,
             amountMinor,
             observedAt: event.capturedAt,
-            currency: event.currencyRaw,
-            merchantCandidates: [merchantAlias.normalizedName, merchantObservation],
+            currency: eventCurrency,
+            merchantCandidates: [normalizedMerchant, merchantKey],
             incomingSource: "WALLET",
           })
         : null;
@@ -78,7 +117,7 @@ async function processObservedWalletEvent(event: NonNullable<WalletEventForNorma
           where: { id: match.purchase.id },
           data: {
             purchasedAt: event.capturedAt,
-            paymentMethod: match.purchase.paymentMethod ?? cardAlias?.cardId ?? undefined,
+            paymentMethod: match.purchase.paymentMethod ?? resolvedCardId ?? undefined,
             category: match.purchase.category ?? merchantAlias.category ?? undefined,
             currency: match.purchase.currency ?? eventCurrency,
           },
@@ -89,11 +128,11 @@ async function processObservedWalletEvent(event: NonNullable<WalletEventForNorma
             userId: event.userId,
             source: "WALLET",
             sourceEventId: event.eventId,
-            merchant: merchantAlias.normalizedName,
+            merchant: normalizedMerchant,
             totalCents: amountMinor,
             currency: eventCurrency,
             purchasedAt: event.capturedAt,
-            paymentMethod: cardAlias?.cardId || undefined,
+            paymentMethod: resolvedCardId ?? undefined,
             category: merchantAlias.category,
             possibleDuplicateOfId: match?.purchase.id ?? null,
           }
@@ -102,14 +141,14 @@ async function processObservedWalletEvent(event: NonNullable<WalletEventForNorma
     }
 
     const ownerState = await ensureOwnerStateRecord(tx, event.userId);
-    if (ownerState && event.amountRaw != null && cardAlias && normalizeCurrencyCode(spine.currency) === "CAD") {
+    if (ownerState && resolvedCardId && normalizeCurrencyCode(spine.currency) === "CAD") {
       await applyCapAccrual(tx, {
         sourceKey: `purchase:${spine.id}`,
         userId: event.userId,
-        cardId: cardAlias.cardId,
+        cardId: resolvedCardId,
         category: merchantAlias.category,
-        merchantBrand: merchantAlias.normalizedName,
-        amountMinor: walletAmountMinor(event.amountRaw)!,
+        merchantBrand: normalizedMerchant,
+        amountMinor: amountMinor!,
         currency: spine.currency,
         occurredAt: event.capturedAt,
       }, ownerState.stateData);
@@ -120,8 +159,8 @@ async function processObservedWalletEvent(event: NonNullable<WalletEventForNorma
       data: {
         processingStatus: "NORMALIZED",
         financialState: "NORMALIZED",
-        merchantNormalized: merchantAlias.normalizedName,
-        resolvedCardId: cardAlias?.cardId ?? null,
+        merchantNormalized: normalizedMerchant,
+        resolvedCardId,
         purchaseId: spine.id,
       },
     });
@@ -129,23 +168,56 @@ async function processObservedWalletEvent(event: NonNullable<WalletEventForNorma
   return true;
 }
 
+async function claimAndProcessWalletEvent(event: NonNullable<WalletEventForNormalization>): Promise<boolean> {
+  const staleBefore = new Date(Date.now() - STALE_PROCESSING_MS);
+  const claimed = await prisma.walletEvent.updateMany({
+    where: {
+      id: event.id,
+      OR: [
+        { processingStatus: "OBSERVED" },
+        { processingStatus: "PROCESSING", updatedAt: { lt: staleBefore } },
+      ],
+    },
+    data: { processingStatus: "PROCESSING" },
+  });
+  if (claimed.count !== 1) return false;
+
+  try {
+    return await processClaimedWalletEvent(event);
+  } catch (error) {
+    // A transient failure must remain retryable. The conditional update avoids
+    // undoing a terminal transition if the event finished elsewhere.
+    await prisma.walletEvent.updateMany({
+      where: { id: event.id, processingStatus: "PROCESSING" },
+      data: { processingStatus: "OBSERVED" },
+    });
+    throw error;
+  }
+}
+
 /** Request-time path: processes only the event that was just accepted. */
 export async function processWalletEvent(eventId: string) {
   const event = await prisma.walletEvent.findUnique({ where: { eventId } });
   if (!event || event.processingStatus !== "OBSERVED") return false;
-  return processObservedWalletEvent(event);
+  return claimAndProcessWalletEvent(event);
 }
 
-/** Repair path: bounded global batch, with every OBSERVED row leaving OBSERVED. */
+/** Repair path: bounded global batch; stale claims are safe to recover after a worker crash. */
 export async function processWalletEvents() {
+  const staleBefore = new Date(Date.now() - STALE_PROCESSING_MS);
   const events = await prisma.walletEvent.findMany({
-    where: { processingStatus: "OBSERVED" },
+    where: {
+      OR: [
+        { processingStatus: "OBSERVED" },
+        { processingStatus: "PROCESSING", updatedAt: { lt: staleBefore } },
+      ],
+    },
     take: 100,
   });
 
   let processed = 0;
   for (const event of events) {
-    if (await processObservedWalletEvent(event)) processed++;
+    if (await claimAndProcessWalletEvent(event)) processed++;
   }
 
   // Reversed is terminal. Its original period and amount come from CapAccrual,
