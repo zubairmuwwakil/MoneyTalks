@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "1.5",
+  "catalogueVersion": "1.6",
   "currency": "CAD",
   "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md \u2014 all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
@@ -3930,8 +3930,8 @@
             "country": "CA"
           },
           "capId": null,
-          "scoredInV1": false,
-          "_note": "2x points on eligible dining and food delivery purchases in Canada."
+          "_note": "2x points on eligible dining and food delivery purchases in Canada.",
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [],
@@ -4024,8 +4024,8 @@
             ]
           },
           "capId": "td-aeroplan-vip-accelerated-annual",
-          "scoredInV1": false,
-          "_note": "1.5x points on eligible gas, grocery, travel, and dining purchases."
+          "_note": "1.5x points on eligible gas, grocery, travel, and dining purchases.",
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [
@@ -4145,8 +4145,8 @@
             ]
           },
           "capId": "cibc-aeroplan-vip-accelerated-annual",
-          "scoredInV1": false,
-          "_note": "1.5x points on eligible gas, grocery, travel, and dining purchases."
+          "_note": "1.5x points on eligible gas, grocery, travel, and dining purchases.",
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [
@@ -4240,8 +4240,8 @@
             ]
           },
           "capId": null,
-          "scoredInV1": false,
-          "_note": "2x points on eligible flights, hotels, car rentals, and tour operators."
+          "_note": "2x points on eligible flights, hotels, car rentals, and tour operators.",
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "gold-rewards-gas-grocery-drug-2x",
@@ -4263,8 +4263,8 @@
             "country": "CA"
           },
           "capId": null,
-          "scoredInV1": false,
-          "_note": "2x points on eligible standalone gas stations, grocery stores, and drugstores in Canada."
+          "_note": "2x points on eligible standalone gas stations, grocery stores, and drugstores in Canada.",
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "gold-rewards-amex-travel-bonus",
@@ -4287,8 +4287,8 @@
             ]
           },
           "capId": null,
-          "scoredInV1": false,
-          "_note": "+1 bonus point per dollar on eligible hotel and car rental bookings through Amex Travel."
+          "_note": "+1 bonus point per dollar on eligible hotel and car rental bookings through Amex Travel.",
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [],
@@ -4512,8 +4512,8 @@
           },
           "predicate": {},
           "capId": null,
-          "scoredInV1": false,
-          "_note": "1.5% in BONUSDOLLARS on all other eligible purchases."
+          "_note": "1.5% in BONUSDOLLARS on all other eligible purchases.",
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "desjardins-odyssey-we-grocery-3pct",
@@ -4532,8 +4532,8 @@
             ]
           },
           "capId": null,
-          "scoredInV1": false,
-          "_note": "3% in BONUSDOLLARS on eligible grocery store purchases."
+          "_note": "3% in BONUSDOLLARS on eligible grocery store purchases.",
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "desjardins-odyssey-we-dining-3pct",
@@ -4553,8 +4553,8 @@
             ]
           },
           "capId": null,
-          "scoredInV1": false,
-          "_note": "3% in BONUSDOLLARS on restaurants and dining purchases."
+          "_note": "3% in BONUSDOLLARS on restaurants and dining purchases.",
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "desjardins-odyssey-we-entertainment-3pct",
@@ -4573,8 +4573,8 @@
             ]
           },
           "capId": null,
-          "scoredInV1": false,
-          "_note": "3% in BONUSDOLLARS on entertainment purchases and show tickets."
+          "_note": "3% in BONUSDOLLARS on entertainment purchases and show tickets.",
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "desjardins-odyssey-we-green-transit-3pct",
@@ -4594,8 +4594,8 @@
             ]
           },
           "capId": null,
-          "scoredInV1": false,
-          "_note": "3% in BONUSDOLLARS on alternative transportation (public transit, EV charging, train, bike share)."
+          "_note": "3% in BONUSDOLLARS on alternative transportation (public transit, EV charging, train, bike share).",
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [],
