@@ -20,7 +20,7 @@ describe("CardRequestsAdminPage", () => {
       { issuer: "Amex", cardName: "Platinum", _count: { _all: 5 } },
     ] as any);
 
-    const result = await CardRequestsAdminPage();
+    const result = await CardRequestsAdminPage({ searchParams: Promise.resolve({}) });
     
     expect(prisma.cardRequest.groupBy).toHaveBeenCalledWith({
       by: ["issuer", "cardName"],
