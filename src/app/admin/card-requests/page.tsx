@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { requireUserId } from "@/lib/require-user";
+import { requireAdmin } from "@/lib/require-user";
 
 export default async function CardRequestsAdminPage() {
-  await requireUserId();
+  await requireAdmin();
 
   // Group by card and count descending
   const requests = await prisma.cardRequest.groupBy({

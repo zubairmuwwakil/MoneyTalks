@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import CardRequestsAdminPage from "./page";
 import { prisma } from "@/lib/prisma";
-import { requireUserId } from "@/lib/require-user";
+import { requireAdmin } from "@/lib/require-user";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -10,12 +10,12 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 vi.mock("@/lib/require-user", () => ({
-  requireUserId: vi.fn()
+  requireAdmin: vi.fn()
 }));
 
 describe("CardRequestsAdminPage", () => {
   it("groups by issuer and cardName", async () => {
-    vi.mocked(requireUserId).mockResolvedValue("user-1");
+    vi.mocked(requireAdmin).mockResolvedValue({ id: "user-1", email: "owner@example.com" });
     vi.mocked(prisma.cardRequest.groupBy).mockResolvedValue([
       { issuer: "Amex", cardName: "Platinum", _count: { _all: 5 } },
     ] as any);

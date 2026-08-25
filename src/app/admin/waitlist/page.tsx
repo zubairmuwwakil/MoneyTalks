@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { requireUserId } from "@/lib/require-user";
+import { requireAdmin } from "@/lib/require-user";
 import { revalidatePath } from "next/cache";
 
 export default async function WaitlistAdminPage() {
-  await requireUserId();
+  await requireAdmin();
 
   const entries = await prisma.waitlist.findMany({
     orderBy: { createdAt: "desc" },
@@ -11,7 +11,9 @@ export default async function WaitlistAdminPage() {
 
   async function toggleInvited(id: string, invited: boolean) {
     "use server";
-    await requireUserId();
+    // Gated independently of the page: a server action is directly invokable by any client, so
+    // gating only the page that renders the button protects nothing.
+    await requireAdmin();
     await prisma.waitlist.update({
       where: { id },
       data: { invitedAt: invited ? new Date() : null },

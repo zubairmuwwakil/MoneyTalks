@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { hasAllowlist, isAllowedEmail } from "@/lib/allowlist";
@@ -73,6 +73,32 @@ export async function requireUserId(): Promise<string> {
   const user = await resolveUser();
   if (!user) redirect("/login");
   return user.id;
+}
+
+/**
+ * Gate for `/admin/*`. Both admin pages were reachable by ANY signed-in user until 2026-08-24 —
+ * they called `requireUserId()`, which only proves someone is logged in. With signup open by
+ * default (see docs/decisions/LOG.md 2026-08-17), that put every waitlist email address in front
+ * of anyone who registered.
+ *
+ * FAILS CLOSED when `ADMIN_EMAILS` is unset. An unset allowlist means "nobody is an admin", never
+ * "everybody is": a deploy that forgets the variable must lose the admin pages, not expose them.
+ * `notFound()` rather than a 403 so the surface does not confirm it exists to a non-admin.
+ */
+export async function requireAdmin(): Promise<{ id: string; email: string }> {
+  const user = await resolveUser();
+  if (!user) redirect("/login");
+
+  const allowed = (process.env.ADMIN_EMAILS ?? process.env.ADMIN_EMAIL ?? "")
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+
+  const email = user.email?.trim().toLowerCase();
+  if (allowed.length === 0 || !email || !allowed.includes(email)) {
+    notFound();
+  }
+  return { id: user.id, email };
 }
 
 export async function getSessionUserId(): Promise<string | null> {
