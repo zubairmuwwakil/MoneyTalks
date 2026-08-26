@@ -24,15 +24,20 @@ export const maxDuration = 120;
 async function warmUpMarketLens(): Promise<void> {
   const baseUrl = process.env.MARKETLENS_BASE_URL?.trim();
   if (!baseUrl) return;
-  try {
-    await fetch(baseUrl.replace(/\/+$/, ""), {
-      method: "HEAD",
-      cache: "no-store",
-      signal: AbortSignal.timeout(55_000),
-    });
-  } catch {
-    // Swallowed: if the warmup itself fails the quote fetch will too, and that
-    // path already handles the failure gracefully.
+  const target = baseUrl.replace(/\/+$/, "");
+  const start = Date.now();
+  while (Date.now() - start < 25_000) {
+    try {
+      const res = await fetch(target + "/actuator/health", {
+        method: "GET",
+        cache: "no-store",
+        signal: AbortSignal.timeout(4_000),
+      });
+      if (res.status === 200 || res.status === 401) return;
+    } catch {
+      // Still spinning up; short pause before checking again
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
   }
 }
 
