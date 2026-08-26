@@ -78,17 +78,28 @@ const EMAIL_DOMAIN_INDEX: ReadonlyMap<string, PackMerchant> = new Map(
 const BY_ID: ReadonlyMap<string, PackMerchant> = new Map(merchantPack.merchants.map((m) => [m.id, m]));
 
 /**
- * Whole-word containment, not `String.includes`.
+ * Does `needle` appear in `haystack` as whole words, and is it allowed to
+ * appear where it does?
  *
- * `includes` is what makes a keyword matcher produce confident nonsense:
- * "esso" is inside "espresso", "iga" is inside "cigarette". Requiring a word
- * boundary on both sides is the difference between a lookup and a guess.
+ * Two rules, both learned from a false positive rather than assumed.
+ *
+ * Whole words, never `String.includes`: "esso" is inside "espresso", "iga" is
+ * inside "cigarette". A word boundary on both sides is the difference between
+ * a lookup and a guess.
+ *
+ * And a SINGLE-word key must lead the descriptor. Payment descriptors put the
+ * merchant name first and the noise after it, so "METRO #221" is Metro the
+ * grocery chain and "SQ *CAFE METRO" is a café that happens to end in the
+ * same word — a rule that ignored position categorized the café as groceries.
+ * Multi-word keys ("tim hortons", "canadian tire") are specific enough to
+ * carry themselves and may match anywhere, which is what lets a name buried
+ * behind processor branding still resolve.
  */
-function containsWholeWord(haystack: string, needle: string): boolean {
+function matchesKey(haystack: string, needle: string): boolean {
   if (haystack === needle) return true;
-  const index = haystack.indexOf(needle);
-  if (index === -1) return false;
-  for (let at = index; at !== -1; at = haystack.indexOf(needle, at + 1)) {
+  const mustLead = !needle.includes(" ");
+  for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle, at + 1)) {
+    if (mustLead && at !== 0) continue;
     const beforeOk = at === 0 || haystack[at - 1] === " ";
     const afterOk = at + needle.length === haystack.length || haystack[at + needle.length] === " ";
     if (beforeOk && afterOk) return true;
@@ -96,11 +107,20 @@ function containsWholeWord(haystack: string, needle: string): boolean {
   return false;
 }
 
-/** Longest matching key wins; null when nothing in the pack claims this key. */
-export function findPackMerchantByBrandKey(brandKey: string): PackMerchant | null {
-  if (!brandKey) return null;
-  for (const entry of MATCH_INDEX) {
-    if (containsWholeWord(brandKey, entry.key)) return entry.merchant;
+/**
+ * Longest matching key wins; null when nothing in the pack claims this key.
+ *
+ * Accepts several candidate keys and tries them in order, because a single
+ * normalization cannot serve every descriptor: stripping `UBER *` deletes the
+ * merchant, and not stripping `DD *` buries it. The caller passes both forms
+ * and the first that resolves wins.
+ */
+export function findPackMerchantByBrandKey(...candidateKeys: (string | null | undefined)[]): PackMerchant | null {
+  for (const candidate of candidateKeys) {
+    if (!candidate) continue;
+    for (const entry of MATCH_INDEX) {
+      if (matchesKey(candidate, entry.key)) return entry.merchant;
+    }
   }
   return null;
 }

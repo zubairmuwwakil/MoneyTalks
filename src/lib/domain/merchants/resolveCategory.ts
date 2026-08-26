@@ -231,14 +231,17 @@ export function resolveCategory(observation: MerchantObservation): CategoryResol
     );
   }
 
-  // 5. The pack, on an exact whole-word brand key.
-  const byBrand = normalized.brandKey ? findPackMerchantByBrandKey(normalized.brandKey) : null;
+  // 5. The pack, on an exact whole-word brand key. The un-stripped form is
+  //    tried first: some brands ARE their own processor (`UBER *EATS`,
+  //    `AMZN Mktp CA*`, `ROGERS *WIRELESS`), and stripping the prefix there
+  //    deletes the merchant and leaves "eats".
+  const byBrand = findPackMerchantByBrandKey(normalized.fullKey, normalized.brandKey);
   if (byBrand) {
     return fromPack(
       byBrand,
       "brandPack",
       "high",
-      `"${normalized.brandKey}" is ${byBrand.displayName} in the merchant pack.`,
+      `"${normalized.brandKey || normalized.fullKey}" is ${byBrand.displayName} in the merchant pack.`,
       normalized,
       observation.observedMcc ?? null,
     );

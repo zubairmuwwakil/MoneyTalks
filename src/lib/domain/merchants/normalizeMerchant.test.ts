@@ -101,6 +101,31 @@ describe("transaction noise", () => {
   });
 });
 
+describe("fullKey: some brands are their own processor", () => {
+  it("keeps the merchant when stripping the prefix would delete it", () => {
+    // "UBER *EATS" stripped of "uber *" becomes "eats" — not a lookup failure,
+    // a self-inflicted one. fullKey is the un-stripped form for exactly this.
+    const result = normalizeMerchant("UBER *EATS PENDING");
+    expect(result.brandKey).toBe("eats");
+    expect(result.fullKey).toBe("uber eats");
+  });
+
+  it("keeps a merchant embedded after a genuine processor prefix", () => {
+    // The opposite failure: DoorDash IS a processor here, and the merchant
+    // name only exists after the prefix, so fullKey alone would carry noise.
+    const result = normalizeMerchant("DD *DOORDASH SUSHIMOTO");
+    expect(result.brandKey).toBe("doordash sushimoto");
+    expect(result.fullKey).toBe("dd doordash sushimoto");
+  });
+
+  it("does the same for Amazon and Rogers", () => {
+    expect(normalizeMerchant("AMZN Mktp CA*RT4XY9013").fullKey).toContain("amzn");
+    // "mthly" isn't a recognized noise token, so it survives in fullKey — and
+    // that's fine: the pack's "rogers" key still matches it as a whole word.
+    expect(normalizeMerchant("ROGERS *WIRELESS MTHLY").fullKey).toBe("rogers wireless mthly");
+  });
+});
+
 describe("folding", () => {
   it("folds diacritics and case so one merchant is one key", () => {
     expect(foldMerchantText("Réno-Dépôt")).toBe("reno depot");

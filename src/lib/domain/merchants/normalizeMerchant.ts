@@ -25,10 +25,20 @@ export interface NormalizedMerchant {
   /** The input, untouched. Provenance: every derived value can be re-checked against it. */
   raw: string;
   /**
-   * Lowercase, diacritics folded, single-spaced, noise stripped. The key
-   * every lookup above this layer uses.
+   * Lowercase, diacritics folded, single-spaced, noise stripped, processor
+   * branding removed. The key to display and dedupe on.
    */
   brandKey: string;
+  /**
+   * The same cleaning WITHOUT removing the processor prefix.
+   *
+   * Some brands are their own processor — `UBER *EATS`, `AMZN Mktp CA*...`,
+   * `ROGERS *WIRELESS` — so stripping the prefix deletes the merchant and
+   * leaves "eats". A lookup must try this key first and fall back to
+   * `brandKey`, which is what rescues the opposite case (`DD *DOORDASH X`,
+   * where the name only appears after the prefix).
+   */
+  fullKey: string;
   /** Payment processor whose branding wrapped the name, when one is recognizable. */
   processor: string | null;
   /** Store/terminal number, when the descriptor carried one. */
@@ -202,27 +212,43 @@ function stripNumbers(raw: string, tokens: string[]): { rest: string[]; storeNum
  * locality, then numbers, then transaction noise. Folding first would destroy
  * the asterisk the processor rules key on.
  */
-export function normalizeMerchant(rawInput: string | null | undefined): NormalizedMerchant {
-  const raw = (rawInput ?? "").trim();
-  if (!raw) return { raw: "", brandKey: "", processor: null, storeNumber: null, locality: null };
+/** Locality, numbers and transaction noise off one already-folded string. */
+function cleanKey(sourceForHash: string, folded: string): {
+  key: string;
+  storeNumber: string | null;
+  locality: string | null;
+} {
+  if (!folded) return { key: "", storeNumber: null, locality: null };
 
-  const { rest: afterProcessor, processor } = stripProcessor(raw);
-  const folded = foldMerchantText(afterProcessor);
-  if (!folded) {
-    // The descriptor was nothing but processor branding. The processor is a
-    // real fact; the brand key honestly has nothing in it.
-    return { raw, brandKey: "", processor, storeNumber: null, locality: null };
-  }
-
-  const tokens = folded.split(" ");
-  const { rest: afterLocality, locality } = stripLocality(tokens);
-  const { rest: afterNumbers, storeNumber } = stripNumbers(afterProcessor, afterLocality);
+  const { rest: afterLocality, locality } = stripLocality(folded.split(" "));
+  const { rest: afterNumbers, storeNumber } = stripNumbers(sourceForHash, afterLocality);
   const cleaned = afterNumbers.filter((token) => !TRANSACTION_NOISE.has(token));
 
   // If stripping noise emptied the key, the "noise" was the name — a merchant
   // genuinely called "Online" or "Payment". Keep the pre-noise form rather
   // than returning nothing.
   const kept = cleaned.length > 0 ? cleaned : afterNumbers;
+  return { key: kept.join(" ").trim(), storeNumber, locality };
+}
 
-  return { raw, brandKey: kept.join(" ").trim(), processor, storeNumber, locality };
+export function normalizeMerchant(rawInput: string | null | undefined): NormalizedMerchant {
+  const raw = (rawInput ?? "").trim();
+  if (!raw) {
+    return { raw: "", brandKey: "", fullKey: "", processor: null, storeNumber: null, locality: null };
+  }
+
+  const { rest: afterProcessor, processor } = stripProcessor(raw);
+  const stripped = cleanKey(afterProcessor, foldMerchantText(afterProcessor));
+  const full = cleanKey(raw, foldMerchantText(raw));
+
+  return {
+    raw,
+    brandKey: stripped.key,
+    fullKey: full.key,
+    processor,
+    // Prefer what the un-stripped form saw: a store number can sit inside the
+    // part a processor rule removed.
+    storeNumber: full.storeNumber ?? stripped.storeNumber,
+    locality: full.locality ?? stripped.locality,
+  };
 }
