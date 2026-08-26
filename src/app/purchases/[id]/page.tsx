@@ -16,6 +16,7 @@ import {
   Clock,
 } from "lucide-react";
 import { InlineCategoryPicker } from "../ui/InlineCategoryPicker";
+import { getCategoryMeta } from "@/lib/categories";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/utils/calendarEvents";
 import { requireUserId } from "@/lib/require-user";
@@ -275,8 +276,8 @@ export default async function PurchaseDetailPage({
                     Category & Channel
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-sm font-medium text-foreground">
-                    <Layers className="size-4 text-primary" />
-                    <span>{purchase.category ?? "General Spending"}</span>
+                    <span>{getCategoryMeta(purchase.category).icon}</span>
+                    <span>{getCategoryMeta(purchase.category).label}</span>
                   </div>
                 </div>
               </div>

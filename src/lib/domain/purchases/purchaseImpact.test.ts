@@ -177,4 +177,61 @@ describe("buildPurchaseImpact", () => {
       fxLatestAsOf: "2026-08-19",
     });
   });
+
+  it("calculates category breakdown and spend percentages across active ranges", () => {
+    const view = buildPurchaseImpact(
+      [
+        {
+          date: "2026-08-18",
+          merchant: "Pasta Place",
+          category: "dining",
+          totalMinor: 6_000,
+          currency: "CAD",
+        },
+        {
+          date: "2026-08-17",
+          merchant: "Metro Grocery",
+          category: "grocery",
+          totalMinor: 3_000,
+          currency: "CAD",
+        },
+        {
+          date: "2026-08-16",
+          merchant: "Corner Store",
+          category: null,
+          totalMinor: 1_000,
+          currency: "CAD",
+        },
+      ],
+      rates,
+      "2026-08-20",
+    );
+
+    const range = view.ranges["4W"];
+    expect(range.totalMinor).toBe(10_000);
+    expect(range.categories).toEqual([
+      {
+        category: "dining",
+        label: "Dining & Delivery",
+        icon: "🍔",
+        amountMinor: 6_000,
+        percentage: 60,
+      },
+      {
+        category: "groceries",
+        label: "Groceries",
+        icon: "🛒",
+        amountMinor: 3_000,
+        percentage: 30,
+      },
+      {
+        category: "uncategorized",
+        label: "Uncategorized",
+        icon: "❓",
+        amountMinor: 1_000,
+        percentage: 10,
+      },
+    ]);
+  });
 });
+

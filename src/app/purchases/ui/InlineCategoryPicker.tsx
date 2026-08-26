@@ -1,27 +1,18 @@
 "use client";
 
-import { Tag, Loader2, Check } from "lucide-react";
+import { Tag, Loader2 } from "lucide-react";
 import { useTransition, useState } from "react";
 import { setMerchantCategory } from "@/app/settings/merchants/actions";
-
-const CATEGORIES = [
-  { id: "dining", label: "🍔 Dining & Delivery" },
-  { id: "grocery", label: "🛒 Groceries" },
-  { id: "gas", label: "⛽ Gas & EV Charging" },
-  { id: "transit", label: "🚇 Public Transit & Rideshare" },
-  { id: "recurringBill", label: "⚡ Recurring Bills" },
-  { id: "drugstore", label: "💊 Drugstore & Pharmacy" },
-  { id: "travel", label: "✈️ Travel & Hotels" },
-  { id: "entertainment", label: "🎬 Entertainment & Movies" },
-  { id: "shopping", label: "🛍️ General Retail" },
-];
+import { CATEGORIES, getCategoryMeta } from "@/lib/categories";
 
 export function InlineCategoryPicker({
   rawString,
   currentCategory,
+  variant = "default",
 }: {
   rawString: string;
   currentCategory?: string | null;
+  variant?: "default" | "badge" | "compact";
 }) {
   const [expanded, setExpanded] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -37,33 +28,77 @@ export function InlineCategoryPicker({
     });
   }
 
-  const categoryObj = CATEGORIES.find((c) => c.id === activeCategory);
-  const displayLabel = categoryObj ? categoryObj.label : activeCategory ? activeCategory : null;
+  const meta = getCategoryMeta(activeCategory);
 
   if (!expanded) {
+    if (variant === "badge") {
+      return (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setExpanded(true);
+          }}
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-all hover:scale-105 cursor-pointer ${meta.badgeClass}`}
+          title={`Click to change category for "${rawString}" (currently: ${meta.label})`}
+        >
+          <span>{meta.icon}</span>
+          <span>{meta.label}</span>
+        </button>
+      );
+    }
+
+    if (variant === "compact") {
+      return (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setExpanded(true);
+          }}
+          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          title={`Click to change category for "${rawString}"`}
+        >
+          <span>{meta.icon}</span>
+          <span>{meta.label}</span>
+        </button>
+      );
+    }
+
     return (
       <button
         type="button"
-        onClick={() => setExpanded(true)}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setExpanded(true);
+        }}
         className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer border border-border/60"
         title={`Click to change merchant category for "${rawString}"`}
       >
         <Tag className="size-3 text-primary" />
-        <span>{displayLabel ? displayLabel : "+ Add Category"}</span>
+        <span>{activeCategory ? `${meta.icon} ${meta.label}` : "+ Add Category"}</span>
       </button>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <Tag className="size-3 text-primary shrink-0" />
+    <span
+      className="inline-flex items-center gap-1.5"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
       {isPending ? (
         <Loader2 className="size-3 animate-spin text-muted-foreground" />
       ) : (
         <select
           // eslint-disable-next-line jsx-a11y/no-autofocus
           autoFocus
-          className="rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground shadow-xs focus:border-primary focus:ring-2 focus:ring-ring/20 outline-none transition max-w-[200px]"
+          className="rounded-lg border border-input bg-background px-2 py-1 text-xs text-foreground shadow-xs focus:border-primary focus:ring-2 focus:ring-ring/20 outline-none transition max-w-[200px]"
           defaultValue={activeCategory ?? ""}
           onChange={(e) => {
             const val = e.target.value;
@@ -71,10 +106,10 @@ export function InlineCategoryPicker({
           }}
           onBlur={() => setExpanded(false)}
         >
-          <option value="">Uncategorized</option>
+          <option value="">❓ Uncategorized</option>
           {CATEGORIES.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.label}
+              {c.icon} {c.label}
             </option>
           ))}
         </select>

@@ -1,11 +1,13 @@
 import { convertMinor, findFxRate, MissingFxRateError, type FxRateInput } from "@/engine/fx";
 import type { Currency } from "@/engine/money";
+import { getCategoryMeta } from "@/lib/categories";
 
 export type PurchaseImpactRangeKey = "4W" | "12W" | "52W";
 
 export interface PurchaseImpactInput {
   date: string;
   merchant: string;
+  category?: string | null;
   totalMinor: number | null;
   currency: string | null;
   refundMinor?: number | null;
@@ -24,6 +26,14 @@ export interface PurchaseImpactPoint {
   refundMinor: number;
 }
 
+export interface PurchaseImpactCategoryItem {
+  category: string;
+  label: string;
+  icon: string;
+  amountMinor: number;
+  percentage: number;
+}
+
 export interface PurchaseImpactRange {
   points: PurchaseImpactPoint[];
   totalMinor: number;
@@ -32,6 +42,7 @@ export interface PurchaseImpactRange {
   previousMinor: number;
   deltaPct: number | null;
   drivers: Array<{ merchant: string; amountMinor: number }>;
+  categories: PurchaseImpactCategoryItem[];
   excludedCount: number;
   missingAmountCount: number;
   comparisonExcludedCount: number;
@@ -112,6 +123,7 @@ export function buildPurchaseImpact(
       const previousStart = currentStart - weeks * WEEK_MS;
       const byWeek = new Map<number, PurchaseImpactPoint>();
       const merchantTotals = new Map<string, number>();
+      const categoryTotals = new Map<string, number>();
       let totalMinor = 0;
       let refundMinor = 0;
       let previousMinor = 0;
@@ -145,6 +157,11 @@ export function buildPurchaseImpact(
               merchantTotals.set(
                 purchase.merchant,
                 (merchantTotals.get(purchase.merchant) ?? 0) + conversion.amountMinor,
+              );
+              const catMeta = getCategoryMeta(purchase.category);
+              categoryTotals.set(
+                catMeta.id,
+                (categoryTotals.get(catMeta.id) ?? 0) + conversion.amountMinor,
               );
               if (conversion.fxAsOf) usedFxDates.add(conversion.fxAsOf);
             } else {
@@ -191,6 +208,19 @@ export function buildPurchaseImpact(
         .sort((a, b) => b.amountMinor - a.amountMinor || a.merchant.localeCompare(b.merchant))
         .slice(0, 3);
 
+      const categories: PurchaseImpactCategoryItem[] = [...categoryTotals.entries()]
+        .map(([categoryId, amountMinor]) => {
+          const meta = getCategoryMeta(categoryId);
+          return {
+            category: categoryId,
+            label: meta.label,
+            icon: meta.icon,
+            amountMinor,
+            percentage: totalMinor > 0 ? Math.round((amountMinor / totalMinor) * 100) : 0,
+          };
+        })
+        .sort((a, b) => b.amountMinor - a.amountMinor || a.label.localeCompare(b.label));
+
       return [
         key,
         {
@@ -208,6 +238,7 @@ export function buildPurchaseImpact(
               ? null
               : Math.round(((totalMinor - previousMinor) / previousMinor) * 100),
           drivers,
+          categories,
           excludedCount,
           missingAmountCount,
           comparisonExcludedCount,

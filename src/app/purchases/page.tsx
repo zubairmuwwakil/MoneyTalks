@@ -22,8 +22,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SortSelect } from "./ui/SortSelect";
+import { CategoryFilter } from "./ui/CategoryFilter";
+import { InlineCategoryPicker } from "./ui/InlineCategoryPicker";
 import { UnmappedCardPicker } from "./ui/UnmappedCardPicker";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
+import { normalizeCategoryId } from "@/lib/categories";
 import { buildPurchaseImpact } from "@/lib/domain/purchases/purchaseImpact";
 import { PurchaseImpactWorkspace } from "@/components/purchases/purchase-impact-workspace";
 import { Prisma } from "@prisma/client";
@@ -39,6 +42,7 @@ type SearchParams = {
   q?: string | string[];
   filter?: string | string[];
   sort?: string | string[];
+  category?: string | string[];
 };
 
 function firstParam(value: string | string[] | undefined): string | undefined {
@@ -55,16 +59,19 @@ function purchasesHref({
   q,
   filter,
   sort,
+  category,
 }: {
   page?: number;
   q?: string;
   filter?: FilterOption;
   sort?: SortOption;
+  category?: string;
 }) {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (filter && filter !== "all") params.set("filter", filter);
   if (sort && sort !== "date_desc") params.set("sort", sort);
+  if (category && category !== "all") params.set("category", category);
   if (page && page > 1) params.set("page", String(page));
   const query = params.toString();
   return query ? `/purchases?${query}` : "/purchases";
@@ -116,6 +123,9 @@ export default async function PurchasesInboxPage({
       ? rawFilter
       : "all";
 
+  const rawCategory = firstParam(params.category)?.trim();
+  const categoryParam = rawCategory && rawCategory !== "all" ? rawCategory : undefined;
+
   const sort = (firstParam(params.sort) as SortOption) ?? "date_desc";
   const page = pageNumber(firstParam(params.page));
 
@@ -129,6 +139,58 @@ export default async function PurchasesInboxPage({
     financialState: { notIn: ["DECLINED", "REVERSED"] },
     ...(q ? { merchant: { contains: q, mode: "insensitive" as const } } : {}),
   };
+
+  if (categoryParam === "uncategorized") {
+    where.category = null;
+  } else if (categoryParam) {
+    const normalized = normalizeCategoryId(categoryParam);
+    const possibleCategories = new Set<string>([categoryParam]);
+    if (normalized) possibleCategories.add(normalized);
+    if (categoryParam === "groceries" || normalized === "groceries") {
+      possibleCategories.add("grocery");
+      possibleCategories.add("groceries");
+    }
+    if (categoryParam === "bills" || normalized === "bills") {
+      possibleCategories.add("bills");
+      possibleCategories.add("recurringBill");
+      possibleCategories.add("recurringBills");
+      possibleCategories.add("utilities");
+    }
+    if (categoryParam === "gas" || normalized === "gas") {
+      possibleCategories.add("gas");
+      possibleCategories.add("gasStation");
+    }
+    if (categoryParam === "streaming" || normalized === "streaming") {
+      possibleCategories.add("streaming");
+      possibleCategories.add("digitalMedia");
+    }
+    if (categoryParam === "shopping" || normalized === "shopping") {
+      possibleCategories.add("shopping");
+      possibleCategories.add("retail");
+      possibleCategories.add("general_retail");
+    }
+    if (categoryParam === "travel" || normalized === "travel") {
+      possibleCategories.add("travel");
+      possibleCategories.add("flights");
+      possibleCategories.add("flight");
+    }
+    if (categoryParam === "hotel" || normalized === "hotel") {
+      possibleCategories.add("hotel");
+      possibleCategories.add("hotels");
+      possibleCategories.add("lodging");
+    }
+    if (categoryParam === "drugstore" || normalized === "drugstore") {
+      possibleCategories.add("drugstore");
+      possibleCategories.add("pharmacy");
+    }
+
+    const catArray = Array.from(possibleCategories);
+    if (catArray.length === 1) {
+      where.category = { equals: catArray[0], mode: "insensitive" };
+    } else {
+      where.category = { in: catArray, mode: "insensitive" };
+    }
+  }
 
   if (filter === "flagged") {
     where.possibleDuplicateOfId = { not: null };
@@ -181,6 +243,7 @@ export default async function PurchasesInboxPage({
       select: {
         id: true,
         merchant: true,
+        category: true,
         totalCents: true,
         currency: true,
         source: true,
@@ -218,6 +281,7 @@ export default async function PurchasesInboxPage({
             feedbackWarning: true,
             resolvedCardId: true,
             cardRaw: true,
+            merchantRaw: true,
           },
           orderBy: { capturedAt: "asc" },
           take: 1,
@@ -287,6 +351,7 @@ export default async function PurchasesInboxPage({
       return {
         date: local.toISODate() ?? purchase.purchasedAt.toISOString().slice(0, 10),
         merchant: purchase.merchant,
+        category: purchase.category,
         totalMinor: purchase.totalCents,
         currency: purchase.currency,
         refunds: purchase.returns.flatMap((item) => {
@@ -417,6 +482,7 @@ export default async function PurchasesInboxPage({
         <form action="/purchases" className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
           {filter !== "all" ? <input type="hidden" name="filter" value={filter} /> : null}
           {sort !== "date_desc" ? <input type="hidden" name="sort" value={sort} /> : null}
+          {categoryParam ? <input type="hidden" name="category" value={categoryParam} /> : null}
 
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -430,7 +496,7 @@ export default async function PurchasesInboxPage({
             />
             {q ? (
               <Link
-                href={purchasesHref({ filter, sort })}
+                href={purchasesHref({ filter, sort, category: categoryParam })}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 title="Clear search"
               >
@@ -439,13 +505,14 @@ export default async function PurchasesInboxPage({
             ) : null}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <CategoryFilter defaultValue={categoryParam} />
             <SortSelect defaultValue={sort} />
 
             <Button type="submit" size="sm" variant="default" className="rounded-xl">
               Search
             </Button>
-            {q || filter !== "all" || sort !== "date_desc" ? (
+            {q || filter !== "all" || sort !== "date_desc" || categoryParam ? (
               <Button asChild variant="ghost" size="sm" className="rounded-xl text-xs">
                 <Link href="/purchases">Reset</Link>
               </Button>
@@ -456,7 +523,7 @@ export default async function PurchasesInboxPage({
         {/* Filter Chips / Quick Tabs */}
         <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-border/60">
           <Link
-            href={purchasesHref({ q, filter: "all", sort })}
+            href={purchasesHref({ q, filter: "all", sort, category: categoryParam })}
             className={`rounded-full px-3 py-1 text-xs font-medium transition ${
               filter === "all"
                 ? "bg-primary text-primary-foreground shadow-xs"
@@ -467,7 +534,7 @@ export default async function PurchasesInboxPage({
           </Link>
 
           <Link
-            href={purchasesHref({ q, filter: "missing_receipt", sort })}
+            href={purchasesHref({ q, filter: "missing_receipt", sort, category: categoryParam })}
             className={`rounded-full px-3 py-1 text-xs font-medium transition flex items-center gap-1.5 ${
               filter === "missing_receipt"
                 ? "bg-primary text-primary-foreground shadow-xs"
@@ -487,7 +554,7 @@ export default async function PurchasesInboxPage({
           </Link>
 
           <Link
-            href={purchasesHref({ q, filter: "with_receipt", sort })}
+            href={purchasesHref({ q, filter: "with_receipt", sort, category: categoryParam })}
             className={`rounded-full px-3 py-1 text-xs font-medium transition flex items-center gap-1.5 ${
               filter === "with_receipt"
                 ? "bg-primary text-primary-foreground shadow-xs"
@@ -499,7 +566,7 @@ export default async function PurchasesInboxPage({
           </Link>
 
           <Link
-            href={purchasesHref({ q, filter: "returns", sort })}
+            href={purchasesHref({ q, filter: "returns", sort, category: categoryParam })}
             className={`rounded-full px-3 py-1 text-xs font-medium transition flex items-center gap-1.5 ${
               filter === "returns"
                 ? "bg-primary text-primary-foreground shadow-xs"
@@ -512,7 +579,7 @@ export default async function PurchasesInboxPage({
 
           {flaggedCount > 0 ? (
             <Link
-              href={purchasesHref({ q, filter: "flagged", sort })}
+              href={purchasesHref({ q, filter: "flagged", sort, category: categoryParam })}
               className={`rounded-full px-3 py-1 text-xs font-medium transition flex items-center gap-1.5 ${
                 filter === "flagged"
                   ? "bg-amber-600 text-white shadow-xs"
@@ -629,6 +696,12 @@ export default async function PurchasesInboxPage({
                               >
                                 {p.merchant}
                               </Link>
+
+                              <InlineCategoryPicker
+                                rawString={wallet?.merchantRaw ?? p.merchant}
+                                currentCategory={p.category}
+                                variant="badge"
+                              />
 
                               {/* Source Badges */}
                               {seenByWallet ? (
@@ -754,7 +827,7 @@ export default async function PurchasesInboxPage({
             <nav aria-label="Purchases pages" className="flex items-center justify-between gap-3 pt-2">
               {page > 1 ? (
                 <Button asChild variant="outline" size="sm" className="rounded-full">
-                  <Link href={purchasesHref({ page: page - 1, q, filter, sort })}>
+                  <Link href={purchasesHref({ page: page - 1, q, filter, sort, category: categoryParam })}>
                     Previous
                   </Link>
                 </Button>
@@ -764,7 +837,7 @@ export default async function PurchasesInboxPage({
               <span className="text-xs text-muted-foreground font-medium">Page {page}</span>
               {hasNextPage ? (
                 <Button asChild variant="outline" size="sm" className="rounded-full">
-                  <Link href={purchasesHref({ page: page + 1, q, filter, sort })}>
+                  <Link href={purchasesHref({ page: page + 1, q, filter, sort, category: categoryParam })}>
                     Next
                   </Link>
                 </Button>

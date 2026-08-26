@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDownRight, ArrowUpRight, Minus, RotateCcw, Store } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Minus, RotateCcw, Store, Tag } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -47,6 +47,7 @@ function comparisonCopy(
 
 export function PurchaseImpactWorkspace({ view }: { view: PurchaseImpactView }) {
   const [rangeKey, setRangeKey] = useState<PurchaseImpactRangeKey>("12W");
+  const [breakdownMode, setBreakdownMode] = useState<"categories" | "merchants">("categories");
   const range = view.ranges[rangeKey];
   const currentIssueCount = range.excludedCount + range.missingAmountCount;
   const comparisonIssueCount = range.comparisonExcludedCount + range.comparisonMissingAmountCount;
@@ -170,25 +171,101 @@ export function PurchaseImpactWorkspace({ view }: { view: PurchaseImpactView }) 
           </div>
         </div>
 
-        <aside className="border-t border-border/70 bg-muted/15 px-5 py-5 lg:border-l lg:border-t-0" aria-label="Top purchase drivers">
-          <div className="flex items-center gap-2">
-            <Store className="size-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold">What drove it</h2>
-          </div>
-          {range.drivers.length > 0 ? (
-            <ol className="mt-4 space-y-3">
-              {range.drivers.map((driver, index) => (
-                <li key={driver.merchant} className="flex items-start justify-between gap-3 text-xs">
-                  <span className="min-w-0 truncate text-muted-foreground"><span className="mr-2 font-mono text-[10px]">{index + 1}</span>{driver.merchant}</span>
-                  <span className="shrink-0 font-semibold tabular-nums">{formatMinorUnits(driver.amountMinor, "CAD")}</span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <div className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
-              <RotateCcw className="mt-0.5 size-3.5 shrink-0" />
-              No captured purchase amounts in this range.
+        <aside className="border-t border-border/70 bg-muted/15 px-5 py-5 lg:border-l lg:border-t-0" aria-label="Top purchase drivers and category breakdown">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              {breakdownMode === "categories" ? (
+                <Tag className="size-4 text-muted-foreground" />
+              ) : (
+                <Store className="size-4 text-muted-foreground" />
+              )}
+              <h2 className="text-sm font-semibold">What drove it</h2>
             </div>
+            <div className="inline-flex rounded-lg border border-border/80 bg-muted/40 p-0.5 text-[10px] font-medium" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={breakdownMode === "categories"}
+                onClick={() => setBreakdownMode("categories")}
+                className={`rounded-md px-2 py-1 transition-colors ${
+                  breakdownMode === "categories"
+                    ? "bg-background text-foreground shadow-2xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Categories
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={breakdownMode === "merchants"}
+                onClick={() => setBreakdownMode("merchants")}
+                className={`rounded-md px-2 py-1 transition-colors ${
+                  breakdownMode === "merchants"
+                    ? "bg-background text-foreground shadow-2xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Merchants
+              </button>
+            </div>
+          </div>
+
+          {breakdownMode === "categories" ? (
+            range.categories.length > 0 ? (
+              <ol className="mt-3.5 space-y-2.5">
+                {range.categories.slice(0, 4).map((cat) => (
+                  <li key={cat.category} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 min-w-0 truncate text-foreground font-medium">
+                        <span>{cat.icon}</span>
+                        <span className="truncate">{cat.label}</span>
+                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0 text-xs">
+                        <span className="font-semibold tabular-nums text-foreground">
+                          {formatMinorUnits(cat.amountMinor, "CAD")}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          ({cat.percentage}%)
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/70">
+                      <div
+                        className="h-full rounded-full bg-primary/75 transition-all"
+                        style={{ width: `${Math.min(100, Math.max(3, cat.percentage))}%` }}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
+                <RotateCcw className="mt-0.5 size-3.5 shrink-0" />
+                No captured purchase amounts in this range.
+              </div>
+            )
+          ) : (
+            range.drivers.length > 0 ? (
+              <ol className="mt-3.5 space-y-3">
+                {range.drivers.map((driver, index) => (
+                  <li key={driver.merchant} className="flex items-start justify-between gap-3 text-xs">
+                    <span className="min-w-0 truncate text-muted-foreground">
+                      <span className="mr-2 font-mono text-[10px]">{index + 1}</span>
+                      {driver.merchant}
+                    </span>
+                    <span className="shrink-0 font-semibold tabular-nums">
+                      {formatMinorUnits(driver.amountMinor, "CAD")}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
+                <RotateCcw className="mt-0.5 size-3.5 shrink-0" />
+                No captured purchase amounts in this range.
+              </div>
+            )
           )}
         </aside>
       </div>
