@@ -1,9 +1,9 @@
 {
   "_upstream": {
     "repo": "https://github.com/zubairmuwwakil/PickMe",
-    "ref": "main",
+    "ref": "claude/merchant-categorization-cold-start-e0jo08",
     "release": "card-contracts@1.6",
-    "commit": "21e8721a3fc6c4ecf1326ec196bdb496d58900ab",
+    "commit": "fa1a0428ad09666a1ea26d32019f41c0b8837bb5",
     "files": {
       "card-catalogue.json": "9851218e1b1973a6a437aef0b04f628e8eff00b414a4d5ebbb7218b9ca7a9f2b",
       "benefits-catalogue.json": "08bf768f4c39f0f85a366f9182ce3a1fe82aa745ee6045eb711defc207c10c1d",
@@ -12,9 +12,11 @@
       "programs.json": "b49edbc141c3e397ab69ce81bfd4443199b933eb99cf8c2bc9cce3d31e36f801",
       "candidate-catalogue.json": "9b8fde9661cf00bfc59e20443dc0a415042b910487865670c87c16cf9b5e9a43",
       "RELEASE.json": "60fe8fb4982f977e5e07f7cac8b8b9b233122969b2709f88c56e9e85134e419e",
+      "merchant-pack.json": "ca06469fa848e96373199347aa04e62115ee83e3607ad3cef584c36ec14bc4db",
       "schema/card-catalogue.schema.json": "2eacdaa1f9a9b241d20fb5b4f36f7c80631d5b62e0f9f1f042afbfb4233cfda5",
       "schema/benefits-catalogue.schema.json": "055c498a1c78b2ad091f249cbbb50b99c5c20ebeda99fd17aff8113bcd502888",
-      "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db"
+      "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db",
+      "schema/merchant-pack.schema.json": "21e3743c92418db7108a99e7f36cf2aef41264947f87911b2b26c7cd3dc8ef9a"
     }
   },
   "card-catalogue.json": "9851218e1b1973a6a437aef0b04f628e8eff00b414a4d5ebbb7218b9ca7a9f2b",
@@ -24,7 +26,9 @@
   "programs.json": "b49edbc141c3e397ab69ce81bfd4443199b933eb99cf8c2bc9cce3d31e36f801",
   "candidate-catalogue.json": "9b8fde9661cf00bfc59e20443dc0a415042b910487865670c87c16cf9b5e9a43",
   "RELEASE.json": "60fe8fb4982f977e5e07f7cac8b8b9b233122969b2709f88c56e9e85134e419e",
+  "merchant-pack.json": "ca06469fa848e96373199347aa04e62115ee83e3607ad3cef584c36ec14bc4db",
   "schema/card-catalogue.schema.json": "2eacdaa1f9a9b241d20fb5b4f36f7c80631d5b62e0f9f1f042afbfb4233cfda5",
   "schema/benefits-catalogue.schema.json": "055c498a1c78b2ad091f249cbbb50b99c5c20ebeda99fd17aff8113bcd502888",
-  "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db"
+  "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db",
+  "schema/merchant-pack.schema.json": "21e3743c92418db7108a99e7f36cf2aef41264947f87911b2b26c7cd3dc8ef9a"
 }

@@ -73,9 +73,11 @@ FILES=(
   "programs.json"
   "candidate-catalogue.json"
   "RELEASE.json"
+  "merchant-pack.json"
   "schema/card-catalogue.schema.json"
   "schema/benefits-catalogue.schema.json"
   "schema/engine-fixtures.schema.json"
+  "schema/merchant-pack.schema.json"
 )
 
 sha256_of() {

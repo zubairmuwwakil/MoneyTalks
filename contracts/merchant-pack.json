@@ -1,0 +1,2090 @@
+{
+  "packVersion": "1.0",
+  "_provenance": {
+    "source": "Store/Sources/CardCopilotStore/CanadianMerchantPreIndex.swift",
+    "generator": "scripts/generate-merchant-pack.mjs",
+    "overrides": "scripts/merchant-pack-overrides.json",
+    "note": "Categories and MCCs are editorial research, not observed network data. A consumer must disclose an MCC it did not observe."
+  },
+  "merchants": [
+    {
+      "id": "7-eleven-canada",
+      "displayName": "7-Eleven Canada",
+      "category": "gasStation",
+      "matchKeys": [
+        "7 eleven canada",
+        "seven eleven",
+        "7 eleven",
+        "7 11"
+      ],
+      "mcc": 5541,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "a-w-canada",
+      "displayName": "A&W Canada",
+      "category": "dining",
+      "matchKeys": [
+        "a w canada",
+        "aw canada",
+        "a w"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "air-canada",
+      "displayName": "Air Canada",
+      "category": "travel",
+      "matchKeys": [
+        "air canada",
+        "aircanada"
+      ],
+      "mcc": 3000,
+      "emailDomains": [
+        "aircanada.ca",
+        "aircanada.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "airbnb",
+      "displayName": "Airbnb",
+      "category": "lodging",
+      "matchKeys": [
+        "airbnb"
+      ],
+      "mcc": 6513,
+      "emailDomains": [
+        "airbnb.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "amazon-ca",
+      "displayName": "Amazon.ca",
+      "category": "other",
+      "matchKeys": [
+        "amazon mktplace",
+        "amzn mktp ca",
+        "amazon ca",
+        "amzn"
+      ],
+      "mcc": 5999,
+      "emailDomains": [
+        "amazon.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "amazon-prime",
+      "displayName": "Amazon Prime",
+      "category": "streaming",
+      "matchKeys": [
+        "amazon prime",
+        "prime video"
+      ],
+      "mcc": 5968,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "apple-services-app-store-music-icloud",
+      "displayName": "Apple Services (App Store, Music, iCloud)",
+      "category": "digitalMedia",
+      "matchKeys": [
+        "apple services app store music icloud",
+        "app store music icloud",
+        "apple com bill",
+        "apple services",
+        "itunes"
+      ],
+      "mcc": 5815,
+      "emailDomains": [
+        "apple.com",
+        "email.apple.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "atmosphere",
+      "displayName": "Atmosphere",
+      "category": "ctFamily",
+      "matchKeys": [
+        "atmosphere"
+      ],
+      "mcc": 5941,
+      "merchantBrand": "canadian-tire",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "baton-rouge-grillhouse-bar",
+      "displayName": "Baton Rouge Grillhouse & Bar",
+      "category": "dining",
+      "matchKeys": [
+        "baton rouge grillhouse bar"
+      ],
+      "mcc": 5812,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "bc-hydro",
+      "displayName": "BC Hydro",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "bc hydro"
+      ],
+      "mcc": 4900,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "bc-liquor-stores",
+      "displayName": "BC Liquor Stores",
+      "category": "other",
+      "matchKeys": [
+        "bc liquor stores",
+        "bc liquor"
+      ],
+      "mcc": 5921,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "bell-canada",
+      "displayName": "Bell Canada",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "bell mobility",
+        "bell canada",
+        "bell"
+      ],
+      "mcc": 4814,
+      "emailDomains": [
+        "bell.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "best-buy",
+      "displayName": "Best Buy",
+      "category": "other",
+      "matchKeys": [
+        "best buy",
+        "bestbuy"
+      ],
+      "mcc": 5732,
+      "emailDomains": [
+        "bestbuy.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "booking-com",
+      "displayName": "Booking.com",
+      "category": "travel",
+      "matchKeys": [
+        "booking com",
+        "bookingcom"
+      ],
+      "mcc": 4722,
+      "emailDomains": [
+        "booking.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "booster-juice",
+      "displayName": "Booster Juice",
+      "category": "dining",
+      "matchKeys": [
+        "booster juice"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "boston-pizza",
+      "displayName": "Boston Pizza",
+      "category": "dining",
+      "matchKeys": [
+        "boston pizza"
+      ],
+      "mcc": 5812,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "cactus-club-cafe",
+      "displayName": "Cactus Club Cafe",
+      "category": "dining",
+      "matchKeys": [
+        "cactus club cafe",
+        "cactus club"
+      ],
+      "mcc": 5812,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "calgary-transit",
+      "displayName": "Calgary Transit",
+      "category": "transit",
+      "matchKeys": [
+        "calgary transit"
+      ],
+      "mcc": 4111,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "canadian-tire",
+      "displayName": "Canadian Tire",
+      "category": "ctFamily",
+      "matchKeys": [
+        "canadian tire",
+        "cdn tire",
+        "ctc"
+      ],
+      "mcc": 5200,
+      "merchantBrand": "canadian-tire",
+      "emailDomains": [
+        "canadiantire.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "chatime",
+      "displayName": "Chatime",
+      "category": "dining",
+      "matchKeys": [
+        "chatime"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "chevron",
+      "displayName": "Chevron",
+      "category": "gasStation",
+      "matchKeys": [
+        "chevron"
+      ],
+      "mcc": 5541,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "chipotle-mexican-grill",
+      "displayName": "Chipotle Mexican Grill",
+      "category": "dining",
+      "matchKeys": [
+        "chipotle mexican grill",
+        "chipotle"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "cineplex-cinemas",
+      "displayName": "Cineplex Cinemas",
+      "category": "memberships",
+      "matchKeys": [
+        "cineplex cinemas",
+        "cineplex"
+      ],
+      "mcc": 7832,
+      "emailDomains": [
+        "cineplex.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "costco-wholesale",
+      "displayName": "Costco Wholesale",
+      "category": "wholesaleClub",
+      "matchKeys": [
+        "costco wholesale",
+        "costco whse",
+        "costco gas",
+        "costco"
+      ],
+      "mcc": 5300,
+      "merchantBrand": "costco",
+      "emailDomains": [
+        "costco.ca"
+      ],
+      "acceptedNetworks": [
+        "mastercard"
+      ],
+      "notes": "Warehouse accepts Mastercard only. Gas pumps accept Mastercard."
+    },
+    {
+      "id": "couche-tard-circle-k",
+      "displayName": "Couche-Tard / Circle K",
+      "category": "gasStation",
+      "matchKeys": [
+        "couche tard circle k",
+        "couche tard",
+        "circle k"
+      ],
+      "mcc": 5541,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "crave",
+      "displayName": "Crave",
+      "category": "streaming",
+      "matchKeys": [
+        "crave"
+      ],
+      "mcc": 5968,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "disney",
+      "displayName": "Disney+",
+      "category": "streaming",
+      "matchKeys": [
+        "disney plus",
+        "disneyplus",
+        "disney"
+      ],
+      "mcc": 5968,
+      "emailDomains": [
+        "disneyplus.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "doordash",
+      "displayName": "DoorDash",
+      "category": "foodDelivery",
+      "matchKeys": [
+        "dd doordash",
+        "doordash"
+      ],
+      "mcc": 5814,
+      "emailDomains": [
+        "doordash.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "earls-kitchen-bar",
+      "displayName": "Earls Kitchen + Bar",
+      "category": "dining",
+      "matchKeys": [
+        "earls kitchen bar",
+        "earls"
+      ],
+      "mcc": 5812,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "edmonton-transit-service-ets",
+      "displayName": "Edmonton Transit Service (ETS)",
+      "category": "transit",
+      "matchKeys": [
+        "edmonton transit service ets",
+        "edmonton transit service",
+        "edmonton transit",
+        "ets"
+      ],
+      "mcc": 4111,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "enbridge-gas",
+      "displayName": "Enbridge Gas",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "enbridge gas",
+        "enbridge"
+      ],
+      "mcc": 4900,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "esso",
+      "displayName": "Esso",
+      "category": "gasStation",
+      "matchKeys": [
+        "esso"
+      ],
+      "mcc": 5541,
+      "merchantBrand": "esso",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "expedia",
+      "displayName": "Expedia",
+      "category": "travel",
+      "matchKeys": [
+        "expedia"
+      ],
+      "mcc": 4722,
+      "emailDomains": [
+        "expedia.ca",
+        "expedia.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "fairmont-hotels-resorts",
+      "displayName": "Fairmont Hotels & Resorts",
+      "category": "lodging",
+      "matchKeys": [
+        "fairmont hotels resorts",
+        "fairmont"
+      ],
+      "mcc": 3501,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "farm-boy",
+      "displayName": "Farm Boy",
+      "category": "grocery",
+      "matchKeys": [
+        "farm boy"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "sobeys",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "fido",
+      "displayName": "Fido",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "fido"
+      ],
+      "mcc": 4814,
+      "merchantBrand": "rogers",
+      "emailDomains": [
+        "fido.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "fit4less",
+      "displayName": "Fit4Less",
+      "category": "memberships",
+      "matchKeys": [
+        "fit4less"
+      ],
+      "mcc": 7997,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "fizz-mobile",
+      "displayName": "Fizz Mobile",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "fizz mobile",
+        "fizz"
+      ],
+      "mcc": 4814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "flair-airlines",
+      "displayName": "Flair Airlines",
+      "category": "travel",
+      "matchKeys": [
+        "flair airlines",
+        "flair air"
+      ],
+      "mcc": 3003,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "food-basics",
+      "displayName": "Food Basics",
+      "category": "grocery",
+      "matchKeys": [
+        "food basics"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "metro",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "freedom-mobile",
+      "displayName": "Freedom Mobile",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "freedom mobile"
+      ],
+      "mcc": 4814,
+      "emailDomains": [
+        "freedommobile.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "freshco",
+      "displayName": "FreshCo",
+      "category": "grocery",
+      "matchKeys": [
+        "freshco"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "sobeys",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "freshii",
+      "displayName": "Freshii",
+      "category": "dining",
+      "matchKeys": [
+        "freshii"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "go-transit",
+      "displayName": "GO Transit",
+      "category": "transit",
+      "matchKeys": [
+        "go transit",
+        "gotransit"
+      ],
+      "mcc": 4111,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "gong-cha",
+      "displayName": "Gong Cha",
+      "category": "dining",
+      "matchKeys": [
+        "gong cha"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "goodlife-fitness",
+      "displayName": "GoodLife Fitness",
+      "category": "memberships",
+      "matchKeys": [
+        "goodlife fitness",
+        "goodlife"
+      ],
+      "mcc": 7997,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "harvey-s",
+      "displayName": "Harvey's",
+      "category": "dining",
+      "matchKeys": [
+        "harvey s",
+        "harveys"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "hilton-hotels",
+      "displayName": "Hilton Hotels",
+      "category": "lodging",
+      "matchKeys": [
+        "hilton hotels",
+        "hampton inn",
+        "doubletree",
+        "hilton"
+      ],
+      "mcc": 3504,
+      "emailDomains": [
+        "hilton.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "home-depot",
+      "displayName": "Home Depot",
+      "category": "other",
+      "matchKeys": [
+        "home depot",
+        "homedepot"
+      ],
+      "mcc": 5200,
+      "emailDomains": [
+        "homedepot.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "hyatt-hotels",
+      "displayName": "Hyatt Hotels",
+      "category": "lodging",
+      "matchKeys": [
+        "hyatt hotels",
+        "hyatt"
+      ],
+      "mcc": 3509,
+      "emailDomains": [
+        "hyatt.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "hydro-one",
+      "displayName": "Hydro One",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "hydro one"
+      ],
+      "mcc": 4900,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "hydro-quebec",
+      "displayName": "Hydro-Québec",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "hydro quebec"
+      ],
+      "mcc": 4900,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "iga",
+      "displayName": "IGA",
+      "category": "grocery",
+      "matchKeys": [
+        "iga"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "sobeys",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "ikea",
+      "displayName": "IKEA",
+      "category": "other",
+      "matchKeys": [
+        "ikea"
+      ],
+      "mcc": 5712,
+      "emailDomains": [
+        "ikea.ca",
+        "ikea.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "jean-coutu",
+      "displayName": "Jean Coutu",
+      "category": "drugStore",
+      "matchKeys": [
+        "jean coutu"
+      ],
+      "mcc": 5912,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "joey-restaurants",
+      "displayName": "JOEY Restaurants",
+      "category": "dining",
+      "matchKeys": [
+        "joey restaurants",
+        "joey"
+      ],
+      "mcc": 5812,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "kelseys-original-roadhouse",
+      "displayName": "Kelseys Original Roadhouse",
+      "category": "dining",
+      "matchKeys": [
+        "kelseys original roadhouse",
+        "kelseys"
+      ],
+      "mcc": 5812,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "koodo-mobile",
+      "displayName": "Koodo Mobile",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "koodo mobile",
+        "koodo"
+      ],
+      "mcc": 4814,
+      "emailDomains": [
+        "koodomobile.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "lcbo",
+      "displayName": "LCBO",
+      "category": "other",
+      "matchKeys": [
+        "lcbo"
+      ],
+      "mcc": 5921,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "loblaws",
+      "displayName": "Loblaws",
+      "category": "grocery",
+      "matchKeys": [
+        "loblaws",
+        "loblaw"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "emailDomains": [
+        "loblaws.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "longos",
+      "displayName": "Longos",
+      "category": "grocery",
+      "matchKeys": [
+        "longo s",
+        "longos"
+      ],
+      "mcc": 5411,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "lyft",
+      "displayName": "Lyft",
+      "category": "transit",
+      "matchKeys": [
+        "lyft"
+      ],
+      "mcc": 4121,
+      "emailDomains": [
+        "lyft.com",
+        "lyftmail.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "mark-s-l-equipeur",
+      "displayName": "Mark's / L'Équipeur",
+      "category": "ctFamily",
+      "matchKeys": [
+        "mark s work wearhouse",
+        "mark s l equipeur",
+        "l equipeur",
+        "lequipeur",
+        "mark s",
+        "marks"
+      ],
+      "mcc": 5651,
+      "merchantBrand": "canadian-tire",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "marriott-hotels-resorts",
+      "displayName": "Marriott Hotels & Resorts",
+      "category": "marriottDirect",
+      "matchKeys": [
+        "marriott hotels resorts",
+        "residence inn",
+        "courtyard",
+        "marriott"
+      ],
+      "mcc": 3509,
+      "merchantBrand": "marriott",
+      "emailDomains": [
+        "marriott.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "maxi",
+      "displayName": "Maxi",
+      "category": "grocery",
+      "matchKeys": [
+        "maxi"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "notes": "Does not accept American Express."
+    },
+    {
+      "id": "mcdonald-s",
+      "displayName": "McDonald's",
+      "category": "dining",
+      "matchKeys": [
+        "mcdonald s",
+        "mcdonalds",
+        "mcd"
+      ],
+      "mcc": 5814,
+      "emailDomains": [
+        "mcdonalds.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "metro",
+      "displayName": "Metro",
+      "category": "grocery",
+      "matchKeys": [
+        "metro"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "metro",
+      "emailDomains": [
+        "metro.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "milestones",
+      "displayName": "Milestones",
+      "category": "dining",
+      "matchKeys": [
+        "milestones"
+      ],
+      "mcc": 5812,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "mobil",
+      "displayName": "Mobil",
+      "category": "gasStation",
+      "matchKeys": [
+        "mobil"
+      ],
+      "mcc": 5541,
+      "merchantBrand": "mobil",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "montana-s-bbq-bar",
+      "displayName": "Montana's BBQ & Bar",
+      "category": "dining",
+      "matchKeys": [
+        "montana s bbq bar",
+        "montana s",
+        "montanas"
+      ],
+      "mcc": 5812,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "moxies",
+      "displayName": "Moxies",
+      "category": "dining",
+      "matchKeys": [
+        "moxies"
+      ],
+      "mcc": 5812,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "netflix",
+      "displayName": "Netflix",
+      "category": "streaming",
+      "matchKeys": [
+        "netflix"
+      ],
+      "mcc": 5968,
+      "emailDomains": [
+        "netflix.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "nintendo-eshop",
+      "displayName": "Nintendo eShop",
+      "category": "digitalMedia",
+      "matchKeys": [
+        "nintendo eshop",
+        "nintendo"
+      ],
+      "mcc": 5816,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "no-frills",
+      "displayName": "No Frills",
+      "category": "grocery",
+      "matchKeys": [
+        "no frills",
+        "nofrills"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "notes": "Does not accept American Express."
+    },
+    {
+      "id": "oc-transpo-ottawa",
+      "displayName": "OC Transpo (Ottawa)",
+      "category": "transit",
+      "matchKeys": [
+        "oc transpo ottawa",
+        "oc transpo",
+        "ottawa"
+      ],
+      "mcc": 4111,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "petro-canada",
+      "displayName": "Petro-Canada",
+      "category": "gasStation",
+      "matchKeys": [
+        "petro canada",
+        "petro can",
+        "petrocan"
+      ],
+      "mcc": 5541,
+      "merchantBrand": "petro-canada",
+      "emailDomains": [
+        "petro-canada.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "pharmaprix",
+      "displayName": "Pharmaprix",
+      "category": "drugStore",
+      "matchKeys": [
+        "pharmaprix"
+      ],
+      "mcc": 5912,
+      "merchantBrand": "shoppers",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "pioneer-gas",
+      "displayName": "Pioneer Gas",
+      "category": "gasStation",
+      "matchKeys": [
+        "pioneer gas",
+        "pioneer"
+      ],
+      "mcc": 5541,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "planet-fitness",
+      "displayName": "Planet Fitness",
+      "category": "memberships",
+      "matchKeys": [
+        "planet fitness"
+      ],
+      "mcc": 7997,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "playstation-network-psn",
+      "displayName": "PlayStation Network (PSN)",
+      "category": "digitalMedia",
+      "matchKeys": [
+        "playstation network psn",
+        "playstation network",
+        "playstation",
+        "psn"
+      ],
+      "mcc": 5816,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "popeyes-louisiana-kitchen",
+      "displayName": "Popeyes Louisiana Kitchen",
+      "category": "dining",
+      "matchKeys": [
+        "popeyes louisiana kitchen",
+        "popeyes"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "porter-airlines",
+      "displayName": "Porter Airlines",
+      "category": "travel",
+      "matchKeys": [
+        "porter airlines",
+        "porter air"
+      ],
+      "mcc": 3002,
+      "emailDomains": [
+        "flyporter.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "presto-metrolinx",
+      "displayName": "PRESTO (Metrolinx)",
+      "category": "transit",
+      "matchKeys": [
+        "presto metrolinx",
+        "prestocard",
+        "metrolinx",
+        "presto"
+      ],
+      "mcc": 4111,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "provigo",
+      "displayName": "Provigo",
+      "category": "grocery",
+      "matchKeys": [
+        "provigo"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "real-canadian-superstore",
+      "displayName": "Real Canadian Superstore",
+      "category": "grocery",
+      "matchKeys": [
+        "real canadian superstore",
+        "real cdn superstore",
+        "superstore",
+        "rcss"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "rexall",
+      "displayName": "Rexall",
+      "category": "drugStore",
+      "matchKeys": [
+        "rexall"
+      ],
+      "mcc": 5912,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "rogers-wireless-internet",
+      "displayName": "Rogers Wireless & Internet",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "rogers wireless internet",
+        "rogers"
+      ],
+      "mcc": 4814,
+      "merchantBrand": "rogers",
+      "emailDomains": [
+        "rogers.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "rona-reno-depot",
+      "displayName": "Rona / Réno-Dépôt",
+      "category": "other",
+      "matchKeys": [
+        "rona reno depot",
+        "reno depot",
+        "rona"
+      ],
+      "mcc": 5200,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "safeway",
+      "displayName": "Safeway",
+      "category": "grocery",
+      "matchKeys": [
+        "safeway"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "sobeys",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "saq",
+      "displayName": "SAQ",
+      "category": "other",
+      "matchKeys": [
+        "saq"
+      ],
+      "mcc": 5921,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "save-on-foods",
+      "displayName": "Save-On-Foods",
+      "category": "grocery",
+      "matchKeys": [
+        "save on foods",
+        "saveonfoods"
+      ],
+      "mcc": 5411,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "second-cup",
+      "displayName": "Second Cup",
+      "category": "dining",
+      "matchKeys": [
+        "second cup"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "sephora",
+      "displayName": "Sephora",
+      "category": "other",
+      "matchKeys": [
+        "sephora"
+      ],
+      "mcc": 5977,
+      "emailDomains": [
+        "sephora.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "shell",
+      "displayName": "Shell",
+      "category": "gasStation",
+      "matchKeys": [
+        "shell"
+      ],
+      "mcc": 5541,
+      "merchantBrand": "shell",
+      "emailDomains": [
+        "shell.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "shoppers-drug-mart",
+      "displayName": "Shoppers Drug Mart",
+      "category": "drugStore",
+      "matchKeys": [
+        "shoppers drug mart",
+        "shoppers dm",
+        "sdm"
+      ],
+      "mcc": 5912,
+      "merchantBrand": "shoppers",
+      "emailDomains": [
+        "shoppersdrugmart.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ],
+      "notes": "Codes as MCC 5912 Drugstore (not grocery on Amex/Visa/MC)."
+    },
+    {
+      "id": "skipthedishes",
+      "displayName": "SkipTheDishes",
+      "category": "foodDelivery",
+      "matchKeys": [
+        "skip the dishes",
+        "skipthedishes",
+        "skip"
+      ],
+      "mcc": 5814,
+      "emailDomains": [
+        "skipthedishes.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "sobeys",
+      "displayName": "Sobeys",
+      "category": "grocery",
+      "matchKeys": [
+        "sobeys"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "sobeys",
+      "emailDomains": [
+        "sobeys.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "sport-chek",
+      "displayName": "Sport Chek",
+      "category": "ctFamily",
+      "matchKeys": [
+        "sport chek",
+        "sportchek"
+      ],
+      "mcc": 5941,
+      "merchantBrand": "canadian-tire",
+      "emailDomains": [
+        "sportchek.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "spotify",
+      "displayName": "Spotify",
+      "category": "streaming",
+      "matchKeys": [
+        "spotify"
+      ],
+      "mcc": 5968,
+      "emailDomains": [
+        "spotify.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "st-hubert",
+      "displayName": "St-Hubert",
+      "category": "dining",
+      "matchKeys": [
+        "st hubert express",
+        "st hubert"
+      ],
+      "mcc": 5812,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "starbucks",
+      "displayName": "Starbucks",
+      "category": "dining",
+      "matchKeys": [
+        "starbucks"
+      ],
+      "mcc": 5814,
+      "merchantBrand": "starbucks",
+      "emailDomains": [
+        "e.starbucks.com",
+        "starbucks.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "stm-montreal",
+      "displayName": "STM (Montréal)",
+      "category": "transit",
+      "matchKeys": [
+        "societe de transport",
+        "stm montreal",
+        "montreal",
+        "stm"
+      ],
+      "mcc": 4111,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "subway",
+      "displayName": "Subway",
+      "category": "dining",
+      "matchKeys": [
+        "subway"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "super-c",
+      "displayName": "Super C",
+      "category": "grocery",
+      "matchKeys": [
+        "super c"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "metro",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "swiss-chalet",
+      "displayName": "Swiss Chalet",
+      "category": "dining",
+      "matchKeys": [
+        "swiss chalet"
+      ],
+      "mcc": 5812,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "t-t-supermarket",
+      "displayName": "T&T Supermarket",
+      "category": "grocery",
+      "matchKeys": [
+        "t t supermarket",
+        "tnt supermarket"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "telus",
+      "displayName": "Telus",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "telus"
+      ],
+      "mcc": 4814,
+      "emailDomains": [
+        "telus.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "the-beer-store",
+      "displayName": "The Beer Store",
+      "category": "other",
+      "matchKeys": [
+        "the beer store",
+        "beer store"
+      ],
+      "mcc": 5921,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "the-keg-steakhouse-bar",
+      "displayName": "The Keg Steakhouse + Bar",
+      "category": "dining",
+      "matchKeys": [
+        "the keg steakhouse bar",
+        "keg steakhouse",
+        "the keg"
+      ],
+      "mcc": 5812,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "tim-hortons",
+      "displayName": "Tim Hortons",
+      "category": "dining",
+      "matchKeys": [
+        "tim hortons",
+        "tim horton",
+        "tims"
+      ],
+      "mcc": 5814,
+      "merchantBrand": "tim-hortons",
+      "emailDomains": [
+        "timhortons.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "toronto-hydro",
+      "displayName": "Toronto Hydro",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "toronto hydro"
+      ],
+      "mcc": 4900,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "translink-vancouver-compass",
+      "displayName": "TransLink Vancouver / Compass",
+      "category": "transit",
+      "matchKeys": [
+        "translink vancouver compass",
+        "translink vancouver",
+        "compass card",
+        "translink",
+        "compass"
+      ],
+      "mcc": 4111,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "ttc-toronto-transit-commission",
+      "displayName": "TTC (Toronto Transit Commission)",
+      "category": "transit",
+      "matchKeys": [
+        "ttc toronto transit commission",
+        "toronto transit commission",
+        "toronto transit",
+        "ttc"
+      ],
+      "mcc": 4111,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "uber",
+      "displayName": "Uber",
+      "category": "transit",
+      "matchKeys": [
+        "uber trip",
+        "uber bv",
+        "uber"
+      ],
+      "mcc": 4121,
+      "emailDomains": [
+        "uber.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "uber-eats",
+      "displayName": "Uber Eats",
+      "category": "foodDelivery",
+      "matchKeys": [
+        "uber eats",
+        "ubereats"
+      ],
+      "mcc": 5814,
+      "emailDomains": [
+        "uber.com",
+        "ubereats.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "ultramar",
+      "displayName": "Ultramar",
+      "category": "gasStation",
+      "matchKeys": [
+        "ultramar"
+      ],
+      "mcc": 5541,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "via-rail-canada",
+      "displayName": "VIA Rail Canada",
+      "category": "travel",
+      "matchKeys": [
+        "via rail canada",
+        "via rail"
+      ],
+      "mcc": 4112,
+      "emailDomains": [
+        "viarail.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "virgin-plus",
+      "displayName": "Virgin Plus",
+      "category": "householdUtilities",
+      "matchKeys": [
+        "virgin mobile",
+        "virgin plus"
+      ],
+      "mcc": 4814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "voila-by-sobeys",
+      "displayName": "Voila by Sobeys",
+      "category": "grocery",
+      "matchKeys": [
+        "voila by sobeys"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "sobeys",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "walmart",
+      "displayName": "Walmart",
+      "category": "other",
+      "matchKeys": [
+        "wal mart",
+        "walmart"
+      ],
+      "mcc": 5310,
+      "merchantBrand": "walmart",
+      "emailDomains": [
+        "walmart.ca"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "walmart-supercentre",
+      "displayName": "Walmart Supercentre",
+      "category": "grocery",
+      "matchKeys": [
+        "walmart supercenter",
+        "walmart supercentre"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "walmart",
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ],
+      "notes": "Supercentres with full fresh grocery code as 5411; discount locations code as 5310."
+    },
+    {
+      "id": "wendy-s",
+      "displayName": "Wendy's",
+      "category": "dining",
+      "matchKeys": [
+        "wendy s",
+        "wendys"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "westjet",
+      "displayName": "WestJet",
+      "category": "travel",
+      "matchKeys": [
+        "west jet",
+        "westjet"
+      ],
+      "mcc": 3001,
+      "emailDomains": [
+        "westjet.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "whole-foods-market",
+      "displayName": "Whole Foods Market",
+      "category": "grocery",
+      "matchKeys": [
+        "whole foods market",
+        "whole foods",
+        "wholefds"
+      ],
+      "mcc": 5411,
+      "emailDomains": [
+        "wholefoodsmarket.com"
+      ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "xbox-live-microsoft",
+      "displayName": "Xbox Live / Microsoft",
+      "category": "digitalMedia",
+      "matchKeys": [
+        "xbox live microsoft",
+        "microsoft",
+        "xbox live",
+        "xbox"
+      ],
+      "mcc": 5816,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "ymca-canada",
+      "displayName": "YMCA Canada",
+      "category": "memberships",
+      "matchKeys": [
+        "ymca canada",
+        "ymca"
+      ],
+      "mcc": 7997,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "youtube-premium",
+      "displayName": "YouTube Premium",
+      "category": "streaming",
+      "matchKeys": [
+        "youtube premium",
+        "google youtube"
+      ],
+      "mcc": 5968,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    }
+  ]
+}
