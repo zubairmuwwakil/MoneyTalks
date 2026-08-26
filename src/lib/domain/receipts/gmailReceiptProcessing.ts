@@ -15,6 +15,7 @@ import {
 } from "./gmailPurchaseParser";
 import { hasPurchaseEvidence } from "./receiptEvidence";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
+import { resolveCategory, shouldAutoApply } from "@/lib/domain/merchants/resolveCategory";
 
 export type GmailMessageProcessingMode = "scan" | "reprocess";
 export type GmailTransactionAction = "created" | "updated" | "skipped";
@@ -92,6 +93,28 @@ async function promotePurchase(
         where: { userId_sourceEmailId: { userId, sourceEmailId: message.messageId } },
       });
 
+  // Categorize from the receipt.
+  //
+  // An e-receipt carries the single strongest signal in the whole system and
+  // this path was ignoring it: `fromEmail`. A payment descriptor is a guess
+  // about identity ("SQ *CAFE METRO" could be anything); a sender domain is
+  // not — noreply@ubereats.com is Uber Eats and nothing else.
+  //
+  // It mattered more here than anywhere else, because the accrual gate below
+  // requires BOTH a payment method and a category, and nothing on this path
+  // ever set a category. Every Gmail-sourced purchase was therefore excluded
+  // from the cap ledger outright, not merely mis-scored.
+  const emailAlias = await db.merchantAlias.findUnique({
+    where: { rawString: emailTransaction.merchant },
+  });
+  const emailResolution = resolveCategory({
+    merchantRaw: emailTransaction.merchant,
+    emailFromAddress: emailTransaction.fromEmail,
+    aliasCategory: emailAlias?.category,
+  });
+  const emailCategory = shouldAutoApply(emailResolution) ? emailResolution.category : null;
+  const emailCategorySource = emailCategory ? emailResolution.source : null;
+
   if (purchase?.source === "GMAIL") {
     // Reprocessing must clear a historical guessed CAD value, but a linked
     // Wallet observation with an explicit code is valid enrichment and wins
@@ -112,6 +135,10 @@ async function promotePurchase(
         currency: canonicalCurrency,
         purchasedAt: emailTransaction.purchasedAt ?? message.internalDate ?? new Date(),
         orderNumber: emailTransaction.orderId ?? null,
+        // Never overwrite a category already on the row: it may be an owner
+        // decision, and this resolution is only ever as good as its tier.
+        category: purchase.category ?? emailCategory,
+        categorySource: purchase.category ? undefined : emailCategorySource,
       },
     });
     action = "updated";
@@ -134,6 +161,11 @@ async function promotePurchase(
         data: {
           orderNumber: match.purchase.orderNumber ?? emailTransaction.orderId ?? undefined,
           currency: match.purchase.currency ?? normalizeCurrencyCode(emailTransaction.currency),
+          // The wallet side of this purchase had only a descriptor to go on;
+          // the email side has a sender domain. Filling a gap here is the
+          // cross-source merge earning its keep.
+          category: match.purchase.category ?? emailCategory ?? undefined,
+          categorySource: match.purchase.category ? undefined : emailCategorySource ?? undefined,
         },
       });
       action = "linked";
@@ -149,6 +181,8 @@ async function promotePurchase(
           paymentMethod: null,
           source: "GMAIL",
           sourceEmailId: message.messageId,
+          category: emailCategory,
+          categorySource: emailCategorySource,
           possibleDuplicateOfId: match?.purchase.id ?? null,
         },
       });

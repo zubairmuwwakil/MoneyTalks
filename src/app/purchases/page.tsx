@@ -26,7 +26,7 @@ import { CategoryFilter } from "./ui/CategoryFilter";
 import { InlineCategoryPicker } from "./ui/InlineCategoryPicker";
 import { UnmappedCardPicker } from "./ui/UnmappedCardPicker";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
-import { normalizeCategoryId } from "@/lib/categories";
+import { categoryQueryTokens } from "@/lib/categories";
 import { buildPurchaseImpact } from "@/lib/domain/purchases/purchaseImpact";
 import { PurchaseImpactWorkspace } from "@/components/purchases/purchase-impact-workspace";
 import { Prisma } from "@prisma/client";
@@ -143,53 +143,15 @@ export default async function PurchasesInboxPage({
   if (categoryParam === "uncategorized") {
     where.category = null;
   } else if (categoryParam) {
-    const normalized = normalizeCategoryId(categoryParam);
-    const possibleCategories = new Set<string>([categoryParam]);
-    if (normalized) possibleCategories.add(normalized);
-    if (categoryParam === "groceries" || normalized === "groceries") {
-      possibleCategories.add("grocery");
-      possibleCategories.add("groceries");
-    }
-    if (categoryParam === "bills" || normalized === "bills") {
-      possibleCategories.add("bills");
-      possibleCategories.add("recurringBill");
-      possibleCategories.add("recurringBills");
-      possibleCategories.add("utilities");
-    }
-    if (categoryParam === "gas" || normalized === "gas") {
-      possibleCategories.add("gas");
-      possibleCategories.add("gasStation");
-    }
-    if (categoryParam === "streaming" || normalized === "streaming") {
-      possibleCategories.add("streaming");
-      possibleCategories.add("digitalMedia");
-    }
-    if (categoryParam === "shopping" || normalized === "shopping") {
-      possibleCategories.add("shopping");
-      possibleCategories.add("retail");
-      possibleCategories.add("general_retail");
-    }
-    if (categoryParam === "travel" || normalized === "travel") {
-      possibleCategories.add("travel");
-      possibleCategories.add("flights");
-      possibleCategories.add("flight");
-    }
-    if (categoryParam === "hotel" || normalized === "hotel") {
-      possibleCategories.add("hotel");
-      possibleCategories.add("hotels");
-      possibleCategories.add("lodging");
-    }
-    if (categoryParam === "drugstore" || normalized === "drugstore") {
-      possibleCategories.add("drugstore");
-      possibleCategories.add("pharmacy");
-    }
-
-    const catArray = Array.from(possibleCategories);
-    if (catArray.length === 1) {
-      where.category = { equals: catArray[0], mode: "insensitive" };
-    } else {
-      where.category = { in: catArray, mode: "insensitive" };
-    }
+    // Every spelling this category has ever been stored under, derived by
+    // inverting the alias table rather than hand-listed. The nine if-blocks
+    // this replaces covered five of the fifteen categories and had to be
+    // extended by hand each time one was added — which is how "hotel" got a
+    // widening rule and "warehouse" never did.
+    const catArray = categoryQueryTokens(categoryParam);
+    where.category = catArray.length === 1
+      ? { equals: catArray[0], mode: "insensitive" }
+      : { in: catArray, mode: "insensitive" };
   }
 
   if (filter === "flagged") {
