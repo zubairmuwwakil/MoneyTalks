@@ -24,9 +24,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SortSelect } from "./ui/SortSelect";
 import { CategoryFilter } from "./ui/CategoryFilter";
 import { InlineCategoryPicker } from "./ui/InlineCategoryPicker";
+import { NeedsReviewQueue, type ReviewRow } from "./ui/NeedsReviewQueue";
 import { UnmappedCardPicker } from "./ui/UnmappedCardPicker";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { categoryQueryTokens } from "@/lib/categories";
+import { isSuggestion, resolveCategory } from "@/lib/domain/merchants/resolveCategory";
 import { buildPurchaseImpact } from "@/lib/domain/purchases/purchaseImpact";
 import { PurchaseImpactWorkspace } from "@/components/purchases/purchase-impact-workspace";
 import { Prisma } from "@prisma/client";
@@ -103,6 +105,32 @@ function getMerchantAvatar(name?: string | null) {
   }
   const idx = Math.abs(hash) % AVATAR_GRADIENTS.length;
   return { initials, gradient: AVATAR_GRADIENTS[idx] };
+}
+
+/**
+ * A reading too weak for the ingest pipeline to write, offered as one tap.
+ *
+ * Deliberately recomputed at render rather than stored: it is not a fact
+ * about the purchase, it is what the current pack thinks about an unresolved
+ * string. Storing it would freeze today's guess into a row and make a pack
+ * update invisible; recomputing costs a pure function call over rows already
+ * in memory, and a merchant the pack learns tomorrow starts suggesting
+ * itself with no backfill.
+ *
+ * Only ever offered for a purchase with NO category — a suggestion never
+ * competes with a decision.
+ */
+function suggestionFor(purchase: {
+  category: string | null;
+  merchant: string;
+  walletEvents: { merchantRaw?: string | null }[];
+}): { category: string; rationale: string } | null {
+  if (purchase.category) return null;
+  const resolution = resolveCategory({
+    merchantRaw: purchase.walletEvents[0]?.merchantRaw ?? purchase.merchant,
+  });
+  if (!isSuggestion(resolution) || !resolution.category) return null;
+  return { category: resolution.category, rationale: resolution.rationale };
 }
 
 export default async function PurchasesInboxPage({
@@ -259,6 +287,34 @@ export default async function PurchasesInboxPage({
     }),
   ]);
 
+  // The uncategorized backlog. Scoped to the user's own rows and independent
+  // of the page's active filters on purpose: this is a standing worklist, and
+  // hiding it because a category filter is on would be hiding the thing the
+  // filter exists to eliminate.
+  const [uncategorizedCount, uncategorizedRows] = await Promise.all([
+    prisma.purchase.count({
+      where: { userId, category: null, financialState: { notIn: ["DECLINED", "REVERSED"] } },
+    }),
+    prisma.purchase.findMany({
+      where: { userId, category: null, financialState: { notIn: ["DECLINED", "REVERSED"] } },
+      select: {
+        id: true,
+        merchant: true,
+        category: true,
+        totalCents: true,
+        currency: true,
+        purchasedAt: true,
+        walletEvents: {
+          select: { merchantRaw: true, capturedAt: true, capturedTimezone: true },
+          orderBy: { capturedAt: "asc" },
+          take: 1,
+        },
+      },
+      orderBy: { purchasedAt: "desc" },
+      take: 12,
+    }),
+  ]);
+
   // Query missed rewards summary from wallet event warnings
   const missedRewardEvents = await prisma.walletEvent.findMany({
     where: { userId, feedbackWarning: { not: null } },
@@ -279,6 +335,31 @@ export default async function PurchasesInboxPage({
   const homeZone = pref?.timezone ?? null;
   const hasNextPage = purchasesWithNextPage.length > PAGE_SIZE;
   const purchases = purchasesWithNextPage.slice(0, PAGE_SIZE);
+
+  const reviewRows: ReviewRow[] = uncategorizedRows
+    .map((row): ReviewRow => {
+      const event = row.walletEvents[0] ?? null;
+      const local = purchaseLocalDateTime(
+        event?.capturedAt ?? row.purchasedAt,
+        event?.capturedTimezone,
+        homeZone,
+      );
+      return {
+        id: row.id,
+        merchant: row.merchant,
+        rawString: event?.merchantRaw ?? row.merchant,
+        // A capture can genuinely lack an amount (see WalletEvent's
+        // amountDecodeStatus); the queue says so rather than printing $0.00.
+        amountLabel: row.totalCents == null ? "—" : formatMoney(row.totalCents, row.currency),
+        dateLabel: local.toFormat("MMM d"),
+        suggestion: suggestionFor(row),
+      };
+    })
+    // A row the pack can already read is one tap from done, so it goes first.
+    // Ordering by recency instead would bury the cheap wins under whatever
+    // happened to arrive last.
+    .sort((a, b) => Number(b.suggestion !== null) - Number(a.suggestion !== null))
+    .slice(0, 6);
 
   // Card lookup map
   const cardNameMap = new Map<string, string>();
@@ -436,6 +517,8 @@ export default async function PurchasesInboxPage({
           </div>
         </div>
       ) : null}
+
+      <NeedsReviewQueue rows={reviewRows} totalCount={uncategorizedCount} />
 
       <PurchaseImpactWorkspace view={purchaseImpact} />
 
@@ -662,6 +745,8 @@ export default async function PurchasesInboxPage({
                               <InlineCategoryPicker
                                 rawString={wallet?.merchantRaw ?? p.merchant}
                                 currentCategory={p.category}
+                                categorySource={p.categorySource}
+                                suggestion={suggestionFor(p)}
                                 variant="badge"
                               />
 
