@@ -10,7 +10,7 @@ import {
   type CapturedPurchase,
   type ReconciledStatementLine,
 } from "@/engine/statement-reconciliation";
-import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
+import { publishedCards } from "@/lib/contracts/cardCatalogue";
 import { applyUserDecision, purchaseIdsToReconcile, statementLineHash, parseCandidateId } from "@/lib/domain/spine/statementLines";
 import { walletAmountMinor } from "@/lib/domain/wallet/amount";
 import { prisma } from "@/lib/prisma";
@@ -80,7 +80,8 @@ export async function previewStatement(formData: FormData): Promise<StatementPre
   const userId = await requireUserId();
   const cardParsed = cardInput.safeParse({ cardId: formData.get("cardId"), contractCardId: formData.get("contractCardId") });
   if (!cardParsed.success) return { ok: false, error: "Choose a card and its Wallet capture identity." };
-  if (!cardCatalogue.cards.some((card) => card.cardId === cardParsed.data.contractCardId)) {
+  // publishedCards, not the whole corpus: a draft is not a link target.
+  if (!publishedCards().some((card) => card.cardId === cardParsed.data.contractCardId)) {
     return { ok: false, error: "Unknown Wallet capture identity." };
   }
   const card = await ownedCard(userId, cardParsed.data.cardId);

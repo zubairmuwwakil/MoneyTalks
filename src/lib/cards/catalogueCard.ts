@@ -1,4 +1,4 @@
-import { cardCatalogue, type CardCredit, type CardProduct } from "@/lib/contracts/cardCatalogue";
+import { cardCatalogue, publishedCards, type CardCredit, type CardProduct } from "@/lib/contracts/cardCatalogue";
 import { toReporting } from "@/engine/cards-twin/reportingCurrency";
 import type { Network } from "./types";
 
@@ -220,14 +220,10 @@ export const POPULAR_CARD_IDS = [
 /// no rates, caps or multipliers are ever copied onto a user's row, because
 /// copying them is precisely how the two rate models diverged in the first place.
 export function catalogueChoices(): CatalogueChoice[] {
-  return cardCatalogue.cards
-    // Drafts are excluded. The schema permits add-card surfaces to show them, but only
-    // "clearly labelled", and this picker has no label to show and no market filter — so as of
-    // catalogue 2.2 it would have offered a Canadian owner 26 unverified US products
-    // indistinguishable from the 41 issuer-confirmed ones, with their USD fees silently
-    // converted to CAD by toReporting. Surfacing drafts needs the label and the market filter
-    // first; until then the honest behaviour is not to offer them.
-    .filter((card) => (card.status ?? "published") === "published")
+  // publishedCards(), not cardCatalogue.cards: this picker has no "unverified" label and no
+  // market filter, so offering drafts would put unverified US products in front of a Canadian
+  // owner as issuer-confirmed, with their USD fees silently converted to CAD by toReporting.
+  return publishedCards()
     .map((card) => ({
       contractCardId: card.cardId,
       officialName: card.officialName,

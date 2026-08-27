@@ -344,6 +344,39 @@ export const cardCatalogue: CardCatalogue = parseCardCatalogue(cardCatalogueRaw)
 export const benefitsCatalogue: BenefitsCatalogue = parseBenefitsCatalogue(benefitsCatalogueRaw);
 
 /**
+ * Has this product cleared D3's issuer-confirmed sourcing bar?
+ *
+ * Absent `status` means published — every pre-2.0 card, and the reason this reads defensively
+ * rather than comparing to "draft": a value nobody has seen yet must not read as verified.
+ */
+export function isPublished(card: Pick<CardProduct, "status">): boolean {
+  return (card.status ?? "published") === "published";
+}
+
+/**
+ * THE list of cards any user-facing surface may offer, and the id set any input may accept.
+ *
+ * Read this instead of `cardCatalogue.cards` anywhere the result reaches a person or validates
+ * their input. `cardCatalogue.cards` is the whole corpus including `draft` records, which have
+ * NOT been verified against the issuer.
+ *
+ * Why a shared helper rather than a filter at each call site: catalogue 2.2 added 26 US drafts
+ * and four separate surfaces offered them immediately — the card picker, wallet settings' link
+ * list, the reconcile picker, and the unmapped-purchase picker — plus two server actions that
+ * would have accepted one as a link target. Only the first was caught, and only because a test
+ * asserted a hardcoded count. `Scorer` already refuses to score a draft, but that guarantee
+ * lives at exactly one chokepoint in the engine and does not propagate up into presentation;
+ * this is the matching chokepoint for everything above it.
+ *
+ * Deliberately NOT market-filtered: which markets an owner should see is a per-surface question
+ * (their own market, a market they are shopping in), and answering it here would hide a
+ * legitimately cross-market card. Filter market at the call site, on top of this.
+ */
+export function publishedCards(): CardProduct[] {
+  return cardCatalogue.cards.filter(isPublished);
+}
+
+/**
  * Catalogue-level default program valuations (contracts/programs.json), merged BENEATH whatever
  * the owner has declared. Nothing read this file until 2026-08-24, so 11 of the corpus's 16
  * programs were valued at nothing here while Swift valued them correctly — cards in those

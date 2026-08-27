@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { addCardAndMapWallet, mapWalletCard } from "@/app/settings/wallet/actions";
-import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
+import { cardCatalogue, publishedCards } from "@/lib/contracts/cardCatalogue";
 import {
   cardLabelsMatchSearch,
   confidentCardMatch,
@@ -53,7 +53,7 @@ export function UnmappedCardPicker({
     [cardRaw, cards],
   );
   const rankedCatalogueCards = useMemo(
-    () => rankCardMatches(cardRaw, [...cardCatalogue.cards], catalogueCardLabels),
+    () => rankCardMatches(cardRaw, publishedCards(), catalogueCardLabels),
     [cardRaw],
   );
   const bestUserMatch = confidentCardMatch(rankedUserCards);
@@ -72,7 +72,7 @@ export function UnmappedCardPicker({
   }, [cardRaw, cards, query]);
 
   const visibleCatalogueCards = useMemo(() => {
-    const available = cardCatalogue.cards.filter((card) => !ownedContractIds.has(card.cardId));
+    const available = publishedCards().filter((card) => !ownedContractIds.has(card.cardId));
     const basis = query.trim() || cardRaw;
     return rankCardMatches(basis, available, catalogueCardLabels)
       .map((match) => match.candidate)

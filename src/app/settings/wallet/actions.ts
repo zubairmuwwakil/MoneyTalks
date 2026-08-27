@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
-import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
+import { cardCatalogue, publishedCards } from "@/lib/contracts/cardCatalogue";
 
 const mapInput = z.object({
   rawString: z.string().min(1),
@@ -25,7 +25,8 @@ export async function linkSavedCardToContract(input: { cardId: string; contractC
   const userId = await requireUserId();
   const parsed = linkSavedCardInput.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "invalid input" };
-  if (!cardCatalogue.cards.some((card) => card.cardId === parsed.data.contractCardId)) {
+  // publishedCards, not the whole corpus: a draft is not a link target.
+  if (!publishedCards().some((card) => card.cardId === parsed.data.contractCardId)) {
     return { ok: false as const, error: "unknown catalogue card" };
   }
 

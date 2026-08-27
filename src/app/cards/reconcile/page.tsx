@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, FileSpreadsheet } from "lucide-react";
-import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
+import { publishedCards } from "@/lib/contracts/cardCatalogue";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { StatementReconciliationForm } from "./statement-reconciliation-form";
@@ -11,7 +11,7 @@ export default async function StatementReconciliationPage() {
     prisma.creditCard.findMany({ where: { userId }, orderBy: { nickname: "asc" }, select: { id: true, nickname: true, currency: true, contractCardId: true } }),
     prisma.coverageReport.findMany({ where: { userId }, include: { card: { select: { nickname: true } } }, orderBy: [{ month: "desc" }, { updatedAt: "desc" }], take: 24 }),
   ]);
-  const contractCards = cardCatalogue.cards.map((card) => ({ id: card.cardId, label: `${card.officialName} (${card.cardId})` }));
+  const contractCards = publishedCards().map((card) => ({ id: card.cardId, label: `${card.officialName} (${card.cardId})` }));
 
   return (
     <main className="max-w-4xl space-y-6 py-6 sm:py-8">

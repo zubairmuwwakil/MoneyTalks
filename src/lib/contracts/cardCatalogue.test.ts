@@ -6,6 +6,8 @@ import {
   cardCatalogueSchema,
   parseBenefitsCatalogue,
   parseCardCatalogue,
+  publishedCards,
+  isPublished,
 } from "./cardCatalogue";
 import cardCatalogueRaw from "../../../contracts/card-catalogue.json";
 import benefitsCatalogueRaw from "../../../contracts/benefits-catalogue.json";
@@ -173,5 +175,23 @@ describe("parseBenefitsCatalogue", () => {
     benefits[0].family = "someFutureFamily";
     benefits[0].kind = "cellPlanInsurance";
     expect(() => parseBenefitsCatalogue(mutated)).not.toThrow();
+  });
+});
+
+describe("publishedCards", () => {
+  it("excludes every draft, and the catalogue actually contains some", () => {
+    const drafts = cardCatalogue.cards.filter((c) => c.status === "draft");
+    expect(drafts.length).toBeGreaterThan(0);
+
+    const offered = new Set(publishedCards().map((c) => c.cardId));
+    expect(drafts.every((d) => !offered.has(d.cardId))).toBe(true);
+    expect(publishedCards().length).toBe(cardCatalogue.cards.length - drafts.length);
+  });
+
+  // Absent status means published — every pre-2.0 card relies on it.
+  it("treats a card with no status as published, and an unknown status as not", () => {
+    expect(isPublished({ status: undefined })).toBe(true);
+    expect(isPublished({ status: "published" })).toBe(true);
+    expect(isPublished({ status: "draft" })).toBe(false);
   });
 });

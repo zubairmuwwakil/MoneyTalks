@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import WalletSettingsClient from "./WalletSettingsClient";
 import CardMappingSection from "./CardMappingSection";
 import CatalogueLinkSection from "./CatalogueLinkSection";
-import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
+import { publishedCards } from "@/lib/contracts/cardCatalogue";
 
 export default async function WalletSettingsPage() {
   const userId = await getSessionUserId();
@@ -38,7 +38,7 @@ export default async function WalletSettingsPage() {
       <div className="mt-8">
         <CatalogueLinkSection
           cards={cards}
-          contracts={cardCatalogue.cards.map((card) => ({ id: card.cardId, label: card.officialName, issuer: card.issuer }))}
+          contracts={publishedCards().map((card) => ({ id: card.cardId, label: card.officialName, issuer: card.issuer }))}
         />
       </div>
       <CardMappingSection
