@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
-import type { Catalogue, OwnerState } from "@/engine/cards-twin";
+import { toReporting, type Catalogue, type OwnerState } from "@/engine/cards-twin";
 import { billOccurrences, type BillDef } from "@/engine/billforecast";
 import type { FxRateInput } from "@/engine/fx";
 import { parseDollarsToMinor, type Currency } from "@/engine/money";
@@ -260,7 +260,7 @@ export async function allocateRecommendedCard(formData: FormData): Promise<Actio
               nickname: catCard.officialName,
               issuer: catCard.issuer,
               network: catCard.network.toUpperCase(),
-              annualFeeMinor: Math.round((catCard.fee?.annualCad ?? 0) * 100),
+              annualFeeMinor: Math.round(toReporting(catCard.fee?.annual) * 100),
               contractCardId: catCard.cardId,
             },
             select: { id: true },

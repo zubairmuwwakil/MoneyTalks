@@ -1,10 +1,27 @@
-export type Network = 'amex' | 'visa' | 'mastercard';
+export type Network = 'amex' | 'visa' | 'mastercard' | 'discover';
 export type CardKind = 'credit' | 'charge' | 'prepaid';
 export type RuleStatus = 'current' | 'announced';
 export type SourceType = 'issuerConfirmed' | 'ownerObserved' | 'inferred';
 
-export type Earn = 
-  | { type: 'points'; pointsPerCad: number }
+/// The country a card product is sold in. NOT, by itself, an eligibility claim beyond "this is
+/// the market the card is sold in" — see `Eligibility.residency` for the rare card sold in more
+/// than one. Mirrors Swift's `Market`.
+export type Market = 'CA' | 'US';
+
+/// The two currencies this catalogue represents. Used for `CardProduct.billingCurrency` and
+/// `Money`. Adding a third market's currency is a schema + engine change.
+export type Currency = 'CAD' | 'USD';
+
+/// A currency-tagged monetary figure. Replaces the old bare CAD-assuming numbers
+/// (`Fee.annualCad`/`monthlyCad`, `CardCredit.valueCad`) — a price without a currency must never
+/// be summed with one that has it (see `reportingCurrency.ts`).
+export interface Money {
+  amount: number;
+  currency: Currency;
+}
+
+export type Earn =
+  | { type: 'points'; pointsPerUnit: number }
   | { type: 'cashback'; rate: number; rewardCurrency?: string }
   | { type: 'centsPerLitre' };
 
@@ -45,17 +62,23 @@ export interface EarnRule {
 export const SUPPORTED_ENGINE_CAPABILITIES: ReadonlySet<string> = new Set([
   'cap.calendarMonth',
   'cap.calendarYear',
+  'cap.calendarQuarter',
   'cap.accountYear',
+  'predicate.ownerSelectedCategory',
 ]);
 
 export const KNOWN_ENGINE_CAPABILITIES: ReadonlySet<string> = new Set([
-  'cap.calendarMonth', 'cap.calendarYear', 'cap.accountYear', 'cap.statementYear',
-  'cap.globalGroup', 'predicate.merchantPartnerList', 'predicate.mccStrict',
-  'earn.perLitre', 'earn.marginal',
+  'cap.calendarMonth', 'cap.calendarYear', 'cap.calendarQuarter', 'cap.accountYear',
+  'cap.statementYear', 'cap.globalGroup', 'predicate.merchantPartnerList',
+  'predicate.mccStrict', 'predicate.ownerSelectedCategory', 'earn.perLitre', 'earn.marginal',
 ]);
 
-export type CapMeasure = 'spendCad' | 'spendUsdEquivalent';
-export type CapPeriod = 'calendarMonth' | 'calendarYear' | 'accountYear';
+/// `spendCad` renamed to `spendNative` in catalogue 2.0: the amount is measured in the CARD's own
+/// `billingCurrency`, not CAD unconditionally. `spendUsdEquivalent` is unchanged.
+export type CapMeasure = 'spendNative' | 'spendUsdEquivalent';
+/// `calendarQuarter` added for US rotating-category cards — a shape this catalogue could not
+/// previously express at all.
+export type CapPeriod = 'calendarMonth' | 'calendarQuarter' | 'calendarYear' | 'accountYear';
 
 export interface Cap {
   capId: string;
@@ -77,9 +100,11 @@ export interface FxRule {
   postAllowanceRate?: number;
 }
 
+/// `annualCad`/`monthlyCad: number` renamed to `annual`/`monthly: Money` in catalogue 2.0 — a US
+/// card's fee is stated in USD, never converted to CAD at authoring time.
 export interface Fee {
-  annualCad?: number;
-  monthlyCad?: number;
+  annual?: Money;
+  monthly?: Money;
   billing?: string;
   waiver?: string;
 }
@@ -97,7 +122,8 @@ export interface Program {
 export interface CardCredit {
   creditId: string;
   label: string;
-  valueCad: number;
+  /// Renamed from `valueCad: number` in catalogue 2.0.
+  value: Money;
   period: CapPeriod;
   sourceType: SourceType;
   lastVerifiedAt: string;
@@ -105,12 +131,32 @@ export interface CardCredit {
   sources: string[];
 }
 
+/// Which market(s) a resident must be in to hold a card. Absent means "assume `[market]`".
+export interface Eligibility {
+  residency?: Market[];
+}
+
+/// `published` (absent decodes as this) is a checkout-eligible product that has cleared this
+/// catalogue's issuer-confirmed sourcing bar (D3). `draft` is a research-grade record that has
+/// not — `RecommendationEngine`/`PortfolioAnalyzer`-equivalents must refuse to score it even if
+/// somehow owned. Mirrors Swift's `CardStatus`.
+export type CardStatus = 'published' | 'draft';
+
 export interface CardProduct {
   cardId: string;
   officialName: string;
   issuer: string;
+  /// The country this product is sold in. Absent decodes as 'CA' — every pre-2.0 card is
+  /// Canadian (see `catalogueCard.ts` for where the default is applied on decode).
+  market: Market;
+  /// The currency a purchase is measured in for THIS card's own earn rules and caps.
+  /// Independent of `market`.
+  billingCurrency: Currency;
   network: Network;
   kind: CardKind;
+  /// Absent decodes as 'published'.
+  status?: CardStatus;
+  eligibility?: Eligibility;
   fee: Fee;
   program: Program;
   fxRules: FxRule[];
@@ -232,6 +278,14 @@ export interface OwnerState {
   carry: Carry;
   cardStates: Record<string, CardState>;
   valuationsCad: Valuations;
+  /// The owner's own residency, as a raw `Market` string. Mirrors the Swift/Kotlin twins — see
+  /// `OwnerState.market`'s doc comment there for why this defaults rather than refuses.
+  market?: Market;
+}
+
+/// The owner's residency for market-scoping purposes, defaulting to 'CA' when unresolved.
+export function resolvedMarket(ownerState: Pick<OwnerState, 'market'>): Market {
+  return ownerState.market ?? 'CA';
 }
 
 export interface PurchaseContext {

@@ -1,16 +1,21 @@
 {
-  "catalogueVersion": "1.6",
+  "catalogueVersion": "2.1",
   "currency": "CAD",
-  "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md \u2014 all rules verified 2026-08-15 against issuer pages cited there.",
+  "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md — all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
     {
       "cardId": "amex-platinum",
       "officialName": "The Platinum Card from American Express",
       "issuer": "American Express Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "amex",
       "kind": "charge",
       "fee": {
-        "annualCad": 799
+        "annual": {
+          "amount": 799,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "amexMembershipRewards",
@@ -36,7 +41,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -50,7 +55,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "categories": [
@@ -71,7 +76,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "categories": [
@@ -93,7 +98,10 @@
         {
           "creditId": "platinum-travel-credit",
           "label": "Annual Travel Credit",
-          "valueCad": 200,
+          "value": {
+            "amount": 200,
+            "currency": "CAD"
+          },
           "period": "accountYear",
           "sourceType": "issuerConfirmed",
           "lastVerifiedAt": "2026-08-23",
@@ -105,7 +113,10 @@
         {
           "creditId": "platinum-dining-credit",
           "label": "Annual Dining Credit",
-          "valueCad": 200,
+          "value": {
+            "amount": 200,
+            "currency": "CAD"
+          },
           "period": "calendarYear",
           "sourceType": "issuerConfirmed",
           "lastVerifiedAt": "2026-08-23",
@@ -120,12 +131,20 @@
       "cardId": "amex-cobalt",
       "officialName": "American Express Cobalt Card",
       "issuer": "American Express Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "amex",
       "kind": "credit",
       "fee": {
-        "annualCad": 191.88,
+        "annual": {
+          "amount": 191.88,
+          "currency": "CAD"
+        },
         "billing": "monthly",
-        "monthlyCad": 15.99
+        "monthly": {
+          "amount": 15.99,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "amexMembershipRewards",
@@ -152,7 +171,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -166,7 +185,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -188,7 +207,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 3
+            "pointsPerUnit": 3
           },
           "predicate": {
             "categories": [
@@ -208,7 +227,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "categories": [
@@ -229,7 +248,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "channels": [
@@ -250,13 +269,13 @@
       "caps": [
         {
           "capId": "cobalt-eats-monthly",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 2500,
           "period": "calendarMonth",
           "resetTimeZone": "America/Toronto",
           "postCapEarn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "proration": true,
           "_note": "Posted net purchases drive the cap; later returns do not restore 5x room within the month."
@@ -272,10 +291,15 @@
       "cardId": "amex-bonvoy",
       "officialName": "Marriott Bonvoy American Express Card",
       "issuer": "American Express Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "amex",
       "kind": "credit",
       "fee": {
-        "annualCad": 120
+        "annual": {
+          "amount": 120,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "marriottBonvoy",
@@ -301,7 +325,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {},
           "capId": null
@@ -315,7 +339,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -337,10 +361,15 @@
       "cardId": "mbna-rewards-we",
       "officialName": "MBNA Rewards World Elite Mastercard",
       "issuer": "MBNA",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 120
+        "annual": {
+          "amount": 120,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "mbnaRewards",
@@ -366,7 +395,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -380,7 +409,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -402,7 +431,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -425,7 +454,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -449,7 +478,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -471,7 +500,7 @@
           "lastVerifiedAt": "2026-08-15",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -489,61 +518,61 @@
       "caps": [
         {
           "capId": "mbna-restaurants-annual",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 50000,
           "period": "calendarYear",
           "resetTimeZone": "America/Toronto",
           "postCapEarn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "proration": true
         },
         {
           "capId": "mbna-grocery-annual",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 50000,
           "period": "calendarYear",
           "resetTimeZone": "America/Toronto",
           "postCapEarn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "proration": true
         },
         {
           "capId": "mbna-digital-annual",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 50000,
           "period": "calendarYear",
           "resetTimeZone": "America/Toronto",
           "postCapEarn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "proration": true
         },
         {
           "capId": "mbna-memberships-annual",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 50000,
           "period": "calendarYear",
           "resetTimeZone": "America/Toronto",
           "postCapEarn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "proration": true
         },
         {
           "capId": "mbna-utilities-annual",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 50000,
           "period": "calendarYear",
           "resetTimeZone": "America/Toronto",
           "postCapEarn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "proration": true
         }
@@ -554,16 +583,21 @@
         "https://www.mbna.ca/en/credit-cards/rewards/mbna-rewards-world-elite-mastercard"
       ],
       "lastVerifiedAt": "2026-08-15",
-      "_note": "FIVE SEPARATE $50k calendar-year spend caps, one per category \u2014 not one shared cap. Birthday bonus (10% of trailing-12-month points, max 15,000) intentionally excluded from checkout scoring."
+      "_note": "FIVE SEPARATE $50k calendar-year spend caps, one per category — not one shared cap. Birthday bonus (10% of trailing-12-month points, max 15,000) intentionally excluded from checkout scoring."
     },
     {
       "cardId": "scotia-momentum-vi-plus",
       "officialName": "Scotia Momentum Visa Infinite + Card",
       "issuer": "Scotiabank",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 120
+        "annual": {
+          "amount": 120,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "cashback",
@@ -619,7 +653,7 @@
             "recurringViaNetworkIndicator": true
           },
           "capId": "momentum-4pct-accountYear",
-          "_note": "Grocery = terminal submitted as MCC 5411. Costco is NOT grocery for this rule. Walmart: never hard-code either way \u2014 only a location/terminal actually submitting 5411 qualifies (learned per-terminal). Recurring = network recurring-payment indicator, not merchant frequency."
+          "_note": "Grocery = terminal submitted as MCC 5411. Costco is NOT grocery for this rule. Walmart: never hard-code either way — only a location/terminal actually submitting 5411 qualifies (learned per-terminal). Recurring = network recurring-payment indicator, not merchant frequency."
         },
         {
           "ruleId": "momentum-gas-ev-transit-2pct",
@@ -657,7 +691,7 @@
       "caps": [
         {
           "capId": "momentum-4pct-accountYear",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 25000,
           "period": "accountYear",
           "anchor": "ownerState.scotiaAccountYearAnchorMonth",
@@ -670,7 +704,7 @@
         },
         {
           "capId": "momentum-2pct-accountYear",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 25000,
           "period": "accountYear",
           "anchor": "ownerState.scotiaAccountYearAnchorMonth",
@@ -696,10 +730,15 @@
       "cardId": "tangerine-moneyback-world",
       "officialName": "Tangerine Money-Back World Mastercard",
       "issuer": "Tangerine",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 0
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "cashback",
@@ -771,8 +810,8 @@
           5411,
           5462
         ],
-        "_others": "entertainment, furniture, homeImprovement, hotelMotel, transitParking, recurringBills, fitness, eGames, foreignCurrency \u2014 full MCC set on issuer page",
-        "_foreignCurrencyGotcha": "Foreign Currency 2% still pays 2.5% FX \u2192 net \u2248 \u22120.5% vs converted CAD. Not a no-FX substitute."
+        "_others": "entertainment, furniture, homeImprovement, hotelMotel, transitParking, recurringBills, fitness, eGames, foreignCurrency — full MCC set on issuer page",
+        "_foreignCurrencyGotcha": "Foreign Currency 2% still pays 2.5% FX → net ≈ −0.5% vs converted CAD. Not a no-FX substitute."
       },
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
@@ -785,10 +824,15 @@
       "cardId": "rogers-red-we",
       "officialName": "Rogers Red World Elite Mastercard",
       "issuer": "Rogers Bank",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 0
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "cashback",
@@ -851,13 +895,13 @@
             "currency": "USD"
           },
           "capId": "rogers-enhanced-accountYear",
-          "_note": "Calculated after CAD conversion; 2.5% FX still applies \u2192 net \u2248 +0.5% before spread. Wealthsimple 2%/no-FX usually beats this; Rogers matters where Mastercard is required (Costco)."
+          "_note": "Calculated after CAD conversion; 2.5% FX still applies → net ≈ +0.5% before spread. Wealthsimple 2%/no-FX usually beats this; Rogers matters where Mastercard is required (Costco)."
         }
       ],
       "caps": [
         {
           "capId": "rogers-enhanced-accountYear",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 61000,
           "period": "accountYear",
           "anchor": "ownerState.rogersAccountAnniversaryMonth",
@@ -891,10 +935,15 @@
       "cardId": "triangle-we",
       "officialName": "Triangle World Elite Mastercard",
       "issuer": "Canadian Tire Financial Services",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 0
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "ctMoney",
@@ -944,7 +993,7 @@
             ]
           },
           "capId": null,
-          "_note": "Pre-tax qualifying amount at participating banners: Canadian Tire, Sport Chek, Mark's/L'\u00c9quipeur, Party City, Atmosphere, Pro Hockey Life, Sports Rousseau, Hockey Experts, participating Sports Experts. Gift cards and certain products excluded."
+          "_note": "Pre-tax qualifying amount at participating banners: Canadian Tire, Sport Chek, Mark's/L'Équipeur, Party City, Atmosphere, Pro Hockey Life, Sports Rousseau, Hockey Experts, participating Sports Experts. Gift cards and certain products excluded."
         },
         {
           "ruleId": "triangle-grocery-3pct",
@@ -996,7 +1045,7 @@
             ]
           },
           "capId": null,
-          "_note": "Cents-per-litre at participating Gas+/Essence+/Petro-Canada; needs litres to value \u2014 shown as informational note in v1, not scored.",
+          "_note": "Cents-per-litre at participating Gas+/Essence+/Petro-Canada; needs litres to value — shown as informational note in v1, not scored.",
           "requires": [
             "earn.perLitre"
           ]
@@ -1005,7 +1054,7 @@
       "caps": [
         {
           "capId": "triangle-grocery-annual",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 12000,
           "period": "calendarYear",
           "resetTimeZone": "America/Toronto",
@@ -1028,13 +1077,21 @@
       "cardId": "wealthsimple-vip",
       "officialName": "Wealthsimple Visa Infinite Privilege Credit Card",
       "issuer": "Wealthsimple",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 240,
+        "annual": {
+          "amount": 240,
+          "currency": "CAD"
+        },
         "billing": "monthly",
-        "monthlyCad": 20,
-        "waiver": "\u2265$100k qualifying Wealthsimple assets or $4,000/month direct deposit"
+        "monthly": {
+          "amount": 20,
+          "currency": "CAD"
+        },
+        "waiver": "≥$100k qualifying Wealthsimple assets or $4,000/month direct deposit"
       },
       "program": {
         "programId": "cashback",
@@ -1045,7 +1102,7 @@
           "status": "current",
           "effectiveFrom": null,
           "effectiveTo": null,
-          "rate": 0.0,
+          "rate": 0,
           "sourceType": "issuerConfirmed",
           "lastVerifiedAt": "2026-08-15"
         }
@@ -1081,10 +1138,15 @@
       "cardId": "cryptocom-royal-indigo",
       "officialName": "Crypto.com Prepaid Visa Card (Royal Indigo)",
       "issuer": "Digital Commerce Bank (Crypto.com program)",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "prepaid",
       "fee": {
-        "annualCad": 0,
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        },
         "_note": "Ranking must use Level Up Pro economics, not card fee: C$39.99/mo, C$399.90/yr, or qualifying C$6,500 12-month CRO lockup."
       },
       "program": {
@@ -1096,7 +1158,7 @@
           "status": "current",
           "effectiveFrom": null,
           "effectiveTo": "2026-08-31",
-          "rate": 0.0,
+          "rate": 0,
           "sourceType": "issuerConfirmed",
           "lastVerifiedAt": "2026-08-15"
         },
@@ -1105,7 +1167,7 @@
           "effectiveFrom": "2026-09-01",
           "effectiveTo": null,
           "announcedAt": "2026-08-15",
-          "rate": 0.0,
+          "rate": 0,
           "freeAllowanceCadPerCalendarMonth": 1400,
           "postAllowanceRate": 0.02,
           "sourceType": "issuerConfirmed",
@@ -1152,7 +1214,7 @@
             "cryptoLevelUpProActive"
           ],
           "capId": "crypto-monthly-usd",
-          "_note": "3% in CRO only while Level Up Pro is active. Card art does not establish the rate. No active plan \u2192 no rewards \u2192 engine excludes card entirely."
+          "_note": "3% in CRO only while Level Up Pro is active. Card art does not establish the rate. No active plan → no rewards → engine excludes card entirely."
         }
       ],
       "caps": [
@@ -1164,10 +1226,10 @@
           "resetTimeZone": "UTC",
           "postCapEarn": {
             "type": "cashback",
-            "rate": 0.0
+            "rate": 0
           },
           "proration": true,
-          "_note": "US$2,500-equivalent eligible spend per calendar month, resets 00:00 UTC day 1. Marketing page's '$75' cap label has a currency ambiguity \u2014 spend cap + source currency stored explicitly; flagged for issuer review."
+          "_note": "US$2,500-equivalent eligible spend per calendar month, resets 00:00 UTC day 1. Marketing page's '$75' cap label has a currency ambiguity — spend cap + source currency stored explicitly; flagged for issuer review."
         }
       ],
       "perTransactionRewardVisibility": "issuerConfirmed",
@@ -1179,7 +1241,10 @@
         {
           "creditId": "cro-indigo-spotify-rebate",
           "label": "Monthly Spotify rebate",
-          "valueCad": 14.99,
+          "value": {
+            "amount": 14.99,
+            "currency": "CAD"
+          },
           "period": "calendarMonth",
           "sourceType": "inferred",
           "lastVerifiedAt": "2026-08-19",
@@ -1188,7 +1253,10 @@
         {
           "creditId": "cro-indigo-netflix-rebate",
           "label": "Monthly Netflix rebate",
-          "valueCad": 14.99,
+          "value": {
+            "amount": 14.99,
+            "currency": "CAD"
+          },
           "period": "calendarMonth",
           "sourceType": "inferred",
           "lastVerifiedAt": "2026-08-19",
@@ -1200,10 +1268,15 @@
       "cardId": "scotia-gold-amex",
       "officialName": "Scotiabank Gold American Express Card",
       "issuer": "Scotiabank",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "amex",
       "kind": "credit",
       "fee": {
-        "annualCad": 120,
+        "annual": {
+          "amount": 120,
+          "currency": "CAD"
+        },
         "waiver": "Scotia Ultimate Package can rebate up to $150 of the annual fee; Preferred Package can rebate $40 subject to purchase conditions."
       },
       "program": {
@@ -1216,7 +1289,7 @@
           "status": "current",
           "effectiveFrom": null,
           "effectiveTo": null,
-          "rate": 0.0,
+          "rate": 0,
           "sourceType": "issuerConfirmed",
           "lastVerifiedAt": "2026-08-17"
         }
@@ -1231,7 +1304,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -1245,19 +1318,19 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 6
+            "pointsPerUnit": 6
           },
           "predicate": {
             "merchantInclude": [
-              "Sobeys",
-              "Safeway",
-              "FreshCo",
-              "Chalo FreshCo",
-              "Thrifty Foods",
-              "IGA",
-              "Les Marches Tradition",
-              "Rachelle Bery",
-              "Voila"
+              "sobeys",
+              "safeway",
+              "freshco",
+              "chalo-freshco",
+              "thrifty-foods",
+              "iga",
+              "les-marches-tradition",
+              "rachelle-bery",
+              "voila"
             ],
             "currency": "CAD"
           },
@@ -1276,7 +1349,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -1301,7 +1374,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 3
+            "pointsPerUnit": 3
           },
           "predicate": {
             "categories": [
@@ -1312,7 +1385,7 @@
           },
           "capId": "scotia-gold-accelerated-calendarYear",
           "scoredInV1": false,
-          "_note": "Blocker unconfirmed; may be enableable \u2014 plain category predicate on a supported calendarYear cap. Verify against Scotia terms."
+          "_note": "Blocker unconfirmed; may be enableable — plain category predicate on a supported calendarYear cap. Verify against Scotia terms."
         },
         {
           "ruleId": "scotia-gold-streaming-3x",
@@ -1323,7 +1396,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 3
+            "pointsPerUnit": 3
           },
           "predicate": {
             "categories": [
@@ -1341,13 +1414,13 @@
       "caps": [
         {
           "capId": "scotia-gold-accelerated-calendarYear",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 50000,
           "period": "calendarYear",
           "resetTimeZone": "America/Toronto",
           "postCapEarn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "proration": true,
           "_note": "Issuer states first $50,000. Exact treatment of a transaction straddling the threshold was not separately documented."
@@ -1364,10 +1437,15 @@
       "cardId": "td-aeroplan-visa-infinite",
       "officialName": "TD Aeroplan Visa Infinite Card",
       "issuer": "TD Canada Trust",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 139,
+        "annual": {
+          "amount": 139,
+          "currency": "CAD"
+        },
         "waiver": "TD All-Inclusive Banking Plan may rebate the fee on one eligible TD credit-card account, subject to current plan terms."
       },
       "program": {
@@ -1395,7 +1473,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -1409,7 +1487,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1.5
+            "pointsPerUnit": 1.5
           },
           "predicate": {
             "categories": [
@@ -1434,11 +1512,11 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1.5
+            "pointsPerUnit": 1.5
           },
           "predicate": {
             "merchantInclude": [
-              "Air Canada"
+              "air-canada"
             ]
           },
           "capId": null,
@@ -1457,11 +1535,11 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1.5
+            "pointsPerUnit": 1.5
           },
           "predicate": {
             "merchantInclude": [
-              "Hyatt"
+              "hyatt"
             ]
           },
           "capId": null,
@@ -1483,10 +1561,15 @@
       "cardId": "rbc-avion-visa-infinite",
       "officialName": "RBC Avion Visa Infinite",
       "issuer": "Royal Bank of Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 120,
+        "annual": {
+          "amount": 120,
+          "currency": "CAD"
+        },
         "waiver": "Eligible RBC VIP Banking customers may receive an annual-fee rebate on one qualifying RBC card."
       },
       "program": {
@@ -1515,7 +1598,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -1529,7 +1612,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1.25
+            "pointsPerUnit": 1.25
           },
           "predicate": {
             "categories": [
@@ -1554,10 +1637,15 @@
       "cardId": "cibc-dividend-visa-infinite",
       "officialName": "CIBC Dividend Visa Infinite Card",
       "issuer": "CIBC",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 120,
+        "annual": {
+          "amount": 120,
+          "currency": "CAD"
+        },
         "waiver": "Eligible CIBC Smart Account tiers may provide partial or full annual-fee rebates subject to current issuer conditions."
       },
       "program": {
@@ -1650,7 +1738,7 @@
           },
           "predicate": {
             "merchantInclude": [
-              "CIBC by Expedia"
+              "cibc-by-expedia"
             ]
           },
           "capId": null,
@@ -1672,10 +1760,15 @@
       "cardId": "scotia-passport-visa-infinite-plus",
       "officialName": "Scotiabank Passport Visa Infinite + Card",
       "issuer": "Scotiabank",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 150,
+        "annual": {
+          "amount": 150,
+          "currency": "CAD"
+        },
         "waiver": "Ultimate Package may fully rebate the primary fee on one eligible card; Preferred Package may rebate $40 subject to current issuer conditions."
       },
       "program": {
@@ -1688,7 +1781,7 @@
           "status": "current",
           "effectiveFrom": null,
           "effectiveTo": null,
-          "rate": 0.0,
+          "rate": 0,
           "sourceType": "issuerConfirmed",
           "lastVerifiedAt": "2026-08-17"
         }
@@ -1703,7 +1796,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -1717,20 +1810,20 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 3
+            "pointsPerUnit": 3
           },
           "predicate": {
             "merchantInclude": [
-              "Sobeys",
-              "Safeway",
-              "IGA",
-              "Foodland",
-              "FreshCo",
-              "Chalo FreshCo",
-              "Thrifty Foods",
-              "Rachelle Bery",
-              "Les Marches Tradition",
-              "Voila"
+              "sobeys",
+              "safeway",
+              "iga",
+              "foodland",
+              "freshco",
+              "chalo-freshco",
+              "thrifty-foods",
+              "rachelle-bery",
+              "les-marches-tradition",
+              "voila"
             ]
           },
           "capId": "scotia-passport-accelerated-calendarYear",
@@ -1748,7 +1841,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "categories": [
@@ -1768,13 +1861,13 @@
       "caps": [
         {
           "capId": "scotia-passport-accelerated-calendarYear",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 50000,
           "period": "calendarYear",
           "resetTimeZone": "America/Toronto",
           "postCapEarn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "proration": true
         }
@@ -1790,10 +1883,15 @@
       "cardId": "td-first-class-travel-visa-infinite",
       "officialName": "TD First Class Travel Visa Infinite Card",
       "issuer": "TD Canada Trust",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 139
+        "annual": {
+          "amount": 139,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "tdRewards",
@@ -1820,7 +1918,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {},
           "capId": null
@@ -1834,7 +1932,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 8
+            "pointsPerUnit": 8
           },
           "predicate": {
             "channels": [
@@ -1856,7 +1954,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 6
+            "pointsPerUnit": 6
           },
           "predicate": {
             "categories": [
@@ -1878,7 +1976,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 6
+            "pointsPerUnit": 6
           },
           "predicate": {
             "categories": [
@@ -1899,7 +1997,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 6
+            "pointsPerUnit": 6
           },
           "predicate": {
             "categories": [
@@ -1920,7 +2018,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 4
+            "pointsPerUnit": 4
           },
           "predicate": {
             "categories": [
@@ -1946,7 +2044,10 @@
         {
           "creditId": "td-fct-expedia-credit",
           "label": "Annual TD Travel Credit",
-          "valueCad": 100,
+          "value": {
+            "amount": 100,
+            "currency": "CAD"
+          },
           "period": "calendarYear",
           "sourceType": "issuerConfirmed",
           "lastVerifiedAt": "2026-08-23",
@@ -1961,10 +2062,15 @@
       "cardId": "bmo-eclipse-visa-infinite",
       "officialName": "BMO eclipse Visa Infinite Card",
       "issuer": "Bank of Montreal",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 120
+        "annual": {
+          "amount": 120,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "bmoRewards",
@@ -1991,7 +2097,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -2005,7 +2111,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -2029,7 +2135,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -2053,7 +2159,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -2077,7 +2183,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -2104,7 +2210,10 @@
         {
           "creditId": "bmo-eclipse-lifestyle-credit",
           "label": "Anniversary Lifestyle Credit",
-          "valueCad": 50,
+          "value": {
+            "amount": 50,
+            "currency": "CAD"
+          },
           "period": "accountYear",
           "sourceType": "issuerConfirmed",
           "lastVerifiedAt": "2026-08-23",
@@ -2120,10 +2229,15 @@
       "cardId": "cibc-aventura-visa-infinite",
       "officialName": "CIBC Aventura Visa Infinite Card",
       "issuer": "CIBC",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 139
+        "annual": {
+          "amount": 139,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "aventura",
@@ -2150,7 +2264,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -2164,7 +2278,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "channels": [
@@ -2186,7 +2300,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1.5
+            "pointsPerUnit": 1.5
           },
           "predicate": {
             "categories": [
@@ -2214,10 +2328,15 @@
       "cardId": "national-bank-world-elite",
       "officialName": "National Bank World Elite Mastercard credit card",
       "issuer": "National Bank of Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 150
+        "annual": {
+          "amount": 150,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "nbcRewards",
@@ -2244,7 +2363,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -2258,7 +2377,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -2281,7 +2400,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "categories": [
@@ -2304,7 +2423,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "categories": [
@@ -2325,7 +2444,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "channels": [
@@ -2348,7 +2467,10 @@
         {
           "creditId": "nbc-we-travel-credit",
           "label": "Annual travel-expense reimbursement",
-          "valueCad": 150,
+          "value": {
+            "amount": 150,
+            "currency": "CAD"
+          },
           "period": "calendarYear",
           "sourceType": "issuerConfirmed",
           "lastVerifiedAt": "2026-08-23",
@@ -2363,10 +2485,15 @@
       "cardId": "pc-insiders-world-elite",
       "officialName": "PC Insiders World Elite Mastercard",
       "issuer": "President's Choice Bank",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 120
+        "annual": {
+          "amount": 120,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "pcOptimum",
@@ -2393,7 +2520,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 10
+            "pointsPerUnit": 10
           },
           "predicate": {},
           "capId": null
@@ -2407,7 +2534,7 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 40
+            "pointsPerUnit": 40
           },
           "predicate": {
             "categories": [
@@ -2429,12 +2556,12 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 35
+            "pointsPerUnit": 35
           },
           "predicate": {
             "merchantInclude": [
-              "Shoppers Drug Mart",
-              "Pharmaprix"
+              "shoppers-drug-mart",
+              "pharmaprix"
             ]
           },
           "capId": null,
@@ -2452,11 +2579,11 @@
           "lastVerifiedAt": "2026-08-17",
           "earn": {
             "type": "points",
-            "pointsPerCad": 40
+            "pointsPerUnit": 40
           },
           "predicate": {
             "merchantInclude": [
-              "Joe Fresh"
+              "joe-fresh"
             ]
           },
           "capId": null,
@@ -2476,8 +2603,8 @@
           },
           "predicate": {
             "merchantInclude": [
-              "Esso",
-              "Mobil"
+              "esso",
+              "mobil"
             ]
           },
           "capId": null,
@@ -2499,10 +2626,15 @@
       "cardId": "rbc-ion-plus-visa",
       "officialName": "RBC ION+ Visa",
       "issuer": "Royal Bank of Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 48,
+        "annual": {
+          "amount": 48,
+          "currency": "CAD"
+        },
         "waiver": "RBC Advantage Banking Account for Students can rebate the $48 fee for eligible students age 24 and under."
       },
       "program": {
@@ -2530,7 +2662,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -2544,7 +2676,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 3
+            "pointsPerUnit": 3
           },
           "predicate": {
             "categories": [
@@ -2576,10 +2708,15 @@
       "cardId": "td-cash-back-visa-infinite",
       "officialName": "TD Cash Back Visa Infinite Card",
       "issuer": "TD Canada Trust",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 139
+        "annual": {
+          "amount": 139,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "cashback",
@@ -2714,10 +2851,15 @@
       "cardId": "bmo-ascend-world-elite",
       "officialName": "BMO Ascend World Elite Mastercard",
       "issuer": "Bank of Montreal",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 150,
+        "annual": {
+          "amount": 150,
+          "currency": "CAD"
+        },
         "waiver": "BMO Premium Plan can fully rebate the annual fee subject to annual purchase conditions; Performance Plan can rebate $40."
       },
       "program": {
@@ -2745,7 +2887,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -2759,7 +2901,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 5
+            "pointsPerUnit": 5
           },
           "predicate": {
             "categories": [
@@ -2781,7 +2923,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 3
+            "pointsPerUnit": 3
           },
           "predicate": {
             "categories": [
@@ -2803,7 +2945,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 3
+            "pointsPerUnit": 3
           },
           "predicate": {
             "categories": [
@@ -2825,7 +2967,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 3
+            "pointsPerUnit": 3
           },
           "predicate": {
             "categories": [
@@ -2851,10 +2993,15 @@
       "cardId": "westjet-rbc-world-elite",
       "officialName": "WestJet RBC World Elite Mastercard",
       "issuer": "Royal Bank of Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 139
+        "annual": {
+          "amount": 139,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "westJetPoints",
@@ -2880,7 +3027,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1.5
+            "pointsPerUnit": 1.5
           },
           "predicate": {},
           "capId": null
@@ -2894,7 +3041,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "channels": [
@@ -2916,7 +3063,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "categories": [
@@ -2942,7 +3089,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "categories": [
@@ -2965,7 +3112,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "categories": [
@@ -2991,10 +3138,15 @@
       "cardId": "amazon-ca-rewards-mastercard",
       "officialName": "Amazon.ca Rewards Mastercard",
       "issuer": "MBNA",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 0
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "amazonRewards",
@@ -3020,7 +3172,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -3034,12 +3186,12 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2.5
+            "pointsPerUnit": 2.5
           },
           "predicate": {
             "merchantInclude": [
-              "Amazon.ca",
-              "Whole Foods Market"
+              "amazon-ca",
+              "whole-foods-market"
             ]
           },
           "ownerConditions": [
@@ -3047,7 +3199,7 @@
           ],
           "capId": null,
           "scoredInV1": false,
-          "_note": "2.5 points/$ on eligible Amazon.ca and Whole Foods Market Canada purchases with linked active Prime. Unblocked by CardState.flags (owner-linked Prime status), the next plan after this one \u2014 not a v1 engine capability gap."
+          "_note": "2.5 points/$ on eligible Amazon.ca and Whole Foods Market Canada purchases with linked active Prime. Unblocked by CardState.flags (owner-linked Prime status), the next plan after this one — not a v1 engine capability gap."
         },
         {
           "ruleId": "amazon-ca-nonprime-1_5x",
@@ -3058,17 +3210,17 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1.5
+            "pointsPerUnit": 1.5
           },
           "predicate": {
             "merchantInclude": [
-              "Amazon.ca",
-              "Whole Foods Market"
+              "amazon-ca",
+              "whole-foods-market"
             ]
           },
           "capId": null,
           "scoredInV1": false,
-          "_note": "1.5 points/$ on eligible Amazon.ca and Whole Foods Market Canada purchases without Prime. Unblocked by CardState.flags (owner-linked Prime status), the next plan after this one \u2014 not a v1 engine capability gap."
+          "_note": "1.5 points/$ on eligible Amazon.ca and Whole Foods Market Canada purchases without Prime. Unblocked by CardState.flags (owner-linked Prime status), the next plan after this one — not a v1 engine capability gap."
         }
       ],
       "caps": [],
@@ -3083,10 +3235,15 @@
       "cardId": "cibc-aventura-visa",
       "officialName": "CIBC Aventura Visa Card",
       "issuer": "CIBC",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 0
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "aventura",
@@ -3113,7 +3270,7 @@
           "lastVerifiedAt": "2026-08-18",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -3131,10 +3288,15 @@
       "cardId": "amex-simplycash",
       "officialName": "SimplyCash Card from American Express",
       "issuer": "American Express Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "amex",
       "kind": "credit",
       "fee": {
-        "annualCad": 0
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "cashback",
@@ -3227,10 +3389,15 @@
       "cardId": "simplii-cashback-visa",
       "officialName": "Simplii Financial Cash Back Visa Card",
       "issuer": "Simplii Financial / CIBC",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 0
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "cashback",
@@ -3317,7 +3484,7 @@
       "caps": [
         {
           "capId": "simplii-dining-calendarYear",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 5000,
           "period": "calendarYear",
           "resetTimeZone": "America/Toronto",
@@ -3329,7 +3496,7 @@
         },
         {
           "capId": "simplii-everyday-calendarYear",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 15000,
           "period": "calendarYear",
           "resetTimeZone": "America/Toronto",
@@ -3351,11 +3518,19 @@
       "cardId": "amex-simplycash-preferred",
       "officialName": "SimplyCash Preferred Card from American Express",
       "issuer": "American Express Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "amex",
       "kind": "credit",
       "fee": {
-        "annualCad": 119.88,
-        "monthlyCad": 9.99,
+        "annual": {
+          "amount": 119.88,
+          "currency": "CAD"
+        },
+        "monthly": {
+          "amount": 9.99,
+          "currency": "CAD"
+        },
         "billing": "monthly"
       },
       "program": {
@@ -3419,7 +3594,7 @@
       "caps": [
         {
           "capId": "simplycash-preferred-gas-grocery-accountYear",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 30000,
           "period": "accountYear",
           "anchor": "ownerState.amexAccountAnniversaryMonth",
@@ -3442,10 +3617,15 @@
       "cardId": "bmo-cashback-world-elite",
       "officialName": "BMO CashBack World Elite Mastercard",
       "issuer": "Bank of Montreal",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 139
+        "annual": {
+          "amount": 139,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "cashback",
@@ -3573,7 +3753,7 @@
       "caps": [
         {
           "capId": "bmo-cashback-we-grocery-monthly",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 500,
           "period": "calendarMonth",
           "resetTimeZone": "America/Toronto",
@@ -3585,7 +3765,7 @@
         },
         {
           "capId": "bmo-cashback-we-transit-monthly",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 300,
           "period": "calendarMonth",
           "resetTimeZone": "America/Toronto",
@@ -3597,7 +3777,7 @@
         },
         {
           "capId": "bmo-cashback-we-gas-monthly",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 300,
           "period": "calendarMonth",
           "resetTimeZone": "America/Toronto",
@@ -3609,7 +3789,7 @@
         },
         {
           "capId": "bmo-cashback-we-recurring-monthly",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 500,
           "period": "calendarMonth",
           "resetTimeZone": "America/Toronto",
@@ -3631,10 +3811,15 @@
       "cardId": "mbna-smart-cash-world",
       "officialName": "MBNA Smart Cash World Mastercard",
       "issuer": "MBNA / TD Bank",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 39
+        "annual": {
+          "amount": 39,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "cashback",
@@ -3693,7 +3878,7 @@
       "caps": [
         {
           "capId": "mbna-smart-cash-world-gas-grocery-monthly",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 500,
           "period": "calendarMonth",
           "resetTimeZone": "America/Toronto",
@@ -3714,10 +3899,15 @@
       "cardId": "home-trust-preferred-visa",
       "officialName": "Home Trust Preferred Visa",
       "issuer": "Home Trust Company",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 0
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "cashback",
@@ -3778,10 +3968,15 @@
       "cardId": "rbc-cashback-preferred-we",
       "officialName": "RBC Cash Back Preferred World Elite Mastercard",
       "issuer": "Royal Bank of Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 99
+        "annual": {
+          "amount": 99,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "cashback",
@@ -3830,7 +4025,7 @@
       "caps": [
         {
           "capId": "rbc-cashback-preferred-accountYear",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 25000,
           "period": "accountYear",
           "anchor": "ownerState.rbcAccountAnniversaryMonth",
@@ -3853,10 +4048,15 @@
       "cardId": "amex-aeroplan-reserve",
       "officialName": "American Express Aeroplan Reserve Card",
       "issuer": "American Express Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "amex",
       "kind": "credit",
       "fee": {
-        "annualCad": 599
+        "annual": {
+          "amount": 599,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "aeroplan",
@@ -3882,7 +4082,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1.25
+            "pointsPerUnit": 1.25
           },
           "predicate": {},
           "capId": null
@@ -3896,12 +4096,12 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 3
+            "pointsPerUnit": 3
           },
           "predicate": {
             "merchantInclude": [
-              "Air Canada",
-              "Air Canada Vacations"
+              "air-canada",
+              "air-canada-vacations"
             ]
           },
           "capId": null,
@@ -3920,7 +4120,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "categories": [
@@ -3931,7 +4131,7 @@
           },
           "capId": null,
           "_note": "2x points on eligible dining and food delivery purchases in Canada.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [],
@@ -3946,10 +4146,15 @@
       "cardId": "td-aeroplan-visa-infinite-privilege",
       "officialName": "TD Aeroplan Visa Infinite Privilege Card",
       "issuer": "TD Canada Trust",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 599
+        "annual": {
+          "amount": 599,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "aeroplan",
@@ -3975,7 +4180,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1.25
+            "pointsPerUnit": 1.25
           },
           "predicate": {},
           "capId": null
@@ -3989,12 +4194,12 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "merchantInclude": [
-              "Air Canada",
-              "Air Canada Vacations"
+              "air-canada",
+              "air-canada-vacations"
             ]
           },
           "capId": "td-aeroplan-vip-accelerated-annual",
@@ -4013,7 +4218,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1.5
+            "pointsPerUnit": 1.5
           },
           "predicate": {
             "categories": [
@@ -4025,19 +4230,19 @@
           },
           "capId": "td-aeroplan-vip-accelerated-annual",
           "_note": "1.5x points on eligible gas, grocery, travel, and dining purchases.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [
         {
           "capId": "td-aeroplan-vip-accelerated-annual",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 100000,
           "period": "calendarYear",
           "resetTimeZone": "America/Toronto",
           "postCapEarn": {
             "type": "points",
-            "pointsPerCad": 1.25
+            "pointsPerUnit": 1.25
           },
           "proration": true,
           "_note": "Combined $100,000 annual net purchase cap on accelerated 2x and 1.5x earn rates per calendar year."
@@ -4047,7 +4252,10 @@
         {
           "creditId": "td-aeroplan-vip-nexus-credit",
           "label": "NEXUS Application Fee Rebate",
-          "valueCad": 100,
+          "value": {
+            "amount": 100,
+            "currency": "CAD"
+          },
           "period": "accountYear",
           "sourceType": "issuerConfirmed",
           "lastVerifiedAt": "2026-08-24",
@@ -4067,10 +4275,15 @@
       "cardId": "cibc-aeroplan-visa-infinite-privilege",
       "officialName": "CIBC Aeroplan Visa Infinite Privilege Card",
       "issuer": "CIBC",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "visa",
       "kind": "credit",
       "fee": {
-        "annualCad": 599
+        "annual": {
+          "amount": 599,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "aeroplan",
@@ -4096,7 +4309,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1.25
+            "pointsPerUnit": 1.25
           },
           "predicate": {},
           "capId": null
@@ -4110,12 +4323,12 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "merchantInclude": [
-              "Air Canada",
-              "Air Canada Vacations"
+              "air-canada",
+              "air-canada-vacations"
             ]
           },
           "capId": "cibc-aeroplan-vip-accelerated-annual",
@@ -4134,7 +4347,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1.5
+            "pointsPerUnit": 1.5
           },
           "predicate": {
             "categories": [
@@ -4146,19 +4359,19 @@
           },
           "capId": "cibc-aeroplan-vip-accelerated-annual",
           "_note": "1.5x points on eligible gas, grocery, travel, and dining purchases.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [
         {
           "capId": "cibc-aeroplan-vip-accelerated-annual",
-          "measure": "spendCad",
+          "measure": "spendNative",
           "limit": 100000,
           "period": "calendarYear",
           "resetTimeZone": "America/Toronto",
           "postCapEarn": {
             "type": "points",
-            "pointsPerCad": 1.25
+            "pointsPerUnit": 1.25
           },
           "proration": true,
           "_note": "Combined $100,000 annual net purchase cap on accelerated categories per calendar year."
@@ -4168,7 +4381,10 @@
         {
           "creditId": "cibc-aeroplan-vip-nexus-credit",
           "label": "NEXUS Fee Rebate",
-          "valueCad": 100,
+          "value": {
+            "amount": 100,
+            "currency": "CAD"
+          },
           "period": "accountYear",
           "sourceType": "issuerConfirmed",
           "lastVerifiedAt": "2026-08-24",
@@ -4188,10 +4404,15 @@
       "cardId": "amex-gold-rewards",
       "officialName": "American Express Gold Rewards Card",
       "issuer": "American Express Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "amex",
       "kind": "charge",
       "fee": {
-        "annualCad": 250
+        "annual": {
+          "amount": 250,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "amexMembershipRewards",
@@ -4217,7 +4438,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 1
+            "pointsPerUnit": 1
           },
           "predicate": {},
           "capId": null
@@ -4231,7 +4452,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "categories": [
@@ -4241,7 +4462,7 @@
           },
           "capId": null,
           "_note": "2x points on eligible flights, hotels, car rentals, and tour operators.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "gold-rewards-gas-grocery-drug-2x",
@@ -4252,7 +4473,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "categories": [
@@ -4264,7 +4485,7 @@
           },
           "capId": null,
           "_note": "2x points on eligible standalone gas stations, grocery stores, and drugstores in Canada.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "gold-rewards-amex-travel-bonus",
@@ -4275,7 +4496,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 2
+            "pointsPerUnit": 2
           },
           "predicate": {
             "channels": [
@@ -4288,7 +4509,7 @@
           },
           "capId": null,
           "_note": "+1 bonus point per dollar on eligible hotel and car rental bookings through Amex Travel.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [],
@@ -4296,7 +4517,10 @@
         {
           "creditId": "gold-travel-credit",
           "label": "Annual Travel Credit",
-          "valueCad": 100,
+          "value": {
+            "amount": 100,
+            "currency": "CAD"
+          },
           "period": "calendarYear",
           "sourceType": "issuerConfirmed",
           "lastVerifiedAt": "2026-08-24",
@@ -4317,10 +4541,15 @@
       "cardId": "pc-financial-world-elite",
       "officialName": "PC Financial World Elite Mastercard",
       "issuer": "President's Choice Bank",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 0
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "pcOptimum",
@@ -4346,7 +4575,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 10
+            "pointsPerUnit": 10
           },
           "predicate": {},
           "capId": null,
@@ -4361,23 +4590,23 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 30
+            "pointsPerUnit": 30
           },
           "predicate": {
             "categories": [
               "grocery"
             ],
             "merchantInclude": [
-              "Loblaws",
-              "No Frills",
-              "Real Canadian Superstore",
-              "Fortinos",
-              "Independent",
-              "Valu-mart",
-              "Zehrs",
-              "T&T",
-              "Maxi",
-              "Provigo"
+              "loblaws",
+              "no-frills",
+              "real-canadian-superstore",
+              "fortinos",
+              "independent",
+              "valu-mart",
+              "zehrs",
+              "t-and-t",
+              "maxi",
+              "provigo"
             ]
           },
           "capId": null,
@@ -4396,15 +4625,15 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 45
+            "pointsPerUnit": 45
           },
           "predicate": {
             "categories": [
               "drugStore"
             ],
             "merchantInclude": [
-              "Shoppers Drug Mart",
-              "Pharmaprix"
+              "shoppers-drug-mart",
+              "pharmaprix"
             ]
           },
           "capId": null,
@@ -4423,15 +4652,15 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 30
+            "pointsPerUnit": 30
           },
           "predicate": {
             "categories": [
               "gasStation"
             ],
             "merchantInclude": [
-              "Esso",
-              "Mobil"
+              "esso",
+              "mobil"
             ]
           },
           "capId": null,
@@ -4450,14 +4679,14 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 30
+            "pointsPerUnit": 30
           },
           "predicate": {
             "categories": [
               "travel"
             ],
             "merchantInclude": [
-              "PC Travel"
+              "pc-travel"
             ]
           },
           "capId": null,
@@ -4478,11 +4707,16 @@
     {
       "cardId": "desjardins-odyssey-world-elite",
       "officialName": "Desjardins Odyssey World Elite Mastercard",
-      "issuer": "F\u00e9d\u00e9ration des caisses Desjardins du Qu\u00e9bec",
+      "issuer": "Fédération des caisses Desjardins du Québec",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 130
+        "annual": {
+          "amount": 130,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "cashback",
@@ -4513,7 +4747,7 @@
           "predicate": {},
           "capId": null,
           "_note": "1.5% in BONUSDOLLARS on all other eligible purchases.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "desjardins-odyssey-we-grocery-3pct",
@@ -4533,7 +4767,7 @@
           },
           "capId": null,
           "_note": "3% in BONUSDOLLARS on eligible grocery store purchases.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "desjardins-odyssey-we-dining-3pct",
@@ -4554,7 +4788,7 @@
           },
           "capId": null,
           "_note": "3% in BONUSDOLLARS on restaurants and dining purchases.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "desjardins-odyssey-we-entertainment-3pct",
@@ -4574,7 +4808,7 @@
           },
           "capId": null,
           "_note": "3% in BONUSDOLLARS on entertainment purchases and show tickets.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "desjardins-odyssey-we-green-transit-3pct",
@@ -4595,7 +4829,7 @@
           },
           "capId": null,
           "_note": "3% in BONUSDOLLARS on alternative transportation (public transit, EV charging, train, bike share).",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [],
@@ -4610,10 +4844,15 @@
       "cardId": "pc-financial-mastercard",
       "officialName": "PC Financial Mastercard",
       "issuer": "President's Choice Bank",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 0
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "pcOptimum",
@@ -4639,7 +4878,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 10
+            "pointsPerUnit": 10
           },
           "predicate": {},
           "capId": null,
@@ -4654,23 +4893,23 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 10
+            "pointsPerUnit": 10
           },
           "predicate": {
             "categories": [
               "grocery"
             ],
             "merchantInclude": [
-              "Loblaws",
-              "No Frills",
-              "Real Canadian Superstore",
-              "Fortinos",
-              "Independent",
-              "Valu-mart",
-              "Zehrs",
-              "T&T",
-              "Maxi",
-              "Provigo"
+              "loblaws",
+              "no-frills",
+              "real-canadian-superstore",
+              "fortinos",
+              "independent",
+              "valu-mart",
+              "zehrs",
+              "t-and-t",
+              "maxi",
+              "provigo"
             ]
           },
           "capId": null,
@@ -4689,15 +4928,15 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 25
+            "pointsPerUnit": 25
           },
           "predicate": {
             "categories": [
               "drugStore"
             ],
             "merchantInclude": [
-              "Shoppers Drug Mart",
-              "Pharmaprix"
+              "shoppers-drug-mart",
+              "pharmaprix"
             ]
           },
           "capId": null,
@@ -4716,15 +4955,15 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 30
+            "pointsPerUnit": 30
           },
           "predicate": {
             "categories": [
               "gasStation"
             ],
             "merchantInclude": [
-              "Esso",
-              "Mobil"
+              "esso",
+              "mobil"
             ]
           },
           "capId": null,
@@ -4743,14 +4982,14 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 20
+            "pointsPerUnit": 20
           },
           "predicate": {
             "categories": [
               "travel"
             ],
             "merchantInclude": [
-              "PC Travel"
+              "pc-travel"
             ]
           },
           "capId": null,
@@ -4772,10 +5011,15 @@
       "cardId": "pc-financial-world-mastercard",
       "officialName": "PC Financial World Mastercard",
       "issuer": "President's Choice Bank",
+      "market": "CA",
+      "billingCurrency": "CAD",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
-        "annualCad": 0
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
       },
       "program": {
         "programId": "pcOptimum",
@@ -4801,7 +5045,7 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 10
+            "pointsPerUnit": 10
           },
           "predicate": {},
           "capId": null,
@@ -4816,23 +5060,23 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 20
+            "pointsPerUnit": 20
           },
           "predicate": {
             "categories": [
               "grocery"
             ],
             "merchantInclude": [
-              "Loblaws",
-              "No Frills",
-              "Real Canadian Superstore",
-              "Fortinos",
-              "Independent",
-              "Valu-mart",
-              "Zehrs",
-              "T&T",
-              "Maxi",
-              "Provigo"
+              "loblaws",
+              "no-frills",
+              "real-canadian-superstore",
+              "fortinos",
+              "independent",
+              "valu-mart",
+              "zehrs",
+              "t-and-t",
+              "maxi",
+              "provigo"
             ]
           },
           "capId": null,
@@ -4851,15 +5095,15 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 35
+            "pointsPerUnit": 35
           },
           "predicate": {
             "categories": [
               "drugStore"
             ],
             "merchantInclude": [
-              "Shoppers Drug Mart",
-              "Pharmaprix"
+              "shoppers-drug-mart",
+              "pharmaprix"
             ]
           },
           "capId": null,
@@ -4878,15 +5122,15 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 30
+            "pointsPerUnit": 30
           },
           "predicate": {
             "categories": [
               "gasStation"
             ],
             "merchantInclude": [
-              "Esso",
-              "Mobil"
+              "esso",
+              "mobil"
             ]
           },
           "capId": null,
@@ -4905,14 +5149,14 @@
           "lastVerifiedAt": "2026-08-24",
           "earn": {
             "type": "points",
-            "pointsPerCad": 20
+            "pointsPerUnit": 20
           },
           "predicate": {
             "categories": [
               "travel"
             ],
             "merchantInclude": [
-              "PC Travel"
+              "pc-travel"
             ]
           },
           "capId": null,

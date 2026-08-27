@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FxRateInput } from "@/engine/fx";
+import type { CardProduct, Catalogue } from "@/engine/cards-twin/models";
 import { applyCapAccrual, capPeriodKey, removeCapAccrual, resolveCapAccrual, resolveCapAccrualOutcome, reverseCapAccrual } from "./cap-usage";
 
 const ownerState = (cardStates: Record<string, unknown>) => ({ cardStates });
@@ -202,5 +203,74 @@ describe("foreign-currency accrual", () => {
     );
 
     expect(accrual?.usedMinor).toBe(10_000);
+  });
+});
+
+describe("multi-market: quarterly period keys and native-currency accrual", () => {
+  // Deliberately not in the shared production catalogue (D3's sourcing bar) — a synthetic
+  // catalogue override, same pattern as src/engine/cards-twin/multiMarket.test.ts.
+  const usdCard: CardProduct = {
+    cardId: "usd-cashback-ledger-test",
+    officialName: "Test USD Cashback Card",
+    issuer: "Test Bank",
+    market: "US",
+    billingCurrency: "USD",
+    network: "visa",
+    kind: "credit",
+    fee: {},
+    program: { programId: "cashback", unit: "cashback" },
+    fxRules: [{ status: "current", rate: 0.025 }],
+    earnRules: [
+      {
+        ruleId: "grocery-5x-quarterly",
+        status: "current",
+        sourceType: "issuerConfirmed",
+        earn: { type: "cashback", rate: 0.05 },
+        predicate: { categories: ["grocery"] },
+        capId: "grocery-cap",
+      },
+    ],
+    caps: [
+      {
+        capId: "grocery-cap",
+        measure: "spendNative",
+        limit: 1500,
+        period: "calendarQuarter",
+        resetTimeZone: "UTC",
+        proration: true,
+      },
+    ],
+    perTransactionRewardVisibility: "issuerConfirmed",
+    lastVerifiedAt: "2026-08-26",
+  };
+  const usdCatalogue: Catalogue = { catalogueVersion: "2.0", currency: "CAD", cards: [usdCard] };
+
+  it("keys a calendarQuarter cap by the real calendar quarter, not 'not-accruable'", () => {
+    // August 16 falls in Q3 — before this fix, capPeriodKey had no calendarQuarter branch at
+    // all, so every quarterly-cap transaction was silently skipped as not-accruable forever.
+    const accrual = resolveCapAccrual(
+      source({ cardId: "usd-cashback-ledger-test", category: "grocery", currency: "CAD", amountMinor: 10_000 }),
+      ownerState({ "usd-cashback-ledger-test": {} }),
+      usdCatalogue,
+    );
+    expect(accrual).toMatchObject({ capId: "grocery-cap", periodKey: "2026-Q3" });
+  });
+
+  it("rolls a calendarQuarter cap to the next key once the quarter changes", () => {
+    expect(capPeriodKey({ period: "calendarQuarter" }, undefined, new Date("2026-01-05T12:00:00.000Z"))).toBe("2026-Q1");
+    expect(capPeriodKey({ period: "calendarQuarter" }, undefined, new Date("2026-04-01T12:00:00.000Z"))).toBe("2026-Q2");
+    expect(capPeriodKey({ period: "calendarQuarter" }, undefined, new Date("2026-12-31T12:00:00.000Z"))).toBe("2026-Q4");
+  });
+
+  it("accrues a spendNative cap in the card's own USD billing currency, not raw CAD", () => {
+    // The wallet event reports $100.00 CAD; the card bills in USD, so the cap (a $1,500 USD
+    // limit) must fill by the USD equivalent (~$73.00), not by the raw CAD minor amount — a
+    // mismatch that would make the ledger believe far more room was used than actually was.
+    const accrual = resolveCapAccrual(
+      source({ cardId: "usd-cashback-ledger-test", category: "grocery", currency: "CAD", amountMinor: 10_000 }),
+      ownerState({ "usd-cashback-ledger-test": {} }),
+      usdCatalogue,
+    );
+    expect(accrual).toMatchObject({ capId: "grocery-cap", usedMinor: 7_300 });
   });
 });

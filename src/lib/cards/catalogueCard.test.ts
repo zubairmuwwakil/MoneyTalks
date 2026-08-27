@@ -28,7 +28,7 @@ describe("catalogueCredits", () => {
   it("reads credits off the catalogue, not off the card row", () => {
     const credits = catalogueCredits("amex-platinum");
     expect(credits.map((c) => c.creditId).sort()).toEqual(["platinum-dining-credit", "platinum-travel-credit"]);
-    expect(credits.every((c) => c.valueCad === 200)).toBe(true);
+    expect(credits.every((c) => c.value.amount === 200 && c.value.currency === "CAD")).toBe(true);
   });
 
   it("treats a card with no credits as having none, not unknown", () => {

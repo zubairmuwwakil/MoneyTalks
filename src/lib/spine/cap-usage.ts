@@ -81,6 +81,7 @@ function datePartsInToronto(asOf: Date) {
 export function capPeriodKey(cap: Pick<Cap, "period" | "anchor">, cardState: { scotiaAccountYearAnchorMonth?: unknown; rogersAccountAnniversaryMonth?: unknown } | undefined, asOf: Date): string | undefined {
   const { year, month } = datePartsInToronto(asOf);
   if (cap.period === "calendarMonth") return `${year}-${String(month).padStart(2, "0")}`;
+  if (cap.period === "calendarQuarter") return `${year}-Q${Math.ceil(month / 3)}`;
   if (cap.period === "calendarYear") return String(year);
   if (cap.period !== "accountYear") return undefined;
 
@@ -170,6 +171,19 @@ export function resolveCapAccrualOutcome(
   const periodKey = capPeriodKey(cap, cardState, source.occurredAt);
   if (!periodKey) return { skipped: "not-accruable" }; // An unresolved account-year anchor cannot be guessed.
 
+  // `spendUsdEquivalent` is always a CAD -> USD estimate, unconditionally, regardless of the
+  // card's own billing currency (mirrors Scorer's USD-cap fallback: amountCad * 0.73 when no
+  // explicit usdEquivalent was supplied). `spendNative` is measured in the CARD's OWN
+  // billingCurrency, not CAD unconditionally — for a USD-billing card this is the same CAD -> USD
+  // fallback as above; for a CAD-billing card (every card until the multi-market import) it's the
+  // identity. Storing the raw CAD minor amount here for a USD-billing card would silently fill a
+  // USD-denominated cap using CAD numbers, understating (at today's rate) how much room is left.
+  const usedMinor = cap.measure === "spendUsdEquivalent"
+    ? Math.round(amountMinorCad * USD_PER_CAD)
+    : card.billingCurrency === "USD"
+      ? Math.round(amountMinorCad * USD_PER_CAD)
+      : amountMinorCad;
+
   return {
     accrual: {
       sourceKey: source.sourceKey,
@@ -177,9 +191,7 @@ export function resolveCapAccrualOutcome(
       cardId: source.cardId,
       capId: cap.capId,
       periodKey,
-      // Matches Scorer's USD-cap fallback: amountCad * 0.73 when no explicit
-      // usdEquivalent was supplied by the purchase context.
-      usedMinor: cap.measure === "spendUsdEquivalent" ? Math.round(amountMinorCad * USD_PER_CAD) : amountMinorCad,
+      usedMinor,
       sourceAmountMinor: source.amountMinor,
       sourceCurrency: currency,
       fxRate,

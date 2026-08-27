@@ -76,6 +76,24 @@ describe("PUT /api/spine/owner-state", () => {
     );
   });
 
+  // Before this fix, ownerStateInput's .strict() rejected any payload carrying `market` at all
+  // (HTTP 400), so a US-resident owner's residency had no path to persist server-side.
+  it("accepts and persists the owner's market", async () => {
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(null);
+    const usState = { ...state, market: "US" };
+    vi.mocked(prisma.ownerStateRecord.create).mockResolvedValue(stored(usState));
+
+    expect((await put(usState)).status).toBe(200);
+    expect(prisma.ownerStateRecord.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ stateData: expect.objectContaining({ market: "US" }) }) }),
+    );
+  });
+
+  it("rejects an unrecognized market", async () => {
+    const response = await put({ ...state, market: "MX" });
+    expect(response.status).toBe(400);
+  });
+
   it("accepts PickMe's modern program dictionary without dropping newer programs", async () => {
     vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.ownerStateRecord.create).mockResolvedValue(stored(modernState));

@@ -500,7 +500,7 @@ export type BillRecommendationResult =
 function describeEarn(earn: Earn): string {
   switch (earn.type) {
     case "points":
-      return `${earn.pointsPerCad}x points`;
+      return `${earn.pointsPerUnit}x points`;
     case "cashback": {
       const pct = earn.rate * 100;
       return `${Number.isInteger(pct) ? pct : pct.toFixed(2)}% cash back`;

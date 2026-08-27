@@ -48,12 +48,12 @@ export function getCardEarnHighlights(card: CardProduct | null): EarnHighlight[]
     });
   }
 
-  // Sort earn rules by pointsPerCad or cashback rate desc
+  // Sort earn rules by pointsPerUnit or cashback rate desc
   const currentEarnRules = card.earnRules
     .filter((r) => r.status === "current")
     .map((r) => {
       let multiplier = 1;
-      if (r.earn.type === "points") multiplier = r.earn.pointsPerCad;
+      if (r.earn.type === "points") multiplier = r.earn.pointsPerUnit;
       else if (r.earn.type === "cashback") multiplier = r.earn.rate * 100;
       else if (r.earn.type === "centsPerLitre") multiplier = (r.earn.otherCentsPerLitre ?? 3) / 100;
       return { rule: r, multiplier };
@@ -64,7 +64,7 @@ export function getCardEarnHighlights(card: CardProduct | null): EarnHighlight[]
     const cats = rule.predicate.categories ?? [];
     let rateStr = "";
     if (rule.earn.type === "points") {
-      rateStr = `${rule.earn.pointsPerCad}×`;
+      rateStr = `${rule.earn.pointsPerUnit}×`;
     } else if (rule.earn.type === "cashback") {
       rateStr = `${rule.earn.rate * 100}%`;
     } else if (rule.earn.type === "centsPerLitre") {
@@ -318,7 +318,7 @@ export function buildCheatSheetRecommendations(
           (r) => r.status === "current" && r.predicate.categories?.includes("grocery"),
         );
         if (groceryRule) {
-          if (groceryRule.earn.type === "points") return { rate: groceryRule.earn.pointsPerCad * 1.5, label: `${groceryRule.earn.pointsPerCad}× MR (~${groceryRule.earn.pointsPerCad * 1.5}%)` };
+          if (groceryRule.earn.type === "points") return { rate: groceryRule.earn.pointsPerUnit * 1.5, label: `${groceryRule.earn.pointsPerUnit}× MR (~${groceryRule.earn.pointsPerUnit * 1.5}%)` };
           if (groceryRule.earn.type === "cashback") return { rate: groceryRule.earn.rate * 100, label: `${groceryRule.earn.rate * 100}%` };
         }
         return { rate: 1, label: "1% Base" };
@@ -334,7 +334,7 @@ export function buildCheatSheetRecommendations(
           (r) => r.status === "current" && (r.predicate.categories?.includes("dining") || r.predicate.categories?.includes("foodDelivery")),
         );
         if (diningRule) {
-          if (diningRule.earn.type === "points") return { rate: diningRule.earn.pointsPerCad * 1.5, label: `${diningRule.earn.pointsPerCad}× MR (~${diningRule.earn.pointsPerCad * 1.5}%)` };
+          if (diningRule.earn.type === "points") return { rate: diningRule.earn.pointsPerUnit * 1.5, label: `${diningRule.earn.pointsPerUnit}× MR (~${diningRule.earn.pointsPerUnit * 1.5}%)` };
           if (diningRule.earn.type === "cashback") return { rate: diningRule.earn.rate * 100, label: `${diningRule.earn.rate * 100}%` };
         }
         return { rate: 1, label: "1% Base" };
@@ -350,7 +350,7 @@ export function buildCheatSheetRecommendations(
           (r) => r.status === "current" && r.predicate.categories?.includes("gasStation"),
         );
         if (gasRule) {
-          if (gasRule.earn.type === "points") return { rate: gasRule.earn.pointsPerCad * 1.2, label: `${gasRule.earn.pointsPerCad}× (~${gasRule.earn.pointsPerCad * 1.2}%)` };
+          if (gasRule.earn.type === "points") return { rate: gasRule.earn.pointsPerUnit * 1.2, label: `${gasRule.earn.pointsPerUnit}× (~${gasRule.earn.pointsPerUnit * 1.2}%)` };
           if (gasRule.earn.type === "cashback") return { rate: gasRule.earn.rate * 100, label: `${gasRule.earn.rate * 100}%` };
         }
         return { rate: 1, label: "1% Base" };
@@ -366,7 +366,7 @@ export function buildCheatSheetRecommendations(
           (r) => r.status === "current" && (r.predicate.recurringViaNetworkIndicator || r.predicate.categories?.includes("utilities")),
         );
         if (billRule) {
-          if (billRule.earn.type === "points") return { rate: billRule.earn.pointsPerCad * 1.2, label: `${billRule.earn.pointsPerCad}×` };
+          if (billRule.earn.type === "points") return { rate: billRule.earn.pointsPerUnit * 1.2, label: `${billRule.earn.pointsPerUnit}×` };
           if (billRule.earn.type === "cashback") return { rate: billRule.earn.rate * 100, label: `${billRule.earn.rate * 100}%` };
         }
         return { rate: 1, label: "1% Base" };
@@ -395,7 +395,7 @@ export function buildCheatSheetRecommendations(
           (r) => r.status === "current" && r.predicate.categories?.includes("travel"),
         );
         if (travelRule) {
-          if (travelRule.earn.type === "points") return { rate: travelRule.earn.pointsPerCad * 1.5, label: `${travelRule.earn.pointsPerCad}× MR (~${travelRule.earn.pointsPerCad * 1.5}%)` };
+          if (travelRule.earn.type === "points") return { rate: travelRule.earn.pointsPerUnit * 1.5, label: `${travelRule.earn.pointsPerUnit}× MR (~${travelRule.earn.pointsPerUnit * 1.5}%)` };
           if (travelRule.earn.type === "cashback") return { rate: travelRule.earn.rate * 100, label: `${travelRule.earn.rate * 100}%` };
         }
         return { rate: 1, label: "1% Base" };

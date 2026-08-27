@@ -1,4 +1,4 @@
-import { Catalogue, OwnerState, PurchaseContext } from './models';
+import { Catalogue, OwnerState, PurchaseContext, resolvedMarket } from './models';
 import { CandidateScore, Scorer } from './Scorer';
 
 export type ValuationDirection = 'below' | 'above';
@@ -59,11 +59,14 @@ export class RecommendationEngine {
     // all 27 passed in Swift, which is precisely the divergence the shared
     // fixture suite exists to expose.
     //
-    // The empty case follows Swift too: an owner with no declared wallet falls
-    // back to the whole catalogue rather than refusing to advise.
+    // The empty case follows Swift too: an owner with no declared wallet falls back to the
+    // catalogue rather than refusing to advise — but scoped to the owner's own market since
+    // 2026-08-26. Without that scoping, a multi-market catalogue would recommend a Chase card
+    // to a new Canadian user who hasn't recorded a wallet yet. A non-empty wallet is NEVER
+    // market-filtered: an owned card is an owned card regardless of where it was issued.
     const candidateCards =
       this.ownerState.ownedCardIds.length === 0
-        ? this.catalogue.cards
+        ? this.catalogue.cards.filter(card => card.market === resolvedMarket(this.ownerState))
         : this.catalogue.cards.filter(card => this.ownerState.ownedCardIds.includes(card.cardId));
 
     const scores = candidateCards

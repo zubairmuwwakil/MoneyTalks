@@ -20,17 +20,27 @@ describe("parseCardCatalogue", () => {
     expect(parseCardCatalogue(cardCatalogueRaw)).toEqual(cardCatalogue);
   });
 
-  it("rejects a card whose fee.annualCad is a string instead of a number", () => {
+  it("rejects a card whose fee.annual.amount is a string instead of a number", () => {
     const mutated = structuredClone(cardCatalogueRaw) as Record<string, unknown>;
     const cards = mutated.cards as Array<Record<string, unknown>>;
-    (cards[0].fee as Record<string, unknown>).annualCad = "799";
-    expect(() => parseCardCatalogue(mutated)).toThrow(/annualCad/);
+    const fee = (cards[0].fee as Record<string, unknown>).annual as Record<string, unknown>;
+    fee.amount = "799";
+    expect(() => parseCardCatalogue(mutated)).toThrow(/annual/);
+  });
+
+  it("rejects a fee.annual with no currency — a price without a currency must not be summed", () => {
+    const mutated = structuredClone(cardCatalogueRaw) as Record<string, unknown>;
+    const cards = mutated.cards as Array<Record<string, unknown>>;
+    const fee = (cards[0].fee as Record<string, unknown>).annual as Record<string, unknown>;
+    delete fee.currency;
+    expect(() => parseCardCatalogue(mutated)).toThrow();
   });
 
   it("rejects an unrecognized network value", () => {
     const mutated = structuredClone(cardCatalogueRaw) as Record<string, unknown>;
     const cards = mutated.cards as Array<Record<string, unknown>>;
-    cards[0].network = "discover";
+    // "discover" became a real network in catalogue 2.0 (US import); "dinersClub" stays invalid.
+    cards[0].network = "dinersClub";
     expect(() => parseCardCatalogue(mutated)).toThrow();
   });
 
