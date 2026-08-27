@@ -8,6 +8,14 @@ const catalogue = JSON.parse(
   fs.readFileSync(path.resolve(process.cwd(), "contracts/card-catalogue.json"), "utf-8"),
 ) as Catalogue;
 
+type OwnerStateData = {
+  ownedCardIds: string[];
+  defaultCardId: string;
+  switchThreshold: unknown;
+  valuationsCad: unknown;
+  cardStates: unknown;
+};
+
 describe("defaultOwnerState", () => {
   it("returns null when the user has no contract-linked cards", () => {
     expect(defaultOwnerState([])).toBeNull();
@@ -90,9 +98,9 @@ describe("ensureOwnerStateRecord", () => {
     db.creditCard.findMany.mockResolvedValue([{ contractCardId: "wealthsimple-vip" }]);
     db.ownerStateRecord.updateMany.mockResolvedValue({ count: 1 });
 
-    const result = await ensureOwnerStateRecord(db as any, "user-1");
+    const result = await ensureOwnerStateRecord(db as never, "user-1");
 
-    expect((result!.stateData as any).ownedCardIds).toEqual(["amex-cobalt", "wealthsimple-vip"]);
+    expect((result!.stateData as unknown as OwnerStateData).ownedCardIds).toEqual(["amex-cobalt", "wealthsimple-vip"]);
     expect(db.ownerStateRecord.updateMany).toHaveBeenCalledWith({
       where: { userId: "user-1", updatedAt: existing.updatedAt },
       data: {
@@ -112,9 +120,9 @@ describe("ensureOwnerStateRecord", () => {
     db.ownerStateRecord.findUnique.mockResolvedValueOnce(existing);
     db.creditCard.findMany.mockResolvedValue([]);
 
-    const result = await ensureOwnerStateRecord(db as any, "user-1");
+    const result = await ensureOwnerStateRecord(db as never, "user-1");
 
-    expect((result!.stateData as any).ownedCardIds).toEqual(["scotia-passport", "amex-cobalt"]);
+    expect((result!.stateData as unknown as OwnerStateData).ownedCardIds).toEqual(["scotia-passport", "amex-cobalt"]);
     expect(db.ownerStateRecord.updateMany).not.toHaveBeenCalled();
   });
 
@@ -130,9 +138,9 @@ describe("ensureOwnerStateRecord", () => {
     db.creditCard.findMany.mockResolvedValue([{ contractCardId: "amex-cobalt" }]);
     db.ownerStateRecord.updateMany.mockResolvedValue({ count: 1 });
 
-    const result = await ensureOwnerStateRecord(db as any, "user-1");
+    const result = await ensureOwnerStateRecord(db as never, "user-1");
 
-    expect((result!.stateData as any).ownedCardIds).toEqual(["ghost-card", "amex-cobalt"]);
+    expect((result!.stateData as unknown as OwnerStateData).ownedCardIds).toEqual(["ghost-card", "amex-cobalt"]);
   });
 
   it("repoints defaultCardId to the first union member when the stored default is no longer owned", async () => {
@@ -148,9 +156,9 @@ describe("ensureOwnerStateRecord", () => {
     db.creditCard.findMany.mockResolvedValue([]);
     db.ownerStateRecord.updateMany.mockResolvedValue({ count: 1 });
 
-    const result = await ensureOwnerStateRecord(db as any, "user-1");
+    const result = await ensureOwnerStateRecord(db as never, "user-1");
 
-    expect((result!.stateData as any).defaultCardId).toBe("amex-cobalt");
+    expect((result!.stateData as unknown as OwnerStateData).defaultCardId).toBe("amex-cobalt");
     expect(db.ownerStateRecord.updateMany).toHaveBeenCalled();
   });
 
@@ -162,9 +170,9 @@ describe("ensureOwnerStateRecord", () => {
     db.ownerStateRecord.findUnique.mockResolvedValueOnce(existing);
     db.creditCard.findMany.mockResolvedValue([]);
 
-    const result = await ensureOwnerStateRecord(db as any, "user-1");
+    const result = await ensureOwnerStateRecord(db as never, "user-1");
 
-    expect((result!.stateData as any).defaultCardId).toBe("wealthsimple-vip");
+    expect((result!.stateData as unknown as OwnerStateData).defaultCardId).toBe("wealthsimple-vip");
     expect(db.ownerStateRecord.updateMany).not.toHaveBeenCalled();
   });
 
@@ -182,9 +190,9 @@ describe("ensureOwnerStateRecord", () => {
     db.creditCard.findMany.mockResolvedValue([{ contractCardId: "wealthsimple-vip" }]);
     db.ownerStateRecord.updateMany.mockResolvedValue({ count: 1 });
 
-    const result = await ensureOwnerStateRecord(db as any, "user-1");
+    const result = await ensureOwnerStateRecord(db as never, "user-1");
 
-    const data = result!.stateData as any;
+    const data = result!.stateData as unknown as OwnerStateData;
     expect(data.switchThreshold).toEqual(switchThreshold);
     expect(data.valuationsCad).toEqual(valuationsCad);
     expect(data.cardStates).toEqual(cardStates);
@@ -200,7 +208,7 @@ describe("ensureOwnerStateRecord", () => {
     db.ownerStateRecord.findUnique.mockResolvedValueOnce(null);
     db.creditCard.findMany.mockResolvedValue([]);
 
-    const result = await ensureOwnerStateRecord(db as any, "user-1");
+    const result = await ensureOwnerStateRecord(db as never, "user-1");
 
     expect(result).toBeNull();
     expect(db.ownerStateRecord.create).not.toHaveBeenCalled();
@@ -212,7 +220,7 @@ describe("ensureOwnerStateRecord", () => {
     db.ownerStateRecord.findUnique.mockResolvedValueOnce(existing);
     db.creditCard.findMany.mockResolvedValue([{ contractCardId: "amex-cobalt" }]);
 
-    const result = await ensureOwnerStateRecord(db as any, "user-1");
+    const result = await ensureOwnerStateRecord(db as never, "user-1");
 
     expect(result).toBe(existing);
     expect(db.ownerStateRecord.updateMany).not.toHaveBeenCalled();
@@ -224,7 +232,7 @@ describe("ensureOwnerStateRecord", () => {
     db.ownerStateRecord.findUnique.mockResolvedValueOnce(existing);
     db.creditCard.findMany.mockResolvedValue([{ contractCardId: "wealthsimple-vip" }]);
 
-    const result = await ensureOwnerStateRecord(db as any, "user-1");
+    const result = await ensureOwnerStateRecord(db as never, "user-1");
 
     expect(result).toBe(existing);
     expect(db.ownerStateRecord.updateMany).not.toHaveBeenCalled();
@@ -244,7 +252,7 @@ describe("ensureOwnerStateRecord", () => {
     db.creditCard.findMany.mockResolvedValue([{ contractCardId: "wealthsimple-vip" }]);
     db.ownerStateRecord.updateMany.mockResolvedValue({ count: 0 }); // lost the CAS
 
-    const result = await ensureOwnerStateRecord(db as any, "user-1");
+    const result = await ensureOwnerStateRecord(db as never, "user-1");
 
     expect(result).toBe(concurrentlyWritten);
   });

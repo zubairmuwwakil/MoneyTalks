@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { mapWalletCard } from "./actions";
 
 type UnmappedString = { rawString: string; tapCount: number };
@@ -23,7 +24,7 @@ export default function CardMappingSection({
     <div className="mt-8 rounded-2xl border bg-white p-6 shadow-sm">
       <h2 className="text-sm font-semibold text-slate-900">Map your cards</h2>
       <p className="mt-0.5 text-xs text-slate-500">
-        Apple Wallet Shortcuts report each tapped card as a raw text string (e.g. "Aventura Visa Platinum"). 
+        Apple Wallet Shortcuts report each tapped card as a raw text string (e.g. &quot;Aventura Visa Platinum&quot;).
         Tell us which of your saved Credit Cards each label represents. Once mapped, any past and future taps using this card will instantly be matched and appear in real-time on your Purchases page.
       </p>
       {error ? <div className="mt-2 text-xs text-red-600">{error}</div> : null}
@@ -69,7 +70,7 @@ export default function CardMappingSection({
       </div>
       {cards.length === 0 ? (
         <p className="mt-3 text-xs text-amber-700">
-          Add your cards first under <a className="underline" href="/cards/new">Cards</a>.
+          Add your cards first under <Link className="underline" href="/cards/new">Cards</Link>.
         </p>
       ) : null}
     </div>

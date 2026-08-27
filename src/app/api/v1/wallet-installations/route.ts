@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ ...installation, token: rawToken });
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   const userId = await getSessionUserId();
   if (!userId) return new NextResponse("unauthorized", { status: 401 });
 

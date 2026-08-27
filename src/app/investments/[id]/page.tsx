@@ -1,10 +1,6 @@
 import {
   ArrowLeft,
   FileSpreadsheet,
-  Layers,
-  Coins,
-  TrendingUp,
-  TrendingDown,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -365,4 +361,3 @@ export default async function AccountDetailPage({
     </main>
   );
 }
-

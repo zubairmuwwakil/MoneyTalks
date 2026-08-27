@@ -51,7 +51,7 @@ describe("mergeDuplicatePurchase", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(tx));
+    vi.mocked(prisma.$transaction).mockImplementation(((fn: (transaction: typeof tx) => Promise<unknown>) => fn(tx)) as never);
     tx.purchase.findFirst.mockResolvedValueOnce(flagged).mockResolvedValueOnce(target);
   });
 
@@ -132,9 +132,9 @@ describe("purchase financial corrections", () => {
   };
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(tx));
+    vi.mocked(prisma.$transaction).mockImplementation(((fn: (transaction: typeof tx) => Promise<unknown>) => fn(tx)) as never);
     tx.purchase.findFirst.mockResolvedValue(purchase);
-    tx.purchase.update.mockImplementation(async ({ data }: any) => ({ ...purchase, ...data }));
+    tx.purchase.update.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ ...purchase, ...data }));
     vi.mocked(reverseCapAccrual).mockResolvedValue(true);
   });
 
@@ -203,8 +203,8 @@ describe("createReturnForPurchase", () => {
       totalCents: 9900,
       currency: "CAD",
       purchasedAt: new Date("2026-08-01"),
-    } as any);
-    vi.mocked(prisma.returnItem.findFirst).mockResolvedValue({ id: "ret-1" } as any);
+    } as never);
+    vi.mocked(prisma.returnItem.findFirst).mockResolvedValue({ id: "ret-1" } as never);
 
     const formData = new FormData();
     formData.set("purchaseId", "pur-1");
@@ -220,7 +220,7 @@ describe("createReturnForPurchase", () => {
       totalCents: 9900,
       currency: "CAD",
       purchasedAt: new Date("2026-08-01"),
-    } as any);
+    } as never);
     vi.mocked(prisma.returnItem.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.returnItem.create).mockResolvedValue({
       id: "ret-1",
@@ -231,7 +231,7 @@ describe("createReturnForPurchase", () => {
       amountCents: 9900,
       currency: "CAD",
       status: "OPEN",
-    } as any);
+    } as never);
 
     const formData = new FormData();
     formData.set("purchaseId", "pur-1");

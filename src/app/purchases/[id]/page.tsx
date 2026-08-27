@@ -12,7 +12,6 @@ import {
   Sparkles,
   UploadCloud,
   AlertTriangle,
-  Layers,
   Clock,
 } from "lucide-react";
 import { InlineCategoryPicker } from "../ui/InlineCategoryPicker";

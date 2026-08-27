@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { linkSavedCardToContract } from "./actions";
 
 type SavedCard = { id: string; nickname: string; issuer: string; network: string; contractCardId: string | null };
@@ -22,7 +23,7 @@ export default function CatalogueLinkSection({ cards, contracts }: { cards: Save
       </p>
       {error ? <p role="alert" className="mt-3 text-xs text-red-600">{error}</p> : null}
       {cards.length === 0 ? (
-        <p className="mt-3 text-xs text-amber-700">Add a card under <a className="underline" href="/cards/new">Cards</a> first.</p>
+        <p className="mt-3 text-xs text-amber-700">Add a card under <Link className="underline" href="/cards/new">Cards</Link> first.</p>
       ) : (
         <div className="mt-4 space-y-2">
           {cards.map((card) => (

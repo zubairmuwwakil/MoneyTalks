@@ -3,14 +3,21 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
+type WalletInstallation = {
+  id: string;
+  label: string;
+  createdAt: string;
+  revokedAt: string | null;
+};
+
 export default function WalletSettingsClient() {
-  const [installations, setInstallations] = useState<any[]>([]);
+  const [installations, setInstallations] = useState<WalletInstallation[]>([]);
   const [newToken, setNewToken] = useState<string | null>(null);
 
   async function fetchInstallations() {
     const res = await fetch("/api/v1/wallet-installations");
     if (res.ok) {
-      setInstallations(await res.json());
+      setInstallations((await res.json()) as WalletInstallation[]);
     }
   }
 
@@ -25,7 +32,7 @@ export default function WalletSettingsClient() {
       body: JSON.stringify({ label: "My iPhone" })
     });
     if (res.ok) {
-      const data = await res.json();
+      const data = (await res.json()) as { token: string };
       setNewToken(data.token);
       await fetchInstallations();
     }
@@ -60,7 +67,7 @@ export default function WalletSettingsClient() {
         {newToken && (
           <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 rounded-xl space-y-3">
             <div className="flex items-center justify-between">
-              <p className="font-semibold text-sm">Save this token now. It won't be shown again.</p>
+              <p className="font-semibold text-sm">Save this token now. It won&apos;t be shown again.</p>
               <Button
                 variant="outline"
                 size="xs"
@@ -74,7 +81,7 @@ export default function WalletSettingsClient() {
               {newToken}
             </code>
             <Button variant="secondary" size="sm" className="rounded-xl text-xs" onClick={() => setNewToken(null)}>
-              I've saved my token
+              I&apos;ve saved my token
             </Button>
           </div>
         )}
@@ -146,4 +153,3 @@ export default function WalletSettingsClient() {
     </div>
   );
 }
-

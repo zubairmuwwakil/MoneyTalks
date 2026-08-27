@@ -27,7 +27,7 @@ describe("processWalletEvents", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(tx));
+    vi.mocked(prisma.$transaction).mockImplementation(((fn: (transaction: typeof tx) => Promise<unknown>) => fn(tx)) as never);
     vi.mocked(prisma.walletEvent.updateMany).mockResolvedValue({ count: 1 } as never);
     tx.walletEvent.findUnique.mockResolvedValue({ purchaseId: null });
   });
@@ -42,8 +42,8 @@ describe("processWalletEvents", () => {
     vi.mocked(prisma.walletEvent.findMany)
       .mockResolvedValueOnce([event] as never)
       .mockResolvedValueOnce([]);
-    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Cafe", category: "dining" } as any);
-    vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue({ cardId: "amex-cobalt" } as any);
+    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Cafe", category: "dining" } as never);
+    vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue({ cardId: "amex-cobalt" } as never);
     tx.purchase.findFirst.mockResolvedValue(null);
     tx.purchase.findMany.mockResolvedValue([]);
     tx.purchase.create.mockResolvedValue({ id: "purch-1" });
@@ -81,10 +81,10 @@ describe("processWalletEvents", () => {
       purchasedAt: new Date("2026-08-16T21:00:00Z"), paymentMethod: null, category: null,
     };
     vi.mocked(prisma.walletEvent.findMany)
-      .mockResolvedValueOnce([event] as any)
+      .mockResolvedValueOnce([event] as never)
       .mockResolvedValueOnce([]);
-    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Starbucks", category: "dining" } as any);
-    vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue({ cardId: "amex-cobalt" } as any);
+    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Starbucks", category: "dining" } as never);
+    vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue({ cardId: "amex-cobalt" } as never);
     tx.purchase.findFirst.mockResolvedValue(null);
     tx.purchase.findMany.mockResolvedValue([gmailPurchase]);
     tx.purchase.update.mockResolvedValue({ ...gmailPurchase, purchasedAt: event.capturedAt });
@@ -116,10 +116,10 @@ describe("processWalletEvents", () => {
       capturedAt: new Date("2026-08-16T22:25:31Z"),
     };
     vi.mocked(prisma.walletEvent.findMany)
-      .mockResolvedValueOnce([event] as any)
+      .mockResolvedValueOnce([event] as never)
       .mockResolvedValueOnce([]);
     vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue(null);
-    vi.mocked(prisma.merchantAlias.create).mockResolvedValue({ normalizedName: "Blue Bottle Coffee", category: null } as any);
+    vi.mocked(prisma.merchantAlias.create).mockResolvedValue({ normalizedName: "Blue Bottle Coffee", category: null } as never);
     tx.purchase.findFirst.mockResolvedValue(null);
     tx.purchase.findMany.mockResolvedValue([]);
     tx.purchase.create.mockResolvedValue({ id: "purch-2" });
@@ -145,7 +145,7 @@ describe("processWalletEvents", () => {
       capturedAt: new Date("2026-08-16T22:25:31Z"),
     };
     vi.mocked(prisma.walletEvent.findMany)
-      .mockResolvedValueOnce([event] as any)
+      .mockResolvedValueOnce([event] as never)
       .mockResolvedValueOnce([]);
     expect(await processWalletEvents()).toBe(0);
 
@@ -185,11 +185,11 @@ describe("processWalletEvents", () => {
       amountRaw: new Prisma.Decimal("6.42"), currencyRaw: "CAD",
       capturedAt: new Date("2026-08-16T22:25:31Z"),
     };
-    vi.mocked(prisma.walletEvent.findUnique).mockResolvedValue(event as any);
+    vi.mocked(prisma.walletEvent.findUnique).mockResolvedValue(event as never);
     vi.mocked(prisma.walletEvent.updateMany)
       .mockResolvedValueOnce({ count: 1 } as never)
       .mockResolvedValueOnce({ count: 0 } as never);
-    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Cafe", category: null } as any);
+    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Cafe", category: null } as never);
     tx.purchase.findFirst.mockResolvedValue(null);
     tx.purchase.findMany.mockResolvedValue([]);
     tx.purchase.create.mockResolvedValue({ id: "purchase-claim", currency: "CAD" });
@@ -210,9 +210,9 @@ describe("processWalletEvents", () => {
       capturedAt: new Date("2026-08-17T14:00:00Z"),
     };
     vi.mocked(prisma.walletEvent.findMany)
-      .mockResolvedValueOnce([event] as any)
+      .mockResolvedValueOnce([event] as never)
       .mockResolvedValueOnce([]);
-    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Metro", category: "grocery" } as any);
+    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Metro", category: "grocery" } as never);
     // No card alias exists for this raw string
     vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue(null);
     tx.purchase.findFirst.mockResolvedValue(null);
@@ -228,7 +228,7 @@ describe("processWalletEvents", () => {
     expect(tx.purchase.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ merchant: "Metro", totalCents: 3210 }),
     }));
-    const createCall = vi.mocked(tx.purchase.create).mock.calls[0][0] as any;
+    const createCall = vi.mocked(tx.purchase.create).mock.calls[0][0] as { data: { paymentMethod?: string } };
     expect(createCall.data.paymentMethod).toBeUndefined();
     // Event transitions to NORMALIZED with resolvedCardId null
     expect(tx.walletEvent.update).toHaveBeenCalledWith({
@@ -253,12 +253,12 @@ describe("processWalletEvents", () => {
       capturedAt: new Date("2026-08-17T14:00:00Z"),
     };
     vi.mocked(prisma.walletEvent.findMany)
-      .mockResolvedValueOnce([event] as any)
+      .mockResolvedValueOnce([event] as never)
       .mockResolvedValueOnce([]);
-    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Metro", category: "grocery" } as any);
+    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Metro", category: "grocery" } as never);
     vi.mocked(prisma.cardAlias.findUnique)
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ cardId: "amex-cobalt" } as any);
+      .mockResolvedValueOnce({ cardId: "amex-cobalt" } as never);
     tx.purchase.findFirst.mockResolvedValue(null);
     tx.purchase.findMany.mockResolvedValue([]);
     tx.purchase.create.mockResolvedValue({ id: "purch-6", currency: "CAD" });
@@ -287,9 +287,9 @@ describe("processWalletEvents", () => {
       capturedAt: new Date("2026-08-16T22:30:00Z"),
     };
     vi.mocked(prisma.walletEvent.findMany)
-      .mockResolvedValueOnce(blocked as any).mockResolvedValueOnce([])
-      .mockResolvedValueOnce([good] as any).mockResolvedValueOnce([]);
-    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Fresh Cafe", category: null } as any);
+      .mockResolvedValueOnce(blocked as never).mockResolvedValueOnce([])
+      .mockResolvedValueOnce([good] as never).mockResolvedValueOnce([]);
+    vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Fresh Cafe", category: null } as never);
     tx.purchase.findFirst.mockResolvedValue(null); tx.purchase.findMany.mockResolvedValue([]);
     tx.purchase.create.mockResolvedValue({ id: "purchase-after", currency: "CAD" });
     tx.ownerStateRecord.findUnique.mockResolvedValue(null); tx.creditCard.findMany.mockResolvedValue([]);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { Search, ChevronDown, X, CreditCard, Sparkles } from "lucide-react";
 import type { CatalogueChoice } from "@/lib/cards/catalogueCard";
 import { POPULAR_CARD_IDS } from "@/lib/cards/catalogueCard";
@@ -360,12 +361,12 @@ export function CardPicker({ choices, value, onChange, showPopularChips = true }
             {/* Footer: Card Request Link */}
             <div className="border-t border-border/60 bg-muted/20 px-4 py-2.5 flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Don&apos;t see your card?</span>
-              <a
+              <Link
                 href="/cards/request"
                 className="text-xs font-semibold text-primary hover:underline underline-offset-2 transition-colors"
               >
                 Request card addition →
-              </a>
+              </Link>
             </div>
           </div>
         )}

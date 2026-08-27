@@ -8,7 +8,6 @@ import {
   feeWaiverNote,
   catalogueChoices,
   getCardPerksSummary,
-  POPULAR_CARD_IDS,
 } from "./catalogueCard";
 
 describe("catalogueCard", () => {

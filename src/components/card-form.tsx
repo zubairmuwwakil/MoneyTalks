@@ -100,7 +100,6 @@ export function CardForm({
     Boolean(values.lastFour || values.limit || values.statementDay || values.dueDay || values.aprPct),
   );
   const [blurErrors, setBlurErrors] = useState<BlurErrors>({});
-  const [nicknameAutoFilled, setNicknameAutoFilled] = useState(false);
   const firstErrorRef = useRef<HTMLParagraphElement>(null);
 
   const selected = choices.find((c) => c.contractCardId === values.contractCardId) ?? null;
@@ -597,4 +596,3 @@ export function CardForm({
     </form>
   );
 }
-

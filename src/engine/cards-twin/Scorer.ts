@@ -1,4 +1,4 @@
-import { inferValuationModel, ProgramValuation, PointValuation, CardProduct, PurchaseContext, OwnerState, CardState, EarnRule, Earn, Valuations } from './models';
+import { inferValuationModel, PointValuation, CardProduct, PurchaseContext, OwnerState, CardState, Earn, Valuations } from './models';
 import { RuleMatcher } from './RuleMatcher';
 import { CapMath } from './CapMath';
 import { toReporting } from './reportingCurrency';

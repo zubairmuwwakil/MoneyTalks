@@ -35,7 +35,7 @@ describe("updateMerchantAlias", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(tx));
+    vi.mocked(prisma.$transaction).mockImplementation(((fn: (transaction: typeof tx) => Promise<unknown>) => fn(tx)) as never);
   });
 
   it("rejects invalid input with empty normalizedName", async () => {
@@ -247,4 +247,3 @@ describe("setMerchantCategory", () => {
     });
   });
 });
-

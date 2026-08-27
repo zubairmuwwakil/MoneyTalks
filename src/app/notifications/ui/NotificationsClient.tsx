@@ -96,8 +96,8 @@ export default function NotificationsClient() {
         return;
       }
       await mutate();
-    } catch (err: any) {
-      setError(err?.message ?? "Network error updating notifications");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Network error updating notifications");
     } finally {
       setBusy(false);
     }

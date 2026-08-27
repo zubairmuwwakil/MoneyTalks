@@ -2,7 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST } from "./route";
 import { prisma } from "@/lib/prisma";
 import { createHash } from "node:crypto";
-import { NextResponse } from "next/server";
+
+type CreatedWalletEventData = {
+  capturedAt: Date;
+  capturedAtRaw: string | null;
+  capturedTimezone: string | null;
+  amountRaw: string | null;
+  rawPayload: unknown;
+  [key: string]: unknown;
+};
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -23,13 +31,13 @@ const tHash = createHash("sha256").update(token).digest("hex");
 
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.mocked(prisma.walletEvent.create).mockResolvedValue({ id: "evt-created" } as any);
-    vi.mocked(prisma.walletEvent.update).mockResolvedValue({} as any);
+    vi.mocked(prisma.walletEvent.create).mockResolvedValue({ id: "evt-created" } as never);
+    vi.mocked(prisma.walletEvent.update).mockResolvedValue({} as never);
     // Lazy owner-state provisioning: no cards → no default state → verdict stays "unknown".
-    vi.mocked(prisma.creditCard.findMany).mockResolvedValue([] as any);
+    vi.mocked(prisma.creditCard.findMany).mockResolvedValue([] as never);
   });
 
-  function mockReq(body: any, auth: string | null = `Bearer ${token}`) {
+  function mockReq(body: unknown, auth: string | null = `Bearer ${token}`) {
     const headers = new Headers();
     if (auth) headers.set("Authorization", auth);
     return new Request("http://localhost/api/v1/wallet-events", {
@@ -60,7 +68,7 @@ const tHash = createHash("sha256").update(token).digest("hex");
     vi.mocked(prisma.walletInstallation.findUnique).mockResolvedValue({
       id: "inst-1", userId: "user-1", tokenHash: createHash("sha256").update("mock-token").digest("hex"), revokedAt: null, label: "Test", createdAt: new Date()
     });
-    vi.mocked(prisma.walletEvent.findUnique).mockResolvedValue({ id: "evt-1" } as any);
+    vi.mocked(prisma.walletEvent.findUnique).mockResolvedValue({ id: "evt-1" } as never);
 
     const payload = {
       schemaVersion: 1, shortcutVersion: 1, source: "apple_wallet_shortcuts",
@@ -78,7 +86,7 @@ const tHash = createHash("sha256").update(token).digest("hex");
       id: "inst-1", userId: "user-1", tokenHash: createHash("sha256").update("mock-token").digest("hex"), revokedAt: null, label: "Test", createdAt: new Date()
     });
     vi.mocked(prisma.walletEvent.findUnique).mockResolvedValue(null);
-    vi.mocked(prisma.walletEvent.findFirst).mockResolvedValue({ id: "evt-existing" } as any);
+    vi.mocked(prisma.walletEvent.findFirst).mockResolvedValue({ id: "evt-existing" } as never);
 
     const payload = {
       schemaVersion: 1, shortcutVersion: 1, source: "apple_wallet_shortcuts",
@@ -143,7 +151,7 @@ const tHash = createHash("sha256").update(token).digest("hex");
       vi.mocked(prisma.walletEvent.findFirst).mockResolvedValue(null);
     }
 
-    function basePayload(overrides: Record<string, any> = {}, txOverrides: Record<string, any> = {}) {
+    function basePayload(overrides: Record<string, unknown> = {}, txOverrides: Record<string, unknown> = {}) {
       return {
         schemaVersion: 1, shortcutVersion: 1, source: "apple_wallet_shortcuts",
         eventId: "wevt_cr", capturedAt: "2026-08-16T18:25:31-04:00", timezone: "America/Toronto",
@@ -153,7 +161,7 @@ const tHash = createHash("sha256").update(token).digest("hex");
     }
 
     function createdData() {
-      return vi.mocked(prisma.walletEvent.create).mock.calls[0][0].data as any;
+      return vi.mocked(prisma.walletEvent.create).mock.calls[0][0].data as CreatedWalletEventData;
     }
 
     it("persists capturedAtRaw and capturedTimezone", async () => {
@@ -206,9 +214,9 @@ const tHash = createHash("sha256").update(token).digest("hex");
       ];
       for (const [input, expected] of cases) {
         vi.resetAllMocks();
-        vi.mocked(prisma.walletEvent.create).mockResolvedValue({ id: "evt-created" } as any);
-        vi.mocked(prisma.walletEvent.update).mockResolvedValue({} as any);
-        vi.mocked(prisma.creditCard.findMany).mockResolvedValue([] as any);
+        vi.mocked(prisma.walletEvent.create).mockResolvedValue({ id: "evt-created" } as never);
+        vi.mocked(prisma.walletEvent.update).mockResolvedValue({} as never);
+        vi.mocked(prisma.creditCard.findMany).mockResolvedValue([] as never);
         mockAuthedNoDups();
         await POST(mockReq(basePayload({}, { amount: input })));
         expect(createdData().amountRaw, `input: ${input}`).toBe(expected);
@@ -242,7 +250,7 @@ const tHash = createHash("sha256").update(token).digest("hex");
 
     it("forgives trailing spaces in hand-typed dictionary keys", async () => {
       mockAuthedNoDups();
-      const payload: Record<string, any> = {
+      const payload: Record<string, unknown> = {
         schemaVersion: 1, shortcutVersion: 1, source: "apple_wallet_shortcuts",
         eventId: "wevt_sp", capturedAt: "2026-08-17T18:40:14-04:00", timezone: "America/Toronto",
         "transaction ": JSON.stringify({ "merchantRaw ": "Starbucks", amount: "6.42" }),
@@ -304,8 +312,8 @@ const tHash = createHash("sha256").update(token).digest("hex");
 
     it("records resolved merchant and card identities at capture time", async () => {
       mockAuthedNoDups();
-      vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Starbucks" } as any);
-      vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue({ cardId: "amex-cobalt" } as any);
+      vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue({ normalizedName: "Starbucks" } as never);
+      vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue({ cardId: "amex-cobalt" } as never);
       await POST(mockReq(basePayload()));
       expect(createdData()).toMatchObject({
         merchantNormalized: "Starbucks", resolvedCardId: "amex-cobalt",
@@ -325,7 +333,7 @@ const tHash = createHash("sha256").update(token).digest("hex");
     });
     vi.mocked(prisma.walletEvent.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.walletEvent.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue({ stateData: {} } as any);
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue({ stateData: {} } as never);
     vi.mocked(prisma.cardAlias.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.merchantAlias.findUnique).mockResolvedValue(null);
 
@@ -360,7 +368,7 @@ const tHash = createHash("sha256").update(token).digest("hex");
 
     const response = await POST(mockReq(payload));
     expect(response.status).toBe(200);
-    const created = vi.mocked(prisma.walletEvent.create).mock.calls[0][0].data as any;
+    const created = vi.mocked(prisma.walletEvent.create).mock.calls[0][0].data as CreatedWalletEventData;
     expect(created).toMatchObject({ schemaVersion: 2, amountRaw: "1234.56", amountTextRaw: "1.234,56 €" });
     expect(created.rawPayload).toEqual(payload);
   });

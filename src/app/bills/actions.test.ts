@@ -3,7 +3,6 @@ import { allocateRecommendedCard, setBillCadence, setBillPaymentRail } from "./a
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { revalidatePath } from "next/cache";
-import { defaultOwnerState } from "@/lib/domain/ownerState";
 
 vi.mock("@/lib/require-user", () => ({ requireUserId: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));

@@ -199,7 +199,7 @@ export function diagnoseAccountDataHealth(input: AccountDataHealthInput): Accoun
     priceCurrency: h.priceCurrency?.toUpperCase() ?? null,
   }));
 
-  const valuation = holdingsValuation(holdingsData, accountCurrency, input.fxRates);
+  holdingsValuation(holdingsData, accountCurrency, input.fxRates);
 
   const missingPriceHoldings: string[] = [];
   const assumedCurrencyHoldings: string[] = [];

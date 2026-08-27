@@ -96,8 +96,8 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
         )
       );
       setEditingId(null);
-    } catch (err: any) {
-      setEditError(err?.message ?? "Network error saving subscription");
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : "Network error saving subscription");
     } finally {
       setSaving(false);
     }

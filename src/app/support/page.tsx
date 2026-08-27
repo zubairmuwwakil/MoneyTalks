@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Mail,
   HelpCircle,
@@ -66,7 +67,7 @@ export default function SupportPage() {
             className="inline-flex shrink-0 items-center gap-2 font-bold tracking-tight transition-opacity hover:opacity-90"
           >
             <div className="flex size-8 items-center justify-center rounded-lg bg-foreground/10 text-foreground overflow-hidden shrink-0">
-              <img src="/icon.svg" alt="In Unity" className="size-6" />
+              <Image src="/icon.svg" alt="In Unity" width={24} height={24} className="size-6" />
             </div>
             <span className="text-base font-semibold whitespace-nowrap">In Unity</span>
           </Link>

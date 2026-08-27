@@ -25,9 +25,9 @@ export default function WaitlistPage() {
       }
 
       setStatus("success");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus("error");
-      setErrorMessage(err.message);
+      setErrorMessage(err instanceof Error ? err.message : "Failed to join waitlist");
     }
   }
 

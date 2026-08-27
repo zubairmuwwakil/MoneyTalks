@@ -3,19 +3,16 @@
 import { useState, useTransition } from "react";
 import {
   Check,
-  CheckCircle2,
   AlertTriangle,
   Search,
   Sparkles,
   Store,
-  Tag,
   RotateCcw,
   Save,
-  SlidersHorizontal,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SPEND_CATEGORIES, CATEGORY_LABELS, type SpendCategory } from "@/lib/cards/types";
+import { SPEND_CATEGORIES, CATEGORY_LABELS } from "@/lib/cards/types";
 import { updateMerchantAlias } from "./actions";
 
 export interface MerchantAliasItem {
@@ -74,7 +71,7 @@ export default function MerchantAliasesClient({
     }));
   };
 
-  const handleSave = (id: string, original: MerchantAliasItem) => {
+  const handleSave = (id: string) => {
     const currentState = rowStates[id];
     if (!currentState) return;
 
@@ -124,9 +121,9 @@ export default function MerchantAliasesClient({
         } else {
           handleFieldChange(id, { error: result.error, savedSuccess: false });
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         handleFieldChange(id, {
-          error: err?.message || "Failed to update alias",
+          error: err instanceof Error ? err.message : "Failed to update alias",
           savedSuccess: false,
         });
       } finally {
@@ -400,7 +397,7 @@ export default function MerchantAliasesClient({
 
                     <button
                       type="button"
-                      onClick={() => handleSave(item.id, item)}
+                      onClick={() => handleSave(item.id)}
                       disabled={isPending || (!isDirty && !state.error)}
                       className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-4 text-xs font-semibold shadow-xs transition-colors cursor-pointer disabled:opacity-50 ${
                         isDirty

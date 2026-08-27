@@ -9,11 +9,9 @@ import {
   ChevronUp,
   Clock,
   Coins,
-  DollarSign,
   HelpCircle,
   Info,
   RefreshCw,
-  TrendingUp,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -169,13 +167,14 @@ export function AccountDataHealthCard({
   report,
   accountId,
   refreshAction,
-  isCrypto = false,
+  isCrypto,
 }: {
   report: AccountDataHealthReport;
   accountId: string;
   refreshAction: (formData: FormData) => Promise<void>;
-  isCrypto?: boolean;
+  isCrypto: boolean;
 }) {
+  void isCrypto;
   const [isPending, startTransition] = useTransition();
   const [isExpanded, setIsExpanded] = useState(true);
 

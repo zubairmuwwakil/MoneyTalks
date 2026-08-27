@@ -18,7 +18,7 @@ describe("CardRequestsAdminPage", () => {
     vi.mocked(requireAdmin).mockResolvedValue({ id: "user-1", email: "owner@example.com" });
     vi.mocked(prisma.cardRequest.groupBy).mockResolvedValue([
       { issuer: "Amex", cardName: "Platinum", _count: { _all: 5 } },
-    ] as any);
+    ] as never);
 
     const result = await CardRequestsAdminPage({ searchParams: Promise.resolve({}) });
     

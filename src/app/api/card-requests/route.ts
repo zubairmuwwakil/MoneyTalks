@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     // redirects to login, but since this is an API route, if it redirects,
     // we should probably just return 401. Let's get the user ID without redirecting.
     userId = await requireUserId();
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

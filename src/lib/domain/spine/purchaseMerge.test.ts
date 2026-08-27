@@ -36,7 +36,10 @@ describe("merchantsCompatible", () => {
 
 describe("findMatchingPurchase currency compatibility", () => {
   it("does not rewrite an unknown incoming currency to CAD in the query", async () => {
-    const findMany = vi.fn(async (_args: unknown) => [candidate()]);
+    const findMany = vi.fn(async (_args: unknown) => {
+      void _args;
+      return [candidate()];
+    });
 
     await findMatchingPurchase({ purchase: { findMany } } as never, { ...base, currency: null });
 

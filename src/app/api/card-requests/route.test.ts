@@ -31,7 +31,7 @@ describe("POST /api/card-requests", () => {
   });
 
   it("dedupes requests", async () => {
-    vi.mocked(prisma.cardRequest.findFirst).mockResolvedValue({ id: "1" } as any);
+    vi.mocked(prisma.cardRequest.findFirst).mockResolvedValue({ id: "1" } as never);
 
     const req = new NextRequest("http://localhost/api/card-requests", {
       method: "POST",

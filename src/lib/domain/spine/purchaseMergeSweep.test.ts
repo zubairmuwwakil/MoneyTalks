@@ -34,7 +34,7 @@ describe("sweepPurchaseDuplicateFlags", () => {
     vi.mocked(prisma.purchaseDuplicateDismissal.findMany).mockResolvedValue([]);
     vi.mocked(prisma.purchaseDuplicateDismissal.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.purchase.updateMany).mockResolvedValue({ count: 1 });
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma));
+    vi.mocked(prisma.$transaction).mockImplementation(((fn: typeof prisma.$transaction extends (callback: infer Callback) => unknown ? Callback : never) => fn(prisma as never)) as never);
   });
 
   it("flags only the newer row for exact and merchant-uncertain matches outside 72 hours", async () => {
@@ -61,7 +61,7 @@ describe("sweepPurchaseDuplicateFlags", () => {
         merchant: "Corner Shop",
         totalCents: 500,
       }),
-    ] as any);
+    ] as never);
 
     const result = await sweepPurchaseDuplicateFlags(new Date("2026-08-17T12:00:00Z"));
 
@@ -86,7 +86,7 @@ describe("sweepPurchaseDuplicateFlags", () => {
         createdAt: new Date("2026-08-12T12:01:00Z"),
       }),
       purchase({ id: "wallet-new" }),
-    ] as any);
+    ] as never);
     vi.mocked(prisma.purchaseDuplicateDismissal.findMany).mockResolvedValue([
       {
         id: "dismissal-1",
@@ -113,7 +113,7 @@ describe("sweepPurchaseDuplicateFlags", () => {
         createdAt: new Date("2026-08-12T12:01:00Z"),
       }),
       purchase({ id: "wallet-new" }),
-    ] as any);
+    ] as never);
     vi.mocked(prisma.purchaseDuplicateDismissal.findUnique).mockResolvedValue({
       id: "dismissal-raced",
       userId: "user-1",
@@ -141,7 +141,7 @@ describe("sweepPurchaseDuplicateFlags", () => {
         id: "wallet-enriched",
         _count: { ...none, emailTransactions: 1 },
       }),
-    ] as any);
+    ] as never);
 
     const result = await sweepPurchaseDuplicateFlags(new Date("2026-08-17T12:00:00Z"));
 

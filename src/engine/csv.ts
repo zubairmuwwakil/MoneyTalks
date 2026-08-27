@@ -99,8 +99,8 @@ export function detectColumnMapping(rows: string[][]): ColumnMapping | null {
   if (rows.length === 0) return null;
   const headers = rows[0].map((h) => h.toLowerCase().replace(/[^a-z0-9]/g, ""));
 
-  let dateCol = headers.findIndex((h) => h.includes("date"));
-  let descriptionCol = headers.findIndex((h) => h.includes("description") || h.includes("payee") || h.includes("merchant") || h.includes("memo"));
+  const dateCol = headers.findIndex((h) => h.includes("date"));
+  const descriptionCol = headers.findIndex((h) => h.includes("description") || h.includes("payee") || h.includes("merchant") || h.includes("memo"));
   let amountCol = headers.findIndex((h) => h === "amount" || h.includes("cad") || h.includes("usd") || h.includes("total") || h.includes("charge"));
 
   if (amountCol === -1) {

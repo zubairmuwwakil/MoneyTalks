@@ -325,7 +325,6 @@ function renderFullCardSvg(cardId: string, officialName: string, issuer: string,
   // Generic photorealistic template for all other cards
   const isMc = network.toLowerCase().includes("mastercard");
   const isAmex = network.toLowerCase().includes("amex");
-  const isVisa = !isMc && !isAmex;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 252" width="400" height="252">
     <defs>
