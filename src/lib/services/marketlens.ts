@@ -129,7 +129,24 @@ export function providerKeyHeader(providerKeys: Record<string, string>): string 
  */
 export async function fetchQuotes(
   symbols: string[],
-  options: { assetClass?: AssetClass; providerKeys?: Record<string, string>; timeoutMs?: number } = {},
+  options: {
+    assetClass?: AssetClass;
+    providerKeys?: Record<string, string>;
+    timeoutMs?: number;
+    /**
+     * Bypass MarketLens' cache and force a provider call for every symbol.
+     *
+     * Reserved for the warm-up. MarketLens fans out to its upstream provider only
+     * on a cache miss, and that fan-out is the expensive, deadline-bound step —
+     * whoever triggers the first one of the night pays for it, and the loser of
+     * that race is served a cached price indistinguishable from a fresh one. It is
+     * also the only way to correct a cache holding a *wrong* candle for the right
+     * date, since the miss test is `cachedTradeDate < expectedSession`.
+     *
+     * Costs one provider call per symbol. Never set this on a page render.
+     */
+    refresh?: boolean;
+  } = {},
 ): Promise<QuoteBatch | null> {
   const baseUrl = process.env.MARKETLENS_BASE_URL?.trim();
   const apiKey = process.env.MARKETLENS_API_KEY?.trim();
@@ -145,10 +162,11 @@ export async function fetchQuotes(
   const merged: QuoteBatch = { pricing: "daily-close", expectedSession: null, quotes: [], truncated: [] };
   let anySucceeded = false;
   const assetClassParam = options.assetClass ? `&assetClass=${encodeURIComponent(options.assetClass)}` : "";
+  const refreshParam = options.refresh ? "&refresh=true" : "";
 
   for (let i = 0; i < unique.length; i += MAX_SYMBOLS_PER_REQUEST) {
     const chunk = unique.slice(i, i + MAX_SYMBOLS_PER_REQUEST);
-    const url = `${baseUrl.replace(/\/+$/, "")}/api/v1/quotes?symbols=${encodeURIComponent(chunk.join(","))}${assetClassParam}`;
+    const url = `${baseUrl.replace(/\/+$/, "")}/api/v1/quotes?symbols=${encodeURIComponent(chunk.join(","))}${assetClassParam}${refreshParam}`;
     try {
       const res = await fetch(url, {
         headers,

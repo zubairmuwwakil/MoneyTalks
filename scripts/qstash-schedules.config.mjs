@@ -22,6 +22,30 @@ export function resolveBaseUrl(env = process.env) {
   return raw.replace(/\/+$/, "");
 }
 
+/** QStash's own default. Fine for a job that only touches our own database. */
+const DEFAULT_TIMEOUT = "2m";
+
+/**
+ * For jobs that deliberately wait on a cold third-party service.
+ *
+ * Cut off at the default, such a job is killed mid-fan-out and retried from
+ * scratch — repeatedly paying the cold start it was created to absorb.
+ */
+const COLD_START_TIMEOUT = "5m";
+
+// ORDERING NOTE — prices-warmup MUST fire before prices, with real margin.
+//
+// MarketLens answers from a cache and only fans out to its upstream provider
+// when the cache cannot answer. Whoever triggers the first fan-out of the night
+// pays for it under a deadline; whoever loses that race is served a cached price
+// that is indistinguishable from a fresh one. Through 2026-08 the loser was the
+// price cron, every night, and the portfolio sat one session stale with no error
+// anywhere. See docs/decisions/LOG.md 2026-08-27.
+//
+// The warm-up therefore does the fan-out first, and the gap must be long enough
+// for a cold container boot plus a QStash retry to still land before 02:00.
+// Asserted in qstash-schedules.config.test.ts, not just described here.
+//
 // scheduleIds are deliberately frozen at their original "moneytalks-" prefix.
 // They are internal QStash identifiers, not branding: renaming one does not
 // rename a schedule, it creates a second one and orphans the first.
@@ -30,8 +54,8 @@ export const schedules = [
   { name: "notify",         scheduleId: "moneytalks-notify",         path: "/api/cron/notify",         cronEnv: "QSTASH_NOTIFY_CRON",         cronDefault: "0 * * * *" },
   { name: "purchase-merge", scheduleId: "moneytalks-purchase-merge", path: "/api/cron/purchase-merge", cronEnv: "QSTASH_PURCHASE_MERGE_CRON", cronDefault: "30 3 * * *" },
   { name: "fx",             scheduleId: "moneytalks-fx",             path: "/api/cron/fx",             cronEnv: "QSTASH_FX_CRON",             cronDefault: "0 11 * * *" },
-  { name: "prices-warmup",  scheduleId: "moneytalks-prices-warmup",  path: "/api/cron/prices-warmup",  cronEnv: "QSTASH_PRICES_WARMUP_CRON",  cronDefault: "55 1 * * *" },
-  { name: "prices",         scheduleId: "moneytalks-prices",         path: "/api/cron/prices",         cronEnv: "QSTASH_PRICES_CRON",         cronDefault: "0 2 * * *" },
+  { name: "prices-warmup",  scheduleId: "moneytalks-prices-warmup",  path: "/api/cron/prices-warmup",  cronEnv: "QSTASH_PRICES_WARMUP_CRON",  cronDefault: "45 1 * * *", timeout: COLD_START_TIMEOUT },
+  { name: "prices",         scheduleId: "moneytalks-prices",         path: "/api/cron/prices",         cronEnv: "QSTASH_PRICES_CRON",         cronDefault: "0 2 * * *",  timeout: COLD_START_TIMEOUT },
   { name: "wallet-diagnostics", scheduleId: "moneytalks-wallet-diagnostics", path: "/api/cron/wallet-diagnostics", cronEnv: "QSTASH_WALLET_DIAGNOSTICS_CRON", cronDefault: "15 4 * * *" },
 ];
 
@@ -40,6 +64,7 @@ export function expected(env = process.env) {
   return schedules.map((s) => ({
     ...s,
     cron: env[s.cronEnv] || s.cronDefault,
+    timeout: s.timeout || DEFAULT_TIMEOUT,
     destination: base ? `${base}${s.path}` : null,
   }));
 }

@@ -44,9 +44,14 @@ for (const w of want) {
   const issues = [];
   if (got.destination !== w.destination) issues.push(`destination is ${got.destination}, expected ${w.destination}`);
   if (got.cron !== w.cron) issues.push(`cron is "${got.cron}", expected "${w.cron}"`);
+  // A timeout shorter than the job needs kills it mid-flight and retries it from
+  // scratch. Silent, and indistinguishable from the job simply not working.
+  if (w.timeout && got.timeout && String(got.timeout) !== String(w.timeout)) {
+    issues.push(`timeout is "${got.timeout}", expected "${w.timeout}"`);
+  }
   if (got.isPaused) issues.push("schedule is PAUSED");
   if (issues.length) problems.push(`DRIFTED    ${w.scheduleId} -- ${issues.join("; ")}`);
-  else console.log(`  ok  ${w.scheduleId}  ${w.cron}  -> ${w.destination}`);
+  else console.log(`  ok  ${w.scheduleId}  ${w.cron}  (timeout ${w.timeout})  -> ${w.destination}`);
 }
 
 for (const [id, s] of byId) {

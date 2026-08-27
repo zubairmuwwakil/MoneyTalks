@@ -51,11 +51,11 @@ for (const schedule of expected()) {
     cron: schedule.cron,
     method: "POST",
     retries: 3,
-    timeout: "2m",
+    timeout: schedule.timeout,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ source: "qstash", job: schedule.name }),
     label: ["moneytalks", schedule.name],
   });
 
-  console.log(`${schedule.name}: ${schedule.cron} -> ${destination} (${scheduleId})`);
+  console.log(`${schedule.name}: ${schedule.cron} (timeout ${schedule.timeout}) -> ${destination} (${scheduleId})`);
 }

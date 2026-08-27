@@ -23,6 +23,26 @@ export type RefreshOutcome = {
 };
 
 /**
+ * Is this quote's session at least as current as the last close MarketLens
+ * expected?
+ *
+ * At-or-after, not exactly-equal. Exact equality made a *validated* price
+ * depend on two independently deployed services agreeing on a calendar date to
+ * the day, and a price newer than the expected close is not less trustworthy
+ * than one that matches it. When they disagreed, In Unity silently recorded the
+ * whole account as PARTIAL — no error, no log, just a nightly valuation that
+ * never counted. Both dates are ISO `YYYY-MM-DD`, so lexicographic order is
+ * chronological order.
+ */
+export function isAtOrAfterSession(
+  tradeDate: string | null,
+  expectedSession: string | null,
+): boolean {
+  if (!tradeDate || !expectedSession) return false;
+  return tradeDate >= expectedSession;
+}
+
+/**
  * @param accountId when given, only that account's holdings; otherwise every
  *                  holding the user owns.
  */
@@ -74,7 +94,7 @@ export async function refreshHoldingPrices(
       equityQuotes.push(...equityBatch.quotes);
       if (equityBatch.expectedSession) {
         equityBatch.quotes.forEach((quote) => {
-          if (quote.status === "FRESH" && quote.tradeDate === equityBatch.expectedSession) {
+          if (isAtOrAfterSession(quote.tradeDate, equityBatch.expectedSession) && quote.status === "FRESH") {
             validatedEquitySymbols.add(quote.symbol.toUpperCase());
           }
         });
@@ -94,7 +114,7 @@ export async function refreshHoldingPrices(
       cryptoQuotes.push(...cryptoBatch.quotes);
       if (cryptoBatch.expectedSession) {
         cryptoBatch.quotes.forEach((quote) => {
-          if (quote.status === "FRESH" && quote.tradeDate === cryptoBatch.expectedSession) {
+          if (isAtOrAfterSession(quote.tradeDate, cryptoBatch.expectedSession) && quote.status === "FRESH") {
             validatedCryptoSymbols.add(quote.symbol.toUpperCase());
           }
         });

@@ -77,6 +77,19 @@ describe("refreshHoldingPrices", () => {
     expect(result.validatedHoldingIds).toEqual([]);
   });
 
+  it("validates a quote from a session at or after the one MarketLens expected", async () => {
+    // Exact equality made In Unity depend on MarketLens agreeing to the day. The
+    // two services deploy independently, and a price that is *newer* than the last
+    // expected close is not less trustworthy than one that matches it — refusing
+    // it silently downgraded the whole account to PARTIAL.
+    const prisma = prismaMock();
+    vi.mocked(fetchQuotes).mockResolvedValue(quoteBatch("2026-08-18", "2026-08-19"));
+
+    const result = await refreshHoldingPrices(prisma as never, "user-1");
+
+    expect(result.validatedHoldingIds).toEqual(["holding-1"]);
+  });
+
   it("keeps same-symbol equity and crypto quotes inside their asset classes", async () => {
     const prisma = prismaMock([
       {

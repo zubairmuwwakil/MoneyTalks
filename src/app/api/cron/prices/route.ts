@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMarketLensConfigured } from "@/lib/services/marketlens";
+import { warmQuoteCache } from "@/lib/domain/investments/warmQuoteCache";
 import { refreshHoldingPrices } from "@/lib/domain/investments/refreshHoldingPrices";
 import { captureInvestmentSnapshots } from "@/lib/domain/investments/captureInvestmentSnapshots";
 import { isAuthorizedCronRequest } from "@/lib/security/cronAuth";
@@ -9,37 +10,36 @@ import { sendServiceFailureAlert } from "@/lib/services/alerting";
 export const runtime = "nodejs";
 
 /**
- * MarketLens runs on a plan that spins down when idle, so the first request of
- * the night pays a cold start. A cron is exactly where that is affordable — and
- * it is the reason this job exists: it keeps stored prices warm so a page render
- * never has to wait on a live fetch.
+ * Records one daily valuation per account, from prices that are as current as
+ * they can honestly be made.
  *
- * maxDuration is 120 s because a Java/Spring cold start can take 30–60 s alone,
- * and the original 60 s left no margin after the warmup + quote fetch + snapshot
- * capture sequence.
+ * ORDERING IS THE WHOLE DESIGN. MarketLens answers from a cache and only fans out
+ * to its upstream provider when the cache cannot answer. That fan-out runs under
+ * a deadline and is slowest on a just-woken instance. Reading before anyone has
+ * warmed it means this job triggers the fan-out itself, loses the race, and is
+ * served a cached price that looks exactly like a fresh one — a silently
+ * one-session-stale portfolio with no error anywhere (2026-08, see
+ * docs/decisions/LOG.md 2026-08-27).
+ *
+ * So: sweep, then read. /api/cron/prices-warmup does the same sweep 15 minutes
+ * earlier and is the primary mechanism; the call here is the backstop for the
+ * night it does not run.
+ *
+ * maxDuration is 120 s to cover the worst case of a cold sweep plus a per-user
+ * refresh. On the happy path the sweep has already been done and this job
+ * finishes in seconds.
  */
 export const maxDuration = 120;
 
-/** Absorb MarketLens' cold start so the real quote fetch doesn't time out. */
-async function warmUpMarketLens(): Promise<void> {
-  const baseUrl = process.env.MARKETLENS_BASE_URL?.trim();
-  if (!baseUrl) return;
-  const target = baseUrl.replace(/\/+$/, "");
-  const start = Date.now();
-  while (Date.now() - start < 25_000) {
-    try {
-      const res = await fetch(target + "/actuator/health", {
-        method: "GET",
-        cache: "no-store",
-        signal: AbortSignal.timeout(4_000),
-      });
-      if (res.status === 200 || res.status === 401) return;
-    } catch {
-      // Still spinning up; short pause before checking again
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-  }
-}
+/**
+ * How long the backstop sweep may take.
+ *
+ * Deliberately shorter than the warm-up cron's budget: by the time this runs the
+ * sweep has usually already happened, and the job still owes everyone a recorded
+ * snapshot. A sweep is worth waiting for, but never worth missing the valuation
+ * over — so it is bounded, and its failure is non-fatal.
+ */
+const BACKSTOP_SWEEP_TIMEOUT_MS = 45_000;
 
 async function runPriceCron(req: NextRequest) {
   if (!(await isAuthorizedCronRequest(req))) {
@@ -52,11 +52,18 @@ async function runPriceCron(req: NextRequest) {
   }
 
   try {
-    // Wake MarketLens before the clock starts on any per-user fetch timeout.
-    // A Java/Spring cold start can take 30–60 s; absorbing it here means the
-    // per-user refreshHoldingPrices call sees a warm service.
+    // Correct the cache before reading it. Never fatal: a sweep that fails leaves
+    // stored prices untouched (E4), and a stale-but-recorded valuation, honestly
+    // labelled, beats no valuation at all.
+    let sweep = null;
     if (marketLensConfigured) {
-      await warmUpMarketLens();
+      sweep = await warmQuoteCache(prisma, { timeoutMs: BACKSTOP_SWEEP_TIMEOUT_MS });
+      if (!sweep.ok) {
+        console.warn(
+          `[cron/prices] warm sweep did not warm everything (${sweep.fresh}/${sweep.symbols} fresh); ` +
+            `causes=${JSON.stringify(sweep.causes)} reason=${sweep.reason ?? "none"}`,
+        );
+      }
     }
 
     // Cash-only accounts still need a daily valuation, so account ownership — not
@@ -121,6 +128,10 @@ async function runPriceCron(req: NextRequest) {
           snapshots,
           refreshFailures,
           marketLensConfigured,
+          // The sweep report names WHY MarketLens could not price things —
+          // provider_deadline_exceeded, budget_exhausted, session_in_progress.
+          // Without it an alert says "nothing worked" and nothing more.
+          sweep,
         },
       });
 

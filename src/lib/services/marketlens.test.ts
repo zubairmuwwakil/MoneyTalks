@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { parseQuoteBatch, providerKeyHeader } from "./marketlens";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fetchQuotes, parseQuoteBatch, providerKeyHeader } from "./marketlens";
 
 describe("parseQuoteBatch", () => {
   const batch = (quotes: unknown[]) => ({
@@ -90,5 +90,46 @@ describe("providerKeyHeader", () => {
   it("returns null when there is nothing to send", () => {
     expect(providerKeyHeader({})).toBeNull();
     expect(providerKeyHeader({ ALPHAVANTAGE: "   " })).toBeNull();
+  });
+});
+
+describe("fetchQuotes", () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    process.env.MARKETLENS_BASE_URL = "https://marketlens.example/";
+    process.env.MARKETLENS_API_KEY = "test-key";
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  const okResponse = () =>
+    new Response(
+      JSON.stringify({ pricing: "daily-close", expectedSession: "2026-08-26", quotes: [], truncated: [] }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+
+  it("reads cache-first by default, so an ordinary page render is cheap", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okResponse());
+    globalThis.fetch = fetchMock as never;
+
+    await fetchQuotes(["aapl"], { assetClass: "EQUITY" });
+
+    expect(String(fetchMock.mock.calls[0][0])).not.toContain("refresh=true");
+  });
+
+  it("can force the provider fan-out, which is how the cache gets warmed before a batch read", async () => {
+    // The expensive step is MarketLens' provider fan-out, and whoever triggers the
+    // first one of the night pays for it under a deadline. Warming deliberately,
+    // early, is the whole fix for the 2026-08 nightly failure.
+    const fetchMock = vi.fn().mockResolvedValue(okResponse());
+    globalThis.fetch = fetchMock as never;
+
+    await fetchQuotes(["aapl"], { assetClass: "EQUITY", refresh: true });
+
+    expect(String(fetchMock.mock.calls[0][0])).toContain("refresh=true");
   });
 });
