@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "2.3",
+  "catalogueVersion": "2.4",
   "currency": "CAD",
   "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md — all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
@@ -5892,6 +5892,381 @@
       "program": {
         "programId": "cashback",
         "unit": "cad"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-delta-blue",
+      "officialName": "Amex Delta Blue",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "deltaSkyMiles",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "bank-of-america-atmos-rewards-summit-visa",
+      "officialName": "Atmos Rewards Summit Visa Infinite Credit Card",
+      "issuer": "Bank of America",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 395,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "atmosRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "bank-of-america-free-spirit-travel-more-world",
+      "officialName": "Free Spirit® Travel More World Elite Mastercard®",
+      "issuer": "Bank of America",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 79,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "spiritFreeSpirit",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "barclays-hawaiian-airlines-world-elite",
+      "officialName": "Hawaiian Airlines World Elite Mastercard®",
+      "issuer": "Barclays",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 99,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "atmosRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-aer-lingus-visa-signature-card",
+      "officialName": "Aer Lingus Visa Signature® Card",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "avios",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-british-airways-visa-signature-card",
+      "officialName": "British Airways Visa Signature® Card",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "avios",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-disney-inspire-visa-card",
+      "officialName": "Disney Inspire Visa Card",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 149,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "disneyRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-disney-premier-visa",
+      "officialName": "Disney Premier Visa",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 49,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "disneyRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-disney-visa-card",
+      "officialName": "Chase Disney Visa Card",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "disneyRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-iberia-visa-signature-card",
+      "officialName": "Iberia Visa Signature® Card",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "avios",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "citi-aadvantage-business-world-elite",
+      "officialName": "Citi / AAdvantage Business World Elite Mastercard",
+      "issuer": "Citi",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 99,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "aaAdvantage",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "citi-aadvantage-executive-world-elite",
+      "officialName": "Citi® / AAdvantage® Executive World Elite Mastercard®",
+      "issuer": "Citi",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 595,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "aaAdvantage",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "citi-aadvantage-globe-mastercard",
+      "officialName": "Citi® / AAdvantage® Globe™ Mastercard®",
+      "issuer": "Citi",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 350,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "aaAdvantage",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "synchrony-cathay-world-elite-mastercard",
+      "officialName": "Cathay World Elite Mastercard",
+      "issuer": "Synchrony",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 99,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cathayAsiaMiles",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "royal-bank-of-canada-rbc-british-airways-visa",
+      "officialName": "RBC British Airways Visa Infinite",
+      "issuer": "Royal Bank of Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 165.0,
+          "currency": "CAD"
+        }
+      },
+      "program": {
+        "programId": "avios",
+        "unit": "point"
       },
       "fxRules": [],
       "earnRules": [],

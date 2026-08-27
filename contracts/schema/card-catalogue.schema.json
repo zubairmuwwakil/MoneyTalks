@@ -58,9 +58,16 @@
         "capitalOneMiles",
         "discoverCashback",
         "bofaPreferredRewards",
-        "noRewards"
+        "noRewards",
+        "aaAdvantage",
+        "atmosRewards",
+        "avios",
+        "cathayAsiaMiles",
+        "deltaSkyMiles",
+        "disneyRewards",
+        "spiritFreeSpirit"
       ],
-      "description": "The key a card's rewards currency is valued under. Hoisted into $defs on 2026-08-20 so programs.schema.json can reference the one list instead of keeping a second copy in step. Since that date this is a DATA key, not an engine dispatch key: Scorer.valueCad switches on the valuation's model, so a new programId needs an entry in programs.json (or an owner-state override) and no engine code change. A programId with neither has no valuation. NOTE: as of this bump Scorer.valueCad still returns 0.0 for it rather than excluding the card \u2014 the current gap is pinned in CatalogueIntegrityTests.knownUnvaluedPrograms and closing it is separate work. The six `*Us`/US-issuer entries added 2026-08-26 are placeholders for the multi-market import (Stage C, unpopulated in programs.json until a candidate actually needs one) \u2014 do not treat their presence here as the program being valued. `noRewards` is a card with no rewards programme at all (MBNA True Line, Capital One Guaranteed Secured). It is a STATED fact, not an absence: its valuation model answers 0.0 so the card is scored and ranks last on merit, where a missing valuation answers nil and excludes the card entirely. Same principle as fxRules, where a fee-free card declares rate 0.0 rather than saying nothing."
+      "description": "The key a card's rewards currency is valued under. Hoisted into $defs on 2026-08-20 so programs.schema.json can reference the one list instead of keeping a second copy in step. Since that date this is a DATA key, not an engine dispatch key: Scorer.valueCad switches on the valuation's model, so a new programId needs an entry in programs.json (or an owner-state override) and no engine code change. A programId with NEITHER has no valuation, and that is not inert: Scorer.valueCad answers nil/null and Scorer.score EXCLUDES every card on it with unsupportedProgram. It never scores zero \u2014 \"we cannot value this\" must not rank as \"this is worth nothing\", which is the distinction noRewards exists to make sayable. Several entries here are deliberately unvalued, and every card on one is therefore a `draft`: the six `*Us`/US-issuer entries added 2026-08-26 for the multi-market import, and the seven co-brand currencies added 2026-08-27 (catalogue 2.4) under the Option 2 follow-up to that day's Option 1 ruling. Do NOT read an entry's presence here as the programme being valued \u2014 check programs.json. Publishing a card on an unvalued programme makes it vanish from every recommendation rather than rank badly; CatalogueIntegrityTests.testEveryProgramIdIsValuedOrKnownUnvalued and CoBrandProgramTests.testEveryCardOnAnUnvaluedProgramIsADraft hold that line from both ends. `noRewards` is a card with no rewards programme at all (MBNA True Line, Capital One Guaranteed Secured). It is a STATED fact, not an absence: its valuation model answers 0.0 so the card is scored and ranks last on merit, where a missing valuation answers nil and excludes the card entirely. Same principle as fxRules, where a fee-free card declares rate 0.0 rather than saying nothing."
     },
     "market": {
       "enum": [
