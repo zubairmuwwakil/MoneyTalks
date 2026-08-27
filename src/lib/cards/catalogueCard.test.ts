@@ -9,6 +9,7 @@ import {
   catalogueChoices,
   getCardPerksSummary,
 } from "./catalogueCard";
+import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 
 describe("catalogueCard", () => {
   it("resolves a linked card to its catalogue product", () => {
@@ -89,12 +90,20 @@ describe("feeWaiverNote", () => {
 });
 
 describe("catalogueChoices", () => {
-  it("offers every catalogue card to the picker", () => {
+  it("offers every PUBLISHED catalogue card to the picker, and no draft", () => {
     const choices = catalogueChoices();
     // 41 since the one-corpus collapse (2026-08-24): the 27 the seed owner holds, its 6
     // researched candidates, and 8 further products — minus pc-money-account, which is not a card.
+    // Still 41 at catalogue 2.2, which added 26 US drafts: the picker has no "unverified" label
+    // and no market filter, so offering them would put unverified US products in front of a
+    // Canadian owner as though they were issuer-confirmed.
     expect(choices).toHaveLength(41);
     expect(new Set(choices.map((c) => c.contractCardId)).size).toBe(41);
+
+    const drafts = cardCatalogue.cards.filter((c) => c.status === "draft");
+    expect(drafts.length).toBeGreaterThan(0);
+    const offered = new Set(choices.map((c) => c.contractCardId));
+    expect(drafts.every((d) => !offered.has(d.cardId))).toBe(true);
   });
 
   it("carries the facts the add-card form prefills, and no rate data", () => {

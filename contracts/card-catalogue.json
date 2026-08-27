@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "2.1",
+  "catalogueVersion": "2.2",
   "currency": "CAD",
   "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md — all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
@@ -5173,6 +5173,656 @@
         "https://www.pcfinancial.ca/en/credit-cards/world-mastercard/"
       ],
       "lastVerifiedAt": "2026-08-24"
+    },
+    {
+      "cardId": "alliant-credit-union-alliant-cashback-visa",
+      "officialName": "Alliant Cashback Visa® Signature Credit Card",
+      "issuer": "Alliant Credit Union",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-blue-business-plus",
+      "officialName": "Amex Blue Business Plus",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "amexMembershipRewardsUs",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-blue-from-american-express",
+      "officialName": "Blue from American Express®",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "amexMembershipRewardsUs",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-business-gold-card",
+      "officialName": "American Express Business Gold Card",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 375,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "amexMembershipRewardsUs",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-business-green-rewards-card",
+      "officialName": "Business Green Rewards Card from American Express",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "amexMembershipRewardsUs",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-cash-magnet",
+      "officialName": "Amex Cash Magnet",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-everyday-card",
+      "officialName": "American Express EveryDay® Card",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "amexMembershipRewardsUs",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-everyday-preferred",
+      "officialName": "Amex EveryDay Preferred Credit Card",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "amexMembershipRewardsUs",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-gold-card",
+      "officialName": "American Express® Gold Card",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 325,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "amexMembershipRewardsUs",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-graphite-business-cash",
+      "officialName": "Amex Graphite Business Cash",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 295,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-green-card",
+      "officialName": "American Express® Green Card",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 150,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "amexMembershipRewardsUs",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-the-business-platinum-card",
+      "officialName": "The Business Platinum Card® from American Express",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 895,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "amexMembershipRewardsUs",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-the-platinum-card",
+      "officialName": "The Platinum Card® from American Express",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 895,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "amexMembershipRewardsUs",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "bank-of-america-business-advantage-customized",
+      "officialName": "Bank of America® Business Advantage Customized Cash Rewards Mastercard®",
+      "issuer": "Bank of America",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "bofaPreferredRewards",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "citi-secured-mastercard",
+      "officialName": "Citi® Secured Mastercard®",
+      "issuer": "Citi",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "citiThankYou",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "comenity-bread-cashback-american-express",
+      "officialName": "Bread Cashback® American Express® Credit Card",
+      "issuer": "Comenity",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "discover-it-cash-back",
+      "officialName": "Discover it® Cash Back",
+      "issuer": "Discover",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "discover",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "discoverCashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "discover-it-chrome",
+      "officialName": "Discover it® Chrome",
+      "issuer": "Discover",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "discover",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "discoverCashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "discover-it-chrome-gas-restaurant-credit-card",
+      "officialName": "Discover it Chrome Gas & Restaurant Credit Card",
+      "issuer": "Discover",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "discover",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "discoverCashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "discover-it-miles",
+      "officialName": "Discover it® Miles",
+      "issuer": "Discover",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "discover",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "discoverCashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "discover-it-secured-credit-card",
+      "officialName": "Discover it® Secured Credit Card",
+      "issuer": "Discover",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "discover",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "discoverCashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "penfed-credit-union-penfed-power-cash-rewards",
+      "officialName": "PenFed Power Cash Rewards® Visa Signature® Card",
+      "issuer": "PenFed Credit Union",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "pnc-bank-pnc-cash-rewards-visa-credit-card",
+      "officialName": "PNC Cash Rewards® Visa® Credit Card",
+      "issuer": "PNC Bank",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "u-s-bank-shopper-cash-rewards-visa-signature",
+      "officialName": "U.S. Bank Shopper Cash Rewards® Visa Signature® Card",
+      "issuer": "U.S. Bank",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "u-s-bank-triple-cash-rewards-visa-business",
+      "officialName": "U.S. Bank Triple Cash Rewards Visa® Business Card",
+      "issuer": "U.S. Bank",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "upgrade-triple-cash-rewards-visa",
+      "officialName": "Upgrade Triple Cash Rewards Visa",
+      "issuer": "Upgrade",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
     }
   ]
 }
