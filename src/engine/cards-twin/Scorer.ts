@@ -213,6 +213,11 @@ export const Scorer = {
           : valuation.defaultHeldRiskFactor);
       case 'cashback':
         return units * valuation.cadPerDollar;
+      case 'noRewards':
+        // 0, never null. null means "unvalued" and excludes the card; this card IS valued, and
+        // what it earns is nothing. Collapsing the two hides a real product from a comparison it
+        // belongs in.
+        return 0;
     }
   }
 };

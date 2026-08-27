@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pickme.local/contracts/card-catalogue.schema.json",
   "title": "PickMe card catalogue",
-  "description": "Documents the shape of card-catalogue.json exactly as decoded by Engine/Sources/CardCopilotEngine/Models/CatalogueModels.swift — it does not redesign the shape (spec §4). Two distinct 'unused' markers appear below: \"x-status\": \"declared-not-computed\" means the field IS a Swift struct property but no scoring/matching logic (RuleMatcher, Scorer, CapMath, PortfolioAnalyzer) ever reads it; \"x-status\": \"documentation-only\" means the field has NO corresponding Swift property at all, so JSONDecoder silently drops it on load — it is pure human-facing metadata. Two behaviors are engine-defined rather than data-defined: ownerConditions ids and the pseudo-categories/categoryParents RuleMatcher special-cases. This schema enumerates their current legal values; adding a new one is an engine code change, not a catalogue edit. program.programId used to be a third — the Scorer switched its valuation dispatch on that string — but since 2026-08-20 valuations are keyed data (programs.json, overridable per programId by owner state) and the Scorer dispatches on the valuation's model instead. 2.0 is the multi-market bump: every card now carries `market`/`billingCurrency`, monetary fields are `{amount, currency}` pairs instead of bare CAD numbers, and a `status` tier separates checkout-eligible products from research-grade drafts (see the top-level and cardProduct descriptions below).",
+  "description": "Documents the shape of card-catalogue.json exactly as decoded by Engine/Sources/CardCopilotEngine/Models/CatalogueModels.swift \u2014 it does not redesign the shape (spec \u00a74). Two distinct 'unused' markers appear below: \"x-status\": \"declared-not-computed\" means the field IS a Swift struct property but no scoring/matching logic (RuleMatcher, Scorer, CapMath, PortfolioAnalyzer) ever reads it; \"x-status\": \"documentation-only\" means the field has NO corresponding Swift property at all, so JSONDecoder silently drops it on load \u2014 it is pure human-facing metadata. Two behaviors are engine-defined rather than data-defined: ownerConditions ids and the pseudo-categories/categoryParents RuleMatcher special-cases. This schema enumerates their current legal values; adding a new one is an engine code change, not a catalogue edit. program.programId used to be a third \u2014 the Scorer switched its valuation dispatch on that string \u2014 but since 2026-08-20 valuations are keyed data (programs.json, overridable per programId by owner state) and the Scorer dispatches on the valuation's model instead. 2.0 is the multi-market bump: every card now carries `market`/`billingCurrency`, monetary fields are `{amount, currency}` pairs instead of bare CAD numbers, and a `status` tier separates checkout-eligible products from research-grade drafts (see the top-level and cardProduct descriptions below).",
   "type": "object",
   "required": [
     "catalogueVersion",
@@ -14,12 +14,12 @@
     "catalogueVersion": {
       "type": "string",
       "pattern": "^[0-9]+\\.[0-9]+$",
-      "description": "MAJOR.MINOR. Load-bearing: SeedLoader.validate(catalogueVersion:) parses MAJOR and throws SeedLoaderError.unsupportedCatalogueVersion if it isn't a MAJOR this build recognizes (currently only 2, bumped from 1 for the multi-market shape change — Money-shaped fees/credits, `market`/`billingCurrency`, `status`, `spendNative` replacing `spendCad`, `calendarQuarter`). Bump MAJOR on any breaking shape change, MINOR on additive/compatible ones; every edit gets a CHANGELOG.md entry (spec §3)."
+      "description": "MAJOR.MINOR. Load-bearing: SeedLoader.validate(catalogueVersion:) parses MAJOR and throws SeedLoaderError.unsupportedCatalogueVersion if it isn't a MAJOR this build recognizes (currently only 2, bumped from 1 for the multi-market shape change \u2014 Money-shaped fees/credits, `market`/`billingCurrency`, `status`, `spendNative` replacing `spendCad`, `calendarQuarter`). Bump MAJOR on any breaking shape change, MINOR on additive/compatible ones; every edit gets a CHANGELOG.md entry (spec \u00a73)."
     },
     "currency": {
       "type": "string",
       "const": "CAD",
-      "description": "The engine's fixed REPORTING currency — every CandidateScore/PortfolioAnalyzer/AcquisitionAnalyzer output number (netValueCad, annualFeeCad, ...) is expressed in this currency regardless of a card's own `market`/`billingCurrency` or a purchase's `currency`. Not per-card, and not a claim that every card bills in CAD — see cardProduct.billingCurrency for that. A non-CAD catalogue figure (a USD fee, a USD-valued program) is converted to this reporting currency at the point it is combined with one, via ReportingCurrency's pinned rate (Swift: Engine/Sources/CardCopilotEngine/Models/ReportingCurrency.swift) — never a live rate, consistent with this repo not owning market data (ECOSYSTEM.md)."
+      "description": "The engine's fixed REPORTING currency \u2014 every CandidateScore/PortfolioAnalyzer/AcquisitionAnalyzer output number (netValueCad, annualFeeCad, ...) is expressed in this currency regardless of a card's own `market`/`billingCurrency` or a purchase's `currency`. Not per-card, and not a claim that every card bills in CAD \u2014 see cardProduct.billingCurrency for that. A non-CAD catalogue figure (a USD fee, a USD-valued program) is converted to this reporting currency at the point it is combined with one, via ReportingCurrency's pinned rate (Swift: Engine/Sources/CardCopilotEngine/Models/ReportingCurrency.swift) \u2014 never a live rate, consistent with this repo not owning market data (ECOSYSTEM.md)."
     },
     "_provenance": {
       "type": "string",
@@ -57,16 +57,17 @@
         "citiThankYou",
         "capitalOneMiles",
         "discoverCashback",
-        "bofaPreferredRewards"
+        "bofaPreferredRewards",
+        "noRewards"
       ],
-      "description": "The key a card's rewards currency is valued under. Hoisted into $defs on 2026-08-20 so programs.schema.json can reference the one list instead of keeping a second copy in step. Since that date this is a DATA key, not an engine dispatch key: Scorer.valueCad switches on the valuation's model, so a new programId needs an entry in programs.json (or an owner-state override) and no engine code change. A programId with neither has no valuation. NOTE: as of this bump Scorer.valueCad still returns 0.0 for it rather than excluding the card — the current gap is pinned in CatalogueIntegrityTests.knownUnvaluedPrograms and closing it is separate work. The six `*Us`/US-issuer entries added 2026-08-26 are placeholders for the multi-market import (Stage C, unpopulated in programs.json until a candidate actually needs one) — do not treat their presence here as the program being valued."
+      "description": "The key a card's rewards currency is valued under. Hoisted into $defs on 2026-08-20 so programs.schema.json can reference the one list instead of keeping a second copy in step. Since that date this is a DATA key, not an engine dispatch key: Scorer.valueCad switches on the valuation's model, so a new programId needs an entry in programs.json (or an owner-state override) and no engine code change. A programId with neither has no valuation. NOTE: as of this bump Scorer.valueCad still returns 0.0 for it rather than excluding the card \u2014 the current gap is pinned in CatalogueIntegrityTests.knownUnvaluedPrograms and closing it is separate work. The six `*Us`/US-issuer entries added 2026-08-26 are placeholders for the multi-market import (Stage C, unpopulated in programs.json until a candidate actually needs one) \u2014 do not treat their presence here as the program being valued. `noRewards` is a card with no rewards programme at all (MBNA True Line, Capital One Guaranteed Secured). It is a STATED fact, not an absence: its valuation model answers 0.0 so the card is scored and ranks last on merit, where a missing valuation answers nil and excludes the card entirely. Same principle as fxRules, where a fee-free card declares rate 0.0 rather than saying nothing."
     },
     "market": {
       "enum": [
         "CA",
         "US"
       ],
-      "description": "The country whose product this is — NOT the currency it bills in on its own (see billingCurrency) and not, by itself, an eligibility claim beyond \"this is the market the card is sold in\" (see cardProduct.eligibility.residency for the rare card sold in both). Closed enum: a third market is a deliberate scope decision (ECOSYSTEM.md's horizon), not a data entry, so an unrecognised value should fail loudly rather than decode silently."
+      "description": "The country whose product this is \u2014 NOT the currency it bills in on its own (see billingCurrency) and not, by itself, an eligibility claim beyond \"this is the market the card is sold in\" (see cardProduct.eligibility.residency for the rare card sold in both). Closed enum: a third market is a deliberate scope decision (ECOSYSTEM.md's horizon), not a data entry, so an unrecognised value should fail loudly rather than decode silently."
     },
     "currencyCode": {
       "enum": [
@@ -82,7 +83,7 @@
         "currency"
       ],
       "additionalProperties": false,
-      "description": "Mirrors Swift's Money — a currency-tagged monetary figure. Replaces the old bare `annualCad`/`monthlyCad`/`valueCad` numbers, which assumed CAD unconditionally (Phase 1: 'a price without a currency must not be summed' applies here exactly as it does to Holding.priceCurrency in MoneyTalks). Never converted in place: a USD fee stays `{amount, currency: \"USD\"}` in the catalogue forever — conversion to the engine's CAD reporting currency happens at the point of use (PortfolioAnalyzer/AcquisitionAnalyzer), via ReportingCurrency's pinned rate, and is never written back into this field.",
+      "description": "Mirrors Swift's Money \u2014 a currency-tagged monetary figure. Replaces the old bare `annualCad`/`monthlyCad`/`valueCad` numbers, which assumed CAD unconditionally (Phase 1: 'a price without a currency must not be summed' applies here exactly as it does to Holding.priceCurrency in MoneyTalks). Never converted in place: a USD fee stays `{amount, currency: \"USD\"}` in the catalogue forever \u2014 conversion to the engine's CAD reporting currency happens at the point of use (PortfolioAnalyzer/AcquisitionAnalyzer), via ReportingCurrency's pinned rate, and is never written back into this field.",
       "properties": {
         "amount": {
           "type": "number"
@@ -98,7 +99,7 @@
       "patternProperties": {
         "^_": {}
       },
-      "description": "Residency/offer-market facts, decoded where the field says so and documentation-only otherwise. Deliberately thin in this bump — only `residency` gates anything (AcquisitionAnalyzer). The rest are Phase-5-style capture points for a later pass; representing them as `unknown`-by-absence now (rather than inventing values) matches the catalogue's existing rule for CardCredit and FxRule provenance.",
+      "description": "Residency/offer-market facts, decoded where the field says so and documentation-only otherwise. Deliberately thin in this bump \u2014 only `residency` gates anything (AcquisitionAnalyzer). The rest are Phase-5-style capture points for a later pass; representing them as `unknown`-by-absence now (rather than inventing values) matches the catalogue's existing rule for CardCredit and FxRule provenance.",
       "properties": {
         "residency": {
           "type": "array",
@@ -106,12 +107,12 @@
             "$ref": "#/$defs/market"
           },
           "minItems": 1,
-          "description": "Which market(s) a resident must be in to hold this card. Absent means \"assume [market]\" (AcquisitionAnalyzer.eligibleMarkets falls back to `[card.market]` when this is nil) — only set this when a card is sold to residents of a market other than its own `market`, which is rare enough that inventing a default beyond the card's own market would be a guess."
+          "description": "Which market(s) a resident must be in to hold this card. Absent means \"assume [market]\" (AcquisitionAnalyzer.eligibleMarkets falls back to `[card.market]` when this is nil) \u2014 only set this when a card is sold to residents of a market other than its own `market`, which is rare enough that inventing a default beyond the card's own market would be a guess."
         },
         "incomeRequirementCad": {
           "type": "number",
           "x-status": "documentation-only",
-          "description": "Personal/household income requirement, always expressed in the catalogue's CAD reporting currency regardless of market, for comparability. Not decoded in this bump — see card-research-queue.json for which cards still need it sourced."
+          "description": "Personal/household income requirement, always expressed in the catalogue's CAD reporting currency regardless of market, for comparability. Not decoded in this bump \u2014 see card-research-queue.json for which cards still need it sourced."
         },
         "creditScoreTier": {
           "type": "string",
@@ -133,7 +134,7 @@
     },
     "cardProduct": {
       "type": "object",
-      "description": "Mirrors CardProduct — every listed property below is non-optional in Swift and therefore required here, except where noted optional.",
+      "description": "Mirrors CardProduct \u2014 every listed property below is non-optional in Swift and therefore required here, except where noted optional.",
       "required": [
         "cardId",
         "officialName",
@@ -172,14 +173,14 @@
         },
         "billingCurrency": {
           "$ref": "#/$defs/currencyCode",
-          "description": "The currency a purchase is measured in for THIS card's own earn rules and caps — 'points per currency unit' means per unit of this currency, not per CAD unconditionally. RuleMatcher/Scorer converts the purchase amount into this currency (via PurchaseContext.usdEquivalent, the same field already used for `spendUsdEquivalent` caps) before applying `earn.pointsPerUnit`/`earn.rate`. Independent of `market`: a CAD-market card could in principle bill in USD (none do today), which is why this is its own field rather than derived from `market`."
+          "description": "The currency a purchase is measured in for THIS card's own earn rules and caps \u2014 'points per currency unit' means per unit of this currency, not per CAD unconditionally. RuleMatcher/Scorer converts the purchase amount into this currency (via PurchaseContext.usdEquivalent, the same field already used for `spendUsdEquivalent` caps) before applying `earn.pointsPerUnit`/`earn.rate`. Independent of `market`: a CAD-market card could in principle bill in USD (none do today), which is why this is its own field rather than derived from `market`."
         },
         "status": {
           "enum": [
             "published",
             "draft"
           ],
-          "description": "Absent means `published` (backward compatible with every pre-2.0 card). `draft` marks a research-grade record that has NOT cleared this catalogue's issuer-confirmed sourcing bar (D3) — RecommendationEngine.recommend and PortfolioAnalyzer refuse to consider a draft card even if it somehow ended up in ownedCardIds, so a draft record can never produce a checkout pick or a keep/cancel number. AcquisitionAnalyzer and the add-card/compare surfaces MAY show draft cards, clearly labelled, because comparing an unowned candidate is lower-stakes than telling someone what to tap. Promoting draft → published is a data edit (re-verify against the issuer, flip the field), never an engine change."
+          "description": "Absent means `published` (backward compatible with every pre-2.0 card). `draft` marks a research-grade record that has NOT cleared this catalogue's issuer-confirmed sourcing bar (D3) \u2014 RecommendationEngine.recommend and PortfolioAnalyzer refuse to consider a draft card even if it somehow ended up in ownedCardIds, so a draft record can never produce a checkout pick or a keep/cancel number. AcquisitionAnalyzer and the add-card/compare surfaces MAY show draft cards, clearly labelled, because comparing an unowned candidate is lower-stakes than telling someone what to tap. Promoting draft \u2192 published is a data edit (re-verify against the issuer, flip the field), never an engine change."
         },
         "network": {
           "enum": [
@@ -211,7 +212,7 @@
           "items": {
             "$ref": "#/$defs/fxRule"
           },
-          "description": "RuleMatcher.activeFxRule picks the first entry whose effectiveFrom/effectiveTo window covers asOf; later entries let an announced future rate coexist with the current one. Applies when a purchase's currency differs from THIS card's billingCurrency (Scorer compares against billingCurrency, not a hardcoded \"CAD\") — e.g. a CAD-billing card used on a USD purchase, or (once such a card exists) a USD-billing card used on a CAD purchase."
+          "description": "RuleMatcher.activeFxRule picks the first entry whose effectiveFrom/effectiveTo window covers asOf; later entries let an announced future rate coexist with the current one. Applies when a purchase's currency differs from THIS card's billingCurrency (Scorer compares against billingCurrency, not a hardcoded \"CAD\") \u2014 e.g. a CAD-billing card used on a USD purchase, or (once such a card exists) a USD-billing card used on a CAD purchase."
         },
         "earnRules": {
           "type": "array",
@@ -232,7 +233,7 @@
             "ownerObserved",
             "unknown"
           ],
-          "description": "Free String in Swift, not an enum — these three are the catalogue's current convention, not a type-level constraint."
+          "description": "Free String in Swift, not an enum \u2014 these three are the catalogue's current convention, not a type-level constraint."
         },
         "lastVerifiedAt": {
           "type": "string",
@@ -265,7 +266,7 @@
         "redemptionFactors": {
           "type": "array",
           "x-status": "documentation-only",
-          "description": "Documented redemption boost factors (e.g. Rogers' 1.5x service redemption). Not decoded and not scored in v1 — see the factor's own _note."
+          "description": "Documented redemption boost factors (e.g. Rogers' 1.5x service redemption). Not decoded and not scored in v1 \u2014 see the factor's own _note."
         },
         "credits": {
           "type": "array",
@@ -284,13 +285,13 @@
         "effectiveTo": {
           "type": "string",
           "format": "date",
-          "description": "Optional. The date the product stopped being available — card-level, distinct from earnRule.effectiveTo, which closes one rule's window. Scoring is dated, not boolean: Scorer excludes a withdrawn card only for an asOf after this date, so a historical query still scores the card exactly as it scored at the time. A withdrawn card without this date is excluded on every date."
+          "description": "Optional. The date the product stopped being available \u2014 card-level, distinct from earnRule.effectiveTo, which closes one rule's window. Scoring is dated, not boolean: Scorer excludes a withdrawn card only for an asOf after this date, so a historical query still scores the card exactly as it scored at the time. A withdrawn card without this date is excluded on every date."
         }
       }
     },
     "fee": {
       "type": "object",
-      "description": "Every field optional in Swift's Fee struct. `annual`/`monthly` are Money — see that def's note on why a bare number was retired.",
+      "description": "Every field optional in Swift's Fee struct. `annual`/`monthly` are Money \u2014 see that def's note on why a bare number was retired.",
       "additionalProperties": false,
       "patternProperties": {
         "^_": {}
@@ -375,7 +376,7 @@
           "type": "string",
           "format": "date",
           "x-status": "documentation-only",
-          "description": "FxRule has no `announcedAt` property — dropped silently on decode."
+          "description": "FxRule has no `announcedAt` property \u2014 dropped silently on decode."
         },
         "rate": {
           "type": "number",
@@ -383,7 +384,7 @@
         },
         "freeAllowanceCadPerCalendarMonth": {
           "type": "number",
-          "description": "When present, Scorer only appends Warning.fxAllowanceAssumed — it does not net the allowance out of fxCost. Name kept CAD-suffixed rather than generalized to Money: every card using this allowance today bills in CAD, and a bare number the engine already ignores past the presence check is not worth a breaking rename in this bump — flagged in card-research-queue.json if a future USD-billing card needs one."
+          "description": "When present, Scorer only appends Warning.fxAllowanceAssumed \u2014 it does not net the allowance out of fxCost. Name kept CAD-suffixed rather than generalized to Money: every card using this allowance today bills in CAD, and a bare number the engine already ignores past the presence check is not worth a breaking rename in this bump \u2014 flagged in card-research-queue.json if a future USD-billing card needs one."
         },
         "postAllowanceRate": {
           "type": "number",
@@ -397,13 +398,13 @@
             "inferred"
           ],
           "x-status": "documentation-only",
-          "description": "Unlike EarnRule.sourceType, FxRule has NO sourceType property in Swift at all — this key is present in every JSON record but silently dropped on decode."
+          "description": "Unlike EarnRule.sourceType, FxRule has NO sourceType property in Swift at all \u2014 this key is present in every JSON record but silently dropped on decode."
         },
         "lastVerifiedAt": {
           "type": "string",
           "format": "date",
           "x-status": "documentation-only",
-          "description": "FxRule has no `lastVerifiedAt` property — dropped silently on decode (contrast CardProduct.lastVerifiedAt and EarnRule.lastVerifiedAt, which are both real)."
+          "description": "FxRule has no `lastVerifiedAt` property \u2014 dropped silently on decode (contrast CardProduct.lastVerifiedAt and EarnRule.lastVerifiedAt, which are both real)."
         },
         "sources": {
           "type": "array",
@@ -439,7 +440,7 @@
             "announced"
           ],
           "x-status": "declared-not-computed",
-          "description": "Decoded onto EarnRule.status but RuleMatcher.isLive only checks effectiveFrom/effectiveTo/scoredInV1 — this field never gates anything."
+          "description": "Decoded onto EarnRule.status but RuleMatcher.isLive only checks effectiveFrom/effectiveTo/scoredInV1 \u2014 this field never gates anything."
         },
         "effectiveFrom": {
           "type": [
@@ -485,11 +486,11 @@
               "amazonEligiblePrimeLinked"
             ]
           },
-          "description": "OPEN vocabulary, same rules as benefits-catalogue.schema.json's family/kind — deliberately NOT a closed enum. RuleMatcher.conditionsResolveTrue switches on the known strings above and treats any unknown id as unresolved (fails closed), so unrecognised ids decode fine and simply never match rather than rejecting the whole catalogue load. A closed enum here is exactly what let amazonEligiblePrimeLinked ship with no RuleMatcher case and no schema complaint; opening it doesn't add a handler, but it stops the schema from claiming one exists. A new id still requires an engine code change to actually gate on."
+          "description": "OPEN vocabulary, same rules as benefits-catalogue.schema.json's family/kind \u2014 deliberately NOT a closed enum. RuleMatcher.conditionsResolveTrue switches on the known strings above and treats any unknown id as unresolved (fails closed), so unrecognised ids decode fine and simply never match rather than rejecting the whole catalogue load. A closed enum here is exactly what let amazonEligiblePrimeLinked ship with no RuleMatcher case and no schema complaint; opening it doesn't add a handler, but it stops the schema from claiming one exists. A new id still requires an engine code change to actually gate on."
         },
         "scoredInV1": {
           "type": "boolean",
-          "x-status": "deprecated — superseded by requires/outOfScope",
+          "x-status": "deprecated \u2014 superseded by requires/outOfScope",
           "description": "false excludes the rule from RuleMatcher.isLive regardless of dates. Absent means true. Deprecated: a hand-set boolean carries no machine-readable reason and can't turn itself on when its blocker is fixed. New disabled rules should use requires or outOfScope instead; scoredInV1: false without either is only valid for a rule whose blocker is still unconfirmed (see the rule's _note)."
         },
         "requires": {
@@ -510,7 +511,7 @@
               "earn.marginal"
             ]
           },
-          "description": "Engine capabilities this rule needs, matching EngineCapability's raw values (Engine/Sources/CardCopilotEngine/Models/EngineCapability.swift). RuleMatcher.isLive treats the rule as live only if every named capability is in EngineCapability.supported; an unrecognised or unsupported string skips the rule, same as scoredInV1: false did. Absent means no capability is needed. Turns the rule on automatically the day the named capability ships — no catalogue edit required. Mutually exclusive with outOfScope. `cap.calendarQuarter` and `predicate.ownerSelectedCategory` added 2026-08-26 (both now in EngineCapability.supported) for US rotating/selectable-category cards — see CardState.selectedCategories, which is no longer Tangerine-specific."
+          "description": "Engine capabilities this rule needs, matching EngineCapability's raw values (Engine/Sources/CardCopilotEngine/Models/EngineCapability.swift). RuleMatcher.isLive treats the rule as live only if every named capability is in EngineCapability.supported; an unrecognised or unsupported string skips the rule, same as scoredInV1: false did. Absent means no capability is needed. Turns the rule on automatically the day the named capability ships \u2014 no catalogue edit required. Mutually exclusive with outOfScope. `cap.calendarQuarter` and `predicate.ownerSelectedCategory` added 2026-08-26 (both now in EngineCapability.supported) for US rotating/selectable-category cards \u2014 see CardState.selectedCategories, which is no longer Tangerine-specific."
         },
         "outOfScope": {
           "type": "object",
@@ -523,7 +524,7 @@
               "description": "Why this rule will never be scored by this engine, e.g. an online booking channel PickMe (an at-the-register copilot) does not cover. Human-facing; RuleMatcher.isLive only checks presence, not content."
             }
           },
-          "description": "Set when the rule is permanently out of scope — never to be built, as distinct from requires' \"not yet\". RuleMatcher.isLive always returns false when this is present, regardless of requires or scoredInV1. Mutually exclusive with requires: a rule ruled out permanently must not also declare a capability it is waiting on."
+          "description": "Set when the rule is permanently out of scope \u2014 never to be built, as distinct from requires' \"not yet\". RuleMatcher.isLive always returns false when this is present, regardless of requires or scoredInV1. Mutually exclusive with requires: a rule ruled out permanently must not also declare a capability it is waiting on."
         }
       }
     },
@@ -541,7 +542,7 @@
       "required": [
         "type"
       ],
-      "description": "Union on `type`, matching the Earn enum's custom Codable implementation. `pointsPerCad` renamed to `pointsPerUnit` in 2.0 — the rate is always per unit of the card's OWN billingCurrency, not CAD unconditionally (a US card's `pointsPerUnit: 1` means 1 point per USD billed, not per CAD).",
+      "description": "Union on `type`, matching the Earn enum's custom Codable implementation. `pointsPerCad` renamed to `pointsPerUnit` in 2.0 \u2014 the rate is always per unit of the card's OWN billingCurrency, not CAD unconditionally (a US card's `pointsPerUnit: 1` means 1 point per USD billed, not per CAD).",
       "oneOf": [
         {
           "properties": {
@@ -593,7 +594,7 @@
             }
           },
           "additionalProperties": false,
-          "description": "Informational only — Scorer.rawEarn maps this case to -1, and any rule using it (see triangle-fuel-cpl) also sets scoredInV1: false. Needs litres to value, which the catalogue doesn't carry."
+          "description": "Informational only \u2014 Scorer.rawEarn maps this case to -1, and any rule using it (see triangle-fuel-cpl) also sets scoredInV1: false. Needs litres to value, which the catalogue doesn't carry."
         }
       ]
     },
@@ -610,7 +611,7 @@
           "items": {
             "type": "string"
           },
-          "description": "Purchase-category strings, PLUS two engine-defined pseudo-categories RuleMatcher.matches special-cases: \"recurring\" (checks PurchaseContext.recurringIndicator, ignoring the purchase's actual category) and \"ownerSelectedCategory\" (checks CardState.selectedCategories — generalized 2026-08-26 from the Tangerine-only \"ownerSelectedTangerineCategory\"; the old string is still accepted as an alias). Also subject to RuleMatcher.categoryParents expansion — currently only \"marriottDirect\" implies [\"lodging\", \"travel\"], so a predicate listing the parent still matches the more specific purchase category."
+          "description": "Purchase-category strings, PLUS two engine-defined pseudo-categories RuleMatcher.matches special-cases: \"recurring\" (checks PurchaseContext.recurringIndicator, ignoring the purchase's actual category) and \"ownerSelectedCategory\" (checks CardState.selectedCategories \u2014 generalized 2026-08-26 from the Tangerine-only \"ownerSelectedTangerineCategory\"; the old string is still accepted as an alias). Also subject to RuleMatcher.categoryParents expansion \u2014 currently only \"marriottDirect\" implies [\"lodging\", \"travel\"], so a predicate listing the parent still matches the more specific purchase category."
         },
         "mccInclude": {
           "type": "array",
@@ -636,7 +637,7 @@
           "items": {
             "type": "string"
           },
-          "description": "Checked before mccInclude/categories — a brand exclusion wins even if the MCC would otherwise qualify (see Costco vs Triangle grocery)."
+          "description": "Checked before mccInclude/categories \u2014 a brand exclusion wins even if the MCC would otherwise qualify (see Costco vs Triangle grocery)."
         },
         "country": {
           "type": "string"
@@ -658,7 +659,7 @@
         "recurringViaNetworkIndicator": {
           "type": "boolean",
           "x-status": "declared-not-computed",
-          "description": "Decoded onto Predicate.recurringViaNetworkIndicator but RuleMatcher.matches never reads it — the actual recurring gate is the \"recurring\" pseudo-category checking PurchaseContext.recurringIndicator directly."
+          "description": "Decoded onto Predicate.recurringViaNetworkIndicator but RuleMatcher.matches never reads it \u2014 the actual recurring gate is the \"recurring\" pseudo-category checking PurchaseContext.recurringIndicator directly."
         }
       }
     },
@@ -685,7 +686,7 @@
             "spendNative",
             "spendUsdEquivalent"
           ],
-          "description": "`spendCad` renamed to `spendNative` in 2.0: the amount is measured in the CARD's own billingCurrency (CAD for a CAD-billing card, USD for a USD-billing card), not CAD unconditionally. `spendUsdEquivalent` is unchanged and stays meaningful even for a USD-billing card's cap stated in a THIRD reference (none exist today, but the case — e.g. Crypto.com's CAD-billing card with a USD-denominated cap — is exactly why the two measures stay distinct rather than collapsing into one)."
+          "description": "`spendCad` renamed to `spendNative` in 2.0: the amount is measured in the CARD's own billingCurrency (CAD for a CAD-billing card, USD for a USD-billing card), not CAD unconditionally. `spendUsdEquivalent` is unchanged and stays meaningful even for a USD-billing card's cap stated in a THIRD reference (none exist today, but the case \u2014 e.g. Crypto.com's CAD-billing card with a USD-denominated cap \u2014 is exactly why the two measures stay distinct rather than collapsing into one)."
         },
         "limit": {
           "type": "number"
@@ -698,7 +699,7 @@
             "accountYear"
           ],
           "x-status": "server-implemented",
-          "description": "Read by PortfolioAnalyzer for monthly-cap reporting and by Swift cap-window projections. MoneyTalks additionally resolves the current server ledger window from this field. `calendarQuarter` added 2026-08-26 (EngineCapability.capCalendarQuarter, now supported) for US rotating-category cards (e.g. 5x groceries up to $1,500/quarter) — the shape this catalogue could not previously express at all."
+          "description": "Read by PortfolioAnalyzer for monthly-cap reporting and by Swift cap-window projections. MoneyTalks additionally resolves the current server ledger window from this field. `calendarQuarter` added 2026-08-26 (EngineCapability.capCalendarQuarter, now supported) for US rotating-category cards (e.g. 5x groceries up to $1,500/quarter) \u2014 the shape this catalogue could not previously express at all."
         },
         "anchor": {
           "type": "string",
@@ -716,13 +717,13 @@
         "proration": {
           "type": "boolean",
           "x-status": "declared-not-computed",
-          "description": "Decoded onto Cap.proration but CapMath.split always splits a straddling purchase proportionally, unconditionally — this flag is never branched on."
+          "description": "Decoded onto Cap.proration but CapMath.split always splits a straddling purchase proportionally, unconditionally \u2014 this flag is never branched on."
         }
       }
     },
     "cardCredit": {
       "type": "object",
-      "description": "A recurring statement credit granted for holding the card. NOT an earn rule: a credit does not depend on what the purchase was, so it never enters the checkout pick — it is keep/cancel and net-value input only. `value` is the issuer's stated maximum, not a forecast of use; whether it was redeemed is owner activity and lives with the consumer.",
+      "description": "A recurring statement credit granted for holding the card. NOT an earn rule: a credit does not depend on what the purchase was, so it never enters the checkout pick \u2014 it is keep/cancel and net-value input only. `value` is the issuer's stated maximum, not a forecast of use; whether it was redeemed is owner activity and lives with the consumer.",
       "additionalProperties": false,
       "patternProperties": {
         "^_": {}
@@ -757,7 +758,7 @@
               }
             }
           ],
-          "description": "`valueCad` renamed to `value` (Money) in 2.0 — a US card's credit is stated in USD, not converted to CAD at authoring time (Phase 1: never convert USD amounts into CAD fields merely to satisfy the schema)."
+          "description": "`valueCad` renamed to `value` (Money) in 2.0 \u2014 a US card's credit is stated in USD, not converted to CAD at authoring time (Phase 1: never convert USD amounts into CAD fields merely to satisfy the schema)."
         },
         "period": {
           "enum": [
@@ -779,7 +780,7 @@
           "items": {
             "type": "string"
           },
-          "description": "Issuer pages the amount and period were read from. Required when sourceType is issuerConfirmed (enforced by allOf below) and optional otherwise — an inferred credit has no citation by definition, and requiring one would force either deleting unverified data or inventing a source for it."
+          "description": "Issuer pages the amount and period were read from. Required when sourceType is issuerConfirmed (enforced by allOf below) and optional otherwise \u2014 an inferred credit has no citation by definition, and requiring one would force either deleting unverified data or inventing a source for it."
         }
       },
       "allOf": [

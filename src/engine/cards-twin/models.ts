@@ -233,7 +233,18 @@ export type ProgramValuation =
   | ({ model: 'points' } & PointValuation)
   | ({ model: 'ctMoney' } & CtMoneyValuation)
   | ({ model: 'cro' } & CroValuation)
-  | ({ model: 'cashback' } & CashBackValuation);
+  | ({ model: 'cashback' } & CashBackValuation)
+  /// A card with no rewards programme — MBNA True Line, Capital One Guaranteed Secured. No
+  /// number to configure: zero is not an assumption anyone could hold differently. It exists so
+  /// the distinction valueCad has always drawn becomes expressible — a MISSING valuation returns
+  /// null and the card is excluded, because "we do not know what this is worth" must never rank
+  /// as "worth nothing"; this returns 0 and the card is scored, ranking last on merit.
+  /// Mirrors Swift's NoRewardsValuation and Kotlin's.
+  | ({ model: 'noRewards' } & NoRewardsValuation);
+
+export interface NoRewardsValuation {
+  basis?: string;
+}
 
 /// Catalogue-level default valuations (contracts/programs.json), merged BENEATH anything the
 /// owner has declared. Without the merge this file would be data nothing reads.

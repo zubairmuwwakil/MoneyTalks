@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "2.2",
+  "catalogueVersion": "2.3",
   "currency": "CAD",
   "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md — all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
@@ -5817,6 +5817,81 @@
       "program": {
         "programId": "cashback",
         "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "capital-one-canada-capital-one-guaranteed",
+      "officialName": "Capital One Guaranteed Secured Mastercard",
+      "issuer": "Capital One Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
+      },
+      "program": {
+        "programId": "noRewards",
+        "unit": "none"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "mbna-true-line-mastercard",
+      "officialName": "MBNA True Line Mastercard",
+      "issuer": "MBNA",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
+      },
+      "program": {
+        "programId": "noRewards",
+        "unit": "none"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "neo-financial-neo-world-mastercard",
+      "officialName": "Neo World Mastercard",
+      "issuer": "Neo Financial",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "cad"
       },
       "fxRules": [],
       "earnRules": [],
