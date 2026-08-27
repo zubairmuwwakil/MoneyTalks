@@ -1,4 +1,4 @@
-export type Network = "VISA" | "MASTERCARD" | "AMEX";
+export type Network = "VISA" | "MASTERCARD" | "AMEX" | "DISCOVER";
 
 // The hub's own spend vocabulary. This is NOT the card rate model — that lives
 // in PickMe's catalogue and is read through src/lib/cards/catalogueCard.ts.

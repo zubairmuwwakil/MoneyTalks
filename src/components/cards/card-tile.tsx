@@ -10,6 +10,7 @@ import {
   getCardInsuranceHighlights,
 } from "@/lib/cards/cardPresentation";
 import { catalogueCard, catalogueCredits } from "@/lib/cards/catalogueCard";
+import { toReporting } from "@/engine/cards-twin/reportingCurrency";
 import { CardImage } from "@/components/cards/card-image";
 
 export interface CardTileData {
@@ -44,7 +45,7 @@ export function CardTile({
   const earnHighlights = getCardEarnHighlights(product);
   const insuranceHighlights = getCardInsuranceHighlights(card.contractCardId);
   const credits = catalogueCredits(card.contractCardId);
-  const totalCreditsCad = credits.reduce((sum, c) => sum + c.valueCad, 0);
+  const totalCreditsCad = credits.reduce((sum, c) => sum + toReporting(c.value), 0);
 
   const isFeeCard = effectiveFee > 0;
   const isMissingRenewal = isFeeCard && !card.feeMonthDay;
@@ -162,7 +163,7 @@ export function CardTile({
               <Gift className="size-3.5 shrink-0" />
               <span className="font-medium">${totalCreditsCad.toFixed(0)}/yr credits:</span>
               <span className="text-muted-foreground text-[11px]">
-                {credits.map((c) => `${c.label} ($${c.valueCad})`).join(" · ")}
+                {credits.map((c) => `${c.label} ($${toReporting(c.value)})`).join(" · ")}
               </span>
             </div>
           </div>

@@ -56,9 +56,18 @@ function annotatedObject<Shape extends z.ZodRawShape>(shape: Shape) {
     });
 }
 
+// A currency-tagged monetary figure. Replaces the old bare CAD-assuming numbers
+// (fee.annualCad/monthlyCad, cardCredit.valueCad) as of catalogue 2.0 — a US card's fee/credit is
+// stated in USD, never converted to CAD at authoring time (Phase 1: never convert a USD amount
+// into a CAD-labelled field merely to satisfy the schema).
+const moneySchema = z.strictObject({
+  amount: z.number(),
+  currency: z.enum(["CAD", "USD"]),
+});
+
 const feeSchema = annotatedObject({
-  annualCad: z.number().optional(),
-  monthlyCad: z.number().optional(),
+  annual: moneySchema.optional(),
+  monthly: moneySchema.optional(),
   billing: z.string().optional(),
   waiver: z.string().optional(),
 });
@@ -87,7 +96,7 @@ const fxRuleSchema = annotatedObject({
 // each variant is genuinely closed (no "_"-prefixed escape hatch here, per
 // the JSON schema's earn $def).
 const earnSchema = z.discriminatedUnion("type", [
-  z.strictObject({ type: z.literal("points"), pointsPerCad: z.number() }),
+  z.strictObject({ type: z.literal("points"), pointsPerUnit: z.number() }),
   z.strictObject({
     type: z.literal("cashback"),
     rate: z.number(),
@@ -114,9 +123,13 @@ const predicateSchema = annotatedObject({
 
 const capSchema = annotatedObject({
   capId: z.string(),
-  measure: z.enum(["spendCad", "spendUsdEquivalent"]),
+  // spendCad renamed to spendNative in catalogue 2.0: measured in the card's own
+  // billingCurrency, not CAD unconditionally.
+  measure: z.enum(["spendNative", "spendUsdEquivalent"]),
   limit: z.number(),
-  period: z.enum(["calendarMonth", "calendarYear", "accountYear"]),
+  // calendarQuarter added for US rotating-category cards (e.g. 5x groceries up to $1,500/quarter)
+  // — a shape this catalogue could not previously express at all.
+  period: z.enum(["calendarMonth", "calendarQuarter", "calendarYear", "accountYear"]),
   anchor: z.string().optional(),
   resetTimeZone: z.string(),
   postCapEarn: earnSchema.optional(),
@@ -149,13 +162,14 @@ const earnRuleSchema = annotatedObject({
 // Statement credits granted for holding the card. Mirrors `$defs/cardCredit`
 // in PickMe's schema, added 2026-08-19. A credit does not depend on what the
 // purchase was, so it never enters the checkout pick — it is keep/cancel and
-// net-value input. `valueCad` is the issuer's stated maximum, not a forecast
-// of use; whether one was redeemed is owner activity (CardState).
+// net-value input. `value` (renamed from `valueCad: number` in catalogue 2.0, now Money) is the
+// issuer's stated maximum, not a forecast of use; whether one was redeemed is owner activity
+// (CardState).
 const cardCreditSchema = annotatedObject({
   creditId: z.string(),
   label: z.string(),
-  valueCad: z.number(),
-  period: z.enum(["calendarMonth", "calendarYear", "accountYear"]),
+  value: moneySchema,
+  period: z.enum(["calendarMonth", "calendarQuarter", "calendarYear", "accountYear"]),
   sourceType: sourceTypeSchema,
   lastVerifiedAt: z.string(),
   // Traceability, conditioned on the claim being made. `sources` was briefly
@@ -177,12 +191,33 @@ const cardCreditSchema = annotatedObject({
   }
 });
 
+// Which market(s) a resident must be in to hold a card. Absent means "assume [market]".
+const eligibilitySchema = annotatedObject({
+  residency: z.array(z.enum(["CA", "US"])).min(1).optional(),
+  incomeRequirementCad: z.number().optional(),
+  creditScoreTier: z.string().optional(),
+  provinceStateRestriction: z.array(z.string()).optional(),
+  businessOnly: z.boolean().optional(),
+});
+
 const cardProductSchema = annotatedObject({
   cardId: z.string(),
   officialName: z.string(),
   issuer: z.string(),
-  network: z.enum(["amex", "visa", "mastercard"]),
+  // The country this product is sold in. NOT itself a currency claim (see billingCurrency) or,
+  // by itself, an eligibility claim beyond "this is the market the card is sold in" (see
+  // eligibility.residency for the rare card sold in more than one).
+  market: z.enum(["CA", "US"]),
+  // The currency a purchase is measured in for THIS card's own earn rules and caps. Independent
+  // of market: a CA-market card could in principle bill in USD (none do today).
+  billingCurrency: z.enum(["CAD", "USD"]),
+  network: z.enum(["amex", "visa", "mastercard", "discover"]),
   kind: z.enum(["credit", "charge", "prepaid"]),
+  // Absent decodes as "published" — backward compatible with every pre-2.0 card. "draft" is a
+  // research-grade record that has not cleared this catalogue's issuer-confirmed sourcing bar
+  // (D3); PickMe's engine refuses to score one even if it somehow ended up owned.
+  status: z.enum(["published", "draft"]).optional(),
+  eligibility: eligibilitySchema.optional(),
   fee: feeSchema,
   program: programSchema,
   fxRules: z.array(fxRuleSchema),

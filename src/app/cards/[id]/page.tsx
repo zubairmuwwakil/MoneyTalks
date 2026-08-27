@@ -231,7 +231,7 @@ export default async function CardDetailPage({
               const categories = rule.predicate.categories ?? [];
               const earn =
                 rule.earn.type === "points"
-                  ? `${rule.earn.pointsPerCad}x points`
+                  ? `${rule.earn.pointsPerUnit}x points`
                   : rule.earn.type === "cashback"
                     ? `${(rule.earn.rate * 100).toFixed(2).replace(/\.?0+$/, "")}% back`
                     : "cents per litre";
@@ -295,7 +295,7 @@ export default async function CardDetailPage({
                   <div>
                     <span className="font-medium text-foreground">{credit.label}</span>{" "}
                     <span className="text-xs text-muted-foreground">
-                      ({formatMinorUnits(Math.round(credit.valueCad * 100), "CAD")}/
+                      ({formatMinorUnits(Math.round(credit.value.amount * 100), credit.value.currency)}/
                       {credit.period === "calendarMonth" ? "month" : credit.period === "accountYear" ? "anniversary year" : "calendar year"})
                     </span>
                     {unavailable ? (

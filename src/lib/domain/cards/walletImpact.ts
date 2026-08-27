@@ -3,7 +3,7 @@ import { effectiveAnnualFeeMinor, type RedeemedCredit } from "@/lib/cards/catalo
 export interface WalletImpactCredit {
   creditId: string;
   valueCad: number;
-  period: "calendarMonth" | "calendarYear" | "accountYear";
+  period: "calendarMonth" | "calendarQuarter" | "calendarYear" | "accountYear";
 }
 
 export interface WalletImpactCardInput {

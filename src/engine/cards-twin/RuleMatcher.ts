@@ -114,7 +114,10 @@ export const RuleMatcher = {
         case 'recurring':
           return purchase.recurringIndicator === true;
         case 'ownerSelectedTangerineCategory':
-          return RuleMatcher.matchesTangerineSelection(purchase, state);
+        case 'ownerSelectedCategory':
+          // Generalized 2026-08-26 for US selectable-category cards — both names accepted so
+          // no existing catalogue rule needs rewriting.
+          return RuleMatcher.matchesOwnerSelection(purchase, state);
         default:
           const selfOrParents = [purchase.category, ...(categoryParents[purchase.category] || [])];
           if (!selfOrParents.includes(category)) return false;
@@ -127,14 +130,15 @@ export const RuleMatcher = {
   },
 
   /**
-   * Faithful port of Swift's RuleMatcher.matchesTangerineSelection. The twin
-   * previously did a flat `selectedCategories.includes(purchase.category)`,
-   * which missed three of Swift's four match paths — most importantly the
-   * `recurring` selection, so a recurring purchase in an unselected category
-   * (an insurance premium, say) never matched and Tangerine silently dropped
-   * out of the ranking.
+   * Faithful port of Swift's RuleMatcher.matchesOwnerSelection (renamed 2026-08-26 from
+   * matchesTangerineSelection, generalized for non-Tangerine selectable-category cards — the
+   * mechanism itself was never Tangerine-specific). The twin previously did a flat
+   * `selectedCategories.includes(purchase.category)`, which missed three of Swift's four match
+   * paths — most importantly the `recurring` selection, so a recurring purchase in an unselected
+   * category (an insurance premium, say) never matched and Tangerine silently dropped out of the
+   * ranking.
    */
-  matchesTangerineSelection(purchase: PurchaseContext, state: CardState): boolean {
+  matchesOwnerSelection(purchase: PurchaseContext, state: CardState): boolean {
     if (state.selectedCategories === undefined) return false;
     const selected = new Set(state.selectedCategories);
     const purchaseCategories = [purchase.category, ...(categoryParents[purchase.category] || [])];
@@ -151,7 +155,7 @@ export const RuleMatcher = {
 
   rawEarn(earn: Earn): number {
     switch (earn.type) {
-      case 'points': return earn.pointsPerCad;
+      case 'points': return earn.pointsPerUnit;
       case 'cashback': return earn.rate * 100;
       case 'centsPerLitre': return -1;
     }

@@ -1,4 +1,5 @@
 import { effectiveAnnualFeeMinor, catalogueCredits, type RedeemedCredit } from "@/lib/cards/catalogueCard";
+import { toReporting } from "@/engine/cards-twin/reportingCurrency";
 import { currentFeeCycle, feeCycleDaysRemaining, type FeeScheduleCard } from "@/lib/cards/feeSchedule";
 import { buildCheatSheetRecommendations } from "@/lib/cards/cardPresentation";
 import type { CardDef } from "@/lib/cards/types";
@@ -84,7 +85,11 @@ export default async function CardsPage() {
       annualFeeMinor: card.annualFeeMinor,
       feeRebateMinor: card.feeRebateMinor,
       rewardsEstimateMinor: card.state?.rewardsEstimateMinor ?? 0,
-      credits: catalogueCredits(card.contractCardId),
+      credits: catalogueCredits(card.contractCardId).map((c) => ({
+        creditId: c.creditId,
+        valueCad: toReporting(c.value),
+        period: c.period,
+      })),
       redeemed: (card.state?.creditsRedeemed as unknown as RedeemedCredit[]) ?? [],
     })),
     today.getUTCFullYear(),

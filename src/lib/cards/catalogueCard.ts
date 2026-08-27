@@ -1,4 +1,5 @@
 import { cardCatalogue, type CardCredit, type CardProduct } from "@/lib/contracts/cardCatalogue";
+import { toReporting } from "@/engine/cards-twin/reportingCurrency";
 import type { Network } from "./types";
 
 /**
@@ -21,6 +22,7 @@ const NETWORK_TO_DB: Record<CardProduct["network"], Network> = {
   amex: "AMEX",
   visa: "VISA",
   mastercard: "MASTERCARD",
+  discover: "DISCOVER",
 };
 
 /// Null for a legacy or unlinked row. That is a real state, not an error: the
@@ -98,8 +100,9 @@ export function catalogueCreditsRealizedMinor(
     const wasRedeemed = redeemed.some((r) => r.creditId === credit.creditId && r.periodKey === key);
     // Math.round, not truncation: 14.99 * 100 is 1498.9999... in binary float,
     // and a monthly credit that quietly loses a cent every month is a bug that
-    // only shows up in a yearly total.
-    return sum + (wasRedeemed ? Math.round(credit.valueCad * 100) : 0);
+    // only shows up in a yearly total. toReporting converts the credit's own currency (USD for a
+    // US card) into the engine's CAD reporting figure; identity for every CAD-billing card today.
+    return sum + (wasRedeemed ? Math.round(toReporting(credit.value) * 100) : 0);
   }, 0);
 }
 
@@ -153,7 +156,7 @@ export function getCardPerksSummary(contractCardId: string | null | undefined): 
   for (const rule of card.earnRules) {
     let earnText = "";
     if (rule.earn.type === "points") {
-      earnText = `${rule.earn.pointsPerCad}x`;
+      earnText = `${rule.earn.pointsPerUnit}x`;
     } else if (rule.earn.type === "cashback") {
       const ratePct = rule.earn.rate * 100;
       earnText = `${ratePct % 1 === 0 ? ratePct.toFixed(0) : ratePct.toFixed(1)}%`;
@@ -178,7 +181,9 @@ export function getCardPerksSummary(contractCardId: string | null | undefined): 
 
   const credits = (card.credits ?? []).map(c => ({
     label: c.label,
-    valueCad: c.valueCad,
+    // Converted to the CAD reporting figure — identity for every CAD-billing card today, which
+    // is every card in the catalogue as of this writing. See toReporting's doc comment.
+    valueCad: toReporting(c.value),
     period: c.period === "calendarMonth" ? "month" : "year",
   }));
 
@@ -221,7 +226,7 @@ export function catalogueChoices(): CatalogueChoice[] {
       officialName: card.officialName,
       issuer: card.issuer,
       network: NETWORK_TO_DB[card.network],
-      annualFeeMinor: Math.round((card.fee.annualCad ?? 0) * 100),
+      annualFeeMinor: Math.round(toReporting(card.fee.annual) * 100),
     }))
     .sort((a, b) =>
       a.issuer === b.issuer ? a.officialName.localeCompare(b.officialName) : a.issuer.localeCompare(b.issuer),
