@@ -54,7 +54,7 @@ export const Scorer = {
       return excludedScore('unresolvedOwnerState', 'draft catalogue record, not yet issuer-verified');
     }
 
-    const acceptedNetworks = purchase.acceptedNetworks ?? ['amex', 'visa', 'mastercard'];
+    const acceptedNetworks = purchase.acceptedNetworks ?? ['amex', 'visa', 'mastercard', 'discover'];
     if (!acceptedNetworks.includes(card.network)) {
       return excludedScore('networkNotAccepted', `${card.network} not accepted`);
     }
@@ -110,7 +110,18 @@ export const Scorer = {
       ? card.caps.find(c => c.capId === rule.capId)?.postCapEarn
       : undefined;
 
-    const units = Scorer.earnUnits(rule.earn, inCapAmount) + Scorer.earnUnits(postCapEarn ?? rule.earn, overCapAmount);
+    // Cashback earns real money in the card's own billing currency — unlike points, which are a
+    // currency-agnostic token whose count does not depend on what currency was spent, a cashback
+    // "unit" IS a dollar amount and must be converted to the CAD reporting currency before
+    // valueCad's cashback case (units * cadPerDollar) treats it as one. Converted per portion, not
+    // once at the end, in case a straddling purchase's post-cap earn is ever a different type
+    // than its in-cap earn.
+    const unitsInReportingCurrency = (earn: Earn, amount: number): number => {
+      const raw = Scorer.earnUnits(earn, amount);
+      return earn.type === 'cashback' ? toReporting({ amount: raw, currency: card.billingCurrency }) : raw;
+    };
+
+    const units = unitsInReportingCurrency(rule.earn, inCapAmount) + unitsInReportingCurrency(postCapEarn ?? rule.earn, overCapAmount);
 
     // Asserted non-null, not `?? 0`: the guard above proves a valuation exists, and `?? 0` would
     // quietly reinstate the zero-scoring bug if a refactor ever moved that guard.

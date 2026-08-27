@@ -95,9 +95,12 @@ describe('multi-market: USD-billing card scoring', () => {
     const score = Scorer.score(usdCashbackCard, purchase, ownerState(), '2026-08-26');
     expect(score.excluded).toBe(false);
     expect(score.appliedRuleId).toBe('grocery-5x-quarterly');
-    // 5% of the $100 USD equivalent, not 5% of $137 CAD.
-    expect(score.rewardUnits).toBeCloseTo(5, 6);
-    expect(score.grossRewardCad).toBeCloseTo(5, 6);
+    // 5% of the $100 USD equivalent (= US$5 cashback), converted to the CAD reporting figure —
+    // NOT left as if US$5 were C$5. Cashback is real money in the card's billing currency, unlike
+    // points (a currency-agnostic token), so this conversion is load-bearing.
+    const expectedCad = 100 * 0.05 * PINNED_USD_TO_CAD;
+    expect(score.rewardUnits).toBeCloseTo(expectedCad, 6);
+    expect(score.grossRewardCad).toBeCloseTo(expectedCad, 6);
   });
 
   it('falls back to the pinned CAD/USD rate when no usdEquivalent is supplied', () => {
@@ -108,7 +111,9 @@ describe('multi-market: USD-billing card scoring', () => {
       acceptedNetworks: ['visa'],
     };
     const score = Scorer.score(usdCashbackCard, purchase, ownerState(), '2026-08-26');
-    expect(score.rewardUnits).toBeCloseTo(137 * Scorer.fallbackCadToUsd * 0.05, 6);
+    // CAD -> USD (fallbackCadToUsd) to compute native earn, then USD -> CAD (PINNED_USD_TO_CAD,
+    // its exact inverse) to report it — the two conversions cancel, leaving 137 * 0.05.
+    expect(score.rewardUnits).toBeCloseTo(137 * Scorer.fallbackCadToUsd * 0.05 * PINNED_USD_TO_CAD, 6);
   });
 
   it('charges FX when the purchase currency differs from the card\'s billing currency (USD), not just when it differs from CAD', () => {
@@ -149,8 +154,8 @@ describe('multi-market: USD-billing card scoring', () => {
     };
     const state = ownerState({ cardStates: { 'usd-cashback-test': { capProgress: { 'grocery-cap': 1400 } } } });
     const score = Scorer.score(usdCashbackCard, purchase, state, '2026-08-26');
-    // $100 in-cap at 5%, $100 over-cap at the post-cap 1% — both in USD, not CAD.
-    expect(score.rewardUnits).toBeCloseTo(100 * 0.05 + 100 * 0.01, 6);
+    // $100 in-cap at 5%, $100 over-cap at the post-cap 1% — both in USD, converted to CAD.
+    expect(score.rewardUnits).toBeCloseTo((100 * 0.05 + 100 * 0.01) * PINNED_USD_TO_CAD, 6);
   });
 });
 

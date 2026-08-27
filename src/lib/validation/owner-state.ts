@@ -206,6 +206,11 @@ export const ownerStateInput = z.object({
   carry: z.object({ drawerCards: z.array(z.string().min(1)).max(100) }).strict(),
   cardStates: z.record(z.string().min(1), cardState),
   valuationsCad: z.union([legacyValuations, modernValuations]).transform(hybridValuations),
+  /// The owner's own residency — see cards-twin/models.ts's OwnerState.market doc comment for
+  /// why this gates only the empty-wallet acquisition/browse default, never ownedCardIds or
+  /// checkout scoring. Absent means "unresolved", not "Canadian" — the engine applies that
+  /// default itself (resolvedMarket), so it is never baked into the stored record.
+  market: z.enum(["CA", "US"]).optional(),
 }).strict().superRefine((state, ctx) => {
   if (!state.ownedCardIds.includes(state.defaultCardId)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["defaultCardId"], message: "default card must be owned" });
