@@ -273,6 +273,18 @@
             "$ref": "#/$defs/cardCredit"
           },
           "description": "Optional. Absent for most cards; absence means no credits, never unknown."
+        },
+        "lifecycleStatus": {
+          "enum": [
+            "active",
+            "withdrawn"
+          ],
+          "description": "Optional. Absent means active. Product lifecycle is independent of publication status: a published card can later be withdrawn. A discontinued product is marked 'withdrawn' and kept; it is never deleted and its cardId is never reused, because prediction rows, owner state, and other repos' vendored copies all key on that id."
+        },
+        "effectiveTo": {
+          "type": "string",
+          "format": "date",
+          "description": "Optional. The date the product stopped being available — card-level, distinct from earnRule.effectiveTo, which closes one rule's window. Scoring is dated, not boolean: Scorer excludes a withdrawn card only for an asOf after this date, so a historical query still scores the card exactly as it scored at the time. A withdrawn card without this date is excluded on every date."
         }
       }
     },

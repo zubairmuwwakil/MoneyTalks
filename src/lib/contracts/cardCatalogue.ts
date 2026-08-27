@@ -217,6 +217,12 @@ const cardProductSchema = annotatedObject({
   // research-grade record that has not cleared this catalogue's issuer-confirmed sourcing bar
   // (D3); PickMe's engine refuses to score one even if it somehow ended up owned.
   status: z.enum(["published", "draft"]).optional(),
+  // Absent means "active". Independent of `status`: a published card can later be withdrawn.
+  // PickMe's engine excludes a withdrawn card from scoring only for an asOf after `effectiveTo`
+  // — the twin does not yet mirror that exclusion (no fixture exercises it), but the schema must
+  // still accept the field or a future catalogue sync with a withdrawn card fails closed here.
+  lifecycleStatus: z.enum(["active", "withdrawn"]).optional(),
+  effectiveTo: z.string().optional(),
   eligibility: eligibilitySchema.optional(),
   fee: feeSchema,
   program: programSchema,
