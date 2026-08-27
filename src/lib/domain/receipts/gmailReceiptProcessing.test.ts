@@ -62,6 +62,9 @@ function setupDb() {
     capAccrual: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
     capUsageLedger: { upsert: vi.fn(), update: vi.fn() },
     walletEvent: { findFirst: vi.fn() },
+    // The real TransactionClient has this; promotePurchase reads it to find
+    // any curated category before falling back to the merchant pack.
+    merchantAlias: { findUnique: vi.fn() },
   };
   const db = {
     merchantAlias: { findUnique: vi.fn(), create: vi.fn() },
@@ -69,6 +72,7 @@ function setupDb() {
   };
 
   tx.receiptDocument.findMany.mockResolvedValue([]);
+  tx.merchantAlias.findUnique.mockResolvedValue(null);
   vi.mocked(resolveEmailMerchant).mockImplementation(async (_db, merchant) => merchant);
   vi.mocked(findMatchingPurchase).mockResolvedValue(null);
 
@@ -184,6 +188,99 @@ describe("processRawGmailMessage", () => {
       purchaseAction: "created",
       parserError: null,
     });
+  });
+
+  it("categorizes a new purchase from the receipt's sender domain", async () => {
+    const { db, tx } = setupDb();
+    // The descriptor is useless; the sender is not. Before the resolver, this
+    // purchase was created with no category at all — and the accrual gate
+    // below requires one, so it never reached the cap ledger.
+    const reparsed = {
+      messageId: message.messageId,
+      merchant: "Order 8812",
+      fromEmail: "noreply@ubereats.com",
+      subject: "Your Uber Eats order",
+      purchasedAt: new Date("2026-08-03T10:00:00.000Z"),
+      orderId: undefined,
+      totalCents: 3199,
+      currency: "cad",
+      items: undefined,
+      rawSource: "text" as const,
+      textBody: "Total CAD 31.99",
+    };
+    const refreshed = {
+      ...existingTransaction,
+      merchant: reparsed.merchant,
+      fromEmail: reparsed.fromEmail,
+      totalCents: reparsed.totalCents,
+      currency: "CAD",
+      purchasedAt: reparsed.purchasedAt,
+      items: null,
+    };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue(reparsed);
+    tx.emailTransaction.findUnique.mockResolvedValue(existingTransaction);
+    tx.emailTransaction.upsert.mockResolvedValue(refreshed);
+    tx.emailTransaction.update.mockResolvedValue({ ...refreshed, purchaseId: "purchase-9" });
+    tx.purchase.findUnique.mockResolvedValue(null);
+    tx.purchase.create.mockResolvedValue({
+      id: "purchase-9", userId: "user-1", merchant: reparsed.merchant, totalCents: 3199,
+      currency: "CAD", purchasedAt: reparsed.purchasedAt, orderNumber: null, paymentMethod: null,
+      category: "foodDelivery", categorySource: "emailDomain", source: "GMAIL",
+      sourceEmailId: message.messageId, sourceEventId: null, possibleDuplicateOfId: null,
+      createdAt: new Date(), updatedAt: new Date(),
+    });
+
+    await processRawGmailMessage(db as never, { userId: "user-1", message, mode: "reprocess" });
+
+    expect(tx.purchase.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        category: "foodDelivery",
+        categorySource: "emailDomain",
+      }),
+    });
+  });
+
+  it("does not overwrite a category already on the row", async () => {
+    const { db, tx } = setupDb();
+    const reparsed = {
+      messageId: message.messageId,
+      merchant: "Uber Eats",
+      fromEmail: "noreply@ubereats.com",
+      subject: "receipt",
+      purchasedAt: new Date("2026-08-03T10:00:00.000Z"),
+      orderId: undefined,
+      totalCents: 3199,
+      currency: "cad",
+      items: undefined,
+      rawSource: "text" as const,
+      textBody: "Total CAD 31.99",
+    };
+    const refreshed = { ...existingTransaction, merchant: reparsed.merchant, fromEmail: reparsed.fromEmail,
+      totalCents: 3199, currency: "CAD", purchasedAt: reparsed.purchasedAt, items: null,
+      purchaseId: "purchase-7" };
+    const existingPurchase = {
+      id: "purchase-7", userId: "user-1", merchant: "Uber Eats", totalCents: 3199, currency: "CAD",
+      purchasedAt: reparsed.purchasedAt, orderNumber: null, paymentMethod: null,
+      // The owner said "dining" for this merchant. A tier-5 pack reading must
+      // not quietly replace a tier-1 decision on reprocess.
+      category: "dining", categorySource: "userOverride", source: "GMAIL",
+      sourceEmailId: message.messageId, sourceEventId: null, possibleDuplicateOfId: null,
+      createdAt: new Date(), updatedAt: new Date(),
+    };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue(reparsed);
+    tx.emailTransaction.findUnique.mockResolvedValue(existingTransaction);
+    tx.emailTransaction.upsert.mockResolvedValue(refreshed);
+    tx.emailTransaction.update.mockResolvedValue(refreshed);
+    tx.purchase.findUnique.mockResolvedValue(existingPurchase);
+    tx.purchase.update.mockResolvedValue(existingPurchase);
+
+    await processRawGmailMessage(db as never, { userId: "user-1", message, mode: "reprocess" });
+
+    expect(tx.purchase.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ category: "dining", categorySource: undefined }),
+    }));
   });
 
   it("unlinks and deletes an orphaned Gmail purchase that no longer qualifies", async () => {

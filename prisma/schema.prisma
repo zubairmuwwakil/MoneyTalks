@@ -511,6 +511,9 @@ model Purchase {
   createdAt                 DateTime                     @default(now())
   updatedAt                 DateTime                     @updatedAt
   category                  String?
+  /// Which resolver tier decided `category` (src/lib/domain/merchants/resolveCategory.ts).
+  /// Null means the row predates provenance tracking, never "unknown tier".
+  categorySource            String?
   possibleDuplicateOfId     String?
   sourceEventId             String?
   emailTransactions         EmailTransaction[]
@@ -530,6 +533,7 @@ model Purchase {
   @@index([userId, purchasedAt])
   @@index([purchasedAt])
   @@index([userId, merchant])
+  @@index([userId, category, purchasedAt])
 }
 
 model PurchaseCorrection {

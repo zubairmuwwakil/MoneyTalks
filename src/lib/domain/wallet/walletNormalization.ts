@@ -4,6 +4,7 @@ import { walletAmountMinor } from "./amount";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { findMatchingPurchase } from "@/lib/domain/spine/purchaseMerge";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
+import { resolveCategory, shouldAutoApply } from "@/lib/domain/merchants/resolveCategory";
 
 type WalletEventForNormalization = Awaited<ReturnType<typeof prisma.walletEvent.findFirst>>;
 const STALE_PROCESSING_MS = 5 * 60 * 1000;
@@ -57,6 +58,22 @@ async function processClaimedWalletEvent(event: NonNullable<WalletEventForNormal
     }
   }
   const normalizedMerchant = event.correctedMerchant?.trim() || merchantAlias?.normalizedName;
+
+  // The cold-start resolver. A curated alias still wins — it is tier 2 and
+  // nothing below it can outrank an owner's decision — but a merchant nobody
+  // has ever categorized now arrives categorized instead of landing in the
+  // uncategorized pile and waiting for someone to notice it.
+  //
+  // Only `certain` and `high` are written. A weaker reading (a restaurant-only
+  // processor on an unrecognized name) is left unwritten on purpose: the row
+  // stays uncategorized and /purchases offers it as a one-tap suggestion, so a
+  // guess never enters the spine wearing the same clothes as a fact.
+  const resolution = resolveCategory({
+    merchantRaw: merchantKey,
+    aliasCategory: merchantAlias?.category,
+  });
+  const resolvedCategory = shouldAutoApply(resolution) ? resolution.category : null;
+  const resolvedCategorySource = resolvedCategory ? resolution.source : null;
 
   const primaryCardAlias = event.cardRaw
     ? await prisma.cardAlias.findUnique({
@@ -118,7 +135,8 @@ async function processClaimedWalletEvent(event: NonNullable<WalletEventForNormal
           data: {
             purchasedAt: event.capturedAt,
             paymentMethod: match.purchase.paymentMethod ?? resolvedCardId ?? undefined,
-            category: match.purchase.category ?? merchantAlias.category ?? undefined,
+            category: match.purchase.category ?? resolvedCategory ?? undefined,
+            categorySource: match.purchase.category ? undefined : resolvedCategorySource ?? undefined,
             currency: match.purchase.currency ?? eventCurrency,
           },
         });
@@ -133,7 +151,8 @@ async function processClaimedWalletEvent(event: NonNullable<WalletEventForNormal
             currency: eventCurrency,
             purchasedAt: event.capturedAt,
             paymentMethod: resolvedCardId ?? undefined,
-            category: merchantAlias.category,
+            category: resolvedCategory,
+            categorySource: resolvedCategorySource,
             possibleDuplicateOfId: match?.purchase.id ?? null,
           }
         });
@@ -146,7 +165,7 @@ async function processClaimedWalletEvent(event: NonNullable<WalletEventForNormal
         sourceKey: `purchase:${spine.id}`,
         userId: event.userId,
         cardId: resolvedCardId,
-        category: merchantAlias.category,
+        category: spine.category,
         merchantBrand: normalizedMerchant,
         amountMinor: amountMinor!,
         currency: spine.currency,

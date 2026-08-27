@@ -9,6 +9,7 @@ import { parseWalletCapturePayload } from "@/lib/domain/wallet/capturePayload";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
 import { programDefaults } from "@/lib/contracts/cardCatalogue";
+import { purchaseContextFields, resolveCategory } from "@/lib/domain/merchants/resolveCategory";
 import { Prisma } from "@prisma/client";
 
 function loadCatalogue(): Catalogue {
@@ -163,13 +164,35 @@ export async function POST(req: Request) {
     const ownerStateRecord = await ensureOwnerStateRecord(prisma, installation.userId);
 
     if (ownerStateRecord && resolvedCardId && normalizedMerchant && amountNumber != null && currency === "CAD") {
-      // Category is unknown at capture time; the engine falls back to base
-      // earn until async categorization improves the record.
+      // The category is resolved at capture time, not left "unknown".
+      //
+      // This block used to hardcode `category: "unknown"` with a note saying
+      // the category was not knowable yet — while `merchantAlias`, already
+      // fetched above, was sitting in scope carrying one. Every at-till
+      // verdict was therefore computed at base earn, including for merchants
+      // the owner had personally categorized, so "you used the best card"
+      // was an answer about a purchase nobody made.
+      //
+      // Same resolver, same inputs the async pipeline used moments ago in
+      // walletNormalization, so the at-till answer and the stored purchase
+      // cannot disagree about what this merchant is.
+      const resolution = resolveCategory({
+        merchantRaw: data.merchantRaw ?? data.transactionNameRaw,
+        aliasCategory: merchantAlias?.category,
+      });
+      const engineFields = purchaseContextFields(resolution);
+
       const ownerState = ownerStateRecord.stateData as unknown as OwnerState;
       const purchaseContext: PurchaseContext = {
         amountCad: amountNumber,
         currency,
-        category: "unknown",
+        category: engineFields.category,
+        // An MCC must travel with the category. RuleMatcher treats a NULL mcc
+        // as matching every `mccInclude` rule unconditionally, so a category
+        // supplied without one turns a base-earn answer into a confidently
+        // wrong bonus (the trap src/lib/domain/bills/cardForBill.ts documents
+        // at length). `engineFields.mccAssumed` says it was not observed.
+        mcc: engineFields.mcc,
         merchantBrand: normalizedMerchant,
       };
 

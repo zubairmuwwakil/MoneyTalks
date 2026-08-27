@@ -3,7 +3,7 @@
     "repo": "https://github.com/zubairmuwwakil/PickMe",
     "ref": "claude/credit-card-catalogue-ca-us-blxa64",
     "release": "card-contracts@2.0",
-    "commit": "62d13ffbd7e1dc5ffbc42459d601cbf43bffaec2",
+    "commit": "cec2f772302aba47e12df5340a67b24f3683cf1a",
     "files": {
       "card-catalogue.json": "9af1dcf41a1ddd768455c4afda27367eb222af94a2f3149e3cecf4af98ff2855",
       "benefits-catalogue.json": "08bf768f4c39f0f85a366f9182ce3a1fe82aa745ee6045eb711defc207c10c1d",
@@ -12,9 +12,11 @@
       "programs.json": "b49edbc141c3e397ab69ce81bfd4443199b933eb99cf8c2bc9cce3d31e36f801",
       "candidate-catalogue.json": "9b8fde9661cf00bfc59e20443dc0a415042b910487865670c87c16cf9b5e9a43",
       "RELEASE.json": "d0d3c3ddde3a1714df02611021feddda452a74b5a76656141989c3bc62a5f0cf",
+      "merchant-pack.json": "62aa02ee6f197b4a089afdd286cad8c002cc75711009f8a50132007e6b759908",
       "schema/card-catalogue.schema.json": "f77ca8f25e1e4b8f675fe9a0ec642657a0febd1d6a2b24ae03277ad641ba7177",
       "schema/benefits-catalogue.schema.json": "055c498a1c78b2ad091f249cbbb50b99c5c20ebeda99fd17aff8113bcd502888",
-      "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db"
+      "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db",
+      "schema/merchant-pack.schema.json": "21e3743c92418db7108a99e7f36cf2aef41264947f87911b2b26c7cd3dc8ef9a"
     }
   },
   "card-catalogue.json": "9af1dcf41a1ddd768455c4afda27367eb222af94a2f3149e3cecf4af98ff2855",
@@ -24,7 +26,9 @@
   "programs.json": "b49edbc141c3e397ab69ce81bfd4443199b933eb99cf8c2bc9cce3d31e36f801",
   "candidate-catalogue.json": "9b8fde9661cf00bfc59e20443dc0a415042b910487865670c87c16cf9b5e9a43",
   "RELEASE.json": "d0d3c3ddde3a1714df02611021feddda452a74b5a76656141989c3bc62a5f0cf",
+  "merchant-pack.json": "62aa02ee6f197b4a089afdd286cad8c002cc75711009f8a50132007e6b759908",
   "schema/card-catalogue.schema.json": "f77ca8f25e1e4b8f675fe9a0ec642657a0febd1d6a2b24ae03277ad641ba7177",
   "schema/benefits-catalogue.schema.json": "055c498a1c78b2ad091f249cbbb50b99c5c20ebeda99fd17aff8113bcd502888",
-  "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db"
+  "schema/engine-fixtures.schema.json": "a2bb8f2d465168f2ee66b47380b4e9ccbc6c0b72bf2df1fc21aac75e2a54a4db",
+  "schema/merchant-pack.schema.json": "21e3743c92418db7108a99e7f36cf2aef41264947f87911b2b26c7cd3dc8ef9a"
 }

@@ -35,9 +35,15 @@ const EXPECTED_FILES = [
   "programs.json",
   "candidate-catalogue.json",
   "RELEASE.json",
+  // Not part of card-contracts@N: the merchant pack carries its own
+  // packVersion and stays out of PickMe's release digest, because merchant
+  // facts change on a different cadence from card rate facts. It is still
+  // vendored and hashed here like everything else.
+  "merchant-pack.json",
   "schema/card-catalogue.schema.json",
   "schema/benefits-catalogue.schema.json",
   "schema/engine-fixtures.schema.json",
+  "schema/merchant-pack.schema.json",
 ];
 
 const DRIFT_MESSAGE = "contracts drifted — run scripts/sync-contracts.sh /path/to/PickMe/contracts";

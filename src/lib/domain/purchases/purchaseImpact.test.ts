@@ -209,16 +209,20 @@ describe("buildPurchaseImpact", () => {
 
     const range = view.ranges["4W"];
     expect(range.totalMinor).toBe(10_000);
+    // Categories are reported under the catalogue's own tokens: "grocery",
+    // not "groceries". The pre-convergence label ("Dining & Delivery") is
+    // gone too, because dining and foodDelivery are separately scored
+    // categories and one chip cannot honestly stand for both.
     expect(range.categories).toEqual([
       {
         category: "dining",
-        label: "Dining & Delivery",
+        label: "Dining",
         icon: "🍔",
         amountMinor: 6_000,
         percentage: 60,
       },
       {
-        category: "groceries",
+        category: "grocery",
         label: "Groceries",
         icon: "🛒",
         amountMinor: 3_000,
