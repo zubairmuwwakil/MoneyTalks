@@ -1,4 +1,4 @@
-import { cardCatalogue, publishedCards, type CardCredit, type CardProduct } from "@/lib/contracts/cardCatalogue";
+import { browsableCards, cardCatalogue, type CardCredit, type CardProduct } from "@/lib/contracts/cardCatalogue";
 import { toReporting } from "@/engine/cards-twin/reportingCurrency";
 import type { Network } from "./types";
 
@@ -118,6 +118,9 @@ export interface CatalogueChoice {
   officialName: string;
   issuer: string;
   network: Network;
+  market: CardProduct["market"];
+  billingCurrency: CardProduct["billingCurrency"];
+  status: "published" | "draft";
   annualFeeMinor: number;
 }
 
@@ -220,16 +223,21 @@ export const POPULAR_CARD_IDS = [
 /// no rates, caps or multipliers are ever copied onto a user's row, because
 /// copying them is precisely how the two rate models diverged in the first place.
 export function catalogueChoices(): CatalogueChoice[] {
-  // publishedCards(), not cardCatalogue.cards: this picker has no "unverified" label and no
-  // market filter, so offering drafts would put unverified US products in front of a Canadian
-  // owner as issuer-confirmed, with their USD fees silently converted to CAD by toReporting.
-  return publishedCards()
+  // `browsableCards()` is safe here because CardPicker is market-scoped and
+  // renders an explicit unverified treatment for drafts. Do not reuse this
+  // helper for linking or validation; those must stay published-only.
+  return browsableCards()
     .map((card) => ({
       contractCardId: card.cardId,
       officialName: card.officialName,
       issuer: card.issuer,
       network: NETWORK_TO_DB[card.network],
-      annualFeeMinor: Math.round(toReporting(card.fee.annual) * 100),
+      market: card.market,
+      billingCurrency: card.billingCurrency,
+      status: card.status ?? "published",
+      // Preserve the catalogue's native billing currency. Converting a US fee
+      // at browse time is exactly the silent CAD claim this flow exists to end.
+      annualFeeMinor: Math.round((card.fee.annual?.amount ?? 0) * 100),
     }))
     .sort((a, b) =>
       a.issuer === b.issuer ? a.officialName.localeCompare(b.officialName) : a.issuer.localeCompare(b.issuer),

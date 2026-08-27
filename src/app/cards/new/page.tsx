@@ -2,10 +2,12 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { CardForm } from "@/components/card-form";
 import { catalogueChoices } from "@/lib/cards/catalogueCard";
+import { getOrCreateProfile } from "@/lib/profile";
 import { requireUserId } from "@/lib/require-user";
 
 export default async function NewCardPage() {
-  await requireUserId();
+  const userId = await requireUserId();
+  const profile = await getOrCreateProfile(userId);
 
   return (
     <main className="max-w-6xl mx-auto space-y-6 py-6 sm:py-8">
@@ -19,14 +21,13 @@ export default async function NewCardPage() {
         </Link>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Add Card</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Choose your card from our verified catalogue to instantly unlock real-time reward multipliers, fee schedules, and perk tracking.
+          Browse cards for your selected market. Entries not yet confirmed against their issuer are clearly marked and never used for recommendations.
         </p>
       </div>
 
       <div className="mt-6">
-        <CardForm mode="create" choices={catalogueChoices()} />
+        <CardForm mode="create" choices={catalogueChoices()} initialMarket={profile.cardShoppingMarket} />
       </div>
     </main>
   );
 }
-

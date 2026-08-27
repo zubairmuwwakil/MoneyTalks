@@ -259,6 +259,10 @@ model FxRate {
 model Profile {
   userId                   String   @id
   residency                String   @default("CA")
+  // This is a browsing preference, deliberately independent of tax residency.
+  // A Canadian can shop US products; we must never infer that intent from an
+  // existing card or investment account.
+  cardShoppingMarket       String   @default("CA")
   citizenships             String[] @default([])
   filingStatus             String   @default("SINGLE_ABROAD")
   marginalUSRatePct        Int      @default(24)

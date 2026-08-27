@@ -1,13 +1,18 @@
 import type { IncomeSource, ProfileView } from "@/engine/rules/types";
 import { prisma } from "@/lib/prisma";
 
-export async function getOrCreateProfile(userId: string): Promise<ProfileView> {
+export type OwnerProfile = ProfileView & { cardShoppingMarket: "CA" | "US" };
+
+export async function getOrCreateProfile(userId: string): Promise<OwnerProfile> {
   const row =
     (await prisma.profile.findUnique({ where: { userId } })) ??
     (await prisma.profile.create({ data: { userId } }));
 
   return {
     residency: row.residency,
+    // A bad legacy value must fail closed to the established Canadian default,
+    // never make a foreign catalogue appear unexpectedly.
+    cardShoppingMarket: row.cardShoppingMarket === "US" ? "US" : "CA",
     citizenships: row.citizenships,
     filingStatus: (["SINGLE_ABROAD", "MFJ_ABROAD", "OTHER"] as const).includes(
       row.filingStatus as never,

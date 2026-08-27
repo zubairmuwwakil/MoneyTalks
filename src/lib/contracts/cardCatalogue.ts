@@ -377,6 +377,18 @@ export function publishedCards(): CardProduct[] {
 }
 
 /**
+ * The complete catalogue for an explicitly unverified-aware browse surface.
+ *
+ * This is deliberately narrower than a replacement for `publishedCards()`:
+ * only a surface which both labels drafts and scopes by owner-selected market
+ * may call it. Validators, wallet links, recommendations, and analytics must
+ * continue to use `publishedCards()` or their engine guard.
+ */
+export function browsableCards(): CardProduct[] {
+  return cardCatalogue.cards;
+}
+
+/**
  * Catalogue-level default program valuations (contracts/programs.json), merged BENEATH whatever
  * the owner has declared. Nothing read this file until 2026-08-24, so 11 of the corpus's 16
  * programs were valued at nothing here while Swift valued them correctly — cards in those

@@ -45,6 +45,9 @@ export const incomeSourceInput = z.object({
 
 export const profileInput = z.object({
   residency: z.string().regex(/^[A-Z]{2}$/),
+  // Product shopping market is intentionally separate from residency: people
+  // may browse a foreign market without changing their tax profile.
+  cardShoppingMarket: z.enum(["CA", "US"]),
   citizenships: z.string().trim().transform((s) =>
     s.split(",").map((c) => c.trim().toUpperCase()).filter((c) => /^[A-Z]{2}$/.test(c)),
   ),

@@ -1,4 +1,4 @@
-import { effectiveAnnualFeeMinor, catalogueCredits, type RedeemedCredit } from "@/lib/cards/catalogueCard";
+import { catalogueCard, effectiveAnnualFeeMinor, catalogueCredits, type RedeemedCredit } from "@/lib/cards/catalogueCard";
 import { toReporting } from "@/engine/cards-twin/reportingCurrency";
 import { currentFeeCycle, feeCycleDaysRemaining, type FeeScheduleCard } from "@/lib/cards/feeSchedule";
 import { buildCheatSheetRecommendations } from "@/lib/cards/cardPresentation";
@@ -34,6 +34,12 @@ export default async function CardsPage() {
 
   const today = new Date();
   const cycles = defs.map((def) => currentFeeCycle(def, today));
+  const draftCardIds = new Set(
+    cards
+      .filter((card) => catalogueCard(card.contractCardId)?.status === "draft")
+      .map((card) => card.id),
+  );
+  const valuedCards = cards.filter((card) => !draftCardIds.has(card.id));
 
   let missingRenewalDateCount = 0;
   let decisionWindowCount = 0;
@@ -44,6 +50,7 @@ export default async function CardsPage() {
     const c = cards[i];
     const def = defs[i];
     const cycle = cycles[i];
+    if (draftCardIds.has(c.id)) continue;
 
     const effFee = effectiveAnnualFeeMinor(def.annualFeeMinor, def.feeRebateMinor);
     if (effFee > 0 && !c.feeMonthDay) {
@@ -78,7 +85,7 @@ export default async function CardsPage() {
   };
 
   const impact = buildWalletImpact(
-    cards.map((card) => ({
+    valuedCards.map((card) => ({
       id: card.id,
       nickname: card.nickname,
       issuer: card.issuer,
@@ -115,10 +122,11 @@ export default async function CardsPage() {
       feeMonthDay: c.feeMonthDay,
       feeCancelGraceDays: c.feeCancelGraceDays,
       coveragePercentage,
+      unverified: draftCardIds.has(c.id),
     };
   });
 
-  const categories = buildCheatSheetRecommendations(cards);
+  const categories = buildCheatSheetRecommendations(valuedCards);
 
   return (
     <main className="space-y-6 py-6 sm:py-8">

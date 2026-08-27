@@ -3,6 +3,7 @@ import { incomeSourceInput, profileInput } from "./profile";
 
 const validProfile = {
   residency: "CA",
+  cardShoppingMarket: "CA",
   citizenships: "US, CA",
   filingStatus: "SINGLE_ABROAD",
   marginalUSRatePct: "24",
@@ -20,6 +21,16 @@ const validProfile = {
 };
 
 describe("profileInput dollars-entry fields", () => {
+  it("keeps card shopping market explicit and separate from residency", () => {
+    const parsed = profileInput.safeParse({ ...validProfile, residency: "CA", cardShoppingMarket: "US" });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.cardShoppingMarket).toBe("US");
+  });
+
+  it("rejects an unsupported card shopping market", () => {
+    expect(profileInput.safeParse({ ...validProfile, cardShoppingMarket: "GB" }).success).toBe(false);
+  });
+
   it("accepts a plain dollars string and stores integer cents", () => {
     const parsed = profileInput.safeParse({ ...validProfile, tfsaRoomMinor: "1,234.56" });
     expect(parsed.success).toBe(true);

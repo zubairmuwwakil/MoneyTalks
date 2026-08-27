@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { previewStatement } from "./actions";
+import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 
 vi.mock("@/lib/require-user", () => ({ requireUserId: vi.fn(async () => "user-1") }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -81,6 +82,16 @@ describe("previewStatement currency gate", () => {
   it("refuses a capture with unknown currency against a CAD statement line", async () => {
     vi.mocked(prisma.walletEvent.findMany).mockResolvedValue(capture(null) as never);
     expect(await reviewStatus()).toBe("unmatched");
+  });
+
+  it("keeps draft records out of statement identity links", async () => {
+    const upload = statementUpload();
+    const draft = cardCatalogue.cards.find((card) => card.status === "draft");
+    expect(draft).toBeDefined();
+    upload.set("contractCardId", draft!.cardId);
+
+    await expect(previewStatement(upload)).resolves.toEqual({ ok: false, error: "Unknown Wallet capture identity." });
+    expect(prisma.creditCard.findFirst).not.toHaveBeenCalled();
   });
 });
 

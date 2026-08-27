@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Search, ChevronDown, X, CreditCard, Sparkles } from "lucide-react";
+import { Search, ChevronDown, X, CreditCard, Sparkles, CircleAlert } from "lucide-react";
 import type { CatalogueChoice } from "@/lib/cards/catalogueCard";
 import { POPULAR_CARD_IDS } from "@/lib/cards/catalogueCard";
 import { CardImage } from "./card-image";
@@ -11,6 +11,9 @@ interface CardPickerProps {
   choices: CatalogueChoice[];
   value: string;
   onChange: (contractCardId: string) => void;
+  market: "CA" | "US";
+  onMarketChange: (market: "CA" | "US") => void;
+  marketPending?: boolean;
   showPopularChips?: boolean;
 }
 
@@ -22,7 +25,7 @@ interface CardPickerProps {
  * - Card Art Thumbnails in search results
  * - Full keyboard navigation (Arrow Up/Down, Enter, Esc)
  */
-export function CardPicker({ choices, value, onChange, showPopularChips = true }: CardPickerProps) {
+export function CardPicker({ choices, value, onChange, market, onMarketChange, marketPending = false, showPopularChips = true }: CardPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedIssuer, setSelectedIssuer] = useState<string>("ALL");
@@ -32,17 +35,18 @@ export function CardPicker({ choices, value, onChange, showPopularChips = true }
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selected = choices.find((c) => c.contractCardId === value) ?? null;
+  const marketChoices = useMemo(() => choices.filter((choice) => choice.market === market), [choices, market]);
 
   // Extract unique issuers for filter tabs
   const issuers = useMemo(() => {
     const set = new Set<string>();
-    choices.forEach((c) => set.add(c.issuer));
+    marketChoices.forEach((c) => set.add(c.issuer));
     return ["ALL", ...Array.from(set).sort()];
-  }, [choices]);
+  }, [marketChoices]);
 
   // Filter choices by query and active issuer tab
   const filtered = useMemo(() => {
-    let result = choices;
+    let result = marketChoices;
 
     if (selectedIssuer !== "ALL") {
       result = result.filter((c) => c.issuer === selectedIssuer);
@@ -56,7 +60,7 @@ export function CardPicker({ choices, value, onChange, showPopularChips = true }
     }
 
     return result;
-  }, [choices, query, selectedIssuer]);
+  }, [marketChoices, query, selectedIssuer]);
 
   // Group filtered choices by issuer
   const grouped = useMemo(() => {
@@ -74,15 +78,20 @@ export function CardPicker({ choices, value, onChange, showPopularChips = true }
 
   // Popular cards list
   const popularChoices = useMemo(() => {
-    return POPULAR_CARD_IDS.map((id) => choices.find((c) => c.contractCardId === id)).filter(
+    return POPULAR_CARD_IDS.map((id) => marketChoices.find((c) => c.contractCardId === id)).filter(
       Boolean,
     ) as CatalogueChoice[];
-  }, [choices]);
+  }, [marketChoices]);
 
   // Reset highlight when filter changes
   useEffect(() => {
     setHighlightIndex(filtered.length > 0 ? 0 : -1);
   }, [filtered]);
+
+  useEffect(() => {
+    setSelectedIssuer("ALL");
+    setQuery("");
+  }, [market]);
 
   // Close on outside click
   useEffect(() => {
@@ -153,12 +162,36 @@ export function CardPicker({ choices, value, onChange, showPopularChips = true }
       VISA: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
       MASTERCARD: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
       AMEX: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+      DISCOVER: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
     };
     return colors[network] ?? "bg-muted text-muted-foreground border-border/40";
   };
 
   return (
     <div className="space-y-3">
+      <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-xs font-semibold text-foreground">Catalogue market</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">Only cards sold in this market are shown.</p>
+          </div>
+          <select
+            aria-label="Catalogue market"
+            value={market}
+            disabled={marketPending}
+            onChange={(event) => onMarketChange(event.target.value as "CA" | "US")}
+            className="h-8 rounded-lg border border-input bg-background px-2 text-xs font-semibold disabled:opacity-50"
+          >
+            <option value="CA">Canada</option>
+            <option value="US">United States</option>
+          </select>
+        </div>
+        <p className="mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
+          <CircleAlert className="mt-0.5 size-3 shrink-0" />
+          Cards marked Unverified are research snapshots. Their details have not been confirmed against the issuer.
+        </p>
+      </div>
+
       {/* ─── Popular Cards Fast-Pick Bar ────────────────────────────── */}
       {showPopularChips && popularChoices.length > 0 && (
         <div className="space-y-1.5">
@@ -335,10 +368,15 @@ export function CardPicker({ choices, value, onChange, showPopularChips = true }
                               </span>
                               <span className="text-[11px] text-muted-foreground">
                                 {choice.annualFeeMinor === 0
-                                  ? "No annual fee"
-                                  : `$${Math.round(choice.annualFeeMinor / 100)}/year`}
+                                  ? `No annual fee · ${choice.billingCurrency}`
+                                  : `${choice.billingCurrency} $${Math.round(choice.annualFeeMinor / 100)}/year`}
                               </span>
                             </div>
+                            {choice.status === "draft" ? (
+                              <span className="shrink-0 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 dark:text-amber-300">
+                                UNVERIFIED
+                              </span>
+                            ) : null}
                             <span
                               className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold font-mono border ${networkBadge(
                                 choice.network,

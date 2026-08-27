@@ -11,7 +11,7 @@ export const cardImportEntry = z
   .object({
     nickname: z.string().trim().min(1).max(60),
     issuer: z.string().trim().min(1).max(60),
-    network: z.enum(["VISA", "MASTERCARD", "AMEX"]),
+    network: z.enum(["VISA", "MASTERCARD", "AMEX", "DISCOVER"]),
     lastFour: z.preprocess(emptyToUndefined, z.string().regex(/^\d{4}$/).optional()),
     country: countryCode.default("CA"),
     currency: currencyCode.default("CAD"),

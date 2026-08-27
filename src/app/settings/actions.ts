@@ -2,12 +2,14 @@
 
 import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import type { IncomeSource } from "@/engine/rules/types";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { incomeSourceInput, profileInput } from "@/lib/validation/profile";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
+const cardShoppingMarketInput = z.enum(["CA", "US"]);
 
 // Prisma's Json column input requires a structurally-open type; an `interface` has no
 // implicit index signature, so the array needs an explicit widening at this boundary.
@@ -30,6 +32,26 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
   revalidatePath("/settings");
   revalidatePath("/money-finder");
   revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Updates only the catalogue browsing preference. This is intentionally not
+ * derived from residency: a person can shop another market without changing
+ * their tax profile.
+ */
+export async function setCardShoppingMarket(market: unknown): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const parsed = cardShoppingMarketInput.safeParse(market);
+  if (!parsed.success) return { ok: false, error: "Choose Canada or the United States." };
+
+  await prisma.profile.upsert({
+    where: { userId },
+    update: { cardShoppingMarket: parsed.data },
+    create: { userId, cardShoppingMarket: parsed.data },
+  });
+  revalidatePath("/cards/new");
+  revalidatePath("/settings");
   return { ok: true };
 }
 

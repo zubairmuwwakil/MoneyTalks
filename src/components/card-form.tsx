@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronDown, Loader2, CreditCard, ShieldCheck, Sparkles } from "lucide-react";
+import { ChevronDown, Loader2, CreditCard, ShieldCheck, Sparkles, CircleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { createCard, updateCard, type CardFormState } from "@/app/cards/actions";
+import { setCardShoppingMarket } from "@/app/settings/actions";
 import {
   type CatalogueChoice,
   getCardPerksSummary,
@@ -87,11 +88,13 @@ export function CardForm({
   cardId,
   choices,
   initialValues = emptyCardFormValues,
+  initialMarket = "CA",
 }: {
   mode: "create" | "edit";
   cardId?: string;
   choices: CatalogueChoice[];
   initialValues?: CardFormValues;
+  initialMarket?: "CA" | "US";
 }) {
   const [values, setValues] = useState<CardFormValues>(initialValues);
   const action = mode === "create" ? createCard : updateCard;
@@ -100,12 +103,14 @@ export function CardForm({
     Boolean(values.lastFour || values.limit || values.statementDay || values.dueDay || values.aprPct),
   );
   const [blurErrors, setBlurErrors] = useState<BlurErrors>({});
+  const [catalogueMarket, setCatalogueMarket] = useState<"CA" | "US">(initialMarket);
+  const [isMarketPending, startMarketTransition] = useTransition();
   const firstErrorRef = useRef<HTMLParagraphElement>(null);
 
   const selected = choices.find((c) => c.contractCardId === values.contractCardId) ?? null;
   const perks: CardPerksSummary | null = useMemo(
-    () => getCardPerksSummary(values.contractCardId),
-    [values.contractCardId],
+    () => selected?.status === "draft" ? null : getCardPerksSummary(values.contractCardId),
+    [selected?.status, values.contractCardId],
   );
 
   const returnHref = mode === "edit" && cardId ? `/cards/${cardId}` : "/cards/manage";
@@ -145,9 +150,24 @@ export function CardForm({
       contractCardId: choice.contractCardId,
       issuer: choice.issuer,
       network: choice.network,
+      country: choice.market,
+      currency: choice.billingCurrency,
       annualFee: minorToDollarInput(choice.annualFeeMinor),
       nickname: mode === "create" ? choice.officialName : (current.nickname.trim() === "" ? choice.officialName : current.nickname),
     }));
+  }
+
+  function changeCatalogueMarket(market: "CA" | "US") {
+    if (market === catalogueMarket) return;
+    const previousMarket = catalogueMarket;
+    setCatalogueMarket(market);
+    startMarketTransition(async () => {
+      const result = await setCardShoppingMarket(market);
+      if (!result.ok) {
+        setCatalogueMarket(previousMarket);
+        toast.error("Could not save catalogue market", { description: result.error });
+      }
+    });
   }
 
   const fieldError = (name: string) => state.fieldErrors?.[name] || blurErrors[name];
@@ -179,7 +199,7 @@ export function CardForm({
                   Select Card
                 </h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Choose your card from our verified catalogue to unlock real-time reward rates and perk tracking.
+                  Choose an exact card from the selected market. Unverified entries are shown for reference only and are never scored.
                 </p>
               </div>
 
@@ -187,7 +207,16 @@ export function CardForm({
                 choices={choices}
                 value={values.contractCardId}
                 onChange={selectCatalogueCard}
+                market={catalogueMarket}
+                onMarketChange={changeCatalogueMarket}
+                marketPending={isMarketPending}
               />
+              {selected?.status === "draft" ? (
+                <div className="flex gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-950 dark:text-amber-100">
+                  <CircleAlert className="mt-0.5 size-4 shrink-0" />
+                  <p><span className="font-semibold">Unverified catalogue entry.</span> These card details have not been confirmed against the issuer. You can save it for reference, but it will not be linked to Wallet or used in recommendations or card-value analysis.</p>
+                </div>
+              ) : null}
               {fieldError("contractCardId") ? (
                 <p ref={firstErrorRef} className="mt-1 text-xs font-semibold text-destructive">
                   {fieldError("contractCardId")}
@@ -230,8 +259,8 @@ export function CardForm({
                   {/* Annual fee */}
                   <div>
                     <label className={labelBase} htmlFor="annualFee">
-                      Annual Fee (CAD)
-                      {selected && (
+                      Annual Fee ({selected?.billingCurrency ?? values.currency})
+                      {selected?.status === "published" && (
                         <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">(verified catalogue)</span>
                       )}
                     </label>
@@ -250,7 +279,7 @@ export function CardForm({
                   {/* Fee rebate */}
                   <div>
                     <label className={labelBase} htmlFor="feeRebate">
-                      Bank Fee Rebate (CAD)
+                      Bank Fee Rebate ({selected?.billingCurrency ?? values.currency})
                       <span className="ml-1 text-[10px] font-normal text-muted-foreground">optional</span>
                     </label>
                     <input
@@ -490,7 +519,7 @@ export function CardForm({
                   <CreditCard className="size-8 stroke-[1.2] mb-2 opacity-50" />
                   <p className="text-xs font-semibold text-foreground">No card selected</p>
                   <p className="text-[11px] mt-1 text-muted-foreground/80 max-w-[220px]">
-                    Select a card on the left to preview artwork and verified reward rates.
+                    Select a card on the left to preview its available catalogue details.
                   </p>
                 </div>
               )}
@@ -562,11 +591,11 @@ export function CardForm({
                   <div className="space-y-0.5">
                     <span className="font-medium text-foreground">Effective Net Annual Fee</span>
                     <p className="text-[10px] text-muted-foreground">
-                      ${annualFeeNum.toFixed(2)} fee - ${rebateNum.toFixed(2)} rebate
+                      {selected?.billingCurrency ?? values.currency} ${annualFeeNum.toFixed(2)} fee - ${rebateNum.toFixed(2)} rebate
                     </p>
                   </div>
                   <span className="font-bold text-base text-foreground tabular-nums">
-                    ${netFeeNum.toFixed(2)}/yr
+                    {selected?.billingCurrency ?? values.currency} ${netFeeNum.toFixed(2)}/yr
                   </span>
                 </div>
               ) : (
@@ -578,7 +607,7 @@ export function CardForm({
                     </p>
                   </div>
                   <span className="font-bold text-sm text-foreground tabular-nums">
-                    {annualFeeNum === 0 ? "No Annual Fee" : `$${annualFeeNum.toFixed(2)}/yr`}
+                    {annualFeeNum === 0 ? "No Annual Fee" : `${selected?.billingCurrency ?? values.currency} $${annualFeeNum.toFixed(2)}/yr`}
                   </span>
                 </div>
               )}
@@ -589,6 +618,12 @@ export function CardForm({
                   {perks.waiverNote}
                 </p>
               )}
+            </div>
+          ) : null}
+          {selected?.status === "draft" ? (
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm text-amber-950 dark:text-amber-100">
+              <div className="flex items-center gap-2 font-semibold"><CircleAlert className="size-4" /> Unverified card details</div>
+              <p className="mt-2 text-xs leading-relaxed">This research record has not been checked against the issuer. Reward rates, fees, and benefits are intentionally not displayed or evaluated here.</p>
             </div>
           ) : null}
         </div>

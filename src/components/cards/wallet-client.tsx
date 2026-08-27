@@ -59,7 +59,7 @@ export function WalletClient({
   // Cards missing renewal dates for the modal
   const feeCardsForModal: RenewalModalCardItem[] = useMemo(() => {
     return cards
-      .filter((c) => Math.max(0, c.annualFeeMinor - c.feeRebateMinor) > 0)
+      .filter((c) => !c.unverified && Math.max(0, c.annualFeeMinor - c.feeRebateMinor) > 0)
       .map((c) => ({
         id: c.id,
         nickname: c.nickname,
@@ -82,8 +82,8 @@ export function WalletClient({
         const effectiveFee = Math.max(0, card.annualFeeMinor - card.feeRebateMinor);
 
         // Filter tabs
-        if (activeFilter === "fee" && effectiveFee === 0) return false;
-        if (activeFilter === "no-fee" && effectiveFee > 0) return false;
+        if (activeFilter === "fee" && (card.unverified || effectiveFee === 0)) return false;
+        if (activeFilter === "no-fee" && (card.unverified || effectiveFee > 0)) return false;
         if (activeFilter === "amex" && card.network.toUpperCase() !== "AMEX") return false;
         if (activeFilter === "visa" && card.network.toUpperCase() !== "VISA") return false;
         if (activeFilter === "mastercard" && card.network.toUpperCase() !== "MASTERCARD") return false;
@@ -130,7 +130,7 @@ export function WalletClient({
       </div>
 
       {/* Portfolio impact workspace */}
-      {cards.length > 0 ? (
+      {impact.rows.length > 0 ? (
         <WalletImpactWorkspace view={impact} />
       ) : null}
 
@@ -249,11 +249,11 @@ export function WalletClient({
               { id: "all", label: `All (${cards.length})` },
               {
                 id: "fee",
-                label: `Fee Cards (${cards.filter((c) => c.annualFeeMinor - c.feeRebateMinor > 0).length})`,
+                label: `Fee Cards (${cards.filter((c) => !c.unverified && c.annualFeeMinor - c.feeRebateMinor > 0).length})`,
               },
               {
                 id: "no-fee",
-                label: `No Fee (${cards.filter((c) => c.annualFeeMinor - c.feeRebateMinor === 0).length})`,
+                label: `No Fee (${cards.filter((c) => !c.unverified && c.annualFeeMinor - c.feeRebateMinor === 0).length})`,
               },
               {
                 id: "amex",

@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Edit2, Trash2 } from "lucide-react";
+import { ArrowLeft, CircleAlert, Edit2, Trash2 } from "lucide-react";
 import { deleteCard, setRewardsEstimate, toggleCredit } from "@/app/cards/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,8 +51,9 @@ export default async function CardDetailPage({
   // rather than filled in with a guess, because a wrong link would rescore the
   // owner's spend against a card they do not hold.
   const product = catalogueCard(card.contractCardId);
-  const credits = catalogueCredits(card.contractCardId);
-  const waiver = feeWaiverNote(card.contractCardId);
+  const isDraft = product?.status === "draft";
+  const credits = isDraft ? [] : catalogueCredits(card.contractCardId);
+  const waiver = isDraft ? null : feeWaiverNote(card.contractCardId);
 
   const def: FeeScheduleCard = {
     id: card.id,
@@ -67,8 +68,9 @@ export default async function CardDetailPage({
   const effectiveFee = effectiveAnnualFeeMinor(card.annualFeeMinor, card.feeRebateMinor);
   const now = new Date();
   const feeCycle = currentFeeCycle(def, now);
-  const realizedMinor =
-    catalogueCreditsRealizedMinor(credits, redeemed, today, card.feeMonthDay) + (card.state?.rewardsEstimateMinor ?? 0);
+  const realizedMinor = isDraft
+    ? 0
+    : catalogueCreditsRealizedMinor(credits, redeemed, today, card.feeMonthDay) + (card.state?.rewardsEstimateMinor ?? 0);
   const netMinor = realizedMinor - effectiveFee;
 
   async function toggleCreditAction(formData: FormData) {
@@ -125,6 +127,7 @@ export default async function CardDetailPage({
                   <Badge variant="outline" className="text-xs font-mono font-bold">
                     {card.network}
                   </Badge>
+                  {isDraft ? <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300">Unverified</Badge> : null}
                   {card.lastFour ? (
                     <span className="text-xs font-mono text-muted-foreground bg-muted/80 px-2 py-0.5 rounded">
                       •••• {card.lastFour}
@@ -140,16 +143,16 @@ export default async function CardDetailPage({
               </div>
 
               <p className="text-sm text-muted-foreground">
-                {card.issuer} {product?.kind ? `· ${product.kind} card` : ""} · effective fee{" "}
-                <span className="font-semibold text-foreground">{formatMinorUnits(effectiveFee, "CAD")}/yr</span>
-                {effectiveFee !== card.annualFeeMinor
-                  ? ` (published ${formatMinorUnits(card.annualFeeMinor, "CAD")})`
-                  : ""}
+                {isDraft ? "This is an unverified catalogue record." : <>{card.issuer} {product?.kind ? `· ${product.kind} card` : ""} · effective fee{" "}
+                  <span className="font-semibold text-foreground">{formatMinorUnits(effectiveFee, card.currency as Currency)}/yr</span>
+                  {effectiveFee !== card.annualFeeMinor
+                    ? ` (recorded ${formatMinorUnits(card.annualFeeMinor, card.currency as Currency)})`
+                    : ""}</>}
               </p>
 
-              {feeCycle ? (
+              {!isDraft && feeCycle ? (
                 <FeeCycleNote cycle={feeCycle} today={now} currency={card.currency as Currency} className="mt-1 block" />
-              ) : effectiveFee > 0 && !card.feeMonthDay ? (
+              ) : !isDraft && effectiveFee > 0 && !card.feeMonthDay ? (
                 <p className="mt-1 text-xs text-muted-foreground">
                   No renewal date set —{" "}
                   <Link href={`/cards/${card.id}/edit`} className="underline underline-offset-2">
@@ -178,7 +181,17 @@ export default async function CardDetailPage({
         </section>
       )}
 
-      <Card className="bg-gradient-to-b from-card to-muted/20">
+      {isDraft ? (
+        <section className="flex gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm text-amber-950 dark:text-amber-100">
+          <CircleAlert className="mt-0.5 size-5 shrink-0" />
+          <div>
+            <h2 className="font-semibold">Unverified catalogue entry</h2>
+            <p className="mt-1 text-xs leading-relaxed">Its card details have not been confirmed against the issuer. It is kept only as your saved identity and is excluded from recommendations, Wallet linking, rewards, credits, and net-value analysis.</p>
+          </div>
+        </section>
+      ) : null}
+
+      {!isDraft ? <Card className="bg-gradient-to-b from-card to-muted/20">
         <CardContent className="p-5 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-3">
             <div>
@@ -214,11 +227,11 @@ export default async function CardDetailPage({
             ) : null}
           </div>
         </CardContent>
-      </Card>
+      </Card> : null}
 
       {/* How this card earns — read from the catalogue, never editable here.
           Rules PickMe scores with are the rules shown. */}
-      {product ? (
+      {product && !isDraft ? (
         <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
           <h2 className="text-base font-semibold tracking-tight">How this card earns</h2>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -327,7 +340,7 @@ export default async function CardDetailPage({
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+      {!isDraft ? <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
         <h2 className="text-base font-semibold tracking-tight">Rewards earned this year (estimate)</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           Enter an estimate of cash back or points value earned to date.
@@ -352,7 +365,7 @@ export default async function CardDetailPage({
             {error}
           </p>
         ) : null}
-      </section>
+      </section> : null}
 
       <div className="border-t border-border/60 pt-6">
         <form action={deleteCardAction}>

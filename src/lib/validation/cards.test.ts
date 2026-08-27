@@ -2,6 +2,19 @@ import { describe, expect, it } from "vitest";
 import { cardImportEntry } from "./cards";
 
 describe("cardImportEntry", () => {
+  it("accepts Discover when the selected catalogue card uses that network", () => {
+    const parsed = cardImportEntry.safeParse({
+      contractCardId: "discover-it-cash-back",
+      nickname: "Discover it Cash Back",
+      issuer: "Discover",
+      network: "DISCOVER",
+      annualFee: "0",
+      feeRebate: "0",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.network).toBe("DISCOVER");
+  });
+
   it("accepts the string-valued numeric fields submitted by the card form", () => {
     const parsed = cardImportEntry.safeParse({
       contractCardId: "amex-cobalt",

@@ -26,6 +26,7 @@ export interface CardTileData {
   feeMonthDay: string | null;
   feeCancelGraceDays: number;
   coveragePercentage?: number | null;
+  unverified?: boolean;
 }
 
 export function CardTile({
@@ -42,12 +43,13 @@ export function CardTile({
   const effectiveFee = Math.max(0, card.annualFeeMinor - card.feeRebateMinor);
   const branding = getCardBranding(card.network, card.issuer, card.nickname, card.contractCardId);
   const product = catalogueCard(card.contractCardId);
-  const earnHighlights = getCardEarnHighlights(product);
-  const insuranceHighlights = getCardInsuranceHighlights(card.contractCardId);
-  const credits = catalogueCredits(card.contractCardId);
+  const isDraft = card.unverified || product?.status === "draft";
+  const earnHighlights = isDraft ? [] : getCardEarnHighlights(product);
+  const insuranceHighlights = isDraft ? [] : getCardInsuranceHighlights(card.contractCardId);
+  const credits = isDraft ? [] : catalogueCredits(card.contractCardId);
   const totalCreditsCad = credits.reduce((sum, c) => sum + toReporting(c.value), 0);
 
-  const isFeeCard = effectiveFee > 0;
+  const isFeeCard = !isDraft && effectiveFee > 0;
   const isMissingRenewal = isFeeCard && !card.feeMonthDay;
 
   return (
@@ -83,6 +85,11 @@ export function CardTile({
                 <Badge variant="outline" className={`text-[10px] font-mono font-semibold ${branding.badgeClass}`}>
                   {card.network}
                 </Badge>
+                {isDraft ? (
+                  <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
+                    Unverified
+                  </Badge>
+                ) : null}
                 {card.lastFour ? (
                   <span className="text-[11px] font-mono text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
                     •••• {card.lastFour}
@@ -98,25 +105,27 @@ export function CardTile({
           {/* Annual Fee & Renewal Status */}
           <div className="text-right shrink-0">
             <div className="text-sm font-semibold tabular-nums text-foreground">
-              {effectiveFee === 0 ? (
+              {isDraft ? (
+                <span className="text-xs font-medium text-amber-800 dark:text-amber-300">Not evaluated</span>
+              ) : effectiveFee === 0 ? (
                 <span className="text-muted-foreground font-normal">No annual fee</span>
               ) : (
                 <span>
-                  {formatMinorUnits(effectiveFee, "CAD")}
+                  {formatMinorUnits(effectiveFee, card.currency as Currency)}
                   <span className="text-xs font-normal text-muted-foreground">/yr</span>
                 </span>
               )}
             </div>
-            {effectiveFee !== card.annualFeeMinor ? (
+            {!isDraft && effectiveFee !== card.annualFeeMinor ? (
               <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block tabular-nums">
-                ({formatMinorUnits(card.annualFeeMinor - card.feeRebateMinor, "CAD")} bank rebate)
+                ({formatMinorUnits(card.annualFeeMinor - card.feeRebateMinor, card.currency as Currency)} bank rebate)
               </span>
             ) : null}
           </div>
         </div>
 
         {/* Renewal & Grace Period Badge */}
-        {feeCycle ? (
+        {!isDraft && feeCycle ? (
           <div className="pt-1">
             <FeeCycleNote cycle={feeCycle} today={today} currency={card.currency as Currency} />
           </div>
@@ -188,7 +197,9 @@ export function CardTile({
       {/* Footer Details & Actions */}
       <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between text-xs text-muted-foreground">
         <div>
-          {typeof card.coveragePercentage === "number" ? (
+          {isDraft ? (
+            <span className="text-[11px] text-amber-800 dark:text-amber-300">Unverified — excluded from recommendations</span>
+          ) : typeof card.coveragePercentage === "number" ? (
             <span className="inline-flex items-center gap-1 text-[11px]">
               <FileSpreadsheet className="size-3 text-muted-foreground" />
               <span>Capture coverage: {Math.round(card.coveragePercentage)}%</span>

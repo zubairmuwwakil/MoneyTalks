@@ -99,6 +99,16 @@ export default async function SettingsPage({
                 />
               </label>
               <label className={label}>
+                Card catalogue market
+                <select name="cardShoppingMarket" defaultValue={profile.cardShoppingMarket} className={input}>
+                  <option value="CA">Canada</option>
+                  <option value="US">United States</option>
+                </select>
+                <span className="mt-1 block text-[11px] font-normal text-muted-foreground">
+                  Controls which market opens in Add Card. It does not change your residency.
+                </span>
+              </label>
+              <label className={label}>
                 Citizenships (comma-sep)
                 <input
                   name="citizenships"

@@ -90,20 +90,16 @@ describe("feeWaiverNote", () => {
 });
 
 describe("catalogueChoices", () => {
-  it("offers every PUBLISHED catalogue card to the picker, and no draft", () => {
+  it("offers every card to the explicitly unverified-aware add-card picker", () => {
     const choices = catalogueChoices();
-    // 41 since the one-corpus collapse (2026-08-24): the 27 the seed owner holds, its 6
-    // researched candidates, and 8 further products — minus pc-money-account, which is not a card.
-    // Still 41 at catalogue 2.2, which added 26 US drafts: the picker has no "unverified" label
-    // and no market filter, so offering them would put unverified US products in front of a
-    // Canadian owner as though they were issuer-confirmed.
-    expect(choices).toHaveLength(41);
-    expect(new Set(choices.map((c) => c.contractCardId)).size).toBe(41);
+    expect(choices).toHaveLength(cardCatalogue.cards.length);
+    expect(new Set(choices.map((c) => c.contractCardId)).size).toBe(cardCatalogue.cards.length);
 
     const drafts = cardCatalogue.cards.filter((c) => c.status === "draft");
     expect(drafts.length).toBeGreaterThan(0);
     const offered = new Set(choices.map((c) => c.contractCardId));
-    expect(drafts.every((d) => !offered.has(d.cardId))).toBe(true);
+    expect(drafts.every((d) => offered.has(d.cardId))).toBe(true);
+    expect(choices.filter((c) => c.status === "draft")).toHaveLength(drafts.length);
   });
 
   it("carries the facts the add-card form prefills, and no rate data", () => {
@@ -113,7 +109,20 @@ describe("catalogueChoices", () => {
       officialName: "American Express Cobalt Card",
       issuer: "American Express Canada",
       network: "AMEX",
+      market: "CA",
+      billingCurrency: "CAD",
+      status: "published",
       annualFeeMinor: 19_188,
+    });
+  });
+
+  it("keeps a draft fee in its own currency instead of silently converting it to CAD", () => {
+    const usDraft = catalogueChoices().find((choice) => choice.contractCardId === "american-express-business-gold-card")!;
+    expect(usDraft).toMatchObject({
+      market: "US",
+      billingCurrency: "USD",
+      status: "draft",
+      annualFeeMinor: 37_500,
     });
   });
 

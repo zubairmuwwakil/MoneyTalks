@@ -4,13 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
+  catalogueCard,
   catalogueCredits,
   catalogueCreditsRealizedMinor,
   effectiveAnnualFeeMinor,
   type RedeemedCredit,
 } from "@/lib/cards/catalogueCard";
 import type { CardDef } from "@/lib/cards/types";
-import { formatMinorUnits } from "@/engine/money";
+import { formatMinorUnits, type Currency } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -72,10 +73,11 @@ export default async function ManageCardsPage() {
       <ul className="divide-y divide-border/60 rounded-xl border border-border/80 bg-card shadow-2xs overflow-hidden">
         {cards.map((c, i) => {
           const def = defs[i];
+          const isDraft = catalogueCard(def.contractCardId)?.status === "draft";
           const redeemed = (c.state?.creditsRedeemed as unknown as RedeemedCredit[]) ?? [];
           const realizedMinor =
-            catalogueCreditsRealizedMinor(catalogueCredits(def.contractCardId), redeemed, today, c.feeMonthDay) +
-            (c.state?.rewardsEstimateMinor ?? 0);
+            (isDraft ? 0 : catalogueCreditsRealizedMinor(catalogueCredits(def.contractCardId), redeemed, today, c.feeMonthDay)) +
+            (isDraft ? 0 : (c.state?.rewardsEstimateMinor ?? 0));
           const netMinor = realizedMinor - effectiveAnnualFeeMinor(def.annualFeeMinor, def.feeRebateMinor);
           return (
             <li key={c.id} className="transition-colors hover:bg-muted/40">
@@ -91,15 +93,20 @@ export default async function ManageCardsPage() {
                     <Badge variant="outline" className="text-[10px] font-mono">
                       {c.network}
                     </Badge>
+                    {isDraft ? <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-800 dark:text-amber-300">Unverified</Badge> : null}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {c.issuer} - {c.network}
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-semibold tabular-nums text-foreground">
-                    fee {formatMinorUnits(effectiveAnnualFeeMinor(def.annualFeeMinor, def.feeRebateMinor), "CAD")} - net {formatMinorUnits(netMinor, "CAD")}
-                  </span>
+                  {isDraft ? (
+                    <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">Not included in net value</span>
+                  ) : (
+                    <span className="text-sm font-semibold tabular-nums text-foreground">
+                      fee {formatMinorUnits(effectiveAnnualFeeMinor(def.annualFeeMinor, def.feeRebateMinor), c.currency as Currency)} - net {formatMinorUnits(netMinor, c.currency as Currency)}
+                    </span>
+                  )}
                 </div>
               </Link>
             </li>

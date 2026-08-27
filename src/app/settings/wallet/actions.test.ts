@@ -3,6 +3,7 @@ import { linkSavedCardToContract } from "./actions";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { revalidatePath } from "next/cache";
+import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 
 vi.mock("@/lib/require-user", () => ({ requireUserId: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -22,6 +23,14 @@ describe("linkSavedCardToContract", () => {
 
   it("rejects unknown contracts without writing", async () => {
     await expect(linkSavedCardToContract({ cardId: "card-1", contractCardId: "made-up" })).resolves.toEqual({ ok: false, error: "unknown catalogue card" });
+    expect(prisma.creditCard.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("keeps draft records out of Wallet links", async () => {
+    const draft = cardCatalogue.cards.find((card) => card.status === "draft");
+    expect(draft).toBeDefined();
+
+    await expect(linkSavedCardToContract({ cardId: "card-1", contractCardId: draft!.cardId })).resolves.toEqual({ ok: false, error: "unknown catalogue card" });
     expect(prisma.creditCard.updateMany).not.toHaveBeenCalled();
   });
 });
