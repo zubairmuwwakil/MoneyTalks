@@ -13,6 +13,8 @@ export interface TxInput {
   date: string; // ISO 8601
 }
 
+export const DELIBERATE_TYPE_ERROR: number = "not a number";
+
 export interface CurrencyTxInput extends TxInput {
   currency: string;
 }
