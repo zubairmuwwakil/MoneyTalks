@@ -102,6 +102,40 @@ function getFirstOfNextMonth(): string {
   return `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
+// Payee Intelligence: a pure lookup over SMART_PAYEE_RULES. Deliberately not
+// memoized — `RegExp.test` reads as a mutation of the rules array to the React
+// Compiler lint, which then cannot preserve a manual useMemo wrapped around it.
+function findPayeeSuggestion(
+  name: string,
+  payee: string,
+  category: string,
+  spendCategory: string,
+): PayeeSuggestion | null {
+  const combinedText = `${name} ${payee}`.trim();
+  if (!combinedText) return null;
+
+  for (const rule of SMART_PAYEE_RULES) {
+    if (rule.pattern.test(combinedText)) {
+      // If current settings don't match, suggest them
+      if (rule.spendCategory && spendCategory !== rule.spendCategory) {
+        return {
+          category: rule.category,
+          spendCategory: rule.spendCategory,
+          reason: rule.reason,
+        };
+      }
+      if (!rule.spendCategory && category !== rule.category) {
+        return {
+          category: rule.category,
+          spendCategory: rule.spendCategory,
+          reason: rule.reason,
+        };
+      }
+    }
+  }
+  return null;
+}
+
 export function BillFormFields({ spendCategoryOptions }: { spendCategoryOptions: SpendCategoryOption[] }) {
   const todayIso = useMemo(() => getISODateToday(), []);
 
@@ -125,31 +159,7 @@ export function BillFormFields({ spendCategoryOptions }: { spendCategoryOptions:
   const [notes, setNotes] = useState("");
 
   // Payee Intelligence Suggestion
-  const activeSuggestion = useMemo<PayeeSuggestion | null>(() => {
-    const combinedText = `${name} ${payee}`.trim();
-    if (!combinedText) return null;
-
-    for (const rule of SMART_PAYEE_RULES) {
-      if (rule.pattern.test(combinedText)) {
-        // If current settings don't match, suggest them
-        if (rule.spendCategory && spendCategory !== rule.spendCategory) {
-          return {
-            category: rule.category,
-            spendCategory: rule.spendCategory,
-            reason: rule.reason,
-          };
-        }
-        if (!rule.spendCategory && category !== rule.category) {
-          return {
-            category: rule.category,
-            spendCategory: rule.spendCategory,
-            reason: rule.reason,
-          };
-        }
-      }
-    }
-    return null;
-  }, [name, payee, category, spendCategory]);
+  const activeSuggestion = findPayeeSuggestion(name, payee, category, spendCategory);
 
   const applySuggestion = (suggestion: PayeeSuggestion) => {
     setCategory(suggestion.category);
