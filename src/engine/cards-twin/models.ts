@@ -213,9 +213,34 @@ export interface CardState {
   rogersEligibleServiceLinked?: boolean;
   rogersAccountAnniversaryMonth?: number;
   feeWaiverActive?: boolean;
+  /**
+   * Owner-condition answers keyed by the catalogue's condition id. An absent key is unresolved;
+   * `false` is an explicit "no". Read through `resolvedFlags` so legacy state stays compatible.
+   */
+  flags?: Record<string, boolean>;
+  /**
+   * Legacy mirrors retained for the migration. `resolvedFlags` folds these in before `flags`, so
+   * an answer written by a newer client always wins over a stale named mirror.
+   */
   cryptoLevelUpProActive?: boolean;
   croHandling?: string; // "autoSell" | "hold" | undefined
   unsetFields?: string[];
+}
+
+/**
+ * Resolves owner-condition answers across the temporary dual representation. Legacy mirrors seed
+ * the result and the newer dictionary deliberately overwrites them; this merge order is contract
+ * behaviour, not an implementation detail.
+ */
+export function resolvedFlags(state: CardState): Record<string, boolean> {
+  const flags: Record<string, boolean> = {};
+  if (state.rogersEligibleServiceLinked !== undefined) {
+    flags.rogersEligibleServiceLinked = state.rogersEligibleServiceLinked;
+  }
+  if (state.cryptoLevelUpProActive !== undefined) {
+    flags.cryptoLevelUpProActive = state.cryptoLevelUpProActive;
+  }
+  return { ...flags, ...state.flags };
 }
 
 export interface PointValuation {

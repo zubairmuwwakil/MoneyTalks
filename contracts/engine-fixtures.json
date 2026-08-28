@@ -1,5 +1,5 @@
 {
-  "fixturesVersion": "1.3",
+  "fixturesVersion": "1.4",
   "_note": "Executable spec for RecommendationEngine. Amounts CAD unless stated. Expected values are exact engine outputs (unrounded beyond 4dp); UI rounds to cents at display. Valuations: MR pinned to 1.8¢ by pinnedValuations below (owner-state.json now ranks at the 1.0¢ floor), MBNA 1.0¢, Bonvoy 0.8¢, cash 1:1, CT ×0.95, CRO ×1.0 auto-sold / ×0.8 held. Default card wealthsimple-vip; threshold both(0.5pp, $0.25). Base owner state per owner-state.json: rogersEligibleServiceLinked=false, cryptoLevelUpProActive=false, Tangerine treatAsAllSelected (2% hypothetical everywhere — can only tie WS, never clears threshold), Scotia 4% cap progress $12,500. Ties rank the default card first. Every case is evaluated at asOf 2026-08-20 unless it declares its own \"asOf\" — effective-dating is the one rule family that cannot be exercised at a single fixed date.",
   "pinnedValuations": {
     "amexMembershipRewards": 1.8,
@@ -337,6 +337,42 @@
         "runnerUp": "westjet-rbc-world-elite", "runnerUpValueCad": 1.50,
         "switchFromDefault": true, "defaultNotAccepted": true, "valuationSensitive": false,
         "notes": "Exists because three other cases (costco-mastercard-only-200, rogers-cap-exhausted-postcap-400, owner-condition-unresolved-rogers-300) started depending on a tie-break nobody had asserted. WestJet earns 1.5 points per dollar and westJetPoints is valued at the posted 1.0c, so 100 x 1.5 = 150 pts x 1.0c = $1.50 - identical, to the cent, to Rogers paying 1.5 percent cash on $100. rank() sorts on value descending and falls through to cardId ASCENDING, so 'rogers-red-we' < 'westjet-rbc-world-elite' decides it. That is deterministic but arbitrary: the engine is not claiming Rogers is better, it is claiming the two are indistinguishable and something had to go first. Pinning it here means a future re-order, a renamed cardId, or a WestJet revaluation fails ONE case that says why, instead of three that look like unrelated regressions. valuationSensitive is false and that is the second fact worth having: westJetPoints has no cash-out, so it sets no floorCentsPerPoint and Scorer falls back to centsPerPoint - the floor band collapses onto the declared band, and the engine cannot warn that this tie rests entirely on WestJet points being worth face value to an owner who flies WestJet. Field - Mastercard only, so WS and Scotia (Visa) and the Amex cards are gated, hence defaultNotAccepted: MBNA base 1x = 100 x 1.0c = $1.00; NBC base 1x = 100 x 1.0c = $1.00; Amazon base 1x = 100 x 1.0c = $1.00; Triangle base 1 percent = CT$1.00 x 0.95 = $0.95; BMO Ascend base 1x = 100 x 0.666667c = $0.67; PC Insiders base 10ppd = 1,000 pts x 0.1c = $1.00; Tangerine base 0.5 percent = $0.50 ('other' unselected)."
+      }
+    },
+    {
+      "caseId": "flags-beat-stale-legacy-mirror-300",
+      "description": "$300 at a Mastercard-only merchant with rogersEligibleServiceLinked answered TRUE through CardState.flags while the legacy named property still reads false — flags wins and the 2% rule fires",
+      "purchase": { "amountCad": 300, "currency": "CAD", "category": "other", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["mastercard"] },
+      "ownerStateOverrides": { "cardStates": { "rogers-red-we": { "flags": { "rogersEligibleServiceLinked": true } } } },
+      "expected": {
+        "winner": "rogers-red-we", "winnerValueCad": 6.00, "winnerRule": "rogers-base-2-with-service",
+        "runnerUp": "westjet-rbc-world-elite", "runnerUpValueCad": 4.50,
+        "switchFromDefault": true, "defaultNotAccepted": true, "valuationSensitive": false,
+        "notes": "THE PRECEDENCE RULE, and until now it lived only in a doc comment. owner-state.json resolves rogers-red-we's legacy `rogersEligibleServiceLinked` to FALSE; this override sets only `flags`, leaving that stale mirror untouched, so `resolvedFlags` must fold the legacy value in FIRST and let `flags` overwrite it. Get the merge order backwards and the legacy false wins, rogers-base-2-with-service is skipped, and the case lands on $4.50 instead - which is exactly the outcome of owner-condition-unresolved-rogers-300, its deliberate minimal pair. That $1.50 gap is the whole assertion: a state written by a NEW build and read alongside an OLD mirror must not be clobbered by the mirror, and that is the property any migration off the legacy properties depends on. Earn = 2% x $300 = $6.00; cap room is the full $61,000 from zero, so no split and no capNearlyExhausted. Field - Mastercard only, so WS and Scotia (Visa) and all three Amex cards are gated out, hence defaultNotAccepted: WestJet base 1.5x = 300 x 1.5 = 450 pts x 1.0c = $4.50; MBNA base 1x = $3.00; Triangle base 1% = CT$3.00 x 0.95 = $2.85; Tangerine base 0.5% = $1.50 ('other' unselected)."
+      }
+    },
+    {
+      "caseId": "flags-explicit-false-fails-closed-300",
+      "description": "The same $300 purchase with rogersEligibleServiceLinked answered FALSE in flags — an explicit no is indistinguishable from unanswered at the engine boundary",
+      "purchase": { "amountCad": 300, "currency": "CAD", "category": "other", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["mastercard"] },
+      "ownerStateOverrides": { "cardStates": { "rogers-red-we": { "flags": { "rogersEligibleServiceLinked": false } } } },
+      "expected": {
+        "winner": "rogers-red-we", "winnerValueCad": 4.50, "winnerRule": "rogers-base-1_5",
+        "runnerUp": "westjet-rbc-world-elite", "runnerUpValueCad": 4.50,
+        "switchFromDefault": true, "defaultNotAccepted": true, "valuationSensitive": false,
+        "notes": "Byte-identical expectations to owner-condition-unresolved-rogers-300, reached from a DIFFERENT input, and the identity is the point. `flags` stores three states - true, false, absent - because a UI must know which cards still owe an answer, but the engine collapses false and absent into one: `flags[condition] ?? false`. An implementation that tested key PRESENCE (`flags[condition] != nil`) rather than its value would pass every other fixture in this file and fail only here, paying the owner 2% for having answered 'no'. Paired with flags-beat-stale-legacy-mirror-300, the same purchase with the one boolean flipped, $1.50 apart."
+      }
+    },
+    {
+      "caseId": "amazon-prime-flag-answered-but-rule-unscored-100",
+      "description": "$100 at Amazon.ca with amazonEligiblePrimeLinked answered true — the condition resolves for the first time, but both merchant rules carry scoredInV1 false, so the card stays on its 1x base and the default holds",
+      "purchase": { "amountCad": 100, "currency": "CAD", "category": "other", "mcc": null, "merchantBrand": "amazon-ca", "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
+      "ownerStateOverrides": { "cardStates": { "amazon-ca-rewards-mastercard": { "flags": { "amazonEligiblePrimeLinked": true } } } },
+      "expected": {
+        "winner": "wealthsimple-vip", "winnerValueCad": 2.00, "winnerRule": "wealthsimple-2pct",
+        "runnerUp": "amex-cobalt", "runnerUpValueCad": 1.80,
+        "switchFromDefault": false, "valuationSensitive": false,
+        "notes": "TWO GATES IN SERIES, and this case exists because only one of them moved. amazonEligiblePrimeLinked is the condition that shipped in the catalogue with no RuleMatcher case and could not fire in any build; card-contracts@2.8 made it ANSWERABLE by routing conditions through CardState.flags. It did not make it PAYABLE: amazon-ca-prime-2_5x and amazon-ca-nonprime-1_5x both still carry scoredInV1 false, and isScheduleLive drops a rule on that flag before conditionsResolveTrue is ever consulted. The owner answers the question and earns exactly what they earned before. The assertion is decisive rather than incidental: at the posted 1.0c/pt the prime rule would pay 2.5 x 100 = 250 pts = $2.50, beating the default's $2.00 by 0.50pp and $0.50 and clearing BOTH switch floors - so this case flips to amazon-ca-rewards-mastercard the moment scoredInV1 is lifted, and is meant to. Lifting it is a behaviour change owed a decision, not a tidy-up. Field: amazon-ca-rewards-mastercard base 1x = 100 pts x 1.0c = $1.00; Cobalt and Platinum base 1x = 100 x 1.8c = $1.80, Cobalt taking runner-up on cardId ascending; Bonvoy 200 x 0.8c = $1.60; Rogers 1.5% = $1.50 (service not linked in the base state); WestJet 150 pts x 1.0c = $1.50; MBNA and Scotia $1.00; Triangle CT$1.00 x 0.95 = $0.95; Tangerine 0.5% = $0.50 ('other' unselected); Crypto excluded, Level Up Pro not active. Upside is WITHHELD: Cobalt's flip needs ($2.00 + max($0.25, 0.5pp x $100)) x 100 / 100 = 2.50c/pt, past the 2.2c benchmark."
       }
     }
   ]

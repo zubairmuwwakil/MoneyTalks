@@ -74,17 +74,28 @@ describe('Engine Fixtures', () => {
           if (override.selectedCategories !== undefined) {
             merged.selectedCategories = override.selectedCategories;
           }
+          // Owner-condition answers merge after the named legacy fields above, exactly as the
+          // Swift/Kotlin fixture harnesses do. `resolvedFlags` then gives this newer map
+          // precedence over a stale mirror in the base state.
+          if (override.flags !== undefined) {
+            merged.flags = { ...merged.flags, ...override.flags };
+          }
 
           if (override.unsetFields) {
             merged.unsetFields = override.unsetFields;
-            // Also explicitly delete keys from the object to simulate missing/nil properties
+            // An owner condition can exist in the legacy named field and in `flags`. To make it
+            // genuinely unresolved, clear both forms before running the engine.
             for (const field of override.unsetFields) {
               if (field === 'capProgress') delete merged.capProgress;
-              if (field === 'cryptoLevelUpProActive') delete merged.cryptoLevelUpProActive;
               if (field === 'croHandling') delete merged.croHandling;
-              if (field === 'rogersEligibleServiceLinked') delete merged.rogersEligibleServiceLinked;
               if (field === 'selectedCategories') delete merged.selectedCategories;
               if (field === 'treatAsAllSelected') delete merged.treatAsAllSelected;
+              if (field === 'cryptoLevelUpProActive') delete merged.cryptoLevelUpProActive;
+              if (field === 'rogersEligibleServiceLinked') delete merged.rogersEligibleServiceLinked;
+              if (merged.flags) {
+                delete merged.flags[field];
+                if (Object.keys(merged.flags).length === 0) delete merged.flags;
+              }
             }
           }
 

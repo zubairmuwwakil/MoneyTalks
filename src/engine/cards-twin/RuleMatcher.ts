@@ -1,6 +1,6 @@
 import {
   CardProduct, PurchaseContext, OwnerState, EarnRule, FxRule, CardState, Predicate, Earn,
-  KNOWN_ENGINE_CAPABILITIES, SUPPORTED_ENGINE_CAPABILITIES,
+  KNOWN_ENGINE_CAPABILITIES, SUPPORTED_ENGINE_CAPABILITIES, resolvedFlags,
 } from './models';
 
 export type RuleResolution = 
@@ -78,21 +78,13 @@ export const RuleMatcher = {
 
   conditionsResolveTrue(conditions: string[] | undefined, state: CardState): boolean {
     if (!conditions) return true;
+    const flags = resolvedFlags(state);
     return conditions.every(condition => {
-      // simulate 'unsetFields' logic for unresolved owner states
-      if (state.unsetFields && state.unsetFields.includes(condition)) {
-        return false;
-      }
-
       switch (condition) {
-        case 'rogersEligibleServiceLinked':
-          return state.rogersEligibleServiceLinked === true;
-        case 'cryptoLevelUpProActive':
-          return state.cryptoLevelUpProActive === true;
         case 'tangerineCategorySelected':
           return state.selectedCategories !== undefined;
         default:
-          return false;
+          return flags[condition] ?? false;
       }
     });
   },

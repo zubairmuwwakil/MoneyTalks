@@ -221,6 +221,13 @@
             null
           ]
         },
+        "flags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "description": "Owner-condition answers keyed by the catalogue's ownerConditions id, merged over the base state's flags. Keys are unconstrained on purpose: the closed list lives in owner-conditions.json, and duplicating it here would make declaring a condition a two-file edit again. An absent key is unresolved and fails closed; false is a real answer meaning no."
+        },
         "unsetFields": {
           "type": "array",
           "items": {
