@@ -47,6 +47,9 @@ const EXPECTED_FILES = [
   // schema since the beginning, so the "holds every file the release publishes"
   // suite below could not have checked it even in principle.
   "schema/programs.schema.json",
+  // Part of card-contracts@2.8 onward.
+  "owner-conditions.json",
+  "schema/owner-conditions.schema.json",
   "schema/merchant-pack.schema.json",
 ];
 

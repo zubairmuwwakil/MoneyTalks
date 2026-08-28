@@ -1,5 +1,5 @@
 {
-  "fixturesVersion": "1.2",
+  "fixturesVersion": "1.3",
   "_note": "Executable spec for RecommendationEngine. Amounts CAD unless stated. Expected values are exact engine outputs (unrounded beyond 4dp); UI rounds to cents at display. Valuations: MR pinned to 1.8¢ by pinnedValuations below (owner-state.json now ranks at the 1.0¢ floor), MBNA 1.0¢, Bonvoy 0.8¢, cash 1:1, CT ×0.95, CRO ×1.0 auto-sold / ×0.8 held. Default card wealthsimple-vip; threshold both(0.5pp, $0.25). Base owner state per owner-state.json: rogersEligibleServiceLinked=false, cryptoLevelUpProActive=false, Tangerine treatAsAllSelected (2% hypothetical everywhere — can only tie WS, never clears threshold), Scotia 4% cap progress $12,500. Ties rank the default card first. Every case is evaluated at asOf 2026-08-20 unless it declares its own \"asOf\" — effective-dating is the one rule family that cannot be exercised at a single fixed date.",
   "pinnedValuations": {
     "amexMembershipRewards": 1.8,

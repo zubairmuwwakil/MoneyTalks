@@ -1,0 +1,27 @@
+{
+  "conditionsVersion": "1.0",
+  "_provenance": "Owner conditions are facts about an ACCOUNT, not a product: whether a card's higher rate applies to this particular holder. RuleMatcher fails closed on an unanswered one, so a condition with no entry here is a rate the owner can never unlock. Declared as data so adding one is a contract edit rather than a change in six places across two languages — see docs/plans/2026-08-20-catalogue-scalability-program-design.md 3.2, and the 2026-08-28 CHANGELOG entry for why this is a sidecar registry rather than that section's inline object shape.",
+  "_localization": "`prompt` and `detail` are ENGLISH SOURCE STRINGS, not display strings. Consumers resolve ownerCondition.<id>.prompt from their own string catalogue and fall back to these. A new condition therefore ships working in English immediately and picks up translations without a contract release.",
+  "conditions": {
+    "rogersEligibleServiceLinked": {
+      "answerKind": "boolean",
+      "prompt": "Is an eligible Rogers, Fido, Shaw, Comwave or Sportsnet+ service linked to your account?",
+      "detail": "The higher 2% rate requires an eligible service on the same account."
+    },
+    "cryptoLevelUpProActive": {
+      "answerKind": "boolean",
+      "prompt": "Is your Level Up Pro plan active?",
+      "detail": "The 3% CRO reward applies only while Level Up Pro is active."
+    },
+    "amazonEligiblePrimeLinked": {
+      "answerKind": "boolean",
+      "prompt": "Is an active Amazon Prime membership linked to this card?",
+      "detail": "Amazon.ca and Whole Foods earn 2.5x while Prime is linked, and 1.5x when it is not."
+    },
+    "tangerineCategorySelected": {
+      "answerKind": "categorySelection",
+      "maxSelections": 3,
+      "detail": "Tangerine pays 2% on the categories you have selected on your account. Leave all unselected if you are not sure."
+    }
+  }
+}

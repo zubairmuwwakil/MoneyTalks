@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pickme.local/schema/owner-conditions.schema.json",
+  "title": "Owner condition registry",
+  "description": "Declares every ownerConditions id the card catalogue may reference, and how it is answered. Deliberately a SIDECAR rather than an inline object on EarnRule: card-catalogue.schema.json's ownerConditions is a published array of strings inside a content-addressed release with four vendored copies across two repos, and changing its element type would be a MAJOR catalogue bump for no behavioural gain. This mirrors programs.json, which solved the same open-set-modelled-as-closed problem for valuations. The engine still fails closed on an id it cannot resolve; this file is what lets a consumer ASK the question, which is the half that was missing when amazonEligiblePrimeLinked shipped unanswerable.",
+  "type": "object",
+  "required": ["conditionsVersion", "conditions"],
+  "additionalProperties": false,
+  "properties": {
+    "conditionsVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "MAJOR.MINOR. Bump MINOR when adding a condition or a prompt; MAJOR only on a breaking shape change."
+    },
+    "_provenance": { "type": "string" },
+    "_localization": { "type": "string" },
+    "conditions": {
+      "type": "object",
+      "description": "Keyed by the ownerConditions id used in card-catalogue.json earn rules.",
+      "propertyNames": { "pattern": "^[a-zA-Z][a-zA-Z0-9]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["answerKind"],
+        "additionalProperties": false,
+        "properties": {
+          "answerKind": {
+            "enum": ["boolean", "categorySelection"],
+            "description": "boolean answers are stored in CardState.flags keyed by this id, so a new yes/no condition needs no engine change. categorySelection is Tangerine's existing selection machinery (CardState.selectedCategories and friends), which stays structural because specific engine logic reads it rather than generic condition resolution — spec 3.2 draws that line."
+          },
+          "prompt": {
+            "type": "string",
+            "description": "English SOURCE string for the question. Required when answerKind is boolean. Consumers localize by id (ownerCondition.<id>.prompt) and fall back to this, so a new condition is askable the day it lands."
+          },
+          "detail": {
+            "type": "string",
+            "description": "English SOURCE string explaining what answering buys the owner. Shown beneath the question and in the wallet setup checklist."
+          },
+          "maxSelections": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "categorySelection only: how many categories the issuer permits at once."
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "answerKind": { "const": "boolean" } }, "required": ["answerKind"] },
+            "then": { "required": ["prompt"] }
+          },
+          {
+            "if": { "properties": { "answerKind": { "const": "boolean" } }, "required": ["answerKind"] },
+            "then": { "not": { "required": ["maxSelections"] } }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -82,6 +82,8 @@ FILES=(
   # here could detect it. RELEASE.json now lists it, and contracts.test.ts hashes
   # every file the release publishes — so it must be vendored or that test throws.
   "schema/programs.schema.json"
+  "owner-conditions.json"
+  "schema/owner-conditions.schema.json"
   "schema/merchant-pack.schema.json"
 )
 
