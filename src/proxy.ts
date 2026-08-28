@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { INSTALLATION_TOKEN_ROUTE_PATTERNS } from "@/lib/installationTokenRoutes";
 
 // Cron handlers authenticate their bearer token with cronAuth; Clerk sessions
 // are intentionally unavailable to Vercel Cron.
@@ -20,10 +21,10 @@ const isPublicRoute = createRouteMatcher([
   "/waitlist",
   "/api/waitlist",
 ]);
-// This is not public: POST /api/v1/wallet-events independently requires an
-// installation-scoped token which is hashed at rest. The Wallet Shortcut cannot
-// hold a Clerk browser session, so Clerk must not intercept this one route.
-const isInstallationTokenRoute = createRouteMatcher(["/api/v1/wallet-events"]);
+// These are not public: each handler independently requires an installation-scoped
+// token which is hashed at rest. Wallet Capture cannot hold a Clerk browser session,
+// so Clerk must not intercept these routes before their token checks run.
+const isInstallationTokenRoute = createRouteMatcher([...INSTALLATION_TOKEN_ROUTE_PATTERNS]);
 const isApiRoute = createRouteMatcher(["/api(.*)"]);
 
 export const proxy = clerkMiddleware(async (auth, req) => {
