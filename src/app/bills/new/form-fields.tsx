@@ -14,6 +14,7 @@ import {
   Zap,
 } from "lucide-react";
 import { TaxCalculator } from "@/components/bills/tax-calculator";
+import { SmartRewardRouter } from "@/components/bills/smart-reward-router";
 import { Badge } from "@/components/ui/badge";
 
 const input =
@@ -445,6 +446,28 @@ export function BillFormFields({ spendCategoryOptions }: { spendCategoryOptions:
             </div>
           ) : null}
         </div>
+
+        {/* Smart Reward Router Integration */}
+        {name.trim() || payee.trim() ? (
+          <div className="pt-2">
+            <SmartRewardRouter
+              payeeName={payee.trim() || name.trim()}
+              monthlyCad={Number(amount) > 0 ? Number(amount) : 150}
+              onSelectRoute={(route) => {
+                if (route.intermediary.id === "chexy") {
+                  setPaymentRail("card_via_third_party");
+                  setRailFeePct("1.75");
+                } else if (route.intermediary.id === "triangle-bill-pay") {
+                  setPaymentRail("card");
+                  setRailFeePct("");
+                } else if (route.intermediary.id === "neobanc" || route.intermediary.id === "standard-eft") {
+                  setPaymentRail("pad");
+                  setRailFeePct("");
+                }
+              }}
+            />
+          </div>
+        ) : null}
       </div>
 
       {/* SECTION 3: Schedule, Amount & Recurrence */}

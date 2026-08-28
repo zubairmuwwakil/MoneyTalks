@@ -1,0 +1,83 @@
+{
+  "billIntermediariesVersion": "1.0",
+  "_provenance": "Canadian bill payment intermediaries and rails catalog. Defines transaction fees, reward triggers (e.g. Chexy recurring multiplier), float yields (Neo Financial), and card-specific direct bill pay capabilities (Canadian Tire Triangle).",
+  "intermediaries": [
+    {
+      "id": "chexy",
+      "name": "Chexy",
+      "type": "creditIntermediary",
+      "feeRate": 0.0175,
+      "mccTrigger": "RECURRING_BILL",
+      "settlementDays": 3,
+      "supportedCategories": [
+        "utilities",
+        "rent",
+        "telecom",
+        "insurance",
+        "household"
+      ],
+      "requiresCardMultiplier": true,
+      "description": "Processes payments through credit card recurring billing (MCC 4900). Ideal for cards with 4%+ recurring multipliers (e.g. Scotiabank Momentum Visa Infinite)."
+    },
+    {
+      "id": "triangle-bill-pay",
+      "name": "Canadian Tire Triangle Bill Pay",
+      "type": "cardDirectBillPay",
+      "feeRate": 0.0,
+      "directRewardRate": 0.01,
+      "directRewardProgramId": "ctMoney",
+      "settlementDays": 3,
+      "restrictedCardPrograms": [
+        "triangle-we",
+        "triangle-mastercard"
+      ],
+      "supportedCategories": [
+        "utilities",
+        "property_tax",
+        "tuition",
+        "government",
+        "household"
+      ],
+      "requiresCardMultiplier": false,
+      "description": "Direct electronic bill payment via Canadian Tire Bank portal. 0% fee and earns 1.0% back in CT Money on municipal payees, utilities, and taxes."
+    },
+    {
+      "id": "neobanc",
+      "name": "Neo Financial (Neobanc)",
+      "type": "fintechAccountRouting",
+      "feeRate": 0.0,
+      "holdingApy": 0.025,
+      "hasPartnerPerks": true,
+      "settlementDays": 1,
+      "supportedCategories": [
+        "utilities",
+        "household",
+        "telecom",
+        "insurance",
+        "rent",
+        "property_tax"
+      ],
+      "requiresCardMultiplier": false,
+      "description": "Zero-fee bill payments paired with high-yield interest float on funds held prior to due date, plus Neo ecosystem cash back perks."
+    },
+    {
+      "id": "standard-eft",
+      "name": "Standard Bank Bill Pay (EFT)",
+      "type": "standardEft",
+      "feeRate": 0.0,
+      "settlementDays": 2,
+      "supportedCategories": [
+        "utilities",
+        "household",
+        "telecom",
+        "insurance",
+        "rent",
+        "property_tax",
+        "tuition",
+        "government"
+      ],
+      "requiresCardMultiplier": false,
+      "description": "Direct chequing account electronic funds transfer via traditional Canadian bank. 0% fees, 0% rewards baseline."
+    }
+  ]
+}

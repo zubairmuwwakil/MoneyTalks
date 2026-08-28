@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pickme.local/contracts/bill-intermediaries.schema.json",
+  "title": "PickMe bill intermediaries catalogue",
+  "description": "Defines intermediaries, transaction fees, reward triggers, and supported categories for Canadian bill payment routing.",
+  "type": "object",
+  "required": [
+    "billIntermediariesVersion",
+    "intermediaries"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^_": {
+      "description": "Documentation annotation."
+    }
+  },
+  "properties": {
+    "billIntermediariesVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "intermediaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "type",
+          "feeRate",
+          "settlementDays",
+          "supportedCategories",
+          "description"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "creditIntermediary",
+              "cardDirectBillPay",
+              "fintechAccountRouting",
+              "standardEft"
+            ]
+          },
+          "feeRate": { "type": "number", "minimum": 0 },
+          "mccTrigger": { "type": "string" },
+          "directRewardRate": { "type": "number", "minimum": 0 },
+          "directRewardProgramId": { "type": "string" },
+          "holdingApy": { "type": "number", "minimum": 0 },
+          "hasPartnerPerks": { "type": "boolean" },
+          "settlementDays": { "type": "integer", "minimum": 0 },
+          "restrictedCardPrograms": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "supportedCategories": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "requiresCardMultiplier": { "type": "boolean" },
+          "description": { "type": "string" }
+        }
+      }
+    }
+  }
+}
