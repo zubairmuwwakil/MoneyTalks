@@ -144,4 +144,21 @@ describe("refreshHoldingPrices", () => {
     });
     expect(result.validatedHoldingIds).toEqual(["equity-btc", "crypto-btc"]);
   });
+
+  it("leaves stored prices untouched when the fetch learns nothing", async () => {
+    // E4: a refresh that learns nothing changes nothing. fetchQuotes swallows its
+    // own transport failures and resolves to null, so null — not a rejection — is
+    // the shape a provider deadline actually arrives in. The FX cron behaves the
+    // same way on an empty fetch, for the same reason: a price wrongly zeroed is
+    // worse than a stale one, because staleness is rendered and zero is believed.
+    const prisma = prismaMock();
+    vi.mocked(fetchQuotes).mockResolvedValue(null);
+
+    const result = await refreshHoldingPrices(prisma as never, "user-1");
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("fetch-failed");
+    expect(result.updated).toBe(0);
+    expect(prisma.holding.update).not.toHaveBeenCalled();
+  });
 });
