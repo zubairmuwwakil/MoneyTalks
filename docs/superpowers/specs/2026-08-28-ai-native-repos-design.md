@@ -48,6 +48,7 @@ ignored." Compliance is not the problem. The cost is on the input side.
 | G14 | `scripts/` is a flat 19-file drawer with duplicates (`check-db.mjs` + `.ts`) and scratch (`check-ml.mjs`, `check-ml2.mjs`). |
 | G15 | e2e cannot join a fast tier: spawns `npm run dev`, needs Postgres, real Clerk dev-instance round-trips, `workers: 1`, 60s timeouts. |
 | G16 | MoneyTalks cannot be cold-started from its own docs. `.env.example` omits 6 live vars including **`MARKETLENS_API_KEY`** and **`MARKETLENS_BASE_URL`** — the E3/E4 boundary's own configuration. |
+| G17 | Local work was not pushed, so CI graded stale code: PickMe 17 commits ahead, MoneyTalks 3, PSM 3. PickMe's iOS failure was fixed 17 commits ago; PSM's gates "last ran 2026-07-20" because nothing had been pushed since. Resolved 2026-08-28. |
 
 ## 2. Diagnosis
 
@@ -289,11 +290,28 @@ variables, so this cannot regress.
 
 ## 5. Milestones
 
-**M0 — Green the baseline.** Fix MoneyTalks' 2 lint errors. Repair PickMe's two
-CI workflow configs (pin a runner image with an available simulator; use an
-installed Android API level) — both are config, not app code. Add a scheduled
-red-main alarm. *Rationale: against a red baseline no later check's failure is
-falsifiable.*
+**M0 — Green the baseline.** *Rationale: against a red baseline no later check's
+failure is falsifiable.* Completed 2026-08-28:
+
+- MoneyTalks' 2 lint errors: a `useMemo` the React Compiler lint cannot preserve,
+  because `RegExp.test` reads as a mutation of the module-level rules array.
+  Moved to a plain function; the memo was never load-bearing.
+- PickMe's `android app` job: the package id is `platforms;android-37.0`, not
+  `platforms;android-37`. The bare name resolves to nothing, so `setup-android`
+  exited 1 before Gradle ran — on every push since the job was added.
+- PickMe's `app (xcodebuild test)` job: **not a config problem and not a code
+  problem at HEAD.** See G17 — the fix had been sitting unpushed for 17 commits.
+- marketdata branch topology: the abandoned Vercel-era `main` (Mar 26) became
+  `archive/vercel-main`; the real trunk `render_2` became `main`. `ci.yml` no
+  longer triggers on the retired name.
+- Stale remote URLs corrected in marketdata and pickleball-session-manager (both
+  pointed at the pre-transfer `ZthEchelon` org and worked only via redirect).
+
+**No red-main alarm.** It was listed here in error — the approved option was the
+config fixes alone. It is also the wrong instrument: main *was* red and CI *was*
+reporting it truthfully; the failure was that the report described stale code.
+An alarm repeats a true statement more often. G17's fix is §5's PR flow, where
+unpushed work is structurally impossible.
 
 **M1 — MoneyTalks.** Full treatment: `AGENTS.md` router, 8 compiled invariants,
 7 demotions, four skills, `REPO_MAP.md`, `settings.json`, typecheck, PR gating,
