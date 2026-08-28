@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "id": "coingecko-crypto-on-loan",
+    "check": "no-market-data-provider",
+    "path": "src/lib/fetch-prices.ts",
+    "why": "Crypto valuation is MarketLens' (ratified 2026-08-18) but not yet built there. This path is on loan until crypto is ported; see ECOSYSTEM.md.",
+    "owner": "zub",
+    "reviewDate": "2026-11-30"
+  }
+]
