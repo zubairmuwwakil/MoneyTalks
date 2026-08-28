@@ -8,6 +8,8 @@
     "e2e": "playwright test",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm run test",
     "qstash:schedules": "node scripts/qstash-schedules.mjs",
     "postinstall": "prisma generate",
     "test": "vitest run",
