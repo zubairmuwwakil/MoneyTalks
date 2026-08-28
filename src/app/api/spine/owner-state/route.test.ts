@@ -94,6 +94,48 @@ describe("PUT /api/spine/owner-state", () => {
     expect(response.status).toBe(400);
   });
 
+  // card-contracts@2.8 moved owner-condition answers into CardState.flags, keyed by the
+  // catalogue's condition id. `.strict()` REJECTS unknown keys rather than stripping them, so
+  // every wallet with an answered condition 400'd here — and because SyncCoordinator flushes
+  // the queued owner state as the first statement of its sync, that 400 took caps, feedback,
+  // card requests and wallet captures down with it, permanently, on every attempt.
+  //
+  // Keys are deliberately unconstrained. Validating them against the vendored
+  // owner-conditions.json registry would 400 every answer to a condition PickMe shipped before
+  // the hub re-vendored the contract — the same class of failure this test exists to close.
+  it("accepts the flags dictionary PickMe writes owner-condition answers into", async () => {
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(null);
+    const withFlags = {
+      ...state,
+      cardStates: {
+        "amex-cobalt": {
+          capProgress: { cap: 0 },
+          flags: { amazonEligiblePrimeLinked: true, cryptoLevelUpProActive: false },
+        },
+      },
+    };
+    vi.mocked(prisma.ownerStateRecord.create).mockResolvedValue(stored(withFlags));
+
+    expect((await put(withFlags)).status).toBe(200);
+
+    const written = (vi.mocked(prisma.ownerStateRecord.create).mock.calls[0][0].data as {
+      stateData: { cardStates: Record<string, { flags?: Record<string, boolean> }> };
+    }).stateData;
+    expect(written.cardStates["amex-cobalt"].flags)
+      .toEqual({ amazonEligiblePrimeLinked: true, cryptoLevelUpProActive: false });
+  });
+
+  // A flag answer is a tri-state at the engine boundary: absent is unresolved and fails closed,
+  // false is a real "no". A non-boolean would collapse that distinction, so it is refused rather
+  // than coerced.
+  it("rejects a non-boolean flag answer", async () => {
+    const response = await put({
+      ...state,
+      cardStates: { "amex-cobalt": { flags: { cryptoLevelUpProActive: "yes" } } },
+    });
+    expect(response.status).toBe(400);
+  });
+
   it("accepts PickMe's modern program dictionary without dropping newer programs", async () => {
     vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.ownerStateRecord.create).mockResolvedValue(stored(modernState));

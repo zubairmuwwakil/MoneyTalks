@@ -192,6 +192,19 @@ const cardState = z.object({
   feeWaiverActive: z.boolean().optional(),
   cryptoLevelUpProActive: z.boolean().optional(),
   croHandling: z.enum(["autoSell", "hold"]).optional(),
+  /// Owner-condition answers keyed by the catalogue's `ownerConditions` id — card-contracts@2.8's
+  /// replacement for the two named booleans above, which PickMe still mirrors out of this
+  /// dictionary for one release. Both representations are accepted; the mirror is what keeps the
+  /// TS twin's RuleMatcher, which still reads the named fields, correct in the meantime.
+  ///
+  /// An ABSENT key is unresolved and the engine fails closed on it; `false` is a real "no". The
+  /// two buy the owner different rates, so a non-boolean is refused rather than coerced.
+  ///
+  /// Keys are deliberately unconstrained rather than checked against the vendored
+  /// `contracts/owner-conditions.json`. A condition PickMe ships before this repo re-vendors the
+  /// contract must still persist: rejecting it would reproduce the exact outage this field was
+  /// added to fix, one release later and with a slower feedback loop.
+  flags: z.record(z.string().min(1), z.boolean()).optional(),
 }).strict();
 
 export const ownerStateInput = z.object({
