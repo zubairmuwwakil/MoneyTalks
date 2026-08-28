@@ -61,11 +61,32 @@ describe('draft cards in the real catalogue', () => {
 
   it('never lets a draft reach an empty-wallet owner in its own market', () => {
     // recommend() falls back to the whole catalogue, market-scoped, when the owner has declared
-    // no wallet. Every US card in 2.2 is a draft, so this is the path where a new US owner would
-    // meet one — and where, all candidates being excluded, the engine must fail loudly rather
-    // than return something it cannot stand behind.
+    // no wallet — the path where a new US owner meets the US drafts. Until card-contracts@2.5
+    // EVERY US card was a draft, so this asserted the engine threw. card-contracts@2.7 ships 8
+    // issuer-confirmed US cards, so the honest assertion is the one that was always the point:
+    // a US owner is advised, and no draft is among the candidates.
     const newUsOwner: OwnerState = { ...ownerState, ownedCardIds: [], market: 'US' };
     const engine = new RecommendationEngine(catalogue, newUsOwner, programDefaults);
+    const rec = engine.recommend(purchase, asOf);
+
+    expect(rec.winner).toBeDefined();
+    const draftIds = new Set(drafts.map((d) => d.cardId));
+    expect(draftIds.has(rec.winner.cardId)).toBe(false);
+    expect(rec.allCandidates.every((c) => !draftIds.has(c.cardId))).toBe(true);
+  });
+
+  it('fails loudly when every candidate is a draft, rather than returning one', () => {
+    // The other half of what the assertion above used to carry. It is stated over a synthetic
+    // all-draft catalogue rather than over a market that happens to hold only drafts, because
+    // the latter is a fact about catalogue CONTENT that a promotion can silently invalidate —
+    // which is exactly what card-contracts@2.7 did to it. The behaviour under test is the
+    // engine's, so the fixture should be the engine's too.
+    const allDrafts: Catalogue = {
+      ...catalogue,
+      cards: catalogue.cards.filter((c) => c.status === 'draft').slice(0, 5),
+    };
+    const owner: OwnerState = { ...ownerState, ownedCardIds: [] };
+    const engine = new RecommendationEngine(allDrafts, owner, programDefaults);
 
     expect(() => engine.recommend(purchase, asOf)).toThrow(/no scorable card/);
   });

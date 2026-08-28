@@ -43,6 +43,10 @@ const EXPECTED_FILES = [
   "schema/card-catalogue.schema.json",
   "schema/benefits-catalogue.schema.json",
   "schema/engine-fixtures.schema.json",
+  // Part of card-contracts@2.7 onward. programs.json had been vendored without its
+  // schema since the beginning, so the "holds every file the release publishes"
+  // suite below could not have checked it even in principle.
+  "schema/programs.schema.json",
   "schema/merchant-pack.schema.json",
 ];
 

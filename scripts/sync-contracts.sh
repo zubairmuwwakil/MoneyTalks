@@ -77,6 +77,11 @@ FILES=(
   "schema/card-catalogue.schema.json"
   "schema/benefits-catalogue.schema.json"
   "schema/engine-fixtures.schema.json"
+  # Joined card-contracts@2.7's release digest. programs.json was vendored from the
+  # start without its schema, so a schema-only change moved no digest and nothing
+  # here could detect it. RELEASE.json now lists it, and contracts.test.ts hashes
+  # every file the release publishes — so it must be vendored or that test throws.
+  "schema/programs.schema.json"
   "schema/merchant-pack.schema.json"
 )
 
@@ -162,6 +167,14 @@ else
     exit 1
   fi
 
+  # Set once per run when any file's working-tree bytes diverge from
+  # UPSTREAM_COMMIT and --allow-dirty was passed. The "-dirty" suffix is
+  # appended to UPSTREAM_COMMIT exactly once, after the loop — appending it
+  # inside the loop (the bug this comment replaces) stacked one "-dirty" per
+  # dirty file, e.g. "<sha>-dirty-dirty-dirty" for three dirty files, which
+  # corrupts the provenance field this whole guard exists to protect.
+  IS_DIRTY=0
+
   for f in "${FILES[@]}"; do
     src="$SOURCE/$f"
     if [ ! -f "$src" ]; then
@@ -188,7 +201,7 @@ else
       if [ -n "$committed_hash" ] && [ "$committed_hash" != "$hash" ]; then
         if [ "$ALLOW_DIRTY" -eq 1 ]; then
           echo "sync-contracts: WARNING: $f differs from $UPSTREAM_COMMIT; recording commit as dirty" >&2
-          UPSTREAM_COMMIT="${UPSTREAM_COMMIT}-dirty"
+          IS_DIRTY=1
         else
           echo "sync-contracts: $f in $SOURCE does not match PickMe commit $UPSTREAM_COMMIT." >&2
           echo "sync-contracts: PickMe has uncommitted contract changes, so any commit recorded" >&2
@@ -203,6 +216,10 @@ else
     SOURCE_SHAS+=("$hash")
     cp "$src" "$DEST/$f"
   done
+
+  if [ "$IS_DIRTY" -eq 1 ]; then
+    UPSTREAM_COMMIT="${UPSTREAM_COMMIT}-dirty"
+  fi
 fi
 
 # Recorded from the release stamp we just vendored. Unlike the commit, this is a claim the

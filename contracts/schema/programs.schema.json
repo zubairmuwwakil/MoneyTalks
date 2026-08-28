@@ -1,0 +1,274 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pickme.local/contracts/programs.schema.json",
+  "title": "PickMe reward-program valuation defaults",
+  "description": "Documents the shape of programs.json exactly as decoded by Engine/Sources/CardCopilotEngine/Models/ProgramValuation.swift (ProgramCatalogue and ProgramValuation). Each entry is the catalogue's DEFAULT valuation for one card-catalogue program.programId; OwnerState.valuationsCad overrides any entry key-for-key, and an entry missing here with no owner override means the engine has no honest number for that program. Adding a program to the catalogue used to require a Swift property, a Kotlin property, a schema enum and an owner-state migration; since 2026-08-20 it requires an entry in this file and nothing else, provided its model is one of the four below.",
+  "type": "object",
+  "required": [
+    "programsVersion",
+    "defaults"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^_": {}
+  },
+  "properties": {
+    "programsVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "MAJOR.MINOR. Not currently load-bearing — SeedLoader.loadPrograms() decodes it but does not gate on it, unlike catalogueVersion. Bump MINOR when adding or revaluing a program; every edit gets a CHANGELOG.md entry (spec §3)."
+    },
+    "defaults": {
+      "type": "object",
+      "description": "Keyed by card-catalogue program.programId. NOT required to cover every programId. A program with no entry and no owner override has no valuation; Scorer.valueCad currently returns 0.0 for it, which is the defect this contract is the first half of fixing \u2014 the second half is excluding the card instead. The current gap is pinned in Engine/Tests/CardCopilotEngineTests/CatalogueIntegrityTests.swift.",
+      "propertyNames": {
+        "$ref": "card-catalogue.schema.json#/$defs/programId"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/programValuation"
+      }
+    }
+  },
+  "$defs": {
+    "basis": {
+      "type": "string",
+      "description": "REQUIRED disclosure. Names where the number came from and states plainly which parts are issuer facts and which are assumptions. Rendered to the owner by the valuation UI — a point value is a forecast of redemption behaviour, never a fact, and an owner has to be able to see and check the assumption being made on their behalf (CLAUDE.md valuation policy)."
+    },
+    "programValuation": {
+      "description": "A tagged union decoded on `model`, mirroring how Earn is decoded on `type`. The discriminator and the payload share ONE flat JSON object — the payload struct decodes from the same decoder — so no payload may own a key named `model`. This is why CroValuation's own model field is spelled redemptionModel.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/points"
+        },
+        {
+          "$ref": "#/$defs/cashback"
+        },
+        {
+          "$ref": "#/$defs/ctMoney"
+        },
+        {
+          "$ref": "#/$defs/merchantCredit"
+        },
+        {
+          "$ref": "#/$defs/cro"
+        },
+        {
+          "$ref": "#/$defs/noRewards"
+        }
+      ]
+    },
+    "points": {
+      "title": "points — a transferable/redeemable point currency",
+      "type": "object",
+      "required": [
+        "model",
+        "centsPerPoint"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {}
+      },
+      "properties": {
+        "model": {
+          "const": "points"
+        },
+        "centsPerPoint": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "The value used for RANKING. Scorer.valueCad multiplies reward units by this and divides by 100."
+        },
+        "floorCentsPerPoint": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "The guaranteed cash-out rate, when the program has one. Drives the floor band, which answers 'does this card still win if I only ever take the cash?'. Omit when the program has no cash floor — Scorer then falls back to centsPerPoint, so a fabricated floor would silently pass off an assumption as a guarantee."
+        },
+        "aspirationalCentsPerPoint": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Published benchmark valuation. Used ONLY as a plausibility ceiling when deciding whether an upside breakeven is worth disclosing — never for ranking. Cite the benchmark and its date in basis."
+        },
+        "low": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Bottom of the plausible redemption range. Disclosure only; not read by Scorer."
+        },
+        "high": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Top of the plausible redemption range. Disclosure only; not read by Scorer."
+        },
+        "basis": {
+          "$ref": "#/$defs/basis"
+        }
+      }
+    },
+    "cashback": {
+      "title": "cashback — a currency already denominated in dollars",
+      "type": "object",
+      "required": [
+        "model",
+        "cadPerDollar"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {}
+      },
+      "properties": {
+        "model": {
+          "const": "cashback"
+        },
+        "cadPerDollar": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "CAD realised per CAD of cash back. 1.0 unless the program discounts redemption."
+        },
+        "basis": {
+          "$ref": "#/$defs/basis"
+        }
+      }
+    },
+    "ctMoney": {
+      "title": "ctMoney — store-locked scrip carrying a usability discount",
+      "type": "object",
+      "required": [
+        "model",
+        "cadPerUnit",
+        "optionalUsabilityFactor",
+        "usabilityFactorApplied"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {}
+      },
+      "properties": {
+        "model": {
+          "const": "ctMoney"
+        },
+        "cadPerUnit": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Face value in CAD per unit."
+        },
+        "optionalUsabilityFactor": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "description": "Haircut for the currency spending at only one retailer. Applied by Scorer only when usabilityFactorApplied is true."
+        },
+        "usabilityFactorApplied": {
+          "type": "boolean",
+          "description": "Whether to apply optionalUsabilityFactor. False values the scrip at face — a deliberate owner choice, not a default."
+        },
+        "basis": {
+          "$ref": "#/$defs/basis"
+        }
+      }
+    },
+    "merchantCredit": {
+      "type": "object",
+      "required": [
+        "model",
+        "cadPerUnit",
+        "optionalUsabilityFactor",
+        "usabilityFactorApplied",
+        "merchantScope",
+        "basis"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {}
+      },
+      "properties": {
+        "model": {
+          "const": "merchantCredit"
+        },
+        "cadPerUnit": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Face value of one unit, in the card's billing currency. An ISSUER FACT — the published conversion the programme states, never a forecast. A brand that publishes no conversion has no honest value here and its cards stay in the research queue."
+        },
+        "optionalUsabilityFactor": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "description": "PER BRAND, and load-bearing. A dollar locked to one merchant is not a dollar, and how much less depends entirely on which merchant: a Sam's Club dollar (weekly groceries) is not a Harley-Davidson dollar (a motorcycle every few years). One shared factor across brands would value one brand's credit as another's — the collapse the 2026-08-27 Option 1 ruling refused."
+        },
+        "usabilityFactorApplied": {
+          "type": "boolean",
+          "description": "Whether Scorer applies the factor. False values the credit at face."
+        },
+        "merchantScope": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "description": "Where the credit spends, in the same lowercase kebab-case tokens RuleMatcher matches merchantInclude on. Disclosure, not dispatch — Scorer never reads it."
+        },
+        "basis": {
+          "$ref": "#/$defs/basis"
+        }
+      }
+    },
+    "noRewards": {
+      "type": "object",
+      "required": [
+        "model",
+        "basis"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {}
+      },
+      "properties": {
+        "model": {
+          "const": "noRewards"
+        },
+        "basis": {
+          "$ref": "#/$defs/basis"
+        }
+      },
+      "description": "A card with no rewards programme at all. Carries no number because there is nothing to configure: Scorer.valueCad answers 0.0 and the card is SCORED, ranking last on merit. Distinct from a MISSING valuation, which answers nil and excludes the card entirely — \"we do not know what this is worth\" must never rank as \"worth nothing\"."
+    },
+    "cro": {
+      "title": "cro — a crypto reward whose CAD value is fixed only on sale",
+      "type": "object",
+      "required": [
+        "model",
+        "redemptionModel",
+        "faceValueFactorIfAutoSold",
+        "defaultHeldRiskFactor"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {}
+      },
+      "properties": {
+        "model": {
+          "const": "cro"
+        },
+        "redemptionModel": {
+          "type": "string",
+          "description": "How the reward converts to CAD. NOT the union discriminator above, which is a separate key at the same JSON level; named `model` in owner states written before 2026-08-20.",
+          "examples": [
+            "reward-currency"
+          ]
+        },
+        "faceValueFactorIfAutoSold": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Multiplier applied when CardState.croHandling is \"autoSell\" — sold on receipt, so face value is realised and there is no price risk to discount."
+        },
+        "defaultHeldRiskFactor": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Multiplier applied otherwise, including when croHandling is unresolved. A risk discount for the gap between earning and selling, not a price forecast."
+        },
+        "basis": {
+          "$ref": "#/$defs/basis"
+        }
+      }
+    }
+  }
+}

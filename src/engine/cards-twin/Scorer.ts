@@ -7,6 +7,10 @@ export type Warning =
   | 'drawerCard'
   | 'unresolvedOwnerState'
   | 'networkNotAccepted'
+  /// Distinct from `networkNotAccepted` on purpose: "this card only works at Kohl's" and
+  /// "Visa isn't accepted here" are different facts about a decline, and collapsing them would
+  /// tell an owner to go find a Visa when the card is simply the wrong store's.
+  | 'merchantNotAccepted'
   | 'capNearlyExhausted'
   | 'negativeNetValue'
   | 'fxAllowanceAssumed'
@@ -54,9 +58,26 @@ export const Scorer = {
       return excludedScore('unresolvedOwnerState', 'draft catalogue record, not yet issuer-verified');
     }
 
-    const acceptedNetworks = purchase.acceptedNetworks ?? ['amex', 'visa', 'mastercard', 'discover'];
-    if (!acceptedNetworks.includes(card.network)) {
-      return excludedScore('networkNotAccepted', `${card.network} not accepted`);
+    // Two acceptance mechanisms, not one. An open-loop card is accepted because the merchant
+    // takes its network; a closed-loop card is accepted because the merchant IS its issuer's
+    // store. Forcing the second through a network check is what made private-label cards
+    // unrepresentable without guessing `network` — and the guess is not harmless: a Kohl's card
+    // recorded as `visa` is recommended at a gas station and declined at the till.
+    //
+    // Absent `acceptance` coalesces to 'openLoop', so every pre-2.7 card takes the identical
+    // path it always did. Mirrors Swift's Scorer.score.
+    if ((card.acceptance?.scope ?? 'openLoop') === 'openLoop') {
+      const acceptedNetworks = purchase.acceptedNetworks ?? ['amex', 'visa', 'mastercard', 'discover'];
+      if (!acceptedNetworks.includes(card.network)) {
+        return excludedScore('networkNotAccepted', `${card.network} not accepted`);
+      }
+    } else {
+      // Unresolved `merchantBrand` excludes rather than admits. These cards are only ever as
+      // good as brand resolution, and silence beats recommending a card that gets declined.
+      const merchants = card.acceptance?.merchants ?? [];
+      if (!purchase.merchantBrand || !merchants.includes(purchase.merchantBrand)) {
+        return excludedScore('merchantNotAccepted', `accepted only at ${merchants.join(', ')}`);
+      }
     }
 
     // A card in a program nobody has valued cannot be scored — mirrors Swift's guard in
@@ -206,6 +227,11 @@ export const Scorer = {
       case 'points':
         return (units * cents(valuation)) / 100;
       case 'ctMoney':
+        return units * valuation.cadPerUnit * (valuation.usabilityFactorApplied ? valuation.optionalUsabilityFactor : 1);
+      case 'merchantCredit':
+        // Identical arithmetic to ctMoney, and a separate arm on purpose — see
+        // MerchantCreditValuation's note in models.ts. `merchantScope` is disclosure; nothing
+        // here dispatches on it.
         return units * valuation.cadPerUnit * (valuation.usabilityFactorApplied ? valuation.optionalUsabilityFactor : 1);
       case 'cro':
         return units * (state.croHandling === 'autoSell'

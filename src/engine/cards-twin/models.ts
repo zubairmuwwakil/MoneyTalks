@@ -1,4 +1,20 @@
-export type Network = 'amex' | 'visa' | 'mastercard' | 'discover';
+/// The payment network a card runs on. `privateLabel` means it runs on NONE — a store card
+/// honoured only by its own merchant. It is never in a purchase's `acceptedNetworks` default,
+/// so a `privateLabel` card that forgot to declare `acceptance` is excluded everywhere rather
+/// than recommended anywhere. Mirrors Swift's `Network`.
+export type Network = 'amex' | 'visa' | 'mastercard' | 'discover' | 'privateLabel';
+
+/// Whether a card is accepted by NETWORK or by MERCHANT. Kept a closed two-case union rather
+/// than an optional merchant list, because an `openLoop` record would have to carry a
+/// `merchants` list Scorer never reads. Mirrors Swift's `AcceptanceScope`.
+export type AcceptanceScope = 'openLoop' | 'closedLoop';
+
+/// How a card comes to be accepted at a till. Absent on a CardProduct means `openLoop` — every
+/// card published before card-contracts@2.7 takes the identical path it always did.
+export interface Acceptance {
+  scope: AcceptanceScope;
+  merchants: string[];
+}
 export type CardKind = 'credit' | 'charge' | 'prepaid';
 export type RuleStatus = 'current' | 'announced';
 export type SourceType = 'issuerConfirmed' | 'ownerObserved' | 'inferred';
@@ -153,6 +169,9 @@ export interface CardProduct {
   /// Independent of `market`.
   billingCurrency: Currency;
   network: Network;
+  /// Absent means `openLoop` — accepted wherever `network` is. A closed-loop store card
+  /// declares its merchants here instead, and is guarded on those rather than on `network`.
+  acceptance?: Acceptance;
   kind: CardKind;
   /// Absent decodes as 'published'.
   status?: CardStatus;
@@ -214,6 +233,19 @@ export interface CtMoneyValuation {
   usabilityFactorApplied: boolean;
 }
 
+/// Merchant-locked store credit. Same arithmetic as CtMoneyValuation, deliberately a separate
+/// model: `ctMoney` is a published name inside a digest-pinned release, so it is a fact about
+/// data already in the world rather than an implementation detail free to be generalised. Two
+/// things that compute alike but mean differently stay two things. See the Swift twin.
+export interface MerchantCreditValuation {
+  cadPerUnit: number;
+  optionalUsabilityFactor: number;
+  usabilityFactorApplied: boolean;
+  /// Disclosure, not dispatch — Scorer never reads it.
+  merchantScope: string[];
+  basis?: string;
+}
+
 export interface CroValuation {
   model: string;
   faceValueFactorIfAutoSold: number;
@@ -232,6 +264,7 @@ export interface CashBackValuation {
 export type ProgramValuation =
   | ({ model: 'points' } & PointValuation)
   | ({ model: 'ctMoney' } & CtMoneyValuation)
+  | ({ model: 'merchantCredit' } & MerchantCreditValuation)
   | ({ model: 'cro' } & CroValuation)
   | ({ model: 'cashback' } & CashBackValuation)
   /// A card with no rewards programme — MBNA True Line, Capital One Guaranteed Secured. No

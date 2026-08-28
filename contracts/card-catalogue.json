@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "2.4",
+  "catalogueVersion": "2.7",
   "currency": "CAD",
   "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md — all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
@@ -5201,11 +5201,11 @@
     },
     {
       "cardId": "american-express-blue-business-plus",
-      "officialName": "Amex Blue Business Plus",
+      "officialName": "The Blue Business® Plus Credit Card from American Express",
       "issuer": "American Express",
       "market": "US",
       "billingCurrency": "USD",
-      "status": "draft",
+      "status": "published",
       "network": "amex",
       "kind": "credit",
       "fee": {
@@ -5218,11 +5218,65 @@
         "programId": "amexMembershipRewardsUs",
         "unit": "point"
       },
-      "fxRules": [],
-      "earnRules": [],
-      "caps": [],
-      "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.027,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "bbp-2x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 2
+          },
+          "predicate": {},
+          "capId": "bbp-annual-cap"
+        },
+        {
+          "ruleId": "bbp-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "predicate": {},
+          "capId": null
+        }
+      ],
+      "caps": [
+        {
+          "capId": "bbp-annual-cap",
+          "measure": "spendNative",
+          "limit": 50000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/New_York",
+          "postCapEarn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "proration": false
+        }
+      ],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "lastVerifiedAt": "2026-08-27",
+      "sources": [
+        "https://www.americanexpress.com/us/credit-cards/business-cards/american-express-blue-business-plus-credit-card/"
+      ]
     },
     {
       "cardId": "american-express-blue-from-american-express",
@@ -5380,7 +5434,7 @@
       "issuer": "American Express",
       "market": "US",
       "billingCurrency": "USD",
-      "status": "draft",
+      "status": "published",
       "network": "amex",
       "kind": "credit",
       "fee": {
@@ -5393,11 +5447,135 @@
         "programId": "amexMembershipRewardsUs",
         "unit": "point"
       },
-      "fxRules": [],
-      "earnRules": [],
-      "caps": [],
-      "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.0,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "amex-gold-us-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "amex-gold-us-dining",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 4
+          },
+          "predicate": {
+            "categories": [
+              "dining"
+            ]
+          },
+          "capId": "amex-gold-us-dining-cap"
+        },
+        {
+          "ruleId": "amex-gold-us-grocery",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 4
+          },
+          "predicate": {
+            "categories": [
+              "grocery"
+            ],
+            "country": "US"
+          },
+          "capId": "amex-gold-us-grocery-cap"
+        },
+        {
+          "ruleId": "amex-gold-us-flights",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 3
+          },
+          "predicate": {
+            "categories": [
+              "travel"
+            ]
+          },
+          "capId": null
+        }
+      ],
+      "caps": [
+        {
+          "capId": "amex-gold-us-dining-cap",
+          "measure": "spendNative",
+          "limit": 50000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/New_York",
+          "postCapEarn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "proration": false
+        },
+        {
+          "capId": "amex-gold-us-grocery-cap",
+          "measure": "spendNative",
+          "limit": 25000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/New_York",
+          "postCapEarn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "proration": false
+        }
+      ],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "lastVerifiedAt": "2026-08-27",
+      "credits": [
+        {
+          "creditId": "amex-gold-dining-credit",
+          "label": "Dining Credit",
+          "value": {
+            "amount": 120,
+            "currency": "USD"
+          },
+          "period": "calendarYear",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/gold-card/"
+          ],
+          "_note": "Up to $10/month statement credit for Grubhub, The Cheesecake Factory, Goldbelly, Wine.com, and Five Guys with enrolment."
+        }
+      ],
+      "sources": [
+        "https://www.americanexpress.com/us/credit-cards/card/gold-card/"
+      ]
     },
     {
       "cardId": "american-express-graphite-business-cash",
@@ -5480,12 +5658,12 @@
       "issuer": "American Express",
       "market": "US",
       "billingCurrency": "USD",
-      "status": "draft",
+      "status": "published",
       "network": "amex",
-      "kind": "credit",
+      "kind": "charge",
       "fee": {
         "annual": {
-          "amount": 895,
+          "amount": 695,
           "currency": "USD"
         }
       },
@@ -5493,11 +5671,86 @@
         "programId": "amexMembershipRewardsUs",
         "unit": "point"
       },
-      "fxRules": [],
-      "earnRules": [],
-      "caps": [],
-      "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.0,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "amex-plat-us-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "amex-plat-us-flights",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 5
+          },
+          "predicate": {
+            "categories": [
+              "travel"
+            ]
+          },
+          "capId": "amex-plat-us-flights-cap"
+        }
+      ],
+      "caps": [
+        {
+          "capId": "amex-plat-us-flights-cap",
+          "measure": "spendNative",
+          "limit": 500000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/New_York",
+          "postCapEarn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "proration": false
+        }
+      ],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "lastVerifiedAt": "2026-08-27",
+      "credits": [
+        {
+          "creditId": "amex-plat-airline-fee-credit",
+          "label": "Airline Fee Credit",
+          "value": {
+            "amount": 200,
+            "currency": "USD"
+          },
+          "period": "calendarYear",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+          ],
+          "_note": "Up to $200 per calendar year in statement credits for incidental fees on a selected qualifying airline."
+        }
+      ],
+      "sources": [
+        "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+      ]
     },
     {
       "cardId": "bank-of-america-business-advantage-customized",
@@ -6266,6 +6519,1568 @@
       },
       "program": {
         "programId": "avios",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-delta-skymiles-gold-business",
+      "officialName": "Delta SkyMiles® Gold Business American Express Card",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 150,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "deltaSkyMiles",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-delta-skymiles-platinum",
+      "officialName": "Delta SkyMiles® Platinum American Express Card",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 350,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "deltaSkyMiles",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-hilton-honors",
+      "officialName": "Hilton Honors American Express Aspire Card",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 550,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "hiltonHonors",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "bank-of-america-alaska-airlines-atmos-ascent",
+      "officialName": "Alaska Airlines Atmos™ Ascent Visa Signature® Card",
+      "issuer": "Bank of America",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "atmosRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "bank-of-america-atmos-rewards-visa-signature",
+      "officialName": "Atmos™ Rewards Visa Signature® Business Credit Card",
+      "issuer": "Bank of America",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "atmosRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "bank-of-america-bankamericard-credit-card",
+      "officialName": "BankAmericard® Credit Card",
+      "issuer": "Bank of America",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "bofaPreferredRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "bank-of-america-bankamericard-credit-card-2",
+      "officialName": "BankAmericard® Credit Card for Students",
+      "issuer": "Bank of America",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "bofaPreferredRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "bank-of-america-bankamericard-secured",
+      "officialName": "BankAmericard® Secured Credit Card",
+      "issuer": "Bank of America",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "bofaPreferredRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "barclays-emirates-skywards-premium-world",
+      "officialName": "Emirates Skywards Premium World Elite Mastercard®",
+      "issuer": "Barclays",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 499,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "emiratesSkywards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "barclays-frontier-airlines-world-mastercard",
+      "officialName": "Frontier Airlines World Mastercard®",
+      "issuer": "Barclays",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 99,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "frontierMiles",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "bmo-bank-n-a-bmo-cash-back-credit-card",
+      "officialName": "BMO Cash Back Credit Card",
+      "issuer": "BMO Bank N.A.",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "capital-one-platinum-from-capital-one",
+      "officialName": "Platinum from Capital One",
+      "issuer": "Capital One",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "capital-one-platinum-secured-credit-card",
+      "officialName": "Platinum Secured Credit Card from Capital One",
+      "issuer": "Capital One",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "capital-one-savor-rewards-for-students",
+      "officialName": "Savor Rewards for Students",
+      "issuer": "Capital One",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "capital-one-savorone-rewards-from-capital-one",
+      "officialName": "SavorOne Rewards from Capital One",
+      "issuer": "Capital One",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 39,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-aeroplan-card",
+      "officialName": "Aeroplan Card",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "aeroplan",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-freedom-flex",
+      "officialName": "Chase Freedom Flex® Credit Card",
+      "issuer": "JPMorgan Chase Bank, N.A.",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "published",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "chaseUltimateRewards",
+        "unit": "point"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.03,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "cff-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "cff-dining",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 3
+          },
+          "predicate": {
+            "categories": [
+              "dining",
+              "foodDelivery"
+            ]
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "cff-drugstore",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 3
+          },
+          "predicate": {
+            "categories": [
+              "drugStore"
+            ]
+          },
+          "capId": null
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "lastVerifiedAt": "2026-08-27",
+      "sources": [
+        "https://creditcards.chase.com/cash-back-credit-cards/freedom/flex"
+      ]
+    },
+    {
+      "cardId": "chase-freedom-rise-credit-card",
+      "officialName": "Chase Freedom Rise® Credit Card",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "chaseUltimateRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-freedom-unlimited",
+      "officialName": "Chase Freedom Unlimited® Credit Card",
+      "issuer": "JPMorgan Chase Bank, N.A.",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "published",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "chaseUltimateRewards",
+        "unit": "point"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.03,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "cfu-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 1.5
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "cfu-dining",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 3
+          },
+          "predicate": {
+            "categories": [
+              "dining",
+              "foodDelivery"
+            ]
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "cfu-drugstore",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 3
+          },
+          "predicate": {
+            "categories": [
+              "drugStore"
+            ]
+          },
+          "capId": null
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "lastVerifiedAt": "2026-08-27",
+      "sources": [
+        "https://creditcards.chase.com/cash-back-credit-cards/freedom/unlimited"
+      ]
+    },
+    {
+      "cardId": "chase-sapphire-preferred-card",
+      "officialName": "Chase Sapphire Preferred® Credit Card",
+      "issuer": "JPMorgan Chase Bank, N.A.",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "published",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "chaseUltimateRewards",
+        "unit": "point"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.0,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "csp-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "csp-dining",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 3
+          },
+          "predicate": {
+            "categories": [
+              "dining",
+              "foodDelivery"
+            ]
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "csp-streaming",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 3
+          },
+          "predicate": {
+            "categories": [
+              "streaming"
+            ]
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "csp-online-grocery",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 3
+          },
+          "predicate": {
+            "categories": [
+              "grocery"
+            ],
+            "channels": [
+              "online"
+            ]
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "csp-travel",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 2
+          },
+          "predicate": {
+            "categories": [
+              "travel",
+              "lodging",
+              "carRental",
+              "transit"
+            ]
+          },
+          "capId": null
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "lastVerifiedAt": "2026-08-27",
+      "credits": [
+        {
+          "creditId": "csp-hotel-credit",
+          "label": "Annual Hotel Credit",
+          "value": {
+            "amount": 50,
+            "currency": "USD"
+          },
+          "period": "accountYear",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred"
+          ],
+          "_note": "$50 annual Ultimate Rewards Hotel Credit each account anniversary year for hotel stays booked through Chase Travel."
+        }
+      ],
+      "sources": [
+        "https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred"
+      ]
+    },
+    {
+      "cardId": "chase-sapphire-reserve",
+      "officialName": "Chase Sapphire Reserve® Credit Card",
+      "issuer": "JPMorgan Chase Bank, N.A.",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "published",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 550,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "chaseUltimateRewards",
+        "unit": "point"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.0,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "csr-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "csr-dining",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 3
+          },
+          "predicate": {
+            "categories": [
+              "dining",
+              "foodDelivery"
+            ]
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "csr-travel",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 3
+          },
+          "predicate": {
+            "categories": [
+              "travel",
+              "lodging",
+              "carRental",
+              "transit"
+            ]
+          },
+          "capId": null
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "lastVerifiedAt": "2026-08-27",
+      "credits": [
+        {
+          "creditId": "csr-travel-credit",
+          "label": "$300 Annual Travel Credit",
+          "value": {
+            "amount": 300,
+            "currency": "USD"
+          },
+          "period": "accountYear",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
+          ],
+          "_note": "Automatically applies as statement credits up to $300 for travel purchases charged each anniversary year."
+        }
+      ],
+      "sources": [
+        "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
+      ]
+    },
+    {
+      "cardId": "chase-sapphire-reserve-for-business",
+      "officialName": "Sapphire Reserve for Business℠ Credit Card",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 795,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "chaseUltimateRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "citi-double-cash-card",
+      "officialName": "Citi Double Cash® Card",
+      "issuer": "Citibank, N.A.",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "published",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "citiThankYou",
+        "unit": "point"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.03,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "citi-dc-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-27",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 2
+          },
+          "predicate": {},
+          "capId": null
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "lastVerifiedAt": "2026-08-27",
+      "sources": [
+        "https://www.citi.com/credit-cards/citi-double-cash-credit-card"
+      ]
+    },
+    {
+      "cardId": "wells-fargo-choice-privileges-mastercard",
+      "officialName": "Choice Privileges Mastercard",
+      "issuer": "Wells Fargo",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "choicePrivileges",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "american-express-marriott-bonvoy-bevy",
+      "officialName": "Marriott Bonvoy Bevy American Express Card",
+      "issuer": "American Express",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "amex",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 250,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "marriottBonvoy",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-ink-business-cash-credit-card",
+      "officialName": "Ink Business Unlimited® Credit Card",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-slate-credit-card",
+      "officialName": "Slate® Credit Card",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "noRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-slate-edge-credit-card",
+      "officialName": "Slate Edge® Credit Card",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "noRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "citi-costco-anywhere-business",
+      "officialName": "Costco Anywhere Visa Card by Citi",
+      "issuer": "Citi",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "costcoCashRewardsUs",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "citi-diamond-preferred-credit-card",
+      "officialName": "Citi® Diamond Preferred® Credit Card",
+      "issuer": "Citi",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "noRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "citi-simplicity-credit-card",
+      "officialName": "Citi Simplicity® Credit Card",
+      "issuer": "Citi",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "noRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "column-n-a-bilt-blue-card",
+      "officialName": "Bilt Blue Card",
+      "issuer": "Column N.A.",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "column-n-a-bilt-obsidian-card",
+      "officialName": "Bilt Obsidian Card",
+      "issuer": "Column N.A.",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "column-n-a-bilt-palladium-card",
+      "officialName": "Bilt Palladium Card",
+      "issuer": "Column N.A.",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 495,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "fnbo-evergreen-credit-card",
+      "officialName": "Evergreen® Credit Card",
+      "issuer": "FNBO",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "fnbo-getaway-credit-card",
+      "officialName": "Getaway℠ Credit Card",
+      "issuer": "FNBO",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "fnbo-greenselect-credit-card",
+      "officialName": "GreenSelect℠ Credit Card",
+      "issuer": "FNBO",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "goldman-sachs-apple-card",
+      "officialName": "Apple Card",
+      "issuer": "Goldman Sachs",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "wells-fargo-active-cash-business",
+      "officialName": "Wells Fargo Active Cash Visa Card",
+      "issuer": "Wells Fargo",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "wells-fargo-autograph-journey",
+      "officialName": "Wells Fargo Autograph Journey Visa Signature Card",
+      "issuer": "Wells Fargo",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "wells-fargo-reflect",
+      "officialName": "Wells Fargo Reflect Visa Card",
+      "issuer": "Wells Fargo",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "noRewards",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "chase-prime-visa-and-amazon-visa",
+      "officialName": "Prime Visa and Amazon Visa",
+      "issuer": "Chase",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "amazonRewardsUs",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "cibc-costco-mastercard",
+      "officialName": "CIBC Costco Mastercard",
+      "issuer": "CIBC",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "status": "draft",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
+      },
+      "program": {
+        "programId": "costcoCashRewardsCa",
+        "unit": "cad"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "capital-one-venture-business",
+      "officialName": "Venture Business Credit Card",
+      "issuer": "Capital One",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 95,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "capitalOneMiles",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "capital-one-venture-rewards-credit-card",
+      "officialName": "Venture X Rewards Credit Card",
+      "issuer": "Capital One",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 395,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "capitalOneMiles",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "capital-one-ventureone-business",
+      "officialName": "VentureOne Business Credit Card",
+      "issuer": "Capital One",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "capitalOneMiles",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "capital-one-ventureone-rewards-credit-card",
+      "officialName": "VentureOne Rewards Credit Card",
+      "issuer": "Capital One",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "capitalOneMiles",
+        "unit": "point"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "capital-one-ventureone-rewards-for-good",
+      "officialName": "VentureOne Rewards for Good Credit",
+      "issuer": "Capital One",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "capitalOneMiles",
         "unit": "point"
       },
       "fxRules": [],
