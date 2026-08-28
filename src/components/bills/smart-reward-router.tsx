@@ -12,7 +12,7 @@ import type { BillIntermediary } from "@/lib/contracts/billIntermediaries";
 interface SmartRewardRouterProps {
   payeeName: string;
   monthlyCad?: number;
-  ownedCardIds?: string[];
+  ownedCardIds?: (string | null | undefined)[];
   selectedRouteId?: string;
   onSelectRoute?: (route: RouteRecommendation) => void;
 }
@@ -27,10 +27,12 @@ export function SmartRewardRouter({
   const [internalSelectedId, setInternalSelectedId] = useState<string>("");
   const [activeIntermediary, setActiveIntermediary] = useState<BillIntermediary | null>(null);
 
+  const cleanOwnedCardIds = (ownedCardIds ?? []).filter((id): id is string => Boolean(id));
+
   const routes = scoreBillRoutes({
     payeeName,
     monthlyCad,
-    ownedCardIds,
+    ownedCardIds: cleanOwnedCardIds,
   });
 
   const currentSelectedId = selectedRouteId || internalSelectedId || routes[0]?.id;

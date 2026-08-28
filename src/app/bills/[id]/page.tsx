@@ -370,7 +370,7 @@ export default async function BillDetailPage({
           <SmartRewardRouter
             payeeName={bill.payee || bill.name}
             monthlyCad={upcoming[0] ? upcoming[0].amountMinor / 100 : 150}
-            ownedCardIds={ownedCards.map((c) => c.contractCardId)}
+            ownedCardIds={ownedCards.flatMap((c) => (c.contractCardId ? [c.contractCardId] : []))}
           />
         </div>
 
