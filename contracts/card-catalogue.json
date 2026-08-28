@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "2.9",
+  "catalogueVersion": "2.10",
   "currency": "CAD",
   "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md — all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
@@ -3198,8 +3198,7 @@
             "amazonEligiblePrimeLinked"
           ],
           "capId": null,
-          "scoredInV1": false,
-          "_note": "2.5 points/$ on eligible Amazon.ca and Whole Foods Market Canada purchases with linked active Prime. Unblocked by CardState.flags (owner-linked Prime status), the next plan after this one — not a v1 engine capability gap."
+          "_note": "2.5 points/$ on eligible Amazon.ca and Whole Foods Market Canada purchases with linked active Prime. Activated in card-contracts@2.10 after CardState.flags made the owner-linked Prime condition answerable."
         },
         {
           "ruleId": "amazon-ca-nonprime-1_5x",
@@ -3219,8 +3218,7 @@
             ]
           },
           "capId": null,
-          "scoredInV1": false,
-          "_note": "1.5 points/$ on eligible Amazon.ca and Whole Foods Market Canada purchases without Prime. Unblocked by CardState.flags (owner-linked Prime status), the next plan after this one — not a v1 engine capability gap."
+          "_note": "1.5 points/$ on eligible Amazon.ca and Whole Foods Market Canada purchases without linked Prime. Activated in card-contracts@2.10 alongside the conditional 2.5x rule; it is the fail-closed fallback when the Prime condition is false or unanswered."
         }
       ],
       "caps": [],

@@ -1,5 +1,5 @@
 {
-  "fixturesVersion": "1.4",
+  "fixturesVersion": "1.5",
   "_note": "Executable spec for RecommendationEngine. Amounts CAD unless stated. Expected values are exact engine outputs (unrounded beyond 4dp); UI rounds to cents at display. Valuations: MR pinned to 1.8¢ by pinnedValuations below (owner-state.json now ranks at the 1.0¢ floor), MBNA 1.0¢, Bonvoy 0.8¢, cash 1:1, CT ×0.95, CRO ×1.0 auto-sold / ×0.8 held. Default card wealthsimple-vip; threshold both(0.5pp, $0.25). Base owner state per owner-state.json: rogersEligibleServiceLinked=false, cryptoLevelUpProActive=false, Tangerine treatAsAllSelected (2% hypothetical everywhere — can only tie WS, never clears threshold), Scotia 4% cap progress $12,500. Ties rank the default card first. Every case is evaluated at asOf 2026-08-20 unless it declares its own \"asOf\" — effective-dating is the one rule family that cannot be exercised at a single fixed date.",
   "pinnedValuations": {
     "amexMembershipRewards": 1.8,
@@ -364,15 +364,26 @@
       }
     },
     {
-      "caseId": "amazon-prime-flag-answered-but-rule-unscored-100",
-      "description": "$100 at Amazon.ca with amazonEligiblePrimeLinked answered true — the condition resolves for the first time, but both merchant rules carry scoredInV1 false, so the card stays on its 1x base and the default holds",
+      "caseId": "amazon-prime-linked-fires-2_5x",
+      "description": "$100 at Amazon.ca with amazonEligiblePrimeLinked answered true — the 2.5x rule beats the whole wallet",
       "purchase": { "amountCad": 100, "currency": "CAD", "category": "other", "mcc": null, "merchantBrand": "amazon-ca", "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
       "ownerStateOverrides": { "cardStates": { "amazon-ca-rewards-mastercard": { "flags": { "amazonEligiblePrimeLinked": true } } } },
+      "expected": {
+        "winner": "amazon-ca-rewards-mastercard", "winnerValueCad": 2.50, "winnerRule": "amazon-ca-prime-2_5x",
+        "runnerUp": "wealthsimple-vip", "runnerUpValueCad": 2.00,
+        "switchFromDefault": true, "advantageOverDefaultCad": 0.50, "valuationSensitive": false,
+        "notes": "Prime linked: amazon-ca-prime-2_5x earns 100 x 2.5 = 250 Amazon Rewards points; programs.json posts 1.0c/pt, so 250 x $0.01 = $2.50. The unconditional amazon-ca-nonprime-1_5x also matches the merchant, but RuleMatcher chooses the higher raw earn, so 2.5x wins the card. Whole-wallet field: default Wealthsimple 2% = $2.00; Cobalt and Platinum base 1x = 100 x 1.8c = $1.80; Bonvoy base 2x = 200 x 0.8c = $1.60; Rogers base 1.5% and WestJet base 1.5x at 1.0c are $1.50; MBNA and Scotia base are $1.00; Triangle CT$1.00 x 0.95 = $0.95; Tangerine base 0.5% = $0.50 ('other' is unselected); Crypto is excluded because Level Up Pro is inactive. Advantage over the default is $2.50 - $2.00 = $0.50, or 0.50pp; both switch floors ($0.25 and 0.50pp) clear exactly. This winner could not occur before card-contracts@2.10: 2.8 made the flag answerable, while 2.10 removes the independent scoredInV1 gate that still kept the rule unpayable."
+      }
+    },
+    {
+      "caseId": "amazon-prime-unanswered-fails-closed",
+      "description": "The same $100 Amazon.ca purchase with no Prime answer — 2.5x fails closed and the realistic all-network wallet stays on Wealthsimple",
+      "purchase": { "amountCad": 100, "currency": "CAD", "category": "other", "mcc": null, "merchantBrand": "amazon-ca", "recurringIndicator": false, "acceptedNetworks": ["amex", "visa", "mastercard"], "channel": "online" },
       "expected": {
         "winner": "wealthsimple-vip", "winnerValueCad": 2.00, "winnerRule": "wealthsimple-2pct",
         "runnerUp": "amex-cobalt", "runnerUpValueCad": 1.80,
         "switchFromDefault": false, "valuationSensitive": false,
-        "notes": "TWO GATES IN SERIES, and this case exists because only one of them moved. amazonEligiblePrimeLinked is the condition that shipped in the catalogue with no RuleMatcher case and could not fire in any build; card-contracts@2.8 made it ANSWERABLE by routing conditions through CardState.flags. It did not make it PAYABLE: amazon-ca-prime-2_5x and amazon-ca-nonprime-1_5x both still carry scoredInV1 false, and isScheduleLive drops a rule on that flag before conditionsResolveTrue is ever consulted. The owner answers the question and earns exactly what they earned before. The assertion is decisive rather than incidental: at the posted 1.0c/pt the prime rule would pay 2.5 x 100 = 250 pts = $2.50, beating the default's $2.00 by 0.50pp and $0.50 and clearing BOTH switch floors - so this case flips to amazon-ca-rewards-mastercard the moment scoredInV1 is lifted, and is meant to. Lifting it is a behaviour change owed a decision, not a tidy-up. Field: amazon-ca-rewards-mastercard base 1x = 100 pts x 1.0c = $1.00; Cobalt and Platinum base 1x = 100 x 1.8c = $1.80, Cobalt taking runner-up on cardId ascending; Bonvoy 200 x 0.8c = $1.60; Rogers 1.5% = $1.50 (service not linked in the base state); WestJet 150 pts x 1.0c = $1.50; MBNA and Scotia $1.00; Triangle CT$1.00 x 0.95 = $0.95; Tangerine 0.5% = $0.50 ('other' unselected); Crypto excluded, Level Up Pro not active. Upside is WITHHELD: Cobalt's flip needs ($2.00 + max($0.25, 0.5pp x $100)) x 100 / 100 = 2.50c/pt, past the 2.2c benchmark."
+        "notes": "No amazonEligiblePrimeLinked key means the conditional amazon-ca-prime-2_5x rule fails closed. The Amazon card falls to amazon-ca-nonprime-1_5x: 100 x 1.5 = 150 points x 1.0c = $1.50. That card-level rule is pinned directly in the Swift and Kotlin RuleMatcher tests because an end-to-end fixture can assert only winnerRule, and truthful Amazon.ca acceptance leaves Amazon below the top two. Whole-wallet field: default Wealthsimple 2% = $2.00; Cobalt and Platinum base 1x = $1.80 each, with Cobalt taking runner-up by cardId; Bonvoy base 2x = $1.60; Amazon, Rogers and WestJet are $1.50 each, with Amazon first inside that tie by cardId; MBNA and Scotia are $1.00; Triangle is $0.95; Tangerine is $0.50; Crypto is excluded. If unanswered state incorrectly enabled 2.5x, Amazon would jump from $1.50 to $2.50 and flip the asserted winner, so this whole-wallet golden decisively pins fail-closed behavior without inventing a Mastercard-only Amazon acceptance constraint."
       }
     }
   ]

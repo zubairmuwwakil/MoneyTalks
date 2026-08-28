@@ -1,11 +1,11 @@
 {
-  "release": "card-contracts@2.9",
-  "catalogueVersion": "2.9",
-  "digest": "sha256:bf863db2f0bf8e1b91e144c657cda4672064a9de7bcc5bfefc3bf6d186858c01",
+  "release": "card-contracts@2.10",
+  "catalogueVersion": "2.10",
+  "digest": "sha256:99ee7a6f4215840703dd4ef662c38d864fca0fca8dcc7d1925d78ccee4cf7721",
   "files": {
-    "card-catalogue.json": "ed978272bf736c07be764b67cc2f3bbba579e9f07869058a16140015565d7af4",
+    "card-catalogue.json": "9126de18a8f3c193a3602073e65fb5f55c5c92cc8371dbaf2541cf51b553f9c5",
     "benefits-catalogue.json": "08bf768f4c39f0f85a366f9182ce3a1fe82aa745ee6045eb711defc207c10c1d",
-    "engine-fixtures.json": "4667905e06398626d196451ab2436eb94ea69a32204edd8bfece3a357526aa6a",
+    "engine-fixtures.json": "55631494f6d588d10d98a1afa3a177e696b206ccb91a58b534715715363a5de6",
     "owner-state.json": "b3338b458d2cb6178a655809b629eb167ad4645726acbb612213ed414c428794",
     "programs.json": "0e5712c406cc37c20e18ede095e64a51833f328ca415d4fe9a95b428fa572a25",
     "candidate-catalogue.json": "9b8fde9661cf00bfc59e20443dc0a415042b910487865670c87c16cf9b5e9a43",
