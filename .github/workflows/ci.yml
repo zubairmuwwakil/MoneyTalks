@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  verify:
+    name: verify (required)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +30,11 @@ jobs:
       - run: npm ci
       - run: npx vitest run src/engine/cards-twin/fixtures.test.ts
 
-  # Answers a different question than the `test` job's contracts.test.ts:
+  # ADVISORY — never a required check. By design this goes red whenever PickMe
+  # moves ahead of a MoneyTalks re-sync; that is the signal. Requiring it would
+  # freeze all work here every time PickMe edits a contract.
+  #
+  # Answers a different question than the `verify` job's contracts.test.ts:
   # that one checks "has our vendored copy been edited?" (no network needed,
   # runs against MANIFEST.json's flat file->sha entries). This one checks "is
   # our vendored copy still current with PickMe?" — which cannot be answered
