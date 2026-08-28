@@ -1,3 +1,41 @@
+# In Unity — agent router
+
+The financial command center of a four-product ecosystem. `MoneyTalks` is the
+working repo name; the product is **In Unity** (`inunity.ca`).
+
+**This repo must not own** card rate semantics (PickMe owns them, C1/D3) or
+market-data ingestion (MarketLens owns it, E3/E4). It **does** own email/receipt
+ingestion, absorbed from Looply. All three are enforced by `npm run check`, not
+merely requested.
+
+## One command
+
+```
+npm run check
+```
+
+Lint, typecheck, env, guardrails and the unit suite — well under a minute. **It is
+the checklist.** There is no other checklist. Also: `npm run dev`, `npm run e2e`
+(needs Postgres + Clerk dev keys), `npx prisma migrate dev`.
+
+## Read when you are…
+
+| File | …doing this |
+|---|---|
+| [`REPO_MAP.md`](REPO_MAP.md) | creating any file under `docs/` or `scripts/` |
+| [`card-ownership.md`](docs/policies/card-ownership.md) | touching cards, the catalogue, or the twin |
+| [`marketlens.md`](docs/policies/marketlens.md) | touching prices, holdings, valuation, or FX |
+| [`quote-cache.md`](docs/runbooks/quote-cache.md) | changing a cron or the quote path |
+| [`exceptions.json`](docs/policies/exceptions.json) | a check is wrong for your task — add a dated entry and keep moving |
+| [`LOG.md`](docs/decisions/LOG.md) · [record](docs/decisions/2026-08-16-one-money-app.md) | cross-cutting work — both are ratified, not open |
+| [`ECOSYSTEM.md`](ECOSYSTEM.md) | anything spanning repos, or scoping v1 vs later |
+| [`FLEET.md`](FLEET.md) | choosing a model and effort — arrives with M4 |
+
+## Freedom
+
+Anything not named here and not caught by `npm run check` is yours to decide.
+Prefer acting and letting the check fail over asking.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
