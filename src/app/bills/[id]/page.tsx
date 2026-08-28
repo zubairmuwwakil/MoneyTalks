@@ -13,6 +13,7 @@ import {
   unmarkPaid,
 } from "@/app/bills/actions";
 import { CadenceForm } from "./cadence-form";
+import { AddScheduleForm } from "./add-schedule-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Catalogue, OwnerState } from "@/engine/cards-twin";
@@ -531,24 +532,12 @@ export default async function BillDetailPage({
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
             Add schedule step
           </p>
-          <form action={submitAddSchedule} className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
-            <input type="hidden" name="billId" value={bill.id} />
-            <input name="from" type="date" required className={inputStyle} />
-            <input name="to" type="date" placeholder="To date (optional)" className={inputStyle} />
-            <input name="amount" placeholder="Amount ($)" required className={inputStyle} />
-            <input name="note" placeholder="Note (optional)" className={inputStyle} />
-            <button
-              type="submit"
-              className="col-span-2 sm:col-span-1 inline-flex h-9 items-center justify-center rounded-lg bg-foreground px-3 text-xs font-semibold text-background shadow-xs hover:bg-foreground/90 transition-colors cursor-pointer"
-            >
-              Add schedule entry
-            </button>
-          </form>
-          {errorForm === "schedule" && error ? (
-            <p className="mt-2 text-xs font-medium text-red-600" role="alert">
-              {error}
-            </p>
-          ) : null}
+          <AddScheduleForm
+            billId={bill.id}
+            currency={currency}
+            action={submitAddSchedule}
+            error={errorForm === "schedule" ? error : undefined}
+          />
         </div>
       </section>
 

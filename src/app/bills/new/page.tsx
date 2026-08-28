@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Receipt } from "lucide-react";
+import { ArrowLeft, PlusCircle, Receipt, ShieldCheck, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createBill } from "@/app/bills/actions";
 import type { Catalogue } from "@/engine/cards-twin";
@@ -31,46 +31,60 @@ export default async function NewBillPage({
   }
 
   return (
-    <main className="max-w-xl space-y-6 py-6 sm:py-8">
+    <main className="max-w-2xl mx-auto space-y-6 py-6 sm:py-8 px-4 sm:px-0">
       <div>
         <Link
           href="/bills"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground mb-3 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground mb-3 transition-colors group"
         >
-          <ArrowLeft className="size-3.5" />
+          <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
           <span>Back to Bills</span>
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Add bill</h1>
-        <p className="text-sm text-muted-foreground">
-          Configure recurring cadence, schedule stepped amounts, and enable autopay.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Add New Bill</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Set up recurring cadence, calculate provincial sales tax, and optimize card rewards.
+            </p>
+          </div>
+        </div>
       </div>
 
       {error ? (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs font-medium text-red-600" role="alert">
+        <div
+          className="rounded-lg border border-red-500/30 bg-red-500/10 p-3.5 text-xs font-medium text-red-600 dark:text-red-400 animate-shake"
+          role="alert"
+        >
           {error}
         </div>
       ) : null}
 
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-2">
-            <Receipt className="size-4 text-muted-foreground" />
-            <CardTitle className="text-sm font-semibold">Bill Details &amp; Cadence</CardTitle>
+      <Card className="border-border/80 shadow-xs">
+        <CardHeader className="pb-4 border-b border-border/60">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Receipt className="size-4 text-primary" />
+              <CardTitle className="text-sm font-semibold">Bill Details &amp; Cadence</CardTitle>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <ShieldCheck className="size-3.5 text-emerald-500" />
+              <span>Smart Cadence Forecasting</span>
+            </div>
           </div>
-          <CardDescription>
-            Enter bill parameters to forecast cashflow and prevent pileups.
+          <CardDescription className="text-xs">
+            Enter bill parameters to forecast cashflow, eliminate late fees, and unlock card multipliers.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form action={submit} className="space-y-4">
+        <CardContent className="pt-5">
+          <form action={submit} className="space-y-6">
             <BillFormFields spendCategoryOptions={spendCategoryOptions} />
-            <div className="pt-2">
+            <div className="pt-3 border-t border-border/60">
               <button
                 type="submit"
-                className="inline-flex h-9 w-full items-center justify-center rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-xs hover:bg-foreground/90 transition-colors cursor-pointer"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-sm hover:bg-foreground/90 active:scale-[0.99] transition-all cursor-pointer"
               >
-                Create bill
+                <PlusCircle className="size-4" />
+                <span>Save and Create Bill</span>
               </button>
             </div>
           </form>
