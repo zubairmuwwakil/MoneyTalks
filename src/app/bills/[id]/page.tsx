@@ -14,6 +14,7 @@ import {
 } from "@/app/bills/actions";
 import { CadenceForm } from "./cadence-form";
 import { AddScheduleForm } from "./add-schedule-form";
+import { SmartRewardRouter } from "@/components/bills/smart-reward-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Catalogue, OwnerState } from "@/engine/cards-twin";
@@ -364,6 +365,14 @@ export default async function BillDetailPage({
           Which of your cards earns the most on this bill&apos;s next charge.
         </p>
         <BillCardRecommendationPanel rec={cardRec} />
+
+        <div className="mt-4">
+          <SmartRewardRouter
+            payeeName={bill.payee || bill.name}
+            monthlyCad={upcoming[0] ? upcoming[0].amountMinor / 100 : 150}
+            ownedCardIds={ownedCards.map((c) => c.contractCardId)}
+          />
+        </div>
 
         <div className="mt-5 space-y-4 border-t border-border/60 pt-4">
           <div>
