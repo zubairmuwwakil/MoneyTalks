@@ -25,20 +25,106 @@
 
 ---
 
-### Task 1: Cold-start integrity — typecheck script and a complete `.env.example`
+### Task 1: The one command, and the CI trigger for everything after it
 
-Closes G2 and G16. An agent that cannot boot the repo cannot verify its own work, and `MARKETLENS_API_KEY` — the configuration behind the ecosystem's most-documented boundary — is currently undocumented.
+**This task must come first.** Every later task adds a check to the `npm run check`
+chain. CI currently runs `npm run lint` and `npm run test` and would never invoke
+that chain, so eleven tasks' worth of checks would ship with no trigger — the exact
+P4 violation this plan exists to prevent. Establish the trigger before the first
+check exists.
 
 **Files:**
-- Modify: `package.json` (add `typecheck` script)
+- Modify: `package.json`
+- Modify: `.github/workflows/ci.yml`
+
+**Interfaces:**
+- Produces: `npm run typecheck` → `tsc --noEmit`. Consumed by Task 12.
+- Produces: `npm run check` → the aggregate chain. **Every later task appends to it,
+  and CI runs it, so appending is all a later task needs to do to satisfy P4.**
+
+- [ ] **Step 1: Add the typecheck script**
+
+`tsc --noEmit` already passes across 432 files with zero errors; it simply has no
+script, so an agent's only type signal is a full `next build`.
+
+In `package.json` `scripts`:
+
+```json
+"typecheck": "tsc --noEmit"
+```
+
+- [ ] **Step 2: Add the aggregate command**
+
+```json
+"check": "npm run lint && npm run typecheck && npm run test"
+```
+
+Ordered cheapest-signal-first so failures surface fast.
+
+- [ ] **Step 3: Run it**
+
+Run: `npm run check`
+Expected: PASS. Baseline is lint 0, tsc 0, 1142 tests in ~4s.
+
+- [ ] **Step 4: Point CI at it — this is the trigger**
+
+In `.github/workflows/ci.yml`, in the `test` job, replace the two run steps:
+
+```yaml
+      - run: npm run lint
+      - run: npm run test
+```
+
+with one:
+
+```yaml
+      - run: npm run check
+```
+
+Leave the `engine-fixtures-ts` and `contracts-freshness` jobs untouched.
+
+- [ ] **Step 5: Verify the workflow still parses**
+
+Run: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml')); print('valid')"`
+Expected: `valid`.
+
+- [ ] **Step 6: Commit and push, then confirm CI is green**
+
+```bash
+git add package.json .github/workflows/ci.yml
+git commit -m "feat(scripts): npm run check as the one command, and wire CI to it
+
+Every guardrail added by this milestone appends to this chain, and CI runs the
+chain — so a check joining it is triggered on arrival rather than waiting for a
+later task to remember. P4 says a check and its trigger land together; this makes
+that true by construction instead of by discipline.
+
+Adds the missing typecheck script on the way: tsc --noEmit already passed across
+432 files, it just had no entry point."
+git push
+gh run list --limit 1
+```
+
+Expected: the CI run for this commit is green. **Do not start Task 2 until it is** —
+every later task depends on this trigger actually working.
+
+---
+
+### Task 2: Cold-start integrity — a complete `.env.example`
+
+Closes G16. An agent that cannot boot the repo cannot verify its own work, and
+`MARKETLENS_API_KEY` — the configuration behind the ecosystem's most-documented
+boundary — is currently undocumented.
+
+**Files:**
 - Modify: `.env.example` (add 6 missing variables)
 - Create: `scripts/checks/check-env-documented.mjs`
 - Test: `scripts/checks/check-env-documented.test.ts`
+- Modify: `package.json`
 
 **Interfaces:**
-- Produces: `npm run typecheck` → `tsc --noEmit`, exit 0 on success. Consumed by Task 2 and Task 12.
-- Produces: `scripts/checks/check-env-documented.mjs`, exit 0 clean / 1 with a list of undocumented variables. Consumed by Task 2.
-- Produces exported function `findUndocumentedEnvVars(srcDir, envExamplePath): string[]` for the test to call directly.
+- Consumes: the `check` chain from Task 1.
+- Produces: `findUndocumentedEnvVars(srcDir, envExamplePath): string[]`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -181,70 +267,33 @@ MARKETLENS_BASE_URL=
 QSTASH_REGION=
 ```
 
-- [ ] **Step 7: Add the typecheck script**
+- [ ] **Step 7: Wire the check into the chain CI already runs**
 
-In `package.json`, add to `scripts`:
+In `package.json`:
 
 ```json
-"typecheck": "tsc --noEmit",
-"check:env": "node scripts/checks/check-env-documented.mjs"
+"check:env": "node scripts/checks/check-env-documented.mjs",
+"check": "npm run lint && npm run typecheck && npm run check:env && npm run test"
 ```
+
+Because Task 1 pointed CI at `npm run check`, appending here is the whole of P4 for
+this check — no workflow edit is needed, and none of the later tasks needs one either.
 
 - [ ] **Step 8: Verify everything passes**
 
-Run: `npm run typecheck && npm run check:env && npx vitest run scripts/checks/check-env-documented.test.ts`
-Expected: all exit 0.
+Run: `npm run check`
+Expected: exit 0, with the new env check running inside it.
 
 - [ ] **Step 9: Commit**
 
 ```bash
 git add package.json .env.example scripts/checks/check-env-documented.mjs scripts/checks/check-env-documented.test.ts
-git commit -m "feat(checks): document every env var src reads, and add a typecheck script
+git commit -m "feat(checks): document every env var that src actually reads
 
 MARKETLENS_API_KEY and MARKETLENS_BASE_URL were undocumented while the E3/E4
 boundary they implement was the most heavily documented rule in the repo, so a
 cold-start agent could not connect the hub to MarketLens or learn that it should.
-check-env-documented fails on any process.env read that .env.example omits.
-
-tsc --noEmit already passed across 432 files with zero errors; it just had no
-script, so an agent's only type signal was a full next build."
-```
-
----
-
-### Task 2: The one command
-
-The router names one command and it *is* the checklist. This is what lets Task 10 delete the ceremony.
-
-**Files:**
-- Modify: `package.json`
-
-**Interfaces:**
-- Produces: `npm run check` → lint, typecheck, env check, unit tests, in that order, failing fast. Consumed by Task 10 (named in the router) and Task 12 (the required CI tier).
-
-- [ ] **Step 1: Add the aggregate script**
-
-In `package.json` `scripts`, add:
-
-```json
-"check": "npm run lint && npm run typecheck && npm run check:env && npm run test"
-```
-
-Order is cheapest-signal-first so a failure surfaces fast.
-
-- [ ] **Step 2: Run it**
-
-Run: `npm run check`
-Expected: PASS. Total runtime should be well under a minute — the unit suite alone is ~4s for 1,141 tests.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add package.json
-git commit -m "feat(scripts): add npm run check as the single verification entry point
-
-The router names one command instead of reciting a checklist. Ordered
-cheapest-signal-first: lint, typecheck, env, tests."
+check-env-documented fails on any process.env read that .env.example omits."
 ```
 
 ---
@@ -442,7 +491,7 @@ Retires ~150 words of the longest prose block in `CLAUDE.md`. This drift has hap
 **Files:**
 - Create: `scripts/checks/check-no-card-rate-model.mjs`
 - Test: `scripts/checks/check-no-card-rate-model.test.ts`
-- Modify: `package.json`, `.github/workflows/ci.yml`
+- Modify: `package.json` (the `check` chain CI already runs — no workflow edit needed)
 
 **Interfaces:**
 - Consumes: `loadExceptionsFor("no-card-rate-model")` from Task 3.
@@ -1950,9 +1999,10 @@ Converts branch protection from decorative to real. Today all four inspected rep
 **Interfaces:**
 - Produces: CI job named `verify` (required) running `npm run check`; `engine-fixtures-ts` (required); `contracts-freshness` (advisory, never required).
 
-- [ ] **Step 1: Restructure CI into tiers**
+- [ ] **Step 1: Name the required job for what it is**
 
-Rewrite the `test` job in `.github/workflows/ci.yml` as `verify`:
+Task 1 already pointed the `test` job at `npm run check`, so the chain is running.
+This step only renames it, so the required-context name reads as a tier:
 
 ```yaml
   verify:
@@ -1980,7 +2030,7 @@ Leave `engine-fixtures-ts` as it is. Leave `contracts-freshness` as it is, and a
 
 ```bash
 git add .github/workflows/ci.yml
-git commit -m "ci: collapse lint+test into one required verify job running npm run check"
+git commit -m "ci: name the required job verify, so its context reads as a tier"
 git push
 gh run list --limit 1
 gh api repos/zubairmuwwakil/MoneyTalks/commits/main/check-runs -q '.check_runs[].name'
