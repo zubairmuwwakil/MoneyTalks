@@ -16,7 +16,7 @@ import path from "node:path";
  * have since moved on. That second question ("is our copy current?") is
  * answered by the `_upstream` block this same MANIFEST.json now carries
  * (written from PickMe's *source* bytes at sync time, see
- * scripts/sync-contracts.sh) and checked over the network by the separate
+ * scripts/sync/sync-contracts.sh) and checked over the network by the separate
  * `contracts-freshness` CI job in .github/workflows/ci.yml. Splitting them is
  * deliberate — one check needs no network, the other cannot work without one
  * (see docs/superpowers/specs/2026-08-18-annual-fee-renewal-calendar-design.md
@@ -26,7 +26,7 @@ import path from "node:path";
 const CONTRACTS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../contracts");
 const MANIFEST_PATH = path.join(CONTRACTS_DIR, "MANIFEST.json");
 
-// Keep in sync with the FILES list in scripts/sync-contracts.sh.
+// Keep in sync with the FILES list in scripts/sync/sync-contracts.sh.
 const EXPECTED_FILES = [
   "card-catalogue.json",
   "benefits-catalogue.json",
@@ -53,7 +53,7 @@ const EXPECTED_FILES = [
   "schema/merchant-pack.schema.json",
 ];
 
-const DRIFT_MESSAGE = "contracts drifted — run scripts/sync-contracts.sh /path/to/PickMe/contracts";
+const DRIFT_MESSAGE = "contracts drifted — run scripts/sync/sync-contracts.sh /path/to/PickMe/contracts";
 
 function sha256(filePath: string): string {
   return createHash("sha256").update(readFileSync(filePath)).digest("hex");
@@ -88,7 +88,7 @@ describe("vendored contracts", () => {
  * NO PickMe commit. Both checks stayed green while the two repos disagreed
  * about 13 whole cards.
  *
- * `scripts/sync-contracts.sh` now refuses to write such a manifest. This test
+ * `scripts/sync/sync-contracts.sh` now refuses to write such a manifest. This test
  * catches one already written — including the one in the tree today.
  *
  * It needs a sibling PickMe checkout, so it self-skips where there isn't one
@@ -135,7 +135,7 @@ describe("vendored contracts vs the PickMe checkout", () => {
       sha256(path.join(CONTRACTS_DIR, file)),
       `contracts/${file} does not match PickMe at ${commit.slice(0, 10)}. ` +
         `PickMe owns these files (CLAUDE.md: "Swift stays canonical; contract changes land in Swift + fixtures first"). ` +
-        `Land the change in PickMe, then re-run scripts/sync-contracts.sh.`,
+        `Land the change in PickMe, then re-run scripts/sync/sync-contracts.sh.`,
     ).toBe(committedSha);
   });
 });

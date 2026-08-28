@@ -72,7 +72,7 @@ jobs:
             fi
           done
           if [ "$stale" -ne 0 ]; then
-            echo "catalogue is stale — run scripts/sync-contracts.sh"
+            echo "catalogue is stale — run scripts/sync/sync-contracts.sh"
             exit 1
           fi
           echo "contracts are current with PickMe main"

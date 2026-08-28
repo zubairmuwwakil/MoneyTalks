@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Mirror the canonical ECOSYSTEM.md into the sibling ecosystem repos.
 #
-#   ./scripts/sync-ecosystem.sh          copy canonical -> siblings
-#   ./scripts/sync-ecosystem.sh --check  verify only; non-zero exit if stale
+#   ./scripts/sync/sync-ecosystem.sh          copy canonical -> siblings
+#   ./scripts/sync/sync-ecosystem.sh --check  verify only; non-zero exit if stale
 #
 # Canonical copy is MoneyTalks/ECOSYSTEM.md. Edit that one, never a mirror.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SRC="$ROOT/ECOSYSTEM.md"
 SIBLINGS=(PickMe return-saas marketdata)
 CHECK=0
@@ -41,7 +41,7 @@ done
 
 if (( CHECK && stale )); then
   echo
-  echo "Mirrors are stale. Run ./scripts/sync-ecosystem.sh from MoneyTalks."
+  echo "Mirrors are stale. Run ./scripts/sync/sync-ecosystem.sh from MoneyTalks."
   exit 1
 fi
 (( missing )) && echo $'\nSome repos were not beside MoneyTalks; their mirrors were not updated.'

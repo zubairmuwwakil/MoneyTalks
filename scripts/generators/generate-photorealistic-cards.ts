@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { cardCatalogue } from "../src/lib/contracts/cardCatalogue";
+import { cardCatalogue } from "../../src/lib/contracts/cardCatalogue";
 
 const outputDir = path.join(process.cwd(), "public", "cards");
 if (!fs.existsSync(outputDir)) {

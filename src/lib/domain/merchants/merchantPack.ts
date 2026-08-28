@@ -8,7 +8,7 @@ import { foldMerchantText } from "./normalizeMerchant";
  *
  * PickMe owns these facts — they are generated from
  * `CanadianMerchantPreIndex.swift` and vendored here by
- * scripts/sync-contracts.sh, the same path card-catalogue.json takes. Nothing
+ * scripts/sync/sync-contracts.sh, the same path card-catalogue.json takes. Nothing
  * in this repo authors a merchant category: a wrong row is fixed upstream in
  * the Swift table, not patched here, for the same reason a card rate is.
  *

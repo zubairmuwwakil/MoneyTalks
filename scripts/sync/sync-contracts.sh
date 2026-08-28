@@ -4,9 +4,9 @@
 # detect a stale copy.
 #
 # Two source modes:
-#   scripts/sync-contracts.sh                    # local sibling checkout (default, offline)
-#   scripts/sync-contracts.sh /path/to/contracts  # local, explicit path
-#   scripts/sync-contracts.sh --ref <git-ref>     # remote: PickMe's public raw URLs at <git-ref>
+#   scripts/sync/sync-contracts.sh                    # local sibling checkout (default, offline)
+#   scripts/sync/sync-contracts.sh /path/to/contracts  # local, explicit path
+#   scripts/sync/sync-contracts.sh --ref <git-ref>     # remote: PickMe's public raw URLs at <git-ref>
 #
 # MANIFEST.json gets a second party this script alone cannot fake: an
 # `_upstream` block recording the PickMe ref + commit synced from, and the
@@ -20,7 +20,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DEST="$REPO_ROOT/contracts"
 UPSTREAM_REPO="https://github.com/zubairmuwwakil/PickMe"
 

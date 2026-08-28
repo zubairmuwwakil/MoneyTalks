@@ -128,7 +128,7 @@ Scope widens from three repos to four: `marketdata`/MarketLens joins
   and horizon buckets in `ECOSYSTEM.md` govern what may be proposed. On any
   conflict outside identity: **stop and ask. Do not average the documents.**
   `ECOSYSTEM.md` is mirrored into all four repos and carries a sync stamp;
-  edit the canonical MoneyTalks copy and run `scripts/sync-ecosystem.sh`.
+  edit the canonical MoneyTalks copy and run `scripts/sync/sync-ecosystem.sh`.
 
 ## Consequences of Amendment E
 

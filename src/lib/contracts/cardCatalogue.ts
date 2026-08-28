@@ -337,7 +337,7 @@ export function parseBenefitsCatalogue(data: unknown): BenefitsCatalogue {
 
 // --- Parsed singletons -----------------------------------------------------
 // Importing this module validates the vendored contract immediately: a
-// shape drift that scripts/sync-contracts.sh + the drift-check test somehow
+// shape drift that scripts/sync/sync-contracts.sh + the drift-check test somehow
 // missed still fails loudly here, at import time, rather than at first use.
 
 export const cardCatalogue: CardCatalogue = parseCardCatalogue(cardCatalogueRaw);

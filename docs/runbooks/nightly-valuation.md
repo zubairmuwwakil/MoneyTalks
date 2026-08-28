@@ -122,4 +122,4 @@ TSX holdings written by the retired Alpha Vantage path carry `priceCurrency:
 the next successful refresh** (`planPriceSync` overwrites `priceCurrency` from the
 quote). Historical `InvestmentPositionSnapshot` rows do not — repairing those is a
 separate, deliberate migration. Inspect with
-`node scripts/report-price-currency-drift.mjs`.
+`node scripts/ops/report-price-currency-drift.mjs`.
