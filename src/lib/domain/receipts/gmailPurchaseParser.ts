@@ -3,8 +3,10 @@
 import "server-only";
 import { simpleParser } from "mailparser";
 import * as cheerio from "cheerio";
-import { getDomain } from "tldts";
 import { z } from "zod";
+import {
+  normalizeMerchantFromSender as normalizeMerchant,
+} from "@/lib/domain/merchants/emailDomain";
 
 export type PurchaseItem = { name?: string; quantity?: number; price?: number };
 export type Purchase = {
@@ -30,23 +32,7 @@ function base64UrlToBuffer(b64url: string): Buffer {
   return Buffer.from(b64, "base64");
 }
 
-function domainFromEmail(addr?: string) {
-  if (!addr) return undefined;
-  const m = addr.match(/@([^>\s]+)/);
-  return m?.[1]?.toLowerCase();
-}
 
-function normalizeMerchant(fromEmail?: string, subject?: string) {
-  const domain = domainFromEmail(fromEmail);
-  if (!domain) return subject?.split(" ")[0]?.toLowerCase() ?? "unknown";
-
-  // tldts is larger than psl, but this path only runs in Node routes where
-  // client bundle size is irrelevant. It embeds a current PSL snapshot (no
-  // runtime fetch) and is actively maintained. Private suffixes are enabled
-  // because collapsing two tenants of a hosted domain is the same false-merge
-  // class as collapsing two .co.uk merchants.
-  return getDomain(domain, { allowPrivateDomains: true }) ?? domain;
-}
 
 function extractFromJsonLd(html: string): Partial<Purchase> | null {
   const $ = cheerio.load(html);
