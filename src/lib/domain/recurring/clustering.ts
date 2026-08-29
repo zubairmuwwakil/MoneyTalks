@@ -84,8 +84,10 @@ function localOrdinal(date: Date, formatter: Intl.DateTimeFormat): number {
 }
 
 function comparePurchases(a: ClusteringPurchase, b: ClusteringPurchase): number {
+  // Amount is only a tiebreak here, and an unpriced observation still needs a
+  // total order — id breaks the remaining tie deterministically.
   return a.date.getTime() - b.date.getTime()
-    || a.amountMinor - b.amountMinor
+    || (a.amountMinor ?? 0) - (b.amountMinor ?? 0)
     || a.id.localeCompare(b.id);
 }
 
@@ -130,7 +132,14 @@ function extendSeed<Purchase extends ClusteringPurchase>(
       const expected = cursorOrdinal + elapsedPeriods * window.periodDays;
       if (expected - window.toleranceDays > ordinals.get(ordered.at(-1)!.id)!) break;
 
-      const representativeAmount = median(selected.map((purchase) => purchase.amountMinor));
+      // An unpriced series (see Observation.amountMinor) has no representative
+      // amount, so the amount tiebreak below is skipped and date error plus id
+      // decide. Inventing a stand-in figure here would silently rank
+      // candidates on a number nobody sent us.
+      const selectedAmounts = selected
+        .map((purchase) => purchase.amountMinor)
+        .filter((amount): amount is number => amount !== null);
+      const representativeAmount = selectedAmounts.length > 0 ? median(selectedAmounts) : null;
       for (let candidateIndex = cursorIndex + 1; candidateIndex < ordered.length; candidateIndex += 1) {
         const candidate = ordered[candidateIndex];
         const dateError = Math.abs(ordinals.get(candidate.id)! - expected);
@@ -142,8 +151,12 @@ function extendSeed<Purchase extends ClusteringPurchase>(
 
         const incumbent = ordered[bestIndex];
         const incumbentDateError = Math.abs(ordinals.get(incumbent.id)! - expected);
-        const candidateAmountError = Math.abs(candidate.amountMinor - representativeAmount);
-        const incumbentAmountError = Math.abs(incumbent.amountMinor - representativeAmount);
+        const amountError = (purchase: ClusteringPurchase) =>
+          representativeAmount === null || purchase.amountMinor === null
+            ? 0
+            : Math.abs(purchase.amountMinor - representativeAmount);
+        const candidateAmountError = amountError(candidate);
+        const incumbentAmountError = amountError(incumbent);
         if (
           dateError < incumbentDateError
           || (dateError === incumbentDateError && candidateAmountError < incumbentAmountError)

@@ -1,13 +1,21 @@
 import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
 
-/** One monetary occurrence, before merchant/cadence clustering adds context. */
+/**
+ * One occurrence, before merchant/cadence clustering adds context.
+ *
+ * `amountMinor` is nullable because a real and common class of biller never
+ * states a price in the mail: Cloudflare's "Your invoice is available" puts
+ * the figure behind a link, so those observations reach us dated but
+ * unpriced. They are still evidence — a confident monthly cadence with an
+ * unknown amount beats no obligation at all, and beats an invented one.
+ */
 export interface Observation<Currency extends string = string> {
   date: Date;
-  amountMinor: number;
+  amountMinor: number | null;
   currency: Currency;
 }
 
-export type AmountPattern = "FIXED" | "VARIABLE" | "USAGE_BASED";
+export type AmountPattern = "FIXED" | "VARIABLE" | "USAGE_BASED" | "UNKNOWN";
 
 export interface CadenceInferenceResult {
   cadence: Cadence;

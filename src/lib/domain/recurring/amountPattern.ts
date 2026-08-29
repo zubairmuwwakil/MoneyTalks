@@ -97,7 +97,18 @@ export function inferAmountPattern<Currency extends string>(
 ): AmountPatternResult {
   if (observations.length === 0) throw new RangeError("amount pattern requires at least one observation");
 
-  const ordered = [...observations].sort((a, b) => {
+  // A series can be entirely unpriced — see Observation.amountMinor. Cadence
+  // is inferred from dates alone, so such a series is still a real
+  // obligation; it just has nothing to classify. An empty schedule is the
+  // honest representation, and UNKNOWN keeps it out of the FIXED_AMOUNT
+  // confidence term rather than flattering it.
+  const priced = observations.filter(
+    (observation): observation is Observation<Currency> & { amountMinor: number } =>
+      observation.amountMinor !== null,
+  );
+  if (priced.length === 0) return { pattern: "UNKNOWN", schedule: [] };
+
+  const ordered = [...priced].sort((a, b) => {
     const byDate = a.date.getTime() - b.date.getTime();
     return byDate || a.amountMinor - b.amountMinor || a.currency.localeCompare(b.currency);
   });

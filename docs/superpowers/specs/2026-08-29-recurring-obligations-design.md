@@ -67,7 +67,15 @@ declared frozen.
 All three are the same class of bug: a nullable domain fact meeting a
 non-nullable column, where the type system is satisfied by an invented value.
 
-4. `src/lib/domain/receipts/gmailPurchaseParser.ts:38-50` — **merchant identity
+4. `src/app/api/automation/scan/route.ts:257-262` — **`lastScanAt` is stamped
+   in a `finally` block**, so a scan that threw records exactly the same state
+   as a scan that ran and found nothing. This is how a failed scan on
+   2026-08-17 came to look like an empty inbox for twelve days, and it is why
+   the corpus appeared to be zero. Stamp on success only, and persist
+   `lastScanError`. A monitoring signal that cannot distinguish "broken" from
+   "quiet" is worse than none, because it is trusted.
+
+5. `src/lib/domain/receipts/gmailPurchaseParser.ts:38-50` — **merchant identity
    is a two-label suffix slice.** `parts.slice(-2).join(".")` maps
    `notifications@shopify.co.uk` to `"co.uk"`, collapsing every UK merchant
    into one; likewise `.com.au`, `.co.nz`, `.gov.uk`. It also never consults
@@ -237,6 +245,38 @@ Otherwise classify by coefficient of variation over the matched subsequence:
 | `< 0.02` | `FIXED` | Netflix 20.99 × n |
 | `< 0.35` | `VARIABLE` | utility 82 / 105 / 94 |
 | `≥ 0.35` | `USAGE_BASED` | Vercel 4 / 20 / 12 |
+| n/a | `UNKNOWN` | Cloudflare "Your invoice is available" |
+
+### Unpriced obligations
+
+A whole class of biller never states a price in the mail. Cloudflare's
+monthly "Your invoice is available" puts the figure behind a link; a probe of
+a real inbox on 2026-08-29 found two such messages among the first five
+matches, against one that carried a parseable total.
+
+Those emails produce an `EmailTransaction` but never a `Purchase`, because
+`hasPurchaseEvidence` correctly refuses to assert that money moved. The
+consequence is that clustering — which reads the spine — cannot see them at
+all, and Cloudflare goes undetected despite being a textbook monthly
+obligation.
+
+The fix is not to loosen the purchase gate, which is right as it stands. It is
+to recognise that **dates alone are a valid recurrence signal**:
+`Observation.amountMinor` is nullable, an all-unpriced series classifies as
+`UNKNOWN` with an empty schedule, and cadence inference is unaffected because
+it only ever read dates. A confident monthly cadence with an unknown amount is
+far more useful than no obligation, and it is honest in a way an imputed
+figure would not be. `UNKNOWN` also earns no `FIXED_AMOUNT` confidence term,
+so an unpriced series is not flattered by its own missing data.
+
+Partial information is used: when only some observations carry an amount, the
+priced subset is classified normally. A biller that started stating amounts
+should not be treated as though it never had.
+
+**Open detail for P6 orchestration:** `currency` is part of the cluster key
+(§4), and an entirely unpriced series has no currency to key on. The
+orchestration layer decides what to key those clusters on; nothing in the pure
+modules depends on the answer.
 
 ## 5. Confidence
 
