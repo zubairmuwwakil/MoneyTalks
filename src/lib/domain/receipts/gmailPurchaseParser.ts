@@ -246,11 +246,18 @@ async function extractFromPdfAttachments(attachments: { contentType?: string; fi
 
     try {
       const mod = await import("pdf-parse").catch(() => null);
-      const pdfParse = (mod as Record<string, unknown>)?.default ?? (mod as Record<string, unknown>)?.PDFParse ?? mod;
-      if (typeof pdfParse !== "function") continue;
-
-      const parsed = await pdfParse(a.content);
-      const pdfText = (parsed as { text?: string })?.text ?? "";
+      const PDFParse = (mod as Record<string, unknown> | null)?.PDFParse;
+      if (typeof PDFParse !== "function") continue;
+      const parser = new (PDFParse as new (options: { data: Buffer }) => {
+        getText(): Promise<{ text?: string }>;
+        destroy(): Promise<void>;
+      })({ data: a.content });
+      let pdfText = "";
+      try {
+        pdfText = (await parser.getText()).text ?? "";
+      } finally {
+        await parser.destroy();
+      }
       const hit = extractTotalFromText(pdfText);
       // The PDF's own text is currency evidence the message body does not
       // carry, so hand it back rather than resolving against the body alone.

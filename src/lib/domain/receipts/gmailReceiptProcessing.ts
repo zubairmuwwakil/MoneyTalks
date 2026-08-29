@@ -108,6 +108,7 @@ async function promotePurchase(
     userId: string;
     message: RawGmailMessage;
     transaction: EmailTransaction;
+    mode: GmailMessageProcessingMode;
     /**
      * Which tier of ./resolveCurrency decided the parsed currency. It rides
      * alongside rather than through `EmailTransaction`, which stores the value
@@ -157,8 +158,71 @@ async function promotePurchase(
   };
   let matchedByOrderNumber = false;
   let orderMatchMayEnrich = false;
+  let supersededPurchaseId: string | null = null;
+  let ownerProtected = false;
 
-  if (purchase?.source === "GMAIL") {
+  // Rows created before lifecycle/RFC822 dedup landed already have their own
+  // purchaseId, so the ordinary "prior canonical link wins" rule would make
+  // the stronger identities below unreachable forever. During an explicit
+  // reprocess only, choose the earliest already-linked observation as the
+  // canonical purchase. A normal scan remains idempotent, and an owner's
+  // correction remains a hard boundary: neither merge nor refresh it.
+  if (params.mode === "reprocess" && purchase?.source === "GMAIL") {
+    const correction = await db.purchaseCorrection.findFirst({
+      where: {
+        userId,
+        purchaseId: purchase.id,
+        kind: "details",
+        undoneAt: null,
+      },
+      select: { id: true },
+    });
+    ownerProtected = Boolean(correction);
+
+    if (!ownerProtected) {
+      const canonicalTwin = emailTransaction.rfc822MessageId
+        ? await db.emailTransaction.findFirst({
+            where: {
+              userId,
+              rfc822MessageId: emailTransaction.rfc822MessageId,
+              purchaseId: { not: null },
+            },
+            select: { purchaseId: true },
+            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+          })
+        : null;
+      if (canonicalTwin?.purchaseId && canonicalTwin.purchaseId !== purchase.id) {
+        const canonical = await db.purchase.findUnique({ where: { id: canonicalTwin.purchaseId } });
+        if (canonical) {
+          supersededPurchaseId = purchase.id;
+          purchase = canonical;
+          action = "linked";
+        }
+      }
+
+      if (!supersededPurchaseId) {
+        const orderNumber = usableOrderNumber(emailTransaction.orderId);
+        const canonicalOrder = orderNumber
+          ? await db.purchase.findFirst({
+              where: {
+                userId,
+                merchant: { equals: emailTransaction.merchant, mode: "insensitive" },
+                orderNumber: { equals: orderNumber, mode: "insensitive" },
+              },
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            })
+          : null;
+        if (canonicalOrder && canonicalOrder.id !== purchase.id) {
+          supersededPurchaseId = purchase.id;
+          purchase = canonicalOrder;
+          matchedByOrderNumber = true;
+          action = "linked";
+        }
+      }
+    }
+  }
+
+  if (purchase?.source === "GMAIL" && !supersededPurchaseId && !ownerProtected) {
     // Reprocessing must clear a historical guessed CAD value, but a linked
     // Wallet observation with an explicit code is valid enrichment and wins
     // when the email itself remains ambiguous.
@@ -207,6 +271,7 @@ async function promotePurchase(
             purchaseId: { not: null },
           },
           select: { purchaseId: true },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         })
       : null;
     if (twin?.purchaseId) {
@@ -229,7 +294,7 @@ async function promotePurchase(
             merchant: { equals: emailTransaction.merchant, mode: "insensitive" },
             orderNumber: { equals: orderNumber, mode: "insensitive" },
           },
-          orderBy: { createdAt: "asc" },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         })
       : null;
 
@@ -237,36 +302,38 @@ async function promotePurchase(
       purchase = orderMatch;
       matchedByOrderNumber = true;
       action = "linked";
+    }
+  }
 
-      // A details correction is an owner decision. The email remains useful
-      // provenance, but it is no longer allowed to mutate the chosen row.
-      const ownerCorrected = await db.purchaseCorrection.findFirst({
-        where: {
-          userId,
-          purchaseId: purchase.id,
-          kind: "details",
-          undoneAt: null,
-        },
-        select: { id: true },
-      });
-      orderMatchMayEnrich = !ownerCorrected;
+  if (matchedByOrderNumber && purchase) {
+    // A details correction is an owner decision. The email remains useful
+    // provenance, but it is no longer allowed to mutate the chosen row.
+    const ownerCorrected = await db.purchaseCorrection.findFirst({
+      where: {
+        userId,
+        purchaseId: purchase.id,
+        kind: "details",
+        undoneAt: null,
+      },
+      select: { id: true },
+    });
+    orderMatchMayEnrich = !ownerCorrected;
 
-      if (orderMatchMayEnrich) {
-        const fillsTotal = purchase.totalCents == null && emailTransaction.totalCents != null;
-        const fillsCurrency = purchase.currency == null && emailCurrency.currency != null;
-        const fillsCategory = purchase.category == null && emailCategory != null;
-        if (fillsTotal || fillsCurrency || fillsCategory) {
-          purchase = await db.purchase.update({
-            where: { id: purchase.id },
-            data: {
-              totalCents: fillsTotal ? emailTransaction.totalCents : undefined,
-              currency: fillsCurrency ? emailCurrency.currency : undefined,
-              currencySource: fillsCurrency ? emailCurrency.source : undefined,
-              category: fillsCategory ? emailCategory : undefined,
-              categorySource: fillsCategory ? emailCategorySource : undefined,
-            },
-          });
-        }
+    if (orderMatchMayEnrich) {
+      const fillsTotal = purchase.totalCents == null && emailTransaction.totalCents != null;
+      const fillsCurrency = purchase.currency == null && emailCurrency.currency != null;
+      const fillsCategory = purchase.category == null && emailCategory != null;
+      if (fillsTotal || fillsCurrency || fillsCategory) {
+        purchase = await db.purchase.update({
+          where: { id: purchase.id },
+          data: {
+            totalCents: fillsTotal ? emailTransaction.totalCents : undefined,
+            currency: fillsCurrency ? emailCurrency.currency : undefined,
+            currencySource: fillsCurrency ? emailCurrency.source : undefined,
+            category: fillsCategory ? emailCategory : undefined,
+            categorySource: fillsCategory ? emailCategorySource : undefined,
+          },
+        });
       }
     }
   }
@@ -339,6 +406,17 @@ async function promotePurchase(
     if (action === "none") action = "linked";
   }
 
+  if (supersededPurchaseId) {
+    // Reuse the established evidence-aware cleanup. It deletes only an
+    // orphaned Gmail projection; purchases with wallet/statement/other email
+    // evidence survive and merely lose the obsolete email provenance.
+    await demotePurchase(db, {
+      userId,
+      messageId: message.messageId,
+      previousPurchaseId: supersededPurchaseId,
+    });
+  }
+
   // Reprocessing can change amount, currency, period, or cap rule. Remove the
   // old projection delta first; a later explicit currency may then accrue the
   // same canonical source key again.
@@ -392,7 +470,7 @@ async function promotePurchase(
   // An owning email's empty item list is meaningful during reprocessing: it
   // clears stale line items. For a cross-source purchase, leave unrelated
   // items alone unless this email actually supplied replacements.
-  if (!matchedByOrderNumber && (emailOwnsPurchase || parsedItems)) {
+  if (!ownerProtected && !matchedByOrderNumber && (emailOwnsPurchase || parsedItems)) {
     await db.purchaseItem.deleteMany({ where: { purchaseId: purchase.id } });
     const items = (parsedItems ?? []).map((item) => ({
       purchaseId: purchase.id,
@@ -619,6 +697,7 @@ export async function processRawGmailMessage(
         userId: params.userId,
         message: params.message,
         transaction,
+        mode: params.mode,
         currencySource: parsedPurchase.currencySource ?? "none",
       });
       return {

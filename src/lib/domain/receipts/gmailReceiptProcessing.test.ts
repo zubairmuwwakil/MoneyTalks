@@ -1250,4 +1250,141 @@ describe("processRawGmailMessage", () => {
     }));
     expect(removeCapAccrual).toHaveBeenCalledWith(tx, `purchase:${legacyPurchase.id}`);
   });
+
+  it("reprocessing consolidates an already-promoted lifecycle duplicate into the earliest order purchase", async () => {
+    const { db, tx } = setupDb();
+    const linkedTransaction = {
+      ...existingTransaction,
+      merchant: "simons.ca",
+      orderId: "0000097381261",
+      totalCents: 6777,
+      currency: "CAD",
+      purchaseId: "purchase-later",
+    };
+    const sourcePurchase = {
+      id: "purchase-later",
+      userId: "user-1",
+      merchant: "simons.ca",
+      totalCents: 6777,
+      currency: "CAD",
+      currencySource: "explicitCode",
+      purchasedAt: message.internalDate,
+      orderNumber: "0000097381261",
+      paymentMethod: null,
+      category: null,
+      categorySource: null,
+      source: "GMAIL",
+      sourceEmailId: message.messageId,
+      sourceEventId: null,
+      possibleDuplicateOfId: null,
+      createdAt: new Date("2026-08-02T00:00:00.000Z"),
+      updatedAt: new Date("2026-08-02T00:00:00.000Z"),
+    };
+    const canonicalPurchase = {
+      ...sourcePurchase,
+      id: "purchase-earliest",
+      sourceEmailId: "gmail-earliest",
+      createdAt: new Date("2026-08-01T00:00:00.000Z"),
+    };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue({
+      messageId: message.messageId,
+      merchant: "simons.ca",
+      purchasedAt: message.internalDate,
+      orderId: "0000097381261",
+      totalCents: 6777,
+      currency: "CAD",
+      currencySource: "explicitCode",
+      rawSource: "text",
+    });
+    tx.emailTransaction.findUnique.mockResolvedValue(linkedTransaction);
+    tx.emailTransaction.upsert.mockResolvedValue(linkedTransaction);
+    tx.emailTransaction.update.mockResolvedValue({
+      ...linkedTransaction,
+      purchaseId: canonicalPurchase.id,
+    });
+    tx.purchase.findUnique.mockImplementation(async ({ where, select }) => {
+      if (where.id === canonicalPurchase.id) return canonicalPurchase;
+      if (where.id === sourcePurchase.id && select) {
+        return {
+          ...sourcePurchase,
+          emailTransactions: [],
+          walletEvents: [],
+          statementLines: [],
+        };
+      }
+      return sourcePurchase;
+    });
+    tx.purchase.findFirst = orderLookup([canonicalPurchase]);
+
+    const result = await processRawGmailMessage(db as never, {
+      userId: "user-1",
+      message,
+      mode: "reprocess",
+    });
+
+    expect(result.purchaseAction).toBe("linked");
+    expect(tx.emailTransaction.update).toHaveBeenCalledWith({
+      where: { id: linkedTransaction.id },
+      data: { purchaseId: canonicalPurchase.id },
+    });
+    expect(reverseCapAccrual).toHaveBeenCalledWith(tx, `purchase:${sourcePurchase.id}`);
+    expect(tx.purchase.delete).toHaveBeenCalledWith({ where: { id: sourcePurchase.id } });
+  });
+
+  it("does not merge or refresh an already-promoted purchase with an owner details correction", async () => {
+    const { db, tx } = setupDb();
+    const linkedTransaction = { ...existingTransaction, purchaseId: "purchase-corrected" };
+    const correctedPurchase = {
+      id: "purchase-corrected",
+      userId: "user-1",
+      merchant: "Owner's merchant",
+      totalCents: 7000,
+      currency: "USD",
+      currencySource: "userOverride",
+      purchasedAt: message.internalDate,
+      orderNumber: "OWNER-ORDER",
+      paymentMethod: null,
+      category: "dining",
+      categorySource: "user",
+      source: "GMAIL",
+      sourceEmailId: message.messageId,
+      sourceEventId: null,
+      possibleDuplicateOfId: null,
+    };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue({
+      messageId: message.messageId,
+      merchant: "Parsed merchant",
+      purchasedAt: message.internalDate,
+      orderId: "PARSED-ORDER",
+      totalCents: 6777,
+      currency: "CAD",
+      items: [{ name: "Parser replacement" }],
+      rawSource: "text",
+    });
+    tx.emailTransaction.findUnique.mockResolvedValue(linkedTransaction);
+    tx.emailTransaction.upsert.mockResolvedValue({
+      ...linkedTransaction,
+      merchant: "Parsed merchant",
+      orderId: "PARSED-ORDER",
+      totalCents: 6777,
+      currency: "CAD",
+      items: [{ name: "Parser replacement" }],
+    });
+    tx.purchase.findUnique.mockResolvedValue(correctedPurchase);
+    tx.purchaseCorrection.findFirst.mockResolvedValue({ id: "correction-1" });
+
+    const result = await processRawGmailMessage(db as never, {
+      userId: "user-1",
+      message,
+      mode: "reprocess",
+    });
+
+    expect(result.purchaseAction).toBe("none");
+    expect(tx.purchase.findFirst).not.toHaveBeenCalled();
+    expect(tx.purchase.update).not.toHaveBeenCalled();
+    expect(tx.purchase.delete).not.toHaveBeenCalled();
+    expect(tx.purchaseItem.deleteMany).not.toHaveBeenCalled();
+  });
 });

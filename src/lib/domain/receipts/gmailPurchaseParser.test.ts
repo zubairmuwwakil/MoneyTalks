@@ -1,6 +1,15 @@
-import { it, expect } from "vitest";
+import { it, expect, vi } from "vitest";
 
 import { extractOrderNumber, extractTotalFromText, htmlToText, parsePurchaseFromRawGmailMessage } from "./gmailPurchaseParser";
+
+vi.mock("pdf-parse", () => ({
+  PDFParse: class {
+    async getText() {
+      return { text: "Vercel invoice\nTotal due USD 22.60" };
+    }
+    async destroy() {}
+  },
+}));
 
 it("reads an explicit order total", () => {
   expect(extractTotalFromText("Order total: CAD $42.99")).toEqual({ totalCents: 4299, currency: "CAD" });
@@ -202,4 +211,38 @@ it("finds the amount in the HTML part when the plain-text part omits it", async 
 
   expect(parsed.totalCents).toBe(500);
   expect(parsed.orderId).toBe("60501399");
+});
+
+it("extracts an attached PDF through the pdf-parse v2 class API", async () => {
+  const boundary = "pdf-boundary";
+  const mime = [
+    "From: Vercel <invoice@vercel.com>",
+    "Subject: Your invoice",
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    "Content-Type: text/plain; charset=utf-8",
+    "",
+    "Your invoice is attached.",
+    `--${boundary}`,
+    "Content-Type: application/pdf",
+    "Content-Disposition: attachment; filename=invoice.pdf",
+    "Content-Transfer-Encoding: base64",
+    "",
+    Buffer.from("mock pdf").toString("base64"),
+    `--${boundary}--`,
+  ].join("\r\n");
+
+  const parsed = await parsePurchaseFromRawGmailMessage({
+    messageId: "vercel-pdf",
+    raw: Buffer.from(mime).toString("base64url"),
+  });
+
+  expect(parsed).toMatchObject({
+    merchant: "vercel.com",
+    rawSource: "pdf",
+    totalCents: 2260,
+    currency: "USD",
+    currencySource: "explicitCode",
+  });
 });
