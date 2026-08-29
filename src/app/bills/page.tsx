@@ -391,8 +391,11 @@ export default async function BillsPage({
                               </Badge>
                             ) : null}
                           </div>
-                          {bill.payee ? (
-                            <p className="text-xs text-muted-foreground">Payee: {bill.payee}</p>
+                          {bill.payee || bill.accountNumber ? (
+                            <p className="text-xs text-muted-foreground">
+                              {bill.payee ? `Payee: ${bill.payee}` : ""}
+                              {bill.accountNumber ? ` · Acct: ${bill.accountNumber}` : ""}
+                            </p>
                           ) : null}
                           <BillCardHint rec={rec} />
                           {paymentCardName ? <BillAllocationStatus alloc={alloc} cardName={paymentCardName} /> : null}

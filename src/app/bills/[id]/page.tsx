@@ -348,7 +348,8 @@ export default async function BillDetailPage({
           </div>
           <p className="text-sm text-muted-foreground">
             {bill.category} · {cadenceSummary}
-            {bill.payee ? ` · ${bill.payee}` : ""} · {bill.currency}
+            {bill.payee ? ` · Payee: ${bill.payee}` : ""}
+            {bill.accountNumber ? ` · Acct: ${bill.accountNumber}` : ""} · {bill.currency}
             {bill.autopay ? " · autopay" : ""}
             {bill.variable ? " · variable" : ""}
             {bill.prepaymentMonthDay ? ` · prepayment window ${bill.prepaymentMonthDay}` : ""}

@@ -141,8 +141,9 @@ export function BillFormFields({ spendCategoryOptions }: { spendCategoryOptions:
   const todayIso = useMemo(() => getISODateToday(), []);
 
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("subscriptions");
+  const [category, setCategory] = useState("utilities");
   const [payee, setPayee] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
   const [currency, setCurrency] = useState("CAD");
   const [spendCategory, setSpendCategory] = useState("");
   const [paymentRail, setPaymentRail] = useState("unknown");
@@ -258,19 +259,54 @@ export function BillFormFields({ spendCategoryOptions }: { spendCategoryOptions:
       <input type="hidden" name="cadenceJson" value={JSON.stringify(cadence)} />
       <input type="hidden" name="scheduleJson" value={JSON.stringify(schedule)} />
 
-      {/* SECTION 1: Basic Information */}
+      {/* SECTION 1: Payee & Account Information */}
       <div className="rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs space-y-4">
         <div className="flex items-center gap-2 border-b border-border/60 pb-2.5">
           <Receipt className="size-4 text-primary" />
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Basic Bill Information
+            Payee &amp; Account Information
           </h2>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
+            <label className={label} htmlFor="bill-payee">
+              Payee Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="bill-payee"
+              name="payee"
+              required
+              value={payee}
+              onChange={(e) => {
+                const val = e.target.value;
+                setPayee(val);
+                if (!name || name === payee) {
+                  setName(val);
+                }
+              }}
+              placeholder="e.g. DURHAM WATER, REG MUN OF, Toronto Hydro"
+              className={input}
+            />
+          </div>
+
+          <div>
+            <label className={label} htmlFor="bill-account-number">
+              Account Number
+            </label>
+            <input
+              id="bill-account-number"
+              name="accountNumber"
+              value={accountNumber}
+              onChange={(e) => setAccountNumber(e.target.value)}
+              placeholder="e.g. 1643208999"
+              className={input}
+            />
+          </div>
+
+          <div>
             <label className={label} htmlFor="bill-name">
-              Bill Name <span className="text-red-500">*</span>
+              Nickname (optional)
             </label>
             <input
               id="bill-name"
@@ -278,14 +314,17 @@ export function BillFormFields({ spendCategoryOptions }: { spendCategoryOptions:
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Pickleball Membership, Hydro"
+              placeholder="e.g. Durham Water, Home Utilities"
               className={input}
             />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Friendly label shown across dashboards and calendar entries.
+            </p>
           </div>
 
           <div>
             <label className={label} htmlFor="bill-category">
-              Category
+              Bill Type (optional)
             </label>
             <select
               id="bill-category"
@@ -294,30 +333,16 @@ export function BillFormFields({ spendCategoryOptions }: { spendCategoryOptions:
               onChange={(e) => setCategory(e.target.value)}
               className={input}
             >
-              <option value="housing">Housing</option>
-              <option value="utilities">Utilities</option>
-              <option value="subscriptions">Subscriptions</option>
-              <option value="transport">Transport</option>
-              <option value="debt">Debt</option>
-              <option value="other">Other</option>
+              <option value="utilities">Household Expenses &gt; Utilities (Water, Hydro, Gas)</option>
+              <option value="housing">Housing &gt; Rent / Mortgage / Property</option>
+              <option value="subscriptions">Subscriptions &gt; Digital Media, Gym, Streaming</option>
+              <option value="transport">Transport &gt; Transit / Parking / Tolls</option>
+              <option value="debt">Debt &gt; Loan / Card Paydown</option>
+              <option value="other">Other Household Expense</option>
             </select>
           </div>
 
-          <div>
-            <label className={label} htmlFor="bill-payee">
-              Payee / Merchant (optional)
-            </label>
-            <input
-              id="bill-payee"
-              name="payee"
-              value={payee}
-              onChange={(e) => setPayee(e.target.value)}
-              placeholder="e.g. Pickleplex Oshawa, Toronto Hydro"
-              className={input}
-            />
-          </div>
-
-          <div>
+          <div className="sm:col-span-2">
             <label className={label} htmlFor="bill-currency">
               Currency
             </label>

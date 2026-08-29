@@ -37,6 +37,7 @@ export const billCore = z.object({
   name: z.string().trim().min(1).max(80),
   category: z.enum(["housing", "utilities", "subscriptions", "transport", "debt", "other"]),
   payee: optional(z.string().trim().max(80)),
+  accountNumber: optional(z.string().trim().max(80)),
   currency: currencyCode.default("CAD"),
   autopay: formBoolean,
   variable: formBoolean,

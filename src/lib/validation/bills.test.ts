@@ -123,4 +123,17 @@ describe("payment rail", () => {
     expect(billImportEntry.safeParse({ ...base, railFeePct: -1 }).success).toBe(false);
     expect(billImportEntry.safeParse({ ...base, railFeePct: 101 }).success).toBe(false);
   });
+
+  it("accepts payee and accountNumber fields", () => {
+    const parsed = billImportEntry.safeParse({
+      ...base,
+      payee: "DURHAM WATER, REG MUN OF",
+      accountNumber: "1643208999",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.payee).toBe("DURHAM WATER, REG MUN OF");
+      expect(parsed.data.accountNumber).toBe("1643208999");
+    }
+  });
 });

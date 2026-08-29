@@ -299,6 +299,7 @@ model Bill {
   name               String
   category           String
   payee              String?
+  accountNumber      String?
   sourceAccountId    String?
   currency           String      @default("CAD")
   autopay            Boolean     @default(false)
