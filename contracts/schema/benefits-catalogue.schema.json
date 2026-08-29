@@ -64,12 +64,63 @@
           "type": "array",
           "description": "May be empty. ABSENCE IS MEANINGFUL AND VERIFICATION-DEPENDENT (benefits design B8): a missing kind means \"no coverage\" only when certificate.verificationStatus is certificateVerified; at stub or issuerPage it means \"not yet established\", and the UI renders those two cases with different wording. A consumer that treats an empty array as a flat \"no coverage\" will assert something the data does not support.",
           "items": { "$ref": "#/$defs/benefit" }
+        },
+        "documents": {
+          "type": "array",
+          "description": "Optional catalogue 1.2+ document index. Each entry is a source document for this card, such as a certificate, cardholder agreement, welcome guide, fee schedule, lounge terms, or claim instructions. Older catalogues may omit this field; readers must treat omission as an empty array.",
+          "items": { "$ref": "#/$defs/cardDocument" }
+        }
+      }
+    },
+    "cardDocument": {
+      "type": "object",
+      "description": "A source document attached to a card. `kind` is open-ended for forward compatibility, while verificationStatus uses the same evidence ladder as certificate provenance.",
+      "required": ["documentId", "kind", "title", "url", "verificationStatus"],
+      "additionalProperties": false,
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "Stable identifier unique within the card's document list."
+        },
+        "kind": {
+          "type": "string",
+          "x-known-values": ["certificateOfInsurance", "cardholderAgreement", "welcomeGuide", "feeSchedule", "claimsInstructions", "loungeTerms", "productPage", "other"],
+          "description": "OPEN vocabulary. Unknown document kinds must still decode and render as a generic source document."
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable document title."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Exact issuer or underwriter URL for the document."
+        },
+        "effectiveDate": {
+          "type": ["string", "null"],
+          "description": "Date or month from which the document's terms apply, kept as source text."
+        },
+        "jurisdiction": {
+          "type": ["string", "null"],
+          "description": "Market or jurisdiction to which this document applies."
+        },
+        "verificationStatus": {
+          "enum": ["stub", "issuerPage", "certificateVerified"],
+          "description": "Evidence level for this specific document."
+        },
+        "lastVerifiedAt": {
+          "type": ["string", "null"],
+          "description": "Date the document URL and metadata were last checked, YYYY-MM-DD."
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "description": "Human sourcing or extraction notes."
         }
       }
     },
     "certificateProvenance": {
       "type": "object",
-      "description": "Mirrors CertificateProvenance. Only verificationStatus is non-optional in Swift; the rest are String? and may be null. Note that although no runtime code reads the four optional fields, BenefitsLoaderTests.testBenefitsProvenanceIsHonest asserts sourceUrl and lastVerifiedAt are non-empty on every non-stub card — so blanking them breaks the build even though nothing renders them.",
+      "description": "Mirrors CertificateProvenance. Only verificationStatus is non-optional in Swift; the rest are String? and may be null. Note that although no runtime code reads the five optional fields, BenefitsLoaderTests.testBenefitsProvenanceIsHonest asserts sourceUrl and lastVerifiedAt are non-empty on every non-stub card — so blanking them breaks the build even though nothing renders them.",
       "required": ["verificationStatus"],
       "additionalProperties": false,
       "properties": {
@@ -96,6 +147,11 @@
           "type": ["string", "null"],
           "x-status": "declared-not-computed",
           "description": "When someone last checked this card's entry against its source, YYYY-MM-DD. Decoded and never read at runtime, but asserted non-empty for non-stub cards by testBenefitsProvenanceIsHonest."
+        },
+        "jurisdiction": {
+          "type": ["string", "null"],
+          "x-status": "declared-not-computed",
+          "description": "Market or jurisdiction to which the certificate applies. Optional for backwards compatibility."
         }
       }
     },

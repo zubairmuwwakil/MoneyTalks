@@ -371,7 +371,7 @@ export async function processRawGmailMessage(
 
   const merchant = parserError
     ? parsedPurchase.merchant
-    : await resolveEmailMerchant(db, parsedPurchase.merchant);
+    : await resolveEmailMerchant(db, parsedPurchase.merchant, parsedPurchase.fromEmail);
 
   return db.$transaction(async (transactionDb) => {
     const existing = await transactionDb.emailTransaction.findUnique({

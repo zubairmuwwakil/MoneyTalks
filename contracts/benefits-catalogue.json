@@ -1,6 +1,6 @@
 {
-  "benefitsCatalogueVersion": "1.1",
-  "_provenance": "Issuer-document sourcing pass completed 2026-08-16. Nine cards were re-derived from issuer-published Certificates of Insurance / Guides to Coverage and are marked issuerPage; unverified stub values were not carried forward. Crypto.com Royal Indigo remains stub because the exact prepaid-card agreement was found but no Certificate of Insurance or explicit certificate-level no-insurance statement was located. issuerPage is not a substitute for Zubair's own cardholder-document verification.",
+  "benefitsCatalogueVersion": "1.2",
+  "_provenance": "Official issuer and underwriter document research refreshed 2026-08-29 for all 27 current wallet cards. Each card now has a document index; public issuer sources remain issuerPage evidence and certificateVerified is reserved for matching the owner’s own issued documents. Crypto.com Royal Indigo now has its official prepaid-card agreement, but no public insurance certificate was located, so its benefits remain stubbed.",
   "triggers": {
     "bigTicketThresholdCad": 150,
     "consumableCategories": [
@@ -21,7 +21,7 @@
         "underwriter": "Belair Insurance Company Inc.",
         "sourceUrl": "https://www.americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/The-Platinum-Card-COI-EN.pdf",
         "certificateDate": "2025-07",
-        "lastVerifiedAt": "2026-08-16",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -163,6 +163,39 @@
           "certificateQuote": null,
           "notes": "Up to $5,000,000 per insured person per trip; first 15 consecutive days are covered."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "amex-platinum-issuer-card-page",
+          "kind": "productPage",
+          "title": "The Platinum Card from American Express — issuer page",
+          "url": "https://www.americanexpress.com/en-ca/charge-cards/the-platinum-card/",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "amex-platinum-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/The-Platinum-Card-COI-EN.pdf",
+          "effectiveDate": "2025-07",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "amex-platinum-amex-coverage-selector",
+          "kind": "productPage",
+          "title": "American Express coverage selector",
+          "url": "https://www.americanexpress.com/en-ca/insurance/coverage/?linknav=ca_travel_home",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official Amex page linking current card certificates and statutory conditions."
+        }
       ]
     },
     {
@@ -171,7 +204,7 @@
         "underwriter": "Belair Insurance Company Inc.",
         "sourceUrl": "https://americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/Cobalt-Card-COI-EN.pdf",
         "certificateDate": "2025-07",
-        "lastVerifiedAt": "2026-08-16",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -300,6 +333,39 @@
           "certificateQuote": null,
           "notes": "Up to $5,000,000 per insured person per trip; first 15 consecutive days are covered."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "amex-cobalt-issuer-card-page",
+          "kind": "productPage",
+          "title": "American Express Cobalt Card — issuer page",
+          "url": "https://www.americanexpress.com/en-ca/credit-cards/cobalt-card/",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "amex-cobalt-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/Cobalt-Card-COI-EN.pdf",
+          "effectiveDate": "2025-07",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "amex-cobalt-amex-benefits",
+          "kind": "productPage",
+          "title": "American Express Cobalt Card benefits",
+          "url": "https://www.americanexpress.com/ca/en/benefits/cobalt-card/",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official benefits page identifies the certificate and claim portals."
+        }
       ]
     },
     {
@@ -308,7 +374,7 @@
         "underwriter": "Belair Insurance Company Inc.",
         "sourceUrl": "https://americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/Marriott-Bonvoy-Card-COI-EN.pdf",
         "certificateDate": "2025-07",
-        "lastVerifiedAt": "2026-08-16",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -404,6 +470,39 @@
           "certificateQuote": null,
           "notes": null
         }
+      ],
+      "documents": [
+        {
+          "documentId": "amex-bonvoy-issuer-card-page",
+          "kind": "productPage",
+          "title": "Marriott Bonvoy American Express Card — issuer page",
+          "url": "https://www.americanexpress.com/en-ca/credit-cards/marriott-bonvoy-card/",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "amex-bonvoy-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/Marriott-Bonvoy-Card-COI-EN.pdf",
+          "effectiveDate": "2025-07",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "amex-bonvoy-amex-benefits",
+          "kind": "productPage",
+          "title": "Marriott Bonvoy American Express Card benefits",
+          "url": "https://www.americanexpress.com/ca/en/membership-benefits/marriott.html",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official benefits page identifies the certificate and claim routes."
+        }
       ]
     },
     {
@@ -412,7 +511,7 @@
         "underwriter": "TD Home and Auto Insurance Company; TD Life Insurance Company; American Bankers Insurance Company of Florida (ABIC)",
         "sourceUrl": "https://www.mbna.ca/content/dam/mbna/document/pdf/credit-cards/mbna-rewards-world-elite-guide-to-coverage-en.pdf",
         "certificateDate": null,
-        "lastVerifiedAt": "2026-08-16",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -544,6 +643,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by TD Life Insurance Company; maximum $2,000,000."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "mbna-rewards-we-issuer-card-page",
+          "kind": "productPage",
+          "title": "MBNA Rewards World Elite Mastercard — issuer page",
+          "url": "https://www.mbna.ca/en/credit-cards/rewards/mbna-rewards-world-elite-mastercard",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "mbna-rewards-we-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.mbna.ca/content/dam/mbna/document/pdf/credit-cards/mbna-rewards-world-elite-guide-to-coverage-en.pdf",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "mbna-rewards-we-mastercard-benefits",
+          "kind": "productPage",
+          "title": "MBNA Mastercard cardholder benefits",
+          "url": "https://www.mbna.ca/en/credit-cards/mastercard-cardholder-benefits",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official MBNA document index and benefits page."
+        }
       ]
     },
     {
@@ -552,7 +684,7 @@
         "underwriter": "First North American Insurance Company (FNAIC); The Manufacturers Life Insurance Company (Manulife)",
         "sourceUrl": "https://www.scotiabank.com/content/dam/scotiabank/canada/common/documents/pdf/Momentum-Infinite-plus-COI-EN.pdf",
         "certificateDate": "2021-07",
-        "lastVerifiedAt": "2026-08-16",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -712,6 +844,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by Manulife. The old 25-day stub was corrected to 15 days."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "scotia-momentum-vi-plus-issuer-card-page",
+          "kind": "productPage",
+          "title": "Scotia Momentum Visa Infinite + Card — issuer page",
+          "url": "https://www.scotiabank.com/ca/en/personal/credit-cards/visa/momentum-infinite-card/welcome-kit/terms-conditions-momentum-infinite.html",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "scotia-momentum-vi-plus-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.scotiabank.com/content/dam/scotiabank/canada/common/documents/pdf/Momentum-Infinite-plus-COI-EN.pdf",
+          "effectiveDate": "2021-07",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "scotia-momentum-vi-plus-welcome-kit",
+          "kind": "welcomeGuide",
+          "title": "Scotiabank credit card welcome kits",
+          "url": "https://www.scotiabank.com/ca/en/personal/credit-cards/manage-your-credit-card/welcome-kits.html",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official Scotiabank index for welcome kits and insurance certificates."
+        }
       ]
     },
     {
@@ -720,7 +885,7 @@
         "underwriter": "American Bankers Insurance Company of Florida (ABIC)",
         "sourceUrl": "https://www.tangerine.ca/content/dam/tangerine/en/pdfs/credit-card-cardholder-agreement/5_Tangerine_World_Mastercard_Certificate_of_Insurance_FINAL.pdf",
         "certificateDate": "2025-10",
-        "lastVerifiedAt": "2026-08-16",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -788,6 +953,40 @@
           "certificateQuote": null,
           "notes": "This modeled benefit was absent from the original stub but is present in the current certificate."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "tangerine-moneyback-world-issuer-card-page",
+          "kind": "productPage",
+          "title": "Tangerine Money-Back World Mastercard — issuer page",
+          "url": "https://www.tangerine.ca/en/personal/spend/credit-cards/merchant-category-codes",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "tangerine-moneyback-world-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.tangerine.ca/content/dam/tangerine/en/pdfs/credit-card-cardholder-agreement/5_Tangerine_World_Mastercard_Certificate_of_Insurance_FINAL.pdf",
+          "effectiveDate": "2025-10",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "tangerine-moneyback-world-cardholder-agreement",
+          "kind": "cardholderAgreement",
+          "title": "Tangerine Credit Card Cardholder Agreement",
+          "url": "https://www.tangerine.ca/en/legal/credit-card-cardholder-agreement",
+          "effectiveDate": "2026-04-22",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official agreement page also links the Money-Back World Mastercard certificate."
+        }
       ]
     },
     {
@@ -796,7 +995,7 @@
         "underwriter": "CUMIS General Insurance Company",
         "sourceUrl": "https://www.rogersbank.com/legaldocs/en/Rogers_Bank_World_Elite_Mastercard_Certificate_of_Insurance.pdf",
         "certificateDate": "2024-04",
-        "lastVerifiedAt": "2026-08-16",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -895,6 +1094,39 @@
           "certificateQuote": null,
           "notes": "Maximum $1,000,000. Age 64 or younger: first 10 days; ages 65–75: first 3 days. maxTripLengthDays is null because a single value would misrepresent the tiered rule."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "rogers-red-we-issuer-card-page",
+          "kind": "productPage",
+          "title": "Rogers Red World Elite Mastercard — issuer page",
+          "url": "https://www.rogersbank.com/en/rogers_red_worldelite_mastercard_details",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "rogers-red-we-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.rogersbank.com/legaldocs/en/Rogers_Bank_World_Elite_Mastercard_Certificate_of_Insurance.pdf",
+          "effectiveDate": "2024-04",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "rogers-red-we-legal-index",
+          "kind": "productPage",
+          "title": "Rogers Bank Mastercard legal documents",
+          "url": "https://www.rogersbank.com/en/legal/",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official legal index listing current and historical Rogers Red World Elite certificates."
+        }
       ]
     },
     {
@@ -903,7 +1135,7 @@
         "underwriter": "American Bankers Insurance Company of Florida (ABIC)",
         "sourceUrl": "https://media-triangle.canadiantire.ca/banners/promo-content/2022/01/5728-omz-elite-cert-ins-booklet-en.pdf",
         "certificateDate": "2018-04",
-        "lastVerifiedAt": "2026-08-16",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -956,15 +1188,48 @@
           "certificateQuote": null,
           "notes": "Current Triangle World Elite product page still links this April 2018 certificate."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "triangle-we-issuer-card-page",
+          "kind": "productPage",
+          "title": "Triangle World Elite Mastercard — issuer page",
+          "url": "https://triangle.canadiantire.ca/en/credit-cards/triangle-world-elite-mastercard.html",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "triangle-we-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://media-triangle.canadiantire.ca/banners/promo-content/2022/01/5728-omz-elite-cert-ins-booklet-en.pdf",
+          "effectiveDate": "2018-04",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "triangle-we-legal-information",
+          "kind": "productPage",
+          "title": "Triangle legal information and insurance terms",
+          "url": "https://triangle.canadiantire.ca/en/legal-information.html",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official page states insurance details are in the welcome-kit certificate and identifies the underwriter."
+        }
       ]
     },
     {
       "cardId": "wealthsimple-vip",
       "certificate": {
         "underwriter": "Chubb Insurance Company of Canada",
-        "sourceUrl": "https://www.wealthsimple.com/en-ca/credit-card/certificate-of-insurance-chubb-vip",
-        "certificateDate": "2026-06",
-        "lastVerifiedAt": "2026-08-16",
+        "sourceUrl": "https://www.cdn.wealthsimple.com/en-ca/pdfs/CHUBB-COI-VIP-060126-EN.pdf",
+        "certificateDate": "2026-06-01",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -1132,6 +1397,48 @@
           "certificateQuote": null,
           "notes": "Maximum $2,000,000 per insured person."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "wealthsimple-vip-issuer-card-page",
+          "kind": "productPage",
+          "title": "Wealthsimple Visa Infinite Privilege Credit Card — issuer page",
+          "url": "https://www.wealthsimple.com/en-ca/credit-card",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "wealthsimple-vip-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.cdn.wealthsimple.com/en-ca/pdfs/CHUBB-COI-VIP-060126-EN.pdf",
+          "effectiveDate": "2026-06-01",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Current official Chubb certificate updated June 1, 2026; terms include cardholder and jurisdiction conditions."
+        },
+        {
+          "documentId": "wealthsimple-vip-insurance-claims",
+          "kind": "claimsInstructions",
+          "title": "Submit a Wealthsimple credit-card insurance claim",
+          "url": "https://help.wealthsimple.com/hc/en-ca/articles/41776504896411-Submit-an-insurance-claim-with-your-Wealthsimple-credit-card",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official instructions identify the in-app certificate location and Crawford claims contact."
+        },
+        {
+          "documentId": "wealthsimple-vip-cardholder-agreements",
+          "kind": "cardholderAgreement",
+          "title": "Wealthsimple credit-card agreements",
+          "url": "https://www.wealthsimple.com/en-ca/legal/credit-card-agreements",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official agreement index for the Visa Infinite Privilege and related cards."
+        }
       ]
     },
     {
@@ -1143,7 +1450,30 @@
         "lastVerifiedAt": null,
         "verificationStatus": "stub"
       },
-      "benefits": []
+      "benefits": [],
+      "documents": [
+        {
+          "documentId": "cryptocom-royal-indigo-issuer-card-page",
+          "kind": "productPage",
+          "title": "Crypto.com Prepaid Visa Card (Royal Indigo) — issuer page",
+          "url": "https://crypto.com/ca/cards/",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "cryptocom-royal-indigo-cardholder-agreement",
+          "kind": "cardholderAgreement",
+          "title": "Royal Indigo / Jade Green Visa Prepaid Cardholder Agreement",
+          "url": "https://crypto.com/document/cad_card_cro_locked_25000",
+          "effectiveDate": "2025-08-27",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official Digital Commerce Bank / Crypto.com agreement. No public insurance certificate was located; the card remains benefits-stubbed."
+        }
+      ]
     },
     {
       "cardId": "scotia-gold-amex",
@@ -1151,7 +1481,7 @@
         "underwriter": "First North American Insurance Company (FNAIC); The Manufacturers Life Insurance Company (Manulife)",
         "sourceUrl": "https://www.scotiabank.com/content/dam/scotiabank/canada/common/documents/pdf/Gold-Amex-COI-EN.pdf",
         "certificateDate": "2022-10",
-        "lastVerifiedAt": "2026-08-17",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -1311,6 +1641,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by Manulife."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "scotia-gold-amex-issuer-card-page",
+          "kind": "productPage",
+          "title": "Scotiabank Gold American Express Card — issuer page",
+          "url": "https://www.scotiabank.com/ca/en/personal/credit-cards/american-express/gold-card.html",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "scotia-gold-amex-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.scotiabank.com/content/dam/scotiabank/canada/common/documents/pdf/Gold-Amex-COI-EN.pdf",
+          "effectiveDate": "2022-10",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "scotia-gold-amex-welcome-kit",
+          "kind": "welcomeGuide",
+          "title": "Scotiabank Gold American Express welcome kit",
+          "url": "https://www.scotiabank.com/content/dam/scotiabank/canada/common/documents/pdf/SCOTIABANK-GOLD-Amex-Eng-Ekit.pdf",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official Scotiabank welcome-kit PDF."
+        }
       ]
     },
     {
@@ -1319,7 +1682,7 @@
         "underwriter": "TD Home and Auto Insurance Company; TD Life Insurance Company",
         "sourceUrl": "https://www.td.com/content/dam/tdct/document/pdf/personal-banking/aeroplan-visa-infinite-cardholder-agreement-en.pdf",
         "certificateDate": "2026-06",
-        "lastVerifiedAt": "2026-08-17",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -1477,6 +1840,48 @@
           "certificateQuote": null,
           "notes": "Underwritten by TD Life Insurance Company."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "td-aeroplan-visa-infinite-issuer-card-page",
+          "kind": "productPage",
+          "title": "TD Aeroplan Visa Infinite Card — issuer page",
+          "url": "https://www.td.com/ca/en/personal-banking/products/credit-cards/aeroplan/aeroplan-visa-infinite-card",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "td-aeroplan-visa-infinite-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.td.com/content/dam/tdct/document/pdf/personal-banking/aeroplan-visa-infinite-cardholder-agreement-en.pdf",
+          "effectiveDate": "2026-06",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "td-aeroplan-visa-infinite-benefit-coverages",
+          "kind": "certificateOfInsurance",
+          "title": "TD Aeroplan Visa Infinite benefit coverages guide",
+          "url": "https://www.td.com/content/dam/tdct/document/pdf/12281-2b-ap-infinite-roc-single-f-01-a2-final-en.pdf",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official TD benefit-coverages guide."
+        },
+        {
+          "documentId": "td-aeroplan-visa-infinite-cardholder-agreement",
+          "kind": "cardholderAgreement",
+          "title": "TD Cardholder Agreement",
+          "url": "https://www.td.com/content/dam/tdct/document/pdf/personal-banking/12128-599186-cha-25-a1-en.pdf",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official TD agreement document linked from TD card documentation."
+        }
       ]
     },
     {
@@ -1485,7 +1890,7 @@
         "underwriter": "RBC Insurance Company of Canada; RBC Life Insurance Company",
         "sourceUrl": "https://www.rbcroyalbank.com/credit-cards/travel/rbc-avion-visa-infinite.html",
         "certificateDate": "2024-05",
-        "lastVerifiedAt": "2026-08-17",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -1643,6 +2048,48 @@
           "certificateQuote": null,
           "notes": "Underwritten by RBC Insurance / RBC Life. Certificate states unlimited coverage amount for eligible emergency medical expenses."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "rbc-avion-visa-infinite-issuer-card-page",
+          "kind": "productPage",
+          "title": "RBC Avion Visa Infinite — issuer page",
+          "url": "https://www.rbcroyalbank.com/credit-cards/travel/rbc-avion-visa-infinite.html",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "rbc-avion-visa-infinite-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.rbcroyalbank.com/credit-cards/travel/rbc-avion-visa-infinite.html",
+          "effectiveDate": "2024-05",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "rbc-avion-visa-infinite-benefits-guide",
+          "kind": "welcomeGuide",
+          "title": "RBC Avion Visa Infinite benefits guide",
+          "url": "https://www.rbcroyalbank.com/credit-cards/travel/rbc-visa-infinite-avion/rbc-visa-infinite-avion-benefits-guide.pdf",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official RBC benefits guide."
+        },
+        {
+          "documentId": "rbc-avion-visa-infinite-documentation",
+          "kind": "productPage",
+          "title": "RBC credit-card documentation",
+          "url": "https://www.rbcroyalbank.com/credit-cards/cardholders/documentation.html",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official RBC documentation index for agreements, insurance and product summaries."
+        }
       ]
     },
     {
@@ -1651,7 +2098,7 @@
         "underwriter": "Royal & Sun Alliance Insurance Company of Canada (RSA)",
         "sourceUrl": "https://www.cibc.com/content/dam/personal_banking/credit_cards/agreements_and_insurance/dividend-visa-infinite-coi-en.pdf",
         "certificateDate": "2024-02",
-        "lastVerifiedAt": "2026-08-17",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -1737,6 +2184,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by RSA. Up to $5,000,000 emergency medical coverage."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "cibc-dividend-visa-infinite-issuer-card-page",
+          "kind": "productPage",
+          "title": "CIBC Dividend Visa Infinite Card — issuer page",
+          "url": "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/dividend-visa-infinite-card.html",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "cibc-dividend-visa-infinite-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.cibc.com/content/dam/personal_banking/credit_cards/agreements_and_insurance/dividend-visa-infinite-coi-en.pdf",
+          "effectiveDate": "2024-02",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "cibc-dividend-visa-infinite-agreements-index",
+          "kind": "productPage",
+          "title": "CIBC agreements and insurance",
+          "url": "https://www.cibc.com/en/personal-banking/credit-cards/manage/agreements-and-insurance.html",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official CIBC index for insurance certificates, summaries, agreements and terms."
+        }
       ]
     },
     {
@@ -1745,7 +2225,7 @@
         "underwriter": "First North American Insurance Company (FNAIC); The Manufacturers Life Insurance Company (Manulife)",
         "sourceUrl": "https://www.scotiabank.com/content/dam/scotiabank/canada/common/documents/pdf/Passport-Infinite-plus-COI-EN.pdf",
         "certificateDate": "2022-07",
-        "lastVerifiedAt": "2026-08-17",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -1890,6 +2370,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by Manulife."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "scotia-passport-visa-infinite-plus-issuer-card-page",
+          "kind": "productPage",
+          "title": "Scotiabank Passport Visa Infinite + Card — issuer page",
+          "url": "https://www.scotiabank.com/ca/en/personal/credit-cards/visa/passport-infinite-card.html",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "scotia-passport-visa-infinite-plus-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.scotiabank.com/content/dam/scotiabank/canada/common/documents/pdf/Passport-Infinite-plus-COI-EN.pdf",
+          "effectiveDate": "2022-07",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "scotia-passport-visa-infinite-plus-welcome-kit",
+          "kind": "welcomeGuide",
+          "title": "Scotiabank Passport Visa Infinite+ welcome kit",
+          "url": "https://www.scotiabank.com/ca/en/personal/credit-cards/visa/passport-infinite-card/welcome-kit.html",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official card-specific welcome-kit page."
+        }
       ]
     },
     {
@@ -1898,7 +2411,7 @@
         "underwriter": "TD Home and Auto Insurance Company; TD Life Insurance Company",
         "sourceUrl": "https://www.td.com/content/dam/tdct/document/pdf/personal-banking/credit-cards/welcome-guide/firstclasstravel-bcg-en.pdf",
         "certificateDate": "2024-06",
-        "lastVerifiedAt": "2026-08-17",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -2041,6 +2554,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by TD Life Insurance Company."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "td-first-class-travel-visa-infinite-issuer-card-page",
+          "kind": "productPage",
+          "title": "TD First Class Travel Visa Infinite Card — issuer page",
+          "url": "https://www.td.com/ca/en/personal-banking/products/credit-cards/travel-rewards/first-class-travel-visa-infinite-card",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "td-first-class-travel-visa-infinite-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.td.com/content/dam/tdct/document/pdf/personal-banking/credit-cards/welcome-guide/firstclasstravel-bcg-en.pdf",
+          "effectiveDate": "2024-06",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "td-first-class-travel-visa-infinite-cardholder-agreement",
+          "kind": "cardholderAgreement",
+          "title": "TD Cardholder Agreement",
+          "url": "https://www.td.com/content/dam/tdct/document/pdf/personal-banking/12128-599186-cha-25-a1-en.pdf",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official TD agreement document linked from TD card documentation."
+        }
       ]
     },
     {
@@ -2049,7 +2595,7 @@
         "underwriter": "BMO Life Assurance Company; First North American Insurance Company (FNAIC) / Allianz Global Risks US Insurance Company",
         "sourceUrl": "https://www.bmo.com/pdf/bmo-eclipse-visa-infinite-certificate-of-insurance-en.pdf",
         "certificateDate": "2024-05",
-        "lastVerifiedAt": "2026-08-17",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -2135,6 +2681,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by BMO Life Assurance Company."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "bmo-eclipse-visa-infinite-issuer-card-page",
+          "kind": "productPage",
+          "title": "BMO eclipse Visa Infinite Card — issuer page",
+          "url": "https://www.bmo.com/main/personal/credit-cards/bmo-eclipse-visa-infinite/",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "bmo-eclipse-visa-infinite-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.bmo.com/pdf/bmo-eclipse-visa-infinite-certificate-of-insurance-en.pdf",
+          "effectiveDate": "2024-05",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "bmo-eclipse-visa-infinite-forms-index",
+          "kind": "productPage",
+          "title": "BMO credit-card forms and benefits",
+          "url": "https://www.bmo.com/en-ca/main/personal/card-forms/",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official BMO index for cardholder agreements, benefit guides and insurance certificates."
+        }
       ]
     },
     {
@@ -2143,7 +2722,7 @@
         "underwriter": "Royal & Sun Alliance Insurance Company of Canada (RSA)",
         "sourceUrl": "https://www.cibc.com/content/dam/personal_banking/credit_cards/agreements_and_insurance/aventura-infinite-certificate-en.pdf",
         "certificateDate": "2024-02",
-        "lastVerifiedAt": "2026-08-17",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -2301,6 +2880,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by RSA. Up to $5,000,000 emergency medical coverage."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "cibc-aventura-visa-infinite-issuer-card-page",
+          "kind": "productPage",
+          "title": "CIBC Aventura Visa Infinite Card — issuer page",
+          "url": "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/aventura-visa-infinite-card.html",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "cibc-aventura-visa-infinite-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.cibc.com/content/dam/personal_banking/credit_cards/agreements_and_insurance/aventura-infinite-certificate-en.pdf",
+          "effectiveDate": "2024-02",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "cibc-aventura-visa-infinite-card-page",
+          "kind": "productPage",
+          "title": "CIBC Aventura Visa Infinite card documents",
+          "url": "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/aventura-visa-infinite-card.html",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official CIBC card page links the insurance certificate, benefits guide and cardholder agreement."
+        }
       ]
     },
     {
@@ -2309,7 +2921,7 @@
         "underwriter": "National Bank Life Insurance Company; CanAssurance Insurance Company",
         "sourceUrl": "https://www.nbc.ca/personal/mastercard-credit-cards/world-elite.html",
         "certificateDate": "2024-01",
-        "lastVerifiedAt": "2026-08-17",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -2467,6 +3079,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by National Bank Life / CanAssurance. Up to $5,000,000 emergency medical coverage."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "national-bank-world-elite-issuer-card-page",
+          "kind": "productPage",
+          "title": "National Bank World Elite Mastercard credit card — issuer page",
+          "url": "https://www.nbc.ca/personal/mastercard-credit-cards/world-elite.html",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "national-bank-world-elite-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.nbc.ca/personal/mastercard-credit-cards/world-elite.html",
+          "effectiveDate": "2024-01",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "national-bank-world-elite-card-page",
+          "kind": "productPage",
+          "title": "National Bank World Elite Mastercard",
+          "url": "https://www.nbc.ca/personal/mastercard-credit-cards/world-elite.html",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official card page links insurance summaries, certificate and agreement and lists claim contacts."
+        }
       ]
     },
     {
@@ -2475,7 +3120,7 @@
         "underwriter": "American Bankers Insurance Company of Florida (ABIC); American Bankers Life Assurance Company of Florida (ABLAC)",
         "sourceUrl": "https://www.pcfinancial.ca/en/credit-cards/insiders-world-elite/",
         "certificateDate": "2024-04",
-        "lastVerifiedAt": "2026-08-17",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -2546,6 +3191,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by ABLAC."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "pc-insiders-world-elite-issuer-card-page",
+          "kind": "productPage",
+          "title": "PC Insiders World Elite Mastercard — issuer page",
+          "url": "https://www.pcfinancial.ca/en/credit-cards/insiders-world-elite/",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "pc-insiders-world-elite-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.pcfinancial.ca/en/credit-cards/insiders-world-elite/",
+          "effectiveDate": "2024-04",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "pc-insiders-world-elite-disclosure-summary",
+          "kind": "cardholderAgreement",
+          "title": "PC Financial Mastercard application disclosure summary",
+          "url": "https://www.pcfinancial.ca/docs/default-source/legal-stuff/pcmc_disclosure_summary_en.pdf",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official PC Financial disclosure document; the public product page says the insurance certificate is supplied in the welcome kit."
+        }
       ]
     },
     {
@@ -2554,7 +3232,7 @@
         "underwriter": "RBC Insurance Company of Canada; RBC Life Insurance Company",
         "sourceUrl": "https://www.rbcroyalbank.com/credit-cards/rewards/rbc-ion-plus-visa/rbc-ion-plus-visa-certificate-of-insurance.pdf",
         "certificateDate": "2024-05",
-        "lastVerifiedAt": "2026-08-18",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -2604,6 +3282,48 @@
           "certificateQuote": null,
           "notes": "Underwritten by RBC Insurance Company of Canada."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "rbc-ion-plus-visa-issuer-card-page",
+          "kind": "productPage",
+          "title": "RBC ION+ Visa — issuer page",
+          "url": "https://www.rbcroyalbank.com/credit-cards/rewards/rbc-ion-plus-visa.html",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "rbc-ion-plus-visa-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.rbcroyalbank.com/credit-cards/rewards/rbc-ion-plus-visa/rbc-ion-plus-visa-certificate-of-insurance.pdf",
+          "effectiveDate": "2024-05",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "rbc-ion-plus-visa-benefits-guide",
+          "kind": "welcomeGuide",
+          "title": "RBC ION+ Visa benefits guide",
+          "url": "https://www.rbcroyalbank.com/credit-cards/rewards/rbc-ion-plus-visa/rbc-ion-plus-visa-benefits-guide.pdf",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official RBC benefits guide."
+        },
+        {
+          "documentId": "rbc-ion-plus-visa-documentation",
+          "kind": "productPage",
+          "title": "RBC credit-card documentation",
+          "url": "https://www.rbcroyalbank.com/credit-cards/cardholders/documentation.html",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official RBC documentation index for agreements, insurance and product summaries."
+        }
       ]
     },
     {
@@ -2612,7 +3332,7 @@
         "underwriter": "TD Home and Auto Insurance Company; TD Life Insurance Company",
         "sourceUrl": "https://www.td.com/content/dam/tdct/document/pdf/12281-5a-cashback-infinite_roc-e-05-a2-final-en.pdf",
         "certificateDate": "2024-05",
-        "lastVerifiedAt": "2026-08-18",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -2727,6 +3447,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by TD Home and Auto Insurance Company."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "td-cash-back-visa-infinite-issuer-card-page",
+          "kind": "productPage",
+          "title": "TD Cash Back Visa Infinite Card — issuer page",
+          "url": "https://www.td.com/ca/en/personal-banking/products/credit-cards/cash-back/cash-back-visa-infinite-card",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "td-cash-back-visa-infinite-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.td.com/content/dam/tdct/document/pdf/12281-5a-cashback-infinite_roc-e-05-a2-final-en.pdf",
+          "effectiveDate": "2024-05",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "td-cash-back-visa-infinite-cardholder-agreement",
+          "kind": "cardholderAgreement",
+          "title": "TD Cardholder Agreement",
+          "url": "https://www.td.com/content/dam/tdct/document/pdf/personal-banking/12128-599186-cha-25-a1-en.pdf",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official TD agreement document linked from TD card documentation."
+        }
       ]
     },
     {
@@ -2735,7 +3488,7 @@
         "underwriter": "BMO Life Assurance Company; First North American Insurance Company (FNAIC) / Allianz Global Risks US Insurance Company",
         "sourceUrl": "https://www.bmo.com/pdf/Ascend_World_Elite_Insurance_Certificate.pdf",
         "certificateDate": "2024-05",
-        "lastVerifiedAt": "2026-08-18",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -2878,6 +3631,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by FNAIC / Allianz."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "bmo-ascend-world-elite-issuer-card-page",
+          "kind": "productPage",
+          "title": "BMO Ascend World Elite Mastercard — issuer page",
+          "url": "https://www.bmo.com/en-ca/main/personal/credit-cards/bmo-ascend-world-elite-mastercard/",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "bmo-ascend-world-elite-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.bmo.com/pdf/Ascend_World_Elite_Insurance_Certificate.pdf",
+          "effectiveDate": "2024-05",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "bmo-ascend-world-elite-forms-index",
+          "kind": "productPage",
+          "title": "BMO credit-card forms and benefits",
+          "url": "https://www.bmo.com/en-ca/main/personal/card-forms/",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official BMO index for cardholder agreements, benefit guides and insurance certificates."
+        }
       ]
     },
     {
@@ -2886,7 +3672,7 @@
         "underwriter": "RBC Insurance Company of Canada; RBC Life Insurance Company",
         "sourceUrl": "https://www.rbcroyalbank.com/credit-cards/travel/westjet-rbc-world-elite-mastercard/westjet-rbc-world-elite-mastercard-certificate-of-insurance.pdf",
         "certificateDate": "2024-05",
-        "lastVerifiedAt": "2026-08-18",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -3044,6 +3830,48 @@
           "certificateQuote": null,
           "notes": "Underwritten by RBC Insurance Company of Canada."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "westjet-rbc-world-elite-issuer-card-page",
+          "kind": "productPage",
+          "title": "WestJet RBC World Elite Mastercard — issuer page",
+          "url": "https://www.rbcroyalbank.com/credit-cards/travel/westjet-rbc-world-elite-mastercard.html",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "westjet-rbc-world-elite-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.rbcroyalbank.com/credit-cards/travel/westjet-rbc-world-elite-mastercard/westjet-rbc-world-elite-mastercard-certificate-of-insurance.pdf",
+          "effectiveDate": "2024-05",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "westjet-rbc-world-elite-benefits-guide",
+          "kind": "welcomeGuide",
+          "title": "WestJet RBC World Elite Mastercard benefits guide",
+          "url": "https://www.rbcroyalbank.com/credit-cards/travel/westjet-rbc-world-elite-mastercard/westjet-rbc-world-elite-mastercard-benefits-guide.pdf",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official RBC benefits guide."
+        },
+        {
+          "documentId": "westjet-rbc-world-elite-documentation",
+          "kind": "productPage",
+          "title": "RBC credit-card documentation",
+          "url": "https://www.rbcroyalbank.com/credit-cards/cardholders/documentation.html",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official RBC documentation index for agreements, insurance and product summaries."
+        }
       ]
     },
     {
@@ -3052,7 +3880,7 @@
         "underwriter": "TD Home and Auto Insurance Company",
         "sourceUrl": "https://www.mbna.ca/content/dam/mbna/document/pdf/credit-cards/mbnaplatinumplusmastercardguidetocoverage-en.pdf",
         "certificateDate": "2024-03",
-        "lastVerifiedAt": "2026-08-18",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -3105,6 +3933,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by TD Home and Auto Insurance Company."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "amazon-ca-rewards-mastercard-issuer-card-page",
+          "kind": "productPage",
+          "title": "Amazon.ca Rewards Mastercard — issuer page",
+          "url": "https://www.mbna.ca/en/credit-cards/retail-store/amazon-rewards-mastercard",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "amazon-ca-rewards-mastercard-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.mbna.ca/content/dam/mbna/document/pdf/credit-cards/mbnaplatinumplusmastercardguidetocoverage-en.pdf",
+          "effectiveDate": "2024-03",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "amazon-ca-rewards-mastercard-mastercard-benefits",
+          "kind": "productPage",
+          "title": "MBNA Mastercard cardholder benefits",
+          "url": "https://www.mbna.ca/en/credit-cards/mastercard-cardholder-benefits",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official MBNA document index and benefits page."
+        }
       ]
     },
     {
@@ -3113,7 +3974,7 @@
         "underwriter": "Royal & Sun Alliance Insurance Company of Canada (RSA)",
         "sourceUrl": "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/manage/agreements-and-insurance/pdfs/aventura-visa-insurance-en.pdf",
         "certificateDate": "2025-07",
-        "lastVerifiedAt": "2026-08-18",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -3148,6 +4009,39 @@
           "certificateQuote": null,
           "notes": "Underwritten by RSA."
         }
+      ],
+      "documents": [
+        {
+          "documentId": "cibc-aventura-visa-issuer-card-page",
+          "kind": "productPage",
+          "title": "CIBC Aventura Visa Card — issuer page",
+          "url": "https://www.cibc.com/en/personal-banking/credit-cards/no-annual-fee.html",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "cibc-aventura-visa-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/manage/agreements-and-insurance/pdfs/aventura-visa-insurance-en.pdf",
+          "effectiveDate": "2025-07",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        },
+        {
+          "documentId": "cibc-aventura-visa-agreements-index",
+          "kind": "productPage",
+          "title": "CIBC agreements and insurance",
+          "url": "https://www.cibc.com/en/personal-banking/credit-cards/manage/agreements-and-insurance.html",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official CIBC index for insurance certificates, summaries, agreements and terms."
+        }
       ]
     },
     {
@@ -3156,7 +4050,7 @@
         "underwriter": "Royal & Sun Alliance Insurance Company of Canada (RSA)",
         "sourceUrl": "https://www.americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/SimplyCash-Card-COI-EN.pdf",
         "certificateDate": "2025-07",
-        "lastVerifiedAt": "2026-08-18",
+        "lastVerifiedAt": "2026-08-29",
         "verificationStatus": "issuerPage"
       },
       "benefits": [
@@ -3190,6 +4084,30 @@
           "exclusions": [],
           "certificateQuote": null,
           "notes": "Underwritten by RSA."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "amex-simplycash-issuer-card-page",
+          "kind": "productPage",
+          "title": "SimplyCash Card from American Express — issuer page",
+          "url": "https://www.americanexpress.com/en-ca/benefits/simplycash-card/",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+        },
+        {
+          "documentId": "amex-simplycash-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance / benefits source",
+          "url": "https://www.americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/SimplyCash-Card-COI-EN.pdf",
+          "effectiveDate": "2025-07",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-29",
+          "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
         }
       ]
     }

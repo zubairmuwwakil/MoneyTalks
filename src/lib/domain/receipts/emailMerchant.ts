@@ -4,6 +4,12 @@
 // what lets findMatchingPurchase merge an email receipt with a card tap
 // instead of recording the same purchase twice.
 
+import {
+  findPackMerchantByBrandKey,
+  findPackMerchantByEmail,
+  foldMerchantText,
+} from "@/lib/domain/merchants/merchantPack";
+
 type AliasRow = { rawString: string; normalizedName: string };
 
 type AliasDb = {
@@ -13,9 +19,21 @@ type AliasDb = {
   };
 };
 
-export async function resolveEmailMerchant(db: AliasDb, rawMerchant: string): Promise<string> {
+export async function resolveEmailMerchant(
+  db: AliasDb,
+  rawMerchant: string,
+  fromEmail?: string,
+): Promise<string> {
   const rawString = rawMerchant.trim();
   if (!rawString) return rawMerchant;
+
+  // Canonical contract facts outrank the shared alias table. emailDomains is
+  // exact evidence; matchKeys also lets a country-specific sender such as
+  // netflix.co.uk resolve when the pack only lists netflix.com.
+  const packMerchant =
+    findPackMerchantByEmail(fromEmail ?? rawString) ??
+    findPackMerchantByBrandKey(foldMerchantText(rawString));
+  if (packMerchant) return packMerchant.displayName;
 
   try {
     const existing = await db.merchantAlias.findUnique({ where: { rawString } });

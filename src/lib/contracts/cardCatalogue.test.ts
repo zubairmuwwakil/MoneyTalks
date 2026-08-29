@@ -107,6 +107,32 @@ describe("parseBenefitsCatalogue", () => {
     expect(benefitsCatalogue.cards.length).toBeGreaterThan(0);
   });
 
+  it("parses the optional 1.2 card document index", () => {
+    const documents = benefitsCatalogue.cards[0].documents;
+    expect(documents).toBeDefined();
+    expect(documents?.length).toBeGreaterThan(0);
+    expect(documents?.[0]).toMatchObject({
+      documentId: expect.any(String),
+      kind: expect.any(String),
+      title: expect.any(String),
+      url: expect.stringMatching(/^https:\/\//),
+      verificationStatus: expect.stringMatching(/^(stub|issuerPage|certificateVerified)$/),
+    });
+  });
+
+  it("keeps card documents strict while allowing the field to be omitted", () => {
+    const withoutDocuments = structuredClone(benefitsCatalogueRaw) as Record<string, unknown>;
+    const cardsWithoutDocuments = withoutDocuments.cards as Array<Record<string, unknown>>;
+    for (const card of cardsWithoutDocuments) delete card.documents;
+    expect(() => parseBenefitsCatalogue(withoutDocuments)).not.toThrow();
+
+    const withUnknownField = structuredClone(benefitsCatalogueRaw) as Record<string, unknown>;
+    const cardsWithUnknownField = withUnknownField.cards as Array<Record<string, unknown>>;
+    const documents = cardsWithUnknownField[0].documents as Array<Record<string, unknown>>;
+    documents[0].unlistedField = true;
+    expect(() => parseBenefitsCatalogue(withUnknownField)).toThrow(/unlistedField/);
+  });
+
   it("round-trips the module-level singleton through the exported parser", () => {
     expect(parseBenefitsCatalogue(benefitsCatalogueRaw)).toEqual(benefitsCatalogue);
   });

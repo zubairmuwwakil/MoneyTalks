@@ -50,6 +50,15 @@ describe("the ladder resolves in strict order", () => {
     expect(result.merchantId).toBe("uber-eats");
   });
 
+  it("reads a sender domain from an RFC display-name address", () => {
+    const result = resolveCategory({
+      merchantRaw: "UNRECOGNIZABLE STRING",
+      emailFromAddress: "Uber Receipts <noreply@ubereats.com>",
+    });
+    expect(result.source).toBe("emailDomain");
+    expect(result.merchantId).toBe("uber-eats");
+  });
+
   it("resolves a sender subdomain to its parent domain", () => {
     const result = resolveCategory({ emailFromAddress: "receipts@email.marriott.com" });
     expect(result.merchantId).toBe("marriott-hotels-resorts");

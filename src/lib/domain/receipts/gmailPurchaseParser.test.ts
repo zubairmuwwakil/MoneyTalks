@@ -40,6 +40,58 @@ function rawMessage(subject: string, from: string, body: string) {
   return Buffer.from(mime).toString("base64url");
 }
 
+it("uk-merchants-do-not-collapse", async () => {
+  const senders = ["notifications@shopify.co.uk", "billing@britishgas.co.uk", "info@netflix.co.uk"];
+  const merchants = await Promise.all(senders.map(async (from, index) => (
+    await parsePurchaseFromRawGmailMessage({
+      messageId: `uk-${index}`,
+      raw: rawMessage("Your receipt", from, "Order total: GBP 10.00"),
+    })
+  ).merchant));
+
+  expect(merchants).toEqual(["shopify.co.uk", "britishgas.co.uk", "netflix.co.uk"]);
+  expect(new Set(merchants).size).toBe(3);
+  expect(merchants).not.toContain("co.uk");
+});
+
+it("subdomain-drift", async () => {
+  const [campaignSender, rootSender] = await Promise.all([
+    parsePurchaseFromRawGmailMessage({
+      messageId: "netflix-campaign",
+      raw: rawMessage("Your receipt", "noreply@email.netflix.com", "Order total: USD 10.00"),
+    }),
+    parsePurchaseFromRawGmailMessage({
+      messageId: "netflix-root",
+      raw: rawMessage("Your receipt", "info@netflix.com", "Order total: USD 10.00"),
+    }),
+  ]);
+
+  expect(campaignSender.merchant).toBe("netflix.com");
+  expect(rootSender.merchant).toBe("netflix.com");
+});
+
+it.each([
+  ["orders@store.com.au", "store.com.au"],
+  ["billing@utility.co.nz", "utility.co.nz"],
+  ["receipt@merchant.com", "merchant.com"],
+])("uses the registrable domain for %s", async (from, expected) => {
+  const parsed = await parsePurchaseFromRawGmailMessage({
+    messageId: expected,
+    raw: rawMessage("Your receipt", from, "Order total: USD 10.00"),
+  });
+
+  expect(parsed.merchant).toBe(expected);
+});
+
+it("does not keep hardcoded brand names in the parser", async () => {
+  const parsed = await parsePurchaseFromRawGmailMessage({
+    messageId: "nike",
+    raw: rawMessage("Your receipt", "orders@nike.com", "Order total: USD 10.00"),
+  });
+
+  expect(parsed.merchant).toBe("nike.com");
+});
+
 it("exposes the decoded text body so callers stop scanning raw MIME", async () => {
   const parsed = await parsePurchaseFromRawGmailMessage({
     messageId: "m1",
