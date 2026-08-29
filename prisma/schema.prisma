@@ -43,6 +43,7 @@ model User {
   purchaseCorrections         PurchaseCorrection[]
   receiptDocuments            ReceiptDocument[]
   receiptUploads              ReceiptUpload[]
+  recurringObligations        RecurringObligation[]
   refundCases                 RefundCase[]
   returnItems                 ReturnItem[]
   sessions                    Session[]
@@ -564,6 +565,57 @@ model Purchase {
   @@index([purchasedAt])
   @@index([userId, merchant])
   @@index([userId, category, purchasedAt])
+}
+
+model RecurringObligation {
+  id                  String                        @id @default(cuid())
+  userId              String
+  /// Nullable in the domain, but normalized to "" at persistence so Postgres
+  /// can enforce the common no-discriminator identity as truly unique.
+  discriminator       String                        @default("")
+  kind                String?
+  merchantCanonicalId String
+  currency            String
+  cadence             Json
+  schedule            Json
+  amountPattern       AmountPatternKind
+  status              ObligationLifecycleStatus?
+  nextExpectedDate    DateTime?
+  confidence          Float
+  confidenceReasons   Json
+  lastObservedAt      DateTime
+  algorithmVersion    Int                           @default(1)
+  origin              ObligationOrigin              @default(DETECTED)
+  needsReview         Boolean                       @default(true)
+  dismissedAt         DateTime?
+  confirmedAt         DateTime?
+  dismissReason       String?
+  decidedConfidence   Float?
+  decidedReasons      Json?
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+  user                User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  evidence            RecurringObligationEvidence[]
+
+  @@unique([userId, merchantCanonicalId, currency, discriminator])
+  @@index([userId, status, nextExpectedDate])
+  @@index([algorithmVersion])
+}
+
+/// Evidence is stored as auditable links rather than an aggregate count.
+model RecurringObligationEvidence {
+  id                 String              @id @default(cuid())
+  obligationId       String
+  purchaseId         String?
+  emailTransactionId String?
+  role               EvidenceRole
+  excludedByUser     Boolean             @default(false)
+  occurredAt         DateTime
+  obligation         RecurringObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+
+  @@unique([obligationId, purchaseId])
+  @@index([obligationId, occurredAt])
+  @@index([purchaseId])
 }
 
 model PurchaseCorrection {
@@ -1207,4 +1259,33 @@ enum PurchaseFinancialState {
   ADJUSTED
   DECLINED
   REVERSED
+}
+
+enum AmountPatternKind {
+  FIXED
+  VARIABLE
+  USAGE_BASED
+  UNKNOWN
+}
+
+enum ObligationLifecycleStatus {
+  TRIALING
+  ACTIVE
+  CANCELLING
+  CANCELLED
+  LAPSED
+}
+
+enum ObligationOrigin {
+  DETECTED
+  USER
+  MIGRATED
+}
+
+enum EvidenceRole {
+  OCCURRENCE
+  CADENCE_FACT
+  CANCELLATION
+  TRIAL
+  PRICE_CHANGE
 }
