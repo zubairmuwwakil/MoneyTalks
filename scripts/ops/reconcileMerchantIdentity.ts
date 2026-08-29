@@ -37,7 +37,11 @@
  */
 
 import { parseArgs } from "node:util";
+import fs from "node:fs";
+import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import {
   normalizeMerchantFromSender,
   isPublicSuffixKey,
@@ -56,7 +60,14 @@ const { values } = parseArgs({
 });
 
 const apply = values.apply === true;
-const prisma = new PrismaClient();
+
+// tsx does not load .env.local, and Prisma 7 requires an explicit driver
+// adapter — `new PrismaClient()` with no options throws. Construct it the way
+// src/lib/prisma.ts does rather than a second way.
+dotenv.config({ path: fs.existsSync(".env.local") ? ".env.local" : ".env" });
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) throw new Error("DATABASE_URL is not set");
+const prisma = new PrismaClient({ adapter: new PrismaPg(new Pool({ connectionString })) });
 
 /**
  * Read-only replay of `resolveEmailMerchant`. Same precedence — pack facts
@@ -100,8 +111,19 @@ async function main() {
     }
   }
 
-  console.log(`\nScanned ${transactions.length} email transactions with a sender address.`);
-  console.log(`${drift.length} resolve differently under the current identity function.\n`);
+  // Corpus totals, so a zero result is unambiguous. "Scanned 0" on its own
+  // cannot be told apart from "there is nothing here", and an operator
+  // deciding whether to trust a clean report needs to know which it is.
+  const [totalTransactions, totalPurchases, totalAliases] = await Promise.all([
+    prisma.emailTransaction.count({ where }),
+    prisma.purchase.count({ where: { ...where, source: "GMAIL" } }),
+    prisma.merchantAlias.count(),
+  ]);
+
+  console.log(`\nCorpus: ${totalTransactions} email transaction(s), of which ` +
+    `${transactions.length} carry a sender address; ${totalPurchases} Gmail-sourced ` +
+    `purchase(s); ${totalAliases} merchant alias(es).`);
+  console.log(`${drift.length} transaction(s) resolve differently under the current identity function.\n`);
 
   const grouped = new Map<string, Drift[]>();
   for (const d of drift) {
