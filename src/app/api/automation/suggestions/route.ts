@@ -231,9 +231,14 @@ export async function POST(req: NextRequest) {
     }
 
     const renewalDate = isoDateOnlyToUTC(renewalDateStr);
-    const cadenceRaw = String(mergedDraft.cadence ?? "MONTHLY").toUpperCase();
-    const cadence: "MONTHLY" | "YEARLY" | "CUSTOM" =
-      cadenceRaw === "YEARLY" || cadenceRaw === "CUSTOM" ? (cadenceRaw as typeof cadence) : "MONTHLY";
+    const cadenceRaw = String(mergedDraft.cadence ?? "").toUpperCase();
+    if (cadenceRaw !== "MONTHLY" && cadenceRaw !== "YEARLY" && cadenceRaw !== "CUSTOM") {
+      return NextResponse.json(
+        { error: "Subscription requires draft.cadence (MONTHLY, YEARLY, or CUSTOM)" },
+        { status: 400 },
+      );
+    }
+    const cadence = cadenceRaw;
 
     const trialEndAtRaw = typeof mergedDraft.trialEndAt === "string" ? mergedDraft.trialEndAt : null;
     let trialEndAt: Date | null = null;
@@ -273,9 +278,14 @@ export async function POST(req: NextRequest) {
     if (!currency) {
       return NextResponse.json({ error: "Choose a currency before creating a bill." }, { status: 400 });
     }
-    const dueDayOfMonth = Number.isFinite(Number(mergedDraft.dueDayOfMonth))
-      ? Math.min(28, Math.max(1, Number(mergedDraft.dueDayOfMonth)))
-      : 1;
+    const dueDayInput = Number(mergedDraft.dueDayOfMonth);
+    if (!Number.isInteger(dueDayInput) || dueDayInput < 1 || dueDayInput > 28) {
+      return NextResponse.json(
+        { error: "Bill requires draft.dueDayOfMonth (an integer from 1 to 28)" },
+        { status: 400 },
+      );
+    }
+    const dueDayOfMonth = dueDayInput;
 
     const currentMonth = new Date().toISOString().slice(0, 10);
 

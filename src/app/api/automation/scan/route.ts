@@ -51,7 +51,7 @@ function hashSnippet(input: string) {
   return crypto.createHash("sha256").update(input).digest("hex");
 }
 
-function detectSubscriptionItem(subject: string | null, decoded: string) {
+export function detectSubscriptionItem(subject: string | null, decoded: string) {
   const s = (subject ?? "").toLowerCase();
   const body = decoded.toLowerCase();
   const trialHints = /trial|free trial|trial ends|trial period/.test(s + " " + body);
@@ -59,7 +59,7 @@ function detectSubscriptionItem(subject: string | null, decoded: string) {
 
   if (trialHints) return "TRIAL" as const;
   if (renewalHints) return "RENEWAL" as const;
-  return "RENEWAL" as const;
+  return null;
 }
 
 export const runtime = "nodejs";
@@ -174,16 +174,7 @@ export async function POST(req: NextRequest) {
             if (hit.carrier) draft.carrier = hit.carrier;
           }
         }
-        if (type === "SUBSCRIPTION") {
-          const rd = new Date(detectedISO + "T00:00:00.000Z");
-          rd.setUTCDate(rd.getUTCDate() + 30);
-          draft.cadence = "MONTHLY";
-          draft.renewalDate = rd.toISOString().slice(0, 10);
-        }
         if (type === "BILL") {
-          const due = new Date(detectedISO + "T00:00:00.000Z");
-          due.setUTCDate(due.getUTCDate() + 7);
-          draft.dueDayOfMonth = due.getUTCDate();
           draft.autopay = false;
         }
 

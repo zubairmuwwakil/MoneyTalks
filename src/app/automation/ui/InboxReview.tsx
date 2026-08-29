@@ -26,12 +26,29 @@ type Edits = Record<
     merchant: string;
     type: SuggestionType;
     currency: string;
+    renewalDate: string;
+    cadence: "" | "MONTHLY" | "YEARLY" | "CUSTOM";
+    dueDayOfMonth: string;
   }
 >;
+
+const inputStyle =
+  "flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-sm shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring";
+const labelStyle = "block text-xs font-medium text-foreground mb-1";
 
 function money(cents?: number, currency?: string | null) {
   if (typeof cents !== "number") return null;
   return formatCurrencyCodeAmount(cents, currency);
+}
+
+function draftDetails(suggestion: UiSuggestion) {
+  const hiddenKeys = suggestion.type === "SUBSCRIPTION"
+    ? new Set(["renewalDate", "cadence"])
+    : suggestion.type === "BILL"
+      ? new Set(["dueDayOfMonth"])
+      : new Set<string>();
+
+  return Object.fromEntries(Object.entries(suggestion.draft ?? {}).filter(([key]) => !hiddenKeys.has(key)));
 }
 
 export default function InboxReview() {
@@ -58,6 +75,12 @@ export default function InboxReview() {
           merchant: s.merchant ?? "",
           type: s.type ?? "RETURN",
           currency: s.currency ?? "",
+          // Existing suggestions may have been populated by the old scan-time
+          // guesses. Treat these fields as unknown until the person reviewing
+          // the email explicitly supplies them.
+          renewalDate: "",
+          cadence: "",
+          dueDayOfMonth: "",
         };
       }
       setEdits(initial);
@@ -80,7 +103,17 @@ export default function InboxReview() {
   function setEdit(id: string, patch: Partial<Edits[string]>) {
     setEdits((prev) => ({
       ...prev,
-      [id]: { ...(prev[id] ?? { merchant: "", type: "RETURN", currency: "" }), ...patch },
+      [id]: {
+        ...(prev[id] ?? {
+          merchant: "",
+          type: "RETURN",
+          currency: "",
+          renewalDate: "",
+          cadence: "",
+          dueDayOfMonth: "",
+        }),
+        ...patch,
+      },
     }));
   }
 
@@ -112,6 +145,9 @@ export default function InboxReview() {
             merchant: e?.merchant,
             type: e?.type,
             currency: e?.currency.trim() || null,
+            renewalDate: e?.renewalDate,
+            cadence: e?.cadence,
+            dueDayOfMonth: e?.dueDayOfMonth,
           },
         }),
       });
@@ -143,8 +179,19 @@ export default function InboxReview() {
       ) : (
         <div className="space-y-3">
           {newSuggestions.map((s) => {
-            const e = edits[s.id] ?? { merchant: s.merchant, type: s.type, currency: s.currency ?? "" };
+            const e = edits[s.id] ?? {
+              merchant: s.merchant,
+              type: s.type,
+              currency: s.currency ?? "",
+              renewalDate: "",
+              cadence: "",
+              dueDayOfMonth: "",
+            };
+            const missingRequiredFact =
+              (e.type === "SUBSCRIPTION" && (!e.renewalDate || !e.cadence)) ||
+              (e.type === "BILL" && !/^(?:[1-9]|1\d|2[0-8])$/.test(e.dueDayOfMonth));
             const disabled = busyId === s.id;
+            const details = draftDetails(s);
 
             return (
               <div key={s.id} className="rounded-2xl border bg-white/80 p-4 shadow-sm space-y-3">
@@ -175,7 +222,7 @@ export default function InboxReview() {
                     <button
                       className="rounded-full border border-slate-900 bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
                       onClick={() => confirm(s.id)}
-                      disabled={disabled}
+                      disabled={disabled || missingRequiredFact}
                     >
                       Confirm
                     </button>
@@ -186,7 +233,7 @@ export default function InboxReview() {
                   <div className="space-y-1">
                     <div className="text-xs font-semibold text-slate-500">Merchant</div>
                     <input
-                      className="w-full rounded-xl border px-3 py-2 text-sm"
+                      className={inputStyle}
                       value={e.merchant}
                       onChange={(ev) => setEdit(s.id, { merchant: ev.target.value })}
                       placeholder="e.g. Netflix"
@@ -196,7 +243,7 @@ export default function InboxReview() {
                   <div className="space-y-1">
                     <div className="text-xs font-semibold text-slate-500">Type</div>
                     <select
-                      className="w-full rounded-xl border px-3 py-2 text-sm"
+                      className={inputStyle}
                       value={e.type}
                       onChange={(ev) => setEdit(s.id, { type: ev.target.value as SuggestionType })}
                     >
@@ -209,7 +256,7 @@ export default function InboxReview() {
                   <div className="space-y-1">
                     <div className="text-xs font-semibold text-slate-500">Currency</div>
                     <input
-                      className="w-full rounded-xl border px-3 py-2 text-sm uppercase"
+                      className={`${inputStyle} uppercase`}
                       value={e.currency}
                       onChange={(ev) => setEdit(s.id, { currency: ev.target.value.toUpperCase() })}
                       placeholder="Unknown — enter CAD, USD…"
@@ -218,10 +265,75 @@ export default function InboxReview() {
                   </div>
                 </div>
 
+                {e.type === "SUBSCRIPTION" ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3">
+                    <p className="mb-3 text-xs text-amber-900">
+                      The email did not establish this subscription&apos;s schedule. Both fields are required before confirmation.
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className={labelStyle} htmlFor={`renewal-date-${s.id}`}>
+                          Next renewal date <span className="text-amber-700">(required, unknown)</span>
+                        </label>
+                        <input
+                          id={`renewal-date-${s.id}`}
+                          type="date"
+                          className={inputStyle}
+                          value={e.renewalDate}
+                          onChange={(ev) => setEdit(s.id, { renewalDate: ev.target.value })}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className={labelStyle} htmlFor={`cadence-${s.id}`}>
+                          Cadence <span className="text-amber-700">(required, unknown)</span>
+                        </label>
+                        <select
+                          id={`cadence-${s.id}`}
+                          className={inputStyle}
+                          value={e.cadence}
+                          onChange={(ev) => setEdit(s.id, { cadence: ev.target.value as Edits[string]["cadence"] })}
+                          required
+                        >
+                          <option value="" disabled>Choose a cadence</option>
+                          <option value="MONTHLY">Monthly</option>
+                          <option value="YEARLY">Yearly</option>
+                          <option value="CUSTOM">Custom</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {e.type === "BILL" ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-3">
+                    <p className="mb-3 text-xs text-amber-900">
+                      The email did not establish this bill&apos;s due day. Enter it before confirmation.
+                    </p>
+                    <div className="max-w-xs">
+                      <label className={labelStyle} htmlFor={`due-day-${s.id}`}>
+                        Due day of month <span className="text-amber-700">(required, unknown)</span>
+                      </label>
+                      <input
+                        id={`due-day-${s.id}`}
+                        type="number"
+                        min={1}
+                        max={28}
+                        inputMode="numeric"
+                        className={inputStyle}
+                        value={e.dueDayOfMonth}
+                        onChange={(ev) => setEdit(s.id, { dueDayOfMonth: ev.target.value })}
+                        placeholder="1–28"
+                        required
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
                 <details className="text-xs text-slate-500">
                   <summary className="cursor-pointer">Details</summary>
                   <pre className="mt-2 overflow-auto rounded-xl border bg-white p-3 text-[11px] text-slate-700">
-{JSON.stringify(s.draft ?? {}, null, 2)}
+{JSON.stringify(details, null, 2)}
                   </pre>
                 </details>
               </div>
