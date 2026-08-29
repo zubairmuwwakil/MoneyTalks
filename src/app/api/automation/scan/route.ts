@@ -255,11 +255,21 @@ export async function POST(req: NextRequest) {
     scanError = error instanceof Error ? error.message : String(error);
     console.error(`[scan] failed for ${userId}:`, scanError);
   } finally {
-    await prisma.emailConnection.updateMany({
-      where: { userId },
-      data: { lastScanAt: new Date() },
-    });
+    // lastScanAt records that a scan COMPLETED, not that one was attempted.
+    // Stamping it unconditionally made a scan that threw indistinguishable
+    // from one that ran and found nothing — which is exactly how a failed
+    // scan on 2026-08-17 read as an empty inbox for twelve days, with the
+    // timestamp lending it false credibility. A monitoring signal that cannot
+    // tell "broken" from "quiet" is worse than none, because it is believed.
+    if (!scanError) {
+      await prisma.emailConnection.updateMany({
+        where: { userId },
+        data: { lastScanAt: new Date() },
+      });
+    }
     // Refreshed tokens must be durably stored before the function returns.
+    // This runs even on failure: a token refreshed mid-scan is still valid,
+    // and dropping it would silently disconnect the owner.
     await flushTokens();
   }
 

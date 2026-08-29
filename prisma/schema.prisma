@@ -28,7 +28,7 @@ model User {
   creditCards                 CreditCard[]
   dataDeletionJobs            DataDeletionJob[]
   detectedItems               DetectedItem[]
-  emailConnection             EmailConnection?
+  emailConnections            EmailConnection[]
   emailTransactions           EmailTransaction[]
   financialAccounts           FinancialAccount[]
   fxRates                     FxRate[]
@@ -620,19 +620,29 @@ model PurchaseAttachment {
 }
 
 model EmailConnection {
-  id           String        @id @default(cuid())
-  userId       String        @unique
-  provider     EmailProvider @default(GMAIL)
-  emailAddress String?
-  accessToken  String?
-  refreshToken String?
-  expiry       DateTime?
-  scope        String?
-  lastScanAt   DateTime?
-  scanMode     ScanMode      @default(ALL)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String             @id @default(cuid())
+  userId              String
+  provider            EmailProvider      @default(GMAIL)
+  emailAddress        String
+  accessToken         String?
+  refreshToken        String?
+  expiry              DateTime?
+  scope               String?
+  lastScanAt          DateTime?
+  scanMode            ScanMode           @default(ALL)
+  backfillCursor      String?
+  backfillCompletedAt DateTime?
+  // Why the scan last failed. 6eb2ada narrowed lastScanAt so it records a
+  // COMPLETED scan, which already distinguishes broken from quiet; this
+  // records *how* it broke, so a support answer does not require server logs.
+  lastScanError       String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailTransactions   EmailTransaction[]
+
+  @@unique([userId, provider, emailAddress])
+  @@index([userId])
 }
 
 model DataDeletionJob {
@@ -713,11 +723,15 @@ model EmailTransaction {
   createdAt        DateTime          @default(now())
   purchaseId       String?
   purchase         Purchase?         @relation(fields: [purchaseId], references: [id])
+  connectionId     String?
+  rfc822MessageId  String?
+  connection       EmailConnection?  @relation(fields: [connectionId], references: [id], onDelete: SetNull)
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   receiptDocuments ReceiptDocument[]
 
   @@unique([userId, provider, messageId])
   @@index([purchaseId])
+  @@index([userId, rfc822MessageId])
   @@index([userId, merchant])
   @@index([userId, purchasedAt])
 }
