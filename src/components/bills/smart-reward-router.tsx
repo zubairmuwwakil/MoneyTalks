@@ -5,6 +5,7 @@ import { Sparkles, Info, CheckCircle2, Circle, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   scoreBillRoutes,
+  type BillRouteWalletCard,
   type RouteRecommendation,
 } from "@/engine/billRouteScorer";
 import type { BillIntermediary } from "@/lib/contracts/billIntermediaries";
@@ -12,30 +13,32 @@ import type { BillIntermediary } from "@/lib/contracts/billIntermediaries";
 interface SmartRewardRouterProps {
   payeeName: string;
   monthlyCad?: number;
-  ownedCardIds?: (string | null | undefined)[];
+  ownedCards?: BillRouteWalletCard[];
   selectedRouteId?: string;
   onSelectRoute?: (route: RouteRecommendation) => void;
+  fieldName?: string;
 }
 
 export function SmartRewardRouter({
   payeeName,
   monthlyCad = 150,
-  ownedCardIds = ["scotiabank-momentum-vi", "triangle-we"],
+  ownedCards = [],
   selectedRouteId,
   onSelectRoute,
+  fieldName = "selectedRouteId",
 }: SmartRewardRouterProps) {
-  const [internalSelectedId, setInternalSelectedId] = useState<string>("");
+  const [internalSelectedId, setInternalSelectedId] = useState<string>(selectedRouteId ?? "");
   const [activeIntermediary, setActiveIntermediary] = useState<BillIntermediary | null>(null);
-
-  const cleanOwnedCardIds = (ownedCardIds ?? []).filter((id): id is string => Boolean(id));
 
   const routes = scoreBillRoutes({
     payeeName,
     monthlyCad,
-    ownedCardIds: cleanOwnedCardIds,
+    ownedCards,
   });
 
-  const currentSelectedId = selectedRouteId || internalSelectedId || routes[0]?.id;
+  const currentSelectedId = routes.some((route) => route.id === internalSelectedId)
+    ? internalSelectedId
+    : "";
 
   const handleSelect = (route: RouteRecommendation) => {
     setInternalSelectedId(route.id);
@@ -48,6 +51,7 @@ export function SmartRewardRouter({
 
   return (
     <div className="rounded-xl border border-primary/20 bg-primary/[0.02] p-4 sm:p-5 shadow-2xs space-y-4">
+      <input type="hidden" name={fieldName} value={currentSelectedId} />
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
         <div className="flex items-center gap-2">
@@ -57,13 +61,19 @@ export function SmartRewardRouter({
           </h2>
         </div>
         <Badge variant="outline" className="text-[10px] font-semibold text-primary border-primary/30">
-          PickMe Net Spread Engine
+          Contract-backed Net Spread Engine
         </Badge>
       </div>
 
       <p className="text-xs text-muted-foreground">
         We evaluated municipal bill pay rules against your wallet to rank the most profitable payment rails after fees:
       </p>
+
+      {!currentSelectedId ? (
+        <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+          Choose a route below to save it with this payee.
+        </p>
+      ) : null}
 
       {/* Routes Grid */}
       <div className="space-y-2.5">

@@ -9,6 +9,7 @@ import {
   setBillCadence,
   setBillPaymentCard,
   setBillPaymentRail,
+  setBillRoute,
   setBillSpendCategory,
   unmarkPaid,
   updateBillPayeeDetails,
@@ -25,6 +26,7 @@ import { formatMinorUnits, type Currency } from "@/engine/money";
 import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
 import { computeBillAllocation, type BillAllocationResult } from "@/lib/domain/bills/billAllocationSummary";
 import { billSpendCategoryOptions, recommendCardForBill, type BillRecommendationResult } from "@/lib/domain/bills/cardForBill";
+import { buildBillRouteWallet } from "@/lib/domain/bills/billRouteWallet";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { prisma } from "@/lib/prisma";
@@ -198,6 +200,12 @@ export default async function BillDetailPage({
   if (!bill) notFound();
 
   const ownerState = ownerStateRecord ? (ownerStateRecord.stateData as unknown as OwnerState) : null;
+  const routeWalletCards = buildBillRouteWallet(
+    catalogue,
+    ownerState,
+    ownedCards,
+    now.toISOString().slice(0, 10),
+  );
   const fxRates: FxRateInput[] = fxRatesRaw.map((r) => ({
     base: r.base as Currency,
     quote: r.quote as Currency,
@@ -316,6 +324,13 @@ export default async function BillDetailPage({
     "use server";
     const result = await setBillPaymentCard(formData);
     if (!result.ok) redirect(billErrorPath(id, "paymentCard", result.error));
+    redirect(`/bills/${id}`);
+  }
+
+  async function submitSetBillRoute(formData: FormData) {
+    "use server";
+    const result = await setBillRoute(formData);
+    if (!result.ok) redirect(billErrorPath(id, "billRoute", result.error));
     redirect(`/bills/${id}`);
   }
 
@@ -481,13 +496,21 @@ export default async function BillDetailPage({
         </p>
         <BillCardRecommendationPanel rec={cardRec} />
 
-        <div className="mt-4">
+        <form action={submitSetBillRoute} className="mt-4 space-y-3">
+          <input type="hidden" name="billId" value={bill.id} />
           <SmartRewardRouter
             payeeName={bill.payee || bill.name}
-            monthlyCad={upcoming[0] ? upcoming[0].amountMinor / 100 : 150}
-            ownedCardIds={ownedCards.flatMap((c) => (c.contractCardId ? [c.contractCardId] : []))}
+            monthlyCad={upcoming[0] ? upcoming[0].amountMinor / 100 : 0}
+            ownedCards={routeWalletCards}
+            selectedRouteId={bill.selectedRouteId ?? undefined}
           />
-        </div>
+          <div className="flex items-center justify-between gap-3">
+            {errorForm === "billRoute" && error ? (
+              <p className="text-xs font-medium text-red-600" role="alert">{error}</p>
+            ) : <span />}
+            <Button type="submit" variant="outline" size="sm">Save route</Button>
+          </div>
+        </form>
 
         <div className="mt-5 space-y-4 border-t border-border/60 pt-4">
           <div>

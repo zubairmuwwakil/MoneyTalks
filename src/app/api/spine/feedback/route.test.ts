@@ -23,6 +23,7 @@ describe("GET /api/spine/feedback", () => {
       merchantRaw: "Coffee", merchantNormalized: "Cafe",
       amountRaw: new Prisma.Decimal("6.42"), currencyRaw: "CAD", cardRaw: "Amex Cobalt",
       resolvedCardId: "amex-cobalt",
+      latitude: 43.8501, longitude: -79.0202, locationAccuracyMeters: 14.5,
       feedbackVerdict: "warning",
       feedbackWarning: "⚠ Cobalt would have earned ~$0.74 more",
     }] as never);
@@ -33,7 +34,9 @@ describe("GET /api/spine/feedback", () => {
       capturedAtRaw: "2026-08-17T09:30:00-04:00", capturedTimezone: "America/Toronto",
       merchantRaw: "Coffee", merchantNormalized: "Cafe",
       amountMinor: 642, currency: "CAD", cardRaw: "Amex Cobalt",
-      resolvedCardId: "amex-cobalt", verdict: "warning",
+      resolvedCardId: "amex-cobalt",
+      latitude: 43.8501, longitude: -79.0202, locationAccuracyMeters: 14.5,
+      verdict: "warning",
       warning: "⚠ Cobalt would have earned ~$0.74 more",
     }] });
     expect(prisma.walletEvent.findMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -51,6 +54,7 @@ describe("GET /api/spine/feedback", () => {
       merchantRaw: "SQ *CAFE", merchantNormalized: null,
       amountRaw: new Prisma.Decimal("6.42"), currencyRaw: "CAD",
       cardRaw: "Some Unknown Card", resolvedCardId: null,
+      latitude: null, longitude: null, locationAccuracyMeters: null,
       feedbackVerdict: "unknown", feedbackWarning: null,
     }] as never);
 

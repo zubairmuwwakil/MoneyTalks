@@ -63,6 +63,9 @@ export const billCore = z.object({
   // `.extend()`. The consequential case — a third-party rail with NO fee —
   // is enforced where it matters, by blocking the recommendation outright.
   railFeePct: optional(z.coerce.number().min(0).max(100)),
+  // Stable IDs from the bill-intermediaries contract. The server re-scores
+  // the submitted route against the user's current wallet before persisting.
+  selectedRouteId: optional(z.string().trim().min(1).max(160)),
 });
 
 export const billImportEntry = billCore.extend({

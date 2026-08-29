@@ -14,6 +14,7 @@ import {
 import { TaxCalculator } from "@/components/bills/tax-calculator";
 import { SmartRewardRouter } from "@/components/bills/smart-reward-router";
 import { Badge } from "@/components/ui/badge";
+import type { BillRouteWalletCard } from "@/engine/billRouteScorer";
 
 const input =
   "flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-sm shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring";
@@ -135,7 +136,13 @@ function findPayeeSuggestion(
   return null;
 }
 
-export function BillFormFields({ spendCategoryOptions }: { spendCategoryOptions: SpendCategoryOption[] }) {
+export function BillFormFields({
+  spendCategoryOptions,
+  routeWalletCards,
+}: {
+  spendCategoryOptions: SpendCategoryOption[];
+  routeWalletCards: BillRouteWalletCard[];
+}) {
   const todayIso = useMemo(() => getISODateToday(), []);
 
   const [name, setName] = useState("");
@@ -475,17 +482,23 @@ export function BillFormFields({ spendCategoryOptions }: { spendCategoryOptions:
           <div className="pt-2">
             <SmartRewardRouter
               payeeName={payee.trim() || name.trim()}
-              monthlyCad={Number(amount) > 0 ? Number(amount) : 150}
+              monthlyCad={Number(amount) > 0 ? Number(amount) : 0}
+              ownedCards={routeWalletCards}
               onSelectRoute={(route) => {
-                if (route.intermediary.id === "chexy") {
-                  setPaymentRail("card_via_third_party");
-                  setRailFeePct("1.75");
-                } else if (route.intermediary.id === "triangle-bill-pay") {
-                  setPaymentRail("card");
-                  setRailFeePct("");
-                } else if (route.intermediary.id === "neobanc" || route.intermediary.id === "standard-eft") {
-                  setPaymentRail("pad");
-                  setRailFeePct("");
+                switch (route.intermediary.type) {
+                  case "creditIntermediary":
+                    setPaymentRail("card_via_third_party");
+                    setRailFeePct(String(Math.round(route.intermediary.feeRate * 10_000) / 100));
+                    break;
+                  case "cardDirectBillPay":
+                    setPaymentRail("card");
+                    setRailFeePct("");
+                    break;
+                  case "fintechAccountRouting":
+                  case "standardEft":
+                    setPaymentRail("pad");
+                    setRailFeePct("");
+                    break;
                 }
               }}
             />

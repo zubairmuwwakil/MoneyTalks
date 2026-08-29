@@ -7,7 +7,9 @@ import { billOccurrences, type BillDef } from "@/engine/billforecast";
 import type { FxRateInput } from "@/engine/fx";
 import { parseDollarsToMinor, type Currency } from "@/engine/money";
 import { amountOn, type Cadence, type ScheduleEntry } from "@/engine/recurrence";
+import { scoreBillRoutes } from "@/engine/billRouteScorer";
 import { billSpendCategoryOptions, recommendCardForBill } from "@/lib/domain/bills/cardForBill";
+import { buildBillRouteWallet } from "@/lib/domain/bills/billRouteWallet";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { prisma } from "@/lib/prisma";
@@ -36,11 +38,56 @@ async function ownedBill(userId: string, billId: string) {
   return bill;
 }
 
+async function resolveSelectedRoute(
+  userId: string,
+  routeId: string,
+  payeeName: string,
+  monthlyCad: number,
+) {
+  const [ownerStateRecord, storedCards] = await Promise.all([
+    ensureOwnerStateRecord(prisma, userId),
+    prisma.creditCard.findMany({
+      where: { userId },
+      select: { id: true, nickname: true, contractCardId: true },
+      orderBy: { nickname: "asc" },
+    }),
+  ]);
+  const ownerState = ownerStateRecord ? (ownerStateRecord.stateData as unknown as OwnerState) : null;
+  const wallet = buildBillRouteWallet(
+    catalogue,
+    ownerState,
+    storedCards,
+    new Date().toISOString().slice(0, 10),
+  );
+  const route = scoreBillRoutes({ payeeName, monthlyCad, ownedCards: wallet })
+    .find((candidate) => candidate.id === routeId);
+  if (!route) throw new Error("That payment route is no longer available in your wallet.");
+
+  const routeFields = {
+    selectedRouteId: route.id,
+    selectedRouteIntermediaryId: route.intermediary.id,
+    paymentCardId: route.walletCardId,
+  };
+  switch (route.intermediary.type) {
+    case "creditIntermediary":
+      return {
+        ...routeFields,
+        paymentRail: "card_via_third_party",
+        railFeePct: Math.round(route.intermediary.feeRate * 10_000) / 100,
+      };
+    case "cardDirectBillPay":
+      return { ...routeFields, paymentRail: "card", railFeePct: null };
+    case "fintechAccountRouting":
+    case "standardEft":
+      return { ...routeFields, paymentRail: "pad", railFeePct: null };
+  }
+}
+
 export async function createBill(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const parsed = billFormInput.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0]?.message);
-  const { cadenceJson, scheduleJson, ...core } = parsed.data;
+  const { cadenceJson, scheduleJson, selectedRouteId, ...core } = parsed.data;
 
   if (core.spendCategory && !spendCategoryOptions.some((o) => o.value === core.spendCategory)) {
     return { ok: false, error: `Unrecognized spend category "${core.spendCategory}".` };
@@ -56,11 +103,58 @@ export async function createBill(formData: FormData): Promise<ActionResult> {
     return { ok: false, error: `A bill named "${core.name}" already exists — open it to edit.` };
   }
 
-  await prisma.bill.create({
-    data: { ...core, userId, cadence: asJson(cadenceJson), schedule: asJson(scheduleJson) },
-  });
+  try {
+    const routeData = selectedRouteId
+      ? await resolveSelectedRoute(
+          userId,
+          selectedRouteId,
+          core.payee ?? core.name,
+          scheduleJson[0].amountMinor / 100,
+        )
+      : {};
+    await prisma.bill.create({
+      data: {
+        ...core,
+        ...routeData,
+        userId,
+        cadence: asJson(cadenceJson),
+        schedule: asJson(scheduleJson),
+      },
+    });
+  } catch (e) {
+    return fail(e);
+  }
   revalidatePath("/bills");
   revalidatePath("/");
+  return { ok: true };
+}
+
+export async function setBillRoute(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const routeId = String(formData.get("selectedRouteId") ?? "").trim();
+  try {
+    const bill = await ownedBill(userId, String(formData.get("billId") ?? ""));
+    if (!routeId) {
+      await prisma.bill.update({
+        where: { id: bill.id },
+        data: { selectedRouteId: null, selectedRouteIntermediaryId: null },
+      });
+    } else {
+      const schedule = bill.schedule as unknown as ScheduleEntry[];
+      const routeData = await resolveSelectedRoute(
+        userId,
+        routeId,
+        bill.payee ?? bill.name,
+        (schedule[0]?.amountMinor ?? 0) / 100,
+      );
+      await prisma.bill.update({ where: { id: bill.id }, data: routeData });
+    }
+    revalidatePath(`/bills/${bill.id}`);
+    revalidatePath("/bills");
+    revalidatePath("/");
+  } catch (e) {
+    return fail(e);
+  }
   return { ok: true };
 }
 
@@ -483,4 +577,3 @@ export async function updateBillPayeeDetails(formData: FormData): Promise<Action
   }
   return { ok: true };
 }
-

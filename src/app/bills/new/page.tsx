@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, PlusCircle, Receipt, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, PlusCircle, Receipt, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createBill } from "@/app/bills/actions";
-import type { Catalogue } from "@/engine/cards-twin";
+import type { Catalogue, OwnerState } from "@/engine/cards-twin";
 import { billSpendCategoryOptions } from "@/lib/domain/bills/cardForBill";
+import { buildBillRouteWallet } from "@/lib/domain/bills/billRouteWallet";
+import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
+import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { BillFormFields } from "./form-fields";
 
@@ -20,8 +23,25 @@ export default async function NewBillPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  await requireUserId();
+  const userId = await requireUserId();
   const { error } = await searchParams;
+  const [ownerStateRecord, storedCards] = await Promise.all([
+    ensureOwnerStateRecord(prisma, userId),
+    prisma.creditCard.findMany({
+      where: { userId },
+      select: { id: true, nickname: true, contractCardId: true },
+      orderBy: { nickname: "asc" },
+    }),
+  ]);
+  const ownerState = ownerStateRecord
+    ? (ownerStateRecord.stateData as unknown as OwnerState)
+    : null;
+  const routeWalletCards = buildBillRouteWallet(
+    catalogue,
+    ownerState,
+    storedCards,
+    new Date().toISOString().slice(0, 10),
+  );
 
   async function submit(formData: FormData) {
     "use server";
@@ -42,9 +62,9 @@ export default async function NewBillPage({
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Add New Bill</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Add Payee</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Set up recurring cadence, calculate provincial sales tax, and optimize card rewards.
+              Save a bill payee, choose its payment route, and add the recurring schedule.
             </p>
           </div>
         </div>
@@ -77,14 +97,17 @@ export default async function NewBillPage({
         </CardHeader>
         <CardContent className="pt-5">
           <form action={submit} className="space-y-6">
-            <BillFormFields spendCategoryOptions={spendCategoryOptions} />
+            <BillFormFields
+              spendCategoryOptions={spendCategoryOptions}
+              routeWalletCards={routeWalletCards}
+            />
             <div className="pt-3 border-t border-border/60">
               <button
                 type="submit"
                 className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-sm hover:bg-foreground/90 active:scale-[0.99] transition-all cursor-pointer"
               >
                 <PlusCircle className="size-4" />
-                <span>Save and Create Bill</span>
+                <span>Save Payee &amp; Route</span>
               </button>
             </div>
           </form>

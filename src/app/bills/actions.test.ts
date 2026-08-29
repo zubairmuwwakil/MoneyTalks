@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { allocateRecommendedCard, setBillCadence, setBillPaymentRail } from "./actions";
+import { allocateRecommendedCard, createBill, setBillCadence, setBillPaymentRail, setBillRoute } from "./actions";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { revalidatePath } from "next/cache";
@@ -14,9 +14,12 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     bill: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
       update: vi.fn(),
     },
     creditCard: {
+      findMany: vi.fn(),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
@@ -168,6 +171,132 @@ describe("allocateRecommendedCard", () => {
     const result = await allocateRecommendedCard(formData);
     expect(result).toEqual({ ok: false, error: "No recommendation is available for this bill yet." });
     expect(prisma.bill.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("setBillRoute", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(requireUserId).mockResolvedValue("user-1");
+    vi.mocked(ensureOwnerStateRecord).mockResolvedValue({
+      id: "owner-1",
+      userId: "user-1",
+      stateData: {
+        ownerStateVersion: "default-1",
+        ownedCardIds: ["scotia-momentum-vi-plus"],
+        defaultCardId: "scotia-momentum-vi-plus",
+        switchThreshold: { minAdvantagePercentagePoints: 0.5, minAdvantageCad: 0.25, semantics: "both" },
+        carry: { drawerCards: [] },
+        cardStates: {},
+        valuationsCad: {
+          cashBack: { cadPerDollar: 1 },
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as never);
+    vi.mocked(prisma.bill.findFirst).mockResolvedValue({
+      id: "bill-1",
+      userId: "user-1",
+      name: "Water bill",
+      payee: "Toronto Hydro",
+      schedule: [{ from: "2026-01-01", amountMinor: 15000 }],
+    } as never);
+    vi.mocked(prisma.creditCard.findMany).mockResolvedValue([{
+      id: "wallet-card-1",
+      nickname: "My Momentum",
+      contractCardId: "scotia-momentum-vi-plus",
+    }] as never);
+    vi.mocked(prisma.bill.update).mockResolvedValue({} as never);
+  });
+
+  it("persists a contract route and resolves its card back to the live wallet row", async () => {
+    const fd = new FormData();
+    fd.set("billId", "bill-1");
+    fd.set("selectedRouteId", "chexy:scotia-momentum-vi-plus");
+
+    const result = await setBillRoute(fd);
+
+    expect(result).toEqual({ ok: true });
+    expect(prisma.bill.update).toHaveBeenCalledWith({
+      where: { id: "bill-1" },
+      data: {
+        selectedRouteId: "chexy:scotia-momentum-vi-plus",
+        selectedRouteIntermediaryId: "chexy",
+        paymentCardId: "wallet-card-1",
+        paymentRail: "card_via_third_party",
+        railFeePct: 1.75,
+      },
+    });
+  });
+
+  it("refuses a route that is not available in the current wallet", async () => {
+    const fd = new FormData();
+    fd.set("billId", "bill-1");
+    fd.set("selectedRouteId", "triangle-bill-pay:triangle-we");
+
+    const result = await setBillRoute(fd);
+
+    expect(result).toEqual({ ok: false, error: "That payment route is no longer available in your wallet." });
+    expect(prisma.bill.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("createBill route persistence", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(requireUserId).mockResolvedValue("user-1");
+    vi.mocked(prisma.bill.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.bill.create).mockResolvedValue({ id: "bill-new" } as never);
+    vi.mocked(prisma.creditCard.findMany).mockResolvedValue([{
+      id: "wallet-card-1",
+      nickname: "My Momentum",
+      contractCardId: "scotia-momentum-vi-plus",
+    }] as never);
+    vi.mocked(ensureOwnerStateRecord).mockResolvedValue({
+      id: "owner-1",
+      userId: "user-1",
+      stateData: {
+        ownerStateVersion: "default-1",
+        ownedCardIds: ["scotia-momentum-vi-plus"],
+        defaultCardId: "scotia-momentum-vi-plus",
+        switchThreshold: { minAdvantagePercentagePoints: 0.5, minAdvantageCad: 0.25, semantics: "both" },
+        carry: { drawerCards: [] },
+        cardStates: {},
+        valuationsCad: { cashBack: { cadPerDollar: 1 } },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as never);
+  });
+
+  it("stores the new payee and its server-validated selected route together", async () => {
+    const fd = new FormData();
+    fd.set("name", "Home hydro");
+    fd.set("payee", "Toronto Hydro");
+    fd.set("category", "utilities");
+    fd.set("currency", "CAD");
+    fd.set("paymentRail", "unknown");
+    fd.set("cadenceJson", JSON.stringify({ type: "MONTHLY", dayOfMonth: 1 }));
+    fd.set("scheduleJson", JSON.stringify([{ from: "2026-08-01", amount: "150" }]));
+    fd.set("selectedRouteId", "chexy:scotia-momentum-vi-plus");
+
+    const result = await createBill(fd);
+
+    expect(result).toEqual({ ok: true });
+    expect(prisma.bill.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: "user-1",
+        name: "Home hydro",
+        payee: "Toronto Hydro",
+        selectedRouteId: "chexy:scotia-momentum-vi-plus",
+        selectedRouteIntermediaryId: "chexy",
+        paymentCardId: "wallet-card-1",
+        paymentRail: "card_via_third_party",
+        railFeePct: 1.75,
+      }),
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/bills");
   });
 });
 

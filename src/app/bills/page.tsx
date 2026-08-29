@@ -29,6 +29,7 @@ import { recommendCardForBill, type BillRecommendationResult } from "@/lib/domai
 import { buildBillImpact } from "@/lib/domain/bills/billImpact";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
+import { billIntermediaries } from "@/lib/contracts/billIntermediaries";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
@@ -39,6 +40,7 @@ import { requireUserId } from "@/lib/require-user";
 // ownerStateRecord.stateData's cast to OwnerState in the wallet-events
 // route — see src/app/api/v1/wallet-events/route.ts).
 const catalogue = cardCatalogue as unknown as Catalogue;
+const intermediaryById = new Map(billIntermediaries.map((intermediary) => [intermediary.id, intermediary]));
 
 /**
  * Compact "pay with" hint for a bill row. Renders nothing for statuses that
@@ -261,7 +263,15 @@ export default async function BillsPage({
       occurrenceCount12mo,
       amountIsEstimate: b.variable,
     });
-    return { bill: b, next, rec, alloc, paymentCardName: paymentCard?.nickname ?? null };
+    const savedIntermediary = b.selectedRouteIntermediaryId
+      ? intermediaryById.get(b.selectedRouteIntermediaryId) ?? null
+      : null;
+    const routeLabel = savedIntermediary
+      ? `${savedIntermediary.name}${paymentCard?.nickname ? ` · ${paymentCard.nickname}` : ""}`
+      : b.selectedRouteId
+        ? "Saved route unavailable"
+        : null;
+    return { bill: b, next, rec, alloc, paymentCardName: paymentCard?.nickname ?? null, routeLabel };
   });
 
   const allocationSummary = summarizeBillAllocations(withNext.map(({ alloc }) => alloc));
@@ -302,7 +312,7 @@ export default async function BillsPage({
           <Button asChild size="sm">
             <Link href="/bills/new" className="flex items-center gap-1.5">
               <Plus className="size-3.5" />
-              <span>Add bill</span>
+              <span>Add payee</span>
             </Link>
           </Button>
         </div>
@@ -335,7 +345,7 @@ export default async function BillsPage({
           title="No bills yet"
           description="Track subscriptions, utilities, rent/mortgage, and recurring debt payments."
           action={{
-            label: "Add your first bill",
+            label: "Add your first payee",
             href: "/bills/new",
           }}
           secondaryAction={{
@@ -369,7 +379,7 @@ export default async function BillsPage({
               <ul className="divide-y divide-border/60 rounded-xl border border-border/80 bg-card shadow-2xs overflow-hidden">
                 {withNext
                   .filter(({ bill }) => bill.category === category)
-                  .map(({ bill, next, rec, alloc, paymentCardName }) => (
+                  .map(({ bill, next, rec, alloc, paymentCardName, routeLabel }) => (
                     <li key={bill.id} className="transition-colors hover:bg-muted/40">
                       <Link
                         href={`/bills/${bill.id}`}
@@ -396,6 +406,9 @@ export default async function BillsPage({
                               {bill.payee ? `Payee: ${bill.payee}` : ""}
                               {bill.accountNumber ? ` · Acct: ${bill.accountNumber}` : ""}
                             </p>
+                          ) : null}
+                          {routeLabel ? (
+                            <p className="text-xs font-medium text-primary">Route: {routeLabel}</p>
                           ) : null}
                           <BillCardHint rec={rec} />
                           {paymentCardName ? <BillAllocationStatus alloc={alloc} cardName={paymentCardName} /> : null}

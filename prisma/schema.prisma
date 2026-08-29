@@ -294,30 +294,32 @@ model Alert {
 }
 
 model Bill {
-  id                 String      @id @default(cuid())
-  userId             String
-  name               String
-  category           String
-  payee              String?
-  accountNumber      String?
-  sourceAccountId    String?
-  currency           String      @default("CAD")
-  autopay            Boolean     @default(false)
-  variable           Boolean     @default(false)
-  notes              String?
-  cadence            Json
-  schedule           Json
-  prepaymentMonthDay String?
-  interestRatePct    Decimal?
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-  spendCategory      String?
-  paymentCardId      String?
-  paymentRail        String      @default("unknown")
-  railFeePct         Decimal?
-  paymentCard        CreditCard? @relation(fields: [paymentCardId], references: [id])
-  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payments           Payment[]
+  id                          String      @id @default(cuid())
+  userId                      String
+  name                        String
+  category                    String
+  payee                       String?
+  accountNumber               String?
+  sourceAccountId             String?
+  currency                    String      @default("CAD")
+  autopay                     Boolean     @default(false)
+  variable                    Boolean     @default(false)
+  notes                       String?
+  cadence                     Json
+  schedule                    Json
+  prepaymentMonthDay          String?
+  interestRatePct             Decimal?
+  createdAt                   DateTime    @default(now())
+  updatedAt                   DateTime    @updatedAt
+  spendCategory               String?
+  paymentCardId               String?
+  paymentRail                 String      @default("unknown")
+  railFeePct                  Decimal?
+  selectedRouteId             String?
+  selectedRouteIntermediaryId String?
+  paymentCard                 CreditCard? @relation(fields: [paymentCardId], references: [id])
+  user                        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments                    Payment[]
 
   @@unique([userId, name])
   @@index([paymentCardId])

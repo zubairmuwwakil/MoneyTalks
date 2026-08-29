@@ -15,6 +15,7 @@ export type BillCategory =
 export interface RouteRecommendation {
   id: string;
   intermediary: BillIntermediary;
+  walletCardId: string | null;
   cardId: string | null;
   cardOfficialName: string | null;
   grossRewardRate: number;
@@ -27,6 +28,20 @@ export interface RouteRecommendation {
   headline: string;
   mathBreakdown: string;
   instruction: string;
+}
+
+/**
+ * The routing engine only needs this small, already-resolved view of the
+ * owner's wallet. Card reward math is derived from the card/owner-state
+ * contracts on the server (see billRouteWallet.ts); the router never guesses
+ * products from a nickname or manufactures a card the owner does not hold.
+ */
+export interface BillRouteWalletCard {
+  walletCardId: string | null;
+  contractCardId: string;
+  programId: string;
+  displayName: string;
+  recurringRewardRate: number;
 }
 
 export function detectBillCategory(payeeName: string): BillCategory {
@@ -55,42 +70,55 @@ export interface ScoreBillRoutesParams {
   payeeName: string;
   accountNumber?: string;
   monthlyCad?: number;
-  ownedCardIds?: string[];
+  ownedCards?: BillRouteWalletCard[];
   intermediariesCatalog?: BillIntermediary[];
+}
+
+function intermediaryCategory(category: BillCategory): string {
+  switch (category) {
+    case "utilities_water":
+    case "utilities_hydro":
+    case "utilities_gas":
+      return "utilities";
+    case "household_expenses":
+      return "household";
+    default:
+      return category;
+  }
 }
 
 export function scoreBillRoutes({
   payeeName,
   monthlyCad = 150.0,
-  ownedCardIds = [],
+  ownedCards = [],
   intermediariesCatalog = billIntermediaries,
 }: ScoreBillRoutesParams): RouteRecommendation[] {
   const detectedCategory = detectBillCategory(payeeName);
+  const contractCategory = intermediaryCategory(detectedCategory);
   const annualSpend = monthlyCad * 12.0;
   const routes: RouteRecommendation[] = [];
 
   for (const intermediary of intermediariesCatalog) {
+    if (!intermediary.supportedCategories.includes(contractCategory)) continue;
+
     switch (intermediary.type) {
       case "creditIntermediary": {
-        const hasScotiaMomentum = ownedCardIds.some(
-          (c) => c.toLowerCase().includes("scotia") || c.toLowerCase().includes("momentum"),
-        );
-        const grossRate = hasScotiaMomentum ? 0.04 : 0.015;
-        const cardName = hasScotiaMomentum
-          ? "Scotiabank Momentum Visa Infinite"
-          : "Standard Cash Back Card";
-        const cardId = hasScotiaMomentum ? "scotiabank-momentum-vi" : "standard-card";
+        const card = [...ownedCards].sort((a, b) => b.recurringRewardRate - a.recurringRewardRate)[0];
+        if (!card) break;
+
+        const grossRate = card.recurringRewardRate;
         const netSpread = grossRate - intermediary.feeRate;
         const mathText = `Earn ${(grossRate * 100).toFixed(1)}% - ${(intermediary.feeRate * 100).toFixed(2)}% fee = ${(netSpread * 100 >= 0 ? "+" : "")}${(netSpread * 100).toFixed(2)}% Net`;
-        const instruction = hasScotiaMomentum
-          ? "Set up pre-authorized recurring payment on Chexy using your Scotia Momentum VI."
-          : "Caution: Using a lower-tier card may reduce net return due to the 1.75% processing fee.";
+        const instruction = netSpread > 0
+          ? `Set up the recurring payment on ${intermediary.name} using ${card.displayName}.`
+          : `${card.displayName}'s modeled rewards do not cover ${intermediary.name}'s processing fee.`;
 
         routes.push({
-          id: `${intermediary.id}_${cardId}`,
+          id: `${intermediary.id}:${card.contractCardId}`,
           intermediary,
-          cardId,
-          cardOfficialName: cardName,
+          walletCardId: card.walletCardId,
+          cardId: card.contractCardId,
+          cardOfficialName: card.displayName,
           grossRewardRate: grossRate,
           feeRate: intermediary.feeRate,
           floatYieldRate: 0,
@@ -98,7 +126,7 @@ export function scoreBillRoutes({
           annualSpendCad: annualSpend,
           estimatedAnnualNetCad: Math.round(annualSpend * netSpread * 100) / 100,
           isOptimal: false,
-          headline: hasScotiaMomentum ? "Maximum Points / Cash Back Route" : "Credit Card Processing Route",
+          headline: netSpread > 0 ? "Maximum Points / Cash Back Route" : "Credit Card Processing Route",
           mathBreakdown: mathText,
           instruction,
         });
@@ -106,38 +134,48 @@ export function scoreBillRoutes({
       }
 
       case "cardDirectBillPay": {
-        const ownsTriangle = ownedCardIds.some((c) => c.toLowerCase().includes("triangle"));
         const directRate = intermediary.directRewardRate ?? 0.01;
-        const mathText = `Direct Bill Pay (0% fee) = +${(directRate * 100).toFixed(1)}% Net CT Money`;
+        const rewardProgram = intermediary.directRewardProgramId ?? "rewards";
+        const mathText = `Direct Bill Pay (${(intermediary.feeRate * 100).toFixed(1)}% fee) = +${((directRate - intermediary.feeRate) * 100).toFixed(1)}% Net ${rewardProgram}`;
+        const eligibleCards = ownedCards.filter((card) =>
+          !intermediary.restrictedCardPrograms?.length ||
+          intermediary.restrictedCardPrograms.includes(card.contractCardId) ||
+          intermediary.restrictedCardPrograms.includes(card.programId),
+        );
 
-        routes.push({
-          id: `${intermediary.id}_${ownsTriangle ? "triangle-we" : "triangle-opportunity"}`,
-          intermediary,
-          cardId: ownsTriangle ? "triangle-we" : "triangle-mastercard-opportunity",
-          cardOfficialName: ownsTriangle ? "Triangle World Elite Mastercard" : "Canadian Tire Triangle Mastercard",
-          grossRewardRate: directRate,
-          feeRate: 0,
-          floatYieldRate: 0,
-          netSpreadRate: directRate,
-          annualSpendCad: annualSpend,
-          estimatedAnnualNetCad: Math.round(annualSpend * directRate * 100) / 100,
-          isOptimal: false,
-          headline: ownsTriangle ? "Zero-Fee Card Direct Bill Pay" : "No-Fee Municipal Payee Loophole",
-          mathBreakdown: mathText,
-          instruction: "Log into Canadian Tire Bank portal and add this bill payee to earn 1% CT Money with 0% fees.",
-        });
+        for (const card of eligibleCards) {
+          routes.push({
+            id: `${intermediary.id}:${card.contractCardId}`,
+            intermediary,
+            walletCardId: card.walletCardId,
+            cardId: card.contractCardId,
+            cardOfficialName: card.displayName,
+            grossRewardRate: directRate,
+            feeRate: intermediary.feeRate,
+            floatYieldRate: 0,
+            netSpreadRate: directRate - intermediary.feeRate,
+            annualSpendCad: annualSpend,
+            estimatedAnnualNetCad: Math.round(annualSpend * (directRate - intermediary.feeRate) * 100) / 100,
+            isOptimal: false,
+            headline: "Zero-Fee Card Direct Bill Pay",
+            mathBreakdown: mathText,
+            instruction: `Use ${card.displayName} in ${intermediary.name} to pay this payee.`,
+          });
+        }
         break;
       }
 
       case "fintechAccountRouting": {
-        const floatRate = 0.0075; // Effective compound interest on float + perks
-        const mathText = "0% Fee + High-Yield Float Interest (~2.5% APY on held funds)";
+        const holdingApy = intermediary.holdingApy ?? 0;
+        const floatRate = holdingApy * (intermediary.settlementDays / 365);
+        const mathText = `0% Fee + ${(holdingApy * 100).toFixed(1)}% APY during the ${intermediary.settlementDays}-day settlement float`;
 
         routes.push({
-          id: `${intermediary.id}_neo-money`,
+          id: intermediary.id,
           intermediary,
+          walletCardId: null,
           cardId: null,
-          cardOfficialName: "Neo Money Account",
+          cardOfficialName: null,
           grossRewardRate: 0,
           feeRate: 0,
           floatYieldRate: floatRate,
@@ -154,10 +192,11 @@ export function scoreBillRoutes({
 
       case "standardEft": {
         routes.push({
-          id: `${intermediary.id}_chequing`,
+          id: intermediary.id,
           intermediary,
+          walletCardId: null,
           cardId: null,
-          cardOfficialName: "Big-5 Chequing Account",
+          cardOfficialName: null,
           grossRewardRate: 0,
           feeRate: 0,
           floatYieldRate: 0,
