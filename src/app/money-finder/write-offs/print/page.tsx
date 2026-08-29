@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, FileSpreadsheet, Printer, ShieldCheck } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { classifyWriteOff } from "@/engine/tax-writeoffs/classifyWriteOff";
 import { summarizeWriteOffs, type WriteOffItem } from "@/engine/tax-writeoffs/writeOffSummary";
 import { calculateItcRefund } from "@/engine/tax-writeoffs/itcTracker";

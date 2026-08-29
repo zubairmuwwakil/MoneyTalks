@@ -6,24 +6,17 @@ import {
   ArrowLeft,
   Building2,
   Calendar,
-  CheckCircle2,
   Coins,
   Download,
   FileCheck,
   FileSpreadsheet,
   FileText,
-  Filter,
-  HelpCircle,
-  Home,
   Laptop,
-  Percent,
   Printer,
   Receipt,
   Search,
   ShieldCheck,
-  SlidersHorizontal,
   Sparkles,
-  TrendingDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -147,11 +140,9 @@ export function WriteOffsClient({
 
   // Handler for Mileage Allowance addition
   const handleAddMileageAllowance = ({
-    totalKm,
     amountMinor,
     notes,
   }: {
-    totalKm: number;
     amountMinor: number;
     notes: string;
   }) => {
@@ -310,6 +301,15 @@ export function WriteOffsClient({
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 space-y-1">
+            <label className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isGstRegistered}
+                onChange={(event) => setIsGstRegistered(event.target.checked)}
+                className="rounded accent-primary"
+              />
+              <span>GST/HST registered</span>
+            </label>
             <div className="flex items-center justify-between text-[11px] text-muted-foreground">
               <span>CRA GST34 Line 108:</span>
               <select
@@ -348,10 +348,7 @@ export function WriteOffsClient({
 
       {/* Home Office & Vehicle Mileage Wizards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <HomeOfficeWizard
-          currentWorkspacePct={15}
-          onApplyRatio={handleApplyHomeOfficeRatio}
-        />
+        <HomeOfficeWizard onApplyRatio={handleApplyHomeOfficeRatio} />
         <MileageWizard
           onAddMileageAllowance={handleAddMileageAllowance}
         />

@@ -6,10 +6,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  MapPin,
   Plus,
-  RotateCcw,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +20,6 @@ import { formatMinorUnits } from "@/engine/money";
 
 interface MileageWizardProps {
   onAddMileageAllowance: (allowanceItem: {
-    totalKm: number;
     amountMinor: number;
     notes: string;
   }) => void;
@@ -81,7 +77,6 @@ export function MileageWizard({
   const handleApplyToSummary = () => {
     if (allowance.totalAllowanceMinor <= 0) return;
     onAddMileageAllowance({
-      totalKm,
       amountMinor: allowance.totalAllowanceMinor,
       notes: `Vehicle Logbook: ${totalKm} km driven @ CRA prescribed rate ($0.70/km first 5,000 km, $0.64/km thereafter)`,
     });
