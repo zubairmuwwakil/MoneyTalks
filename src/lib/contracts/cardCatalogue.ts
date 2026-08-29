@@ -305,12 +305,28 @@ const certificateProvenanceSchema = z.strictObject({
   verificationStatus: benefitVerificationSchema,
 });
 
+// Optional in benefits-catalogue 1.2+, matching PickMe's CardDocument model.
+// This is deliberately strict: unlike card/benefit entries, cardDocument does
+// not permit underscore-prefixed annotations in the shared JSON Schema.
+const cardDocumentSchema = z.strictObject({
+  documentId: z.string(),
+  kind: z.string(),
+  title: z.string(),
+  url: z.string().url(),
+  effectiveDate: z.string().nullable().optional(),
+  jurisdiction: z.string().nullable().optional(),
+  verificationStatus: benefitVerificationSchema,
+  lastVerifiedAt: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
 // annotatedObject for the same reason as benefitSchema: the schema allows
 // "_"-prefixed annotations on a card entry.
 const cardBenefitsSchema = annotatedObject({
   cardId: z.string(),
   certificate: certificateProvenanceSchema,
   benefits: z.array(benefitSchema),
+  documents: z.array(cardDocumentSchema).optional(),
 });
 
 const benefitsTriggersSchema = z.strictObject({
@@ -328,6 +344,7 @@ export const benefitsCatalogueSchema = annotatedObject({
 });
 
 export type Benefit = z.infer<typeof benefitSchema>;
+export type CardDocument = z.infer<typeof cardDocumentSchema>;
 export type CardBenefits = z.infer<typeof cardBenefitsSchema>;
 export type BenefitsCatalogue = z.infer<typeof benefitsCatalogueSchema>;
 
