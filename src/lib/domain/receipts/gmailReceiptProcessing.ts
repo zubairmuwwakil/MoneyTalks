@@ -81,6 +81,27 @@ function emailTransactionData(
 
 type ReceiptTransaction = Prisma.TransactionClient;
 
+const TRIVIAL_ORDER_NUMBERS = new Set([
+  "n/a",
+  "na",
+  "none",
+  "null",
+  "unknown",
+  "not available",
+]);
+
+/**
+ * Order ids come from untrusted merchant templates. Reject missing-value
+ * placeholders and punctuation-only/very short fragments: a false merge is
+ * irreversible, while a miss merely leaves a duplicate for later review.
+ */
+function usableOrderNumber(value: string | null): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed || TRIVIAL_ORDER_NUMBERS.has(trimmed.toLowerCase())) return null;
+  const meaningfulCharacters = trimmed.match(/[a-z0-9]/gi)?.length ?? 0;
+  return meaningfulCharacters >= 3 ? trimmed : null;
+}
+
 async function promotePurchase(
   db: ReceiptTransaction,
   params: {
@@ -134,6 +155,8 @@ async function promotePurchase(
     currency: normalizeCurrencyCode(emailTransaction.currency),
     source: params.currencySource,
   };
+  let matchedByOrderNumber = false;
+  let orderMatchMayEnrich = false;
 
   if (purchase?.source === "GMAIL") {
     // Reprocessing must clear a historical guessed CAD value, but a linked
@@ -192,10 +215,67 @@ async function promotePurchase(
     }
   }
 
+  if (!purchase) {
+    // Distinct lifecycle messages carry distinct Gmail and RFC822 ids, but a
+    // merchant's order number identifies the real purchase they describe.
+    // `emailTransaction.merchant` has already passed through the shared
+    // merchant resolver above; owner + canonical merchant prevent a common
+    // order like "12345" from crossing either boundary.
+    const orderNumber = usableOrderNumber(emailTransaction.orderId);
+    const orderMatch = orderNumber
+      ? await db.purchase.findFirst({
+          where: {
+            userId,
+            merchant: { equals: emailTransaction.merchant, mode: "insensitive" },
+            orderNumber: { equals: orderNumber, mode: "insensitive" },
+          },
+          orderBy: { createdAt: "asc" },
+        })
+      : null;
+
+    if (orderMatch) {
+      purchase = orderMatch;
+      matchedByOrderNumber = true;
+      action = "linked";
+
+      // A details correction is an owner decision. The email remains useful
+      // provenance, but it is no longer allowed to mutate the chosen row.
+      const ownerCorrected = await db.purchaseCorrection.findFirst({
+        where: {
+          userId,
+          purchaseId: purchase.id,
+          kind: "details",
+          undoneAt: null,
+        },
+        select: { id: true },
+      });
+      orderMatchMayEnrich = !ownerCorrected;
+
+      if (orderMatchMayEnrich) {
+        const fillsTotal = purchase.totalCents == null && emailTransaction.totalCents != null;
+        const fillsCurrency = purchase.currency == null && emailCurrency.currency != null;
+        const fillsCategory = purchase.category == null && emailCategory != null;
+        if (fillsTotal || fillsCurrency || fillsCategory) {
+          purchase = await db.purchase.update({
+            where: { id: purchase.id },
+            data: {
+              totalCents: fillsTotal ? emailTransaction.totalCents : undefined,
+              currency: fillsCurrency ? emailCurrency.currency : undefined,
+              currencySource: fillsCurrency ? emailCurrency.source : undefined,
+              category: fillsCategory ? emailCategory : undefined,
+              categorySource: fillsCategory ? emailCategorySource : undefined,
+            },
+          });
+        }
+      }
+    }
+  }
+
   // Deliberately a fresh test rather than an `else`: the twin above may have
-  // resolved the purchase, and findMatchingPurchase must not run when it did.
-  // A shared Message-ID is evidence of ONE message; a merge candidate is only
-  // an inference from amount and date, so evidence goes first.
+  // resolved the purchase, and the order lookup may have done the same.
+  // findMatchingPurchase must not run after either stronger identity signal.
+  // A shared Message-ID is evidence of ONE message; an order number identifies
+  // one merchant order; amount and date are only an inference, so they follow.
   if (!purchase) {
     const observedAt = emailTransaction.purchasedAt ?? message.internalDate ?? new Date();
     const match = emailTransaction.totalCents != null
@@ -213,7 +293,7 @@ async function promotePurchase(
       purchase = await db.purchase.update({
         where: { id: match.purchase.id },
         data: {
-          orderNumber: match.purchase.orderNumber ?? emailTransaction.orderId ?? undefined,
+          orderNumber: match.purchase.orderNumber ?? usableOrderNumber(emailTransaction.orderId) ?? undefined,
           // Gap-fill only, like the category below: the wallet side of this
           // purchase may already carry a currency, and it is not this email's
           // place to restate it.
@@ -236,7 +316,9 @@ async function promotePurchase(
           currency: emailCurrency.currency,
           currencySource: emailCurrency.source,
           purchasedAt: observedAt,
-          orderNumber: emailTransaction.orderId ?? null,
+          // Persist the same conservative key used by the lifecycle lookup so
+          // later messages do not miss because the parser left outer spaces.
+          orderNumber: usableOrderNumber(emailTransaction.orderId),
           paymentMethod: null,
           source: "GMAIL",
           sourceEmailId: message.messageId,
@@ -286,10 +368,31 @@ async function promotePurchase(
     : null;
   const emailOwnsPurchase = purchase.source === "GMAIL" && purchase.sourceEmailId === message.messageId;
 
+  // A lifecycle email can enrich an order that has no item detail, but it may
+  // never replace richer items from the original receipt with a partial or
+  // empty list. Owner corrections disable this enrichment along with fields.
+  if (matchedByOrderNumber && orderMatchMayEnrich && parsedItems && parsedItems.length > 0) {
+    const existingItem = await db.purchaseItem.findFirst({
+      where: { purchaseId: purchase.id },
+      select: { id: true },
+    });
+    if (!existingItem) {
+      await db.purchaseItem.createMany({
+        data: parsedItems.map((item) => ({
+          purchaseId: purchase.id,
+          title: String(item.name ?? "Item"),
+          qty: typeof item.quantity === "number" ? Math.max(1, Math.round(item.quantity)) : null,
+          priceCents: typeof item.price === "number" ? Math.round(item.price * 100) : null,
+          currency: purchase.currency,
+        })),
+      });
+    }
+  }
+
   // An owning email's empty item list is meaningful during reprocessing: it
   // clears stale line items. For a cross-source purchase, leave unrelated
   // items alone unless this email actually supplied replacements.
-  if (emailOwnsPurchase || parsedItems) {
+  if (!matchedByOrderNumber && (emailOwnsPurchase || parsedItems)) {
     await db.purchaseItem.deleteMany({ where: { purchaseId: purchase.id } });
     const items = (parsedItems ?? []).map((item) => ({
       purchaseId: purchase.id,
