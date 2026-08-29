@@ -30,7 +30,7 @@
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: `EmailConnection` without `userId @unique`, with `@@unique([userId, provider, emailAddress])`, `emailAddress String` (NOT NULL), and `backfillCursor String?` / `backfillCompletedAt DateTime?` reserved for phase P3. `EmailTransaction.connectionId String?` and `EmailTransaction.rfc822MessageId String?`, plus `@@index([userId, rfc822MessageId])`.
+- Produces: `EmailConnection` without `userId @unique`, with `@@unique([userId, provider, emailAddress])`, `emailAddress String` (NOT NULL), `lastScanError String?`, and `backfillCursor String?` / `backfillCompletedAt DateTime?` reserved for phase P3. `EmailTransaction.connectionId String?` and `EmailTransaction.rfc822MessageId String?`, plus `@@index([userId, rfc822MessageId])`.
 
 - [ ] **Step 1: Edit the Prisma schema**
 
@@ -39,6 +39,10 @@ In `model EmailConnection`, change `userId String @unique` to `userId String`, c
 ```prisma
   backfillCursor      String?
   backfillCompletedAt DateTime?
+  // Why the scan last failed. 6eb2ada narrowed lastScanAt so it records a
+  // COMPLETED scan, which already distinguishes broken from quiet; this
+  // records *how* it broke, so a support answer does not require server logs.
+  lastScanError       String?
 
   emailTransactions   EmailTransaction[]
 
@@ -77,6 +81,7 @@ CREATE INDEX "EmailConnection_userId_idx" ON "EmailConnection"("userId");
 
 ALTER TABLE "EmailConnection" ADD COLUMN "backfillCursor" TEXT;
 ALTER TABLE "EmailConnection" ADD COLUMN "backfillCompletedAt" TIMESTAMP(3);
+ALTER TABLE "EmailConnection" ADD COLUMN "lastScanError" TEXT;
 
 ALTER TABLE "EmailTransaction" ADD COLUMN "connectionId" TEXT;
 ALTER TABLE "EmailTransaction" ADD COLUMN "rfc822MessageId" TEXT;
@@ -533,7 +538,7 @@ const totals = perConnection.reduce(
 return NextResponse.json({ ok: true, ...totals, perConnection });
 ```
 
-Delete the `prisma.emailConnection.updateMany({ where: { userId } })` in the old `finally` block — `lastScanAt` is now stamped per connection, and stamping it for a mailbox that threw would claim a scan that never happened.
+Replace the owner-wide `updateMany` in the old `finally` block with the per-connection update above. Commit 6eb2ada already established that a mailbox which threw must not be stamped; preserve that, and additionally write `lastScanError` (the caught message on failure, `null` on success) so the reason survives the request.
 
 - [ ] **Step 4: Run the tests**
 
