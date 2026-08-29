@@ -59,6 +59,24 @@ function twinLookup(rows: TwinRow[]) {
   );
 }
 
+function orderLookup<Row extends { userId: string; merchant: string; orderNumber: string | null }>(
+  rows: Row[],
+) {
+  const matches = (row: Row, key: string, condition: unknown) => {
+    const value = row[key as keyof Row];
+    if (condition !== null && typeof condition === "object" && "equals" in condition) {
+      const expected = (condition as { equals: unknown }).equals;
+      return typeof value === "string" && typeof expected === "string"
+        ? value.toLowerCase() === expected.toLowerCase()
+        : value === expected;
+    }
+    return value === condition;
+  };
+  return vi.fn(async ({ where }: { where: Record<string, unknown> }) =>
+    rows.find((row) => Object.entries(where).every(([key, cond]) => matches(row, key, cond))) ?? null,
+  );
+}
+
 const existingTransaction = {
   id: "email-tx-1",
   userId: "user-1",
@@ -88,12 +106,14 @@ function setupDb() {
     },
     purchase: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
     },
-    purchaseItem: { deleteMany: vi.fn(), createMany: vi.fn() },
+    purchaseCorrection: { findFirst: vi.fn() },
+    purchaseItem: { findFirst: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
     receiptDocument: { findMany: vi.fn() },
     purchaseAttachment: { createMany: vi.fn(), deleteMany: vi.fn() },
     ownerStateRecord: { findUnique: vi.fn(), create: vi.fn() },
@@ -112,6 +132,9 @@ function setupDb() {
 
   tx.receiptDocument.findMany.mockResolvedValue([]);
   tx.emailTransaction.findFirst.mockResolvedValue(null);
+  tx.purchase.findFirst.mockResolvedValue(null);
+  tx.purchaseCorrection.findFirst.mockResolvedValue(null);
+  tx.purchaseItem.findFirst.mockResolvedValue(null);
   tx.merchantAlias.findUnique.mockResolvedValue(null);
   vi.mocked(resolveEmailMerchant).mockImplementation(async (_db, merchant) => merchant);
   vi.mocked(findMatchingPurchase).mockResolvedValue(null);
@@ -865,6 +888,316 @@ describe("processRawGmailMessage", () => {
           connectionId: "conn-b",
         }),
       }));
+    });
+  });
+
+  describe("order lifecycle dedup", () => {
+    type Receipt = {
+      messageId: string;
+      merchant: string;
+      subject: string;
+      orderId?: string;
+      totalCents?: number;
+      currency?: string;
+      items?: Array<{ name?: string; quantity?: number; price?: number }>;
+    };
+
+    const canonicalPurchase = {
+      id: "purchase-simons",
+      userId: "user-1",
+      merchant: "simons.ca",
+      totalCents: 6777,
+      currency: "CAD",
+      currencySource: "explicitCode",
+      purchasedAt: new Date("2026-08-01T12:00:00.000Z"),
+      orderNumber: "6777",
+      paymentMethod: null,
+      category: null,
+      categorySource: null,
+      source: "GMAIL",
+      sourceEmailId: "simons-submitted-a",
+      sourceEventId: null,
+      possibleDuplicateOfId: null,
+      createdAt: new Date("2026-08-01T12:00:00.000Z"),
+      updatedAt: new Date("2026-08-01T12:00:00.000Z"),
+    };
+
+    function prepareOrderHarness(tx: ReturnType<typeof setupDb>["tx"]) {
+      type StoredTransaction = Omit<typeof existingTransaction, "purchaseId"> & {
+        purchaseId: string | null;
+        connectionId?: string | null;
+      };
+      const transactions = new Map<string, StoredTransaction>();
+      tx.emailTransaction.findUnique.mockResolvedValue(null);
+      tx.emailTransaction.upsert.mockImplementation(async ({ create }: {
+        create: typeof existingTransaction & { connectionId?: string | null };
+      }) => {
+        const transaction = {
+          ...existingTransaction,
+          ...create,
+          id: `email-${create.messageId}`,
+          purchaseId: null,
+        };
+        transactions.set(transaction.id, transaction);
+        return transaction;
+      });
+      tx.emailTransaction.update.mockImplementation(async ({ where, data }: {
+        where: { id: string };
+        data: { purchaseId: string };
+      }) => {
+        const transaction = { ...transactions.get(where.id)!, ...data };
+        transactions.set(where.id, transaction);
+        return transaction;
+      });
+      tx.purchase.findUnique.mockResolvedValue(null);
+    }
+
+    async function ingest(
+      db: ReturnType<typeof setupDb>["db"],
+      receipt: Receipt,
+      userId = "user-1",
+    ) {
+      vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValueOnce({
+        ...receipt,
+        fromEmail: `orders@${receipt.merchant}`,
+        purchasedAt: message.internalDate,
+        currencySource: receipt.currency ? "explicitCode" : undefined,
+        rawSource: "text",
+      });
+      return processRawGmailMessage(db as never, {
+        userId,
+        message: rawMessage({
+          messageId: receipt.messageId,
+          subject: receipt.subject,
+          from: `orders@${receipt.merchant}`,
+          // Lifecycle notices are genuinely distinct messages. Their RFC822
+          // ids must differ so only the order identity can join them.
+          rfc822MessageId: `${receipt.messageId}@${receipt.merchant}`,
+        }),
+        mode: "scan",
+      });
+    }
+
+    it("collapses four Simons lifecycle emails into one purchase without erasing its amount or items", async () => {
+      const { db, tx } = setupDb();
+      prepareOrderHarness(tx);
+      tx.purchase.findFirst = orderLookup([]);
+      tx.purchase.create.mockResolvedValue(canonicalPurchase);
+
+      const first = await ingest(db, {
+        messageId: "simons-submitted-a",
+        merchant: "simons.ca",
+        subject: "Order successfully submitted",
+        orderId: "6777",
+        totalCents: 6777,
+        currency: "CAD",
+        items: [{ name: "Linen shirt", quantity: 1, price: 67.77 }],
+      });
+
+      tx.purchase.findFirst = orderLookup([canonicalPurchase]);
+      const second = await ingest(db, {
+        messageId: "simons-submitted-b",
+        merchant: "simons.ca",
+        subject: "Order successfully submitted",
+        orderId: "6777",
+        totalCents: 6777,
+        currency: "CAD",
+      });
+      const third = await ingest(db, {
+        messageId: "simons-arrived",
+        merchant: "simons.ca",
+        subject: "Your order has arrived in store",
+        orderId: "6777",
+        totalCents: 6777,
+        currency: "CAD",
+      });
+      const fourth = await ingest(db, {
+        messageId: "simons-picked-up",
+        merchant: "simons.ca",
+        subject: "Order picked up in store",
+        orderId: "6777",
+        // This less-informative lifecycle notice must not clear anything.
+        items: [],
+      });
+
+      expect([first.purchaseAction, second.purchaseAction, third.purchaseAction, fourth.purchaseAction])
+        .toEqual(["created", "linked", "linked", "linked"]);
+      expect(tx.purchase.create).toHaveBeenCalledTimes(1);
+      expect(tx.purchase.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ orderNumber: "6777" }),
+      });
+      expect(tx.purchase.update).not.toHaveBeenCalled();
+      expect(tx.emailTransaction.update).toHaveBeenCalledTimes(4);
+      expect(tx.emailTransaction.update).toHaveBeenLastCalledWith({
+        where: { id: "email-simons-picked-up" },
+        data: { purchaseId: canonicalPurchase.id },
+      });
+      expect(tx.purchaseItem.deleteMany).toHaveBeenCalledTimes(1);
+      expect(tx.purchaseItem.createMany).toHaveBeenCalledTimes(1);
+      expect(tx.purchaseItem.createMany).toHaveBeenCalledWith({
+        data: [expect.objectContaining({
+          purchaseId: canonicalPurchase.id,
+          title: "Linen shirt",
+          priceCents: 6777,
+        })],
+      });
+      expect(findMatchingPurchase).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the same order number at two merchants as two purchases", async () => {
+      const { db, tx } = setupDb();
+      prepareOrderHarness(tx);
+      tx.purchase.findFirst = orderLookup([]);
+      tx.purchase.create
+        .mockResolvedValueOnce(canonicalPurchase)
+        .mockResolvedValueOnce({ ...canonicalPurchase, id: "purchase-vercel", merchant: "vercel.com", sourceEmailId: "vercel-1" });
+
+      await ingest(db, {
+        messageId: "simons-submitted-a", merchant: "simons.ca", subject: "submitted",
+        orderId: "6777", totalCents: 6777, currency: "CAD",
+      });
+      tx.purchase.findFirst = orderLookup([canonicalPurchase]);
+      const otherMerchant = await ingest(db, {
+        messageId: "vercel-1", merchant: "vercel.com", subject: "invoice",
+        orderId: "6777", totalCents: 6777, currency: "CAD",
+      });
+
+      expect(otherMerchant.purchaseAction).toBe("created");
+      expect(tx.purchase.create).toHaveBeenCalledTimes(2);
+    });
+
+    it("never links the same merchant and order number across owners", async () => {
+      const { db, tx } = setupDb();
+      prepareOrderHarness(tx);
+      tx.purchase.findFirst = orderLookup([canonicalPurchase]);
+      tx.purchase.create.mockResolvedValue({
+        ...canonicalPurchase,
+        id: "purchase-other-owner",
+        userId: "user-2",
+        sourceEmailId: "simons-other-owner",
+      });
+
+      const otherOwner = await ingest(db, {
+        messageId: "simons-other-owner", merchant: "simons.ca", subject: "submitted",
+        orderId: "6777", totalCents: 6777, currency: "CAD",
+      }, "user-2");
+
+      expect(otherOwner.purchaseAction).toBe("created");
+      expect(tx.purchase.create).toHaveBeenCalledTimes(1);
+    });
+
+    it("never treats null, empty, or trivial order numbers as merge keys", async () => {
+      const { db, tx } = setupDb();
+      prepareOrderHarness(tx);
+      tx.purchase.findFirst = orderLookup([canonicalPurchase]);
+      tx.purchase.create
+        .mockResolvedValueOnce({ ...canonicalPurchase, id: "purchase-null", orderNumber: null })
+        .mockResolvedValueOnce({ ...canonicalPurchase, id: "purchase-empty", orderNumber: "   " })
+        .mockResolvedValueOnce({ ...canonicalPurchase, id: "purchase-trivial", orderNumber: "#-" });
+
+      const absent = await ingest(db, {
+        messageId: "missing-order", merchant: "simons.ca", subject: "receipt", totalCents: 6777,
+      });
+      const empty = await ingest(db, {
+        messageId: "empty-order", merchant: "simons.ca", subject: "receipt", orderId: "   ", totalCents: 6777,
+      });
+      const trivial = await ingest(db, {
+        messageId: "trivial-order", merchant: "simons.ca", subject: "receipt", orderId: "#-", totalCents: 6777,
+      });
+
+      expect([absent.purchaseAction, empty.purchaseAction, trivial.purchaseAction])
+        .toEqual(["created", "created", "created"]);
+      expect(tx.purchase.findFirst).not.toHaveBeenCalled();
+      expect(tx.purchase.create).toHaveBeenCalledTimes(3);
+      for (const [call] of tx.purchase.create.mock.calls) {
+        expect(call).toEqual({ data: expect.objectContaining({ orderNumber: null }) });
+      }
+    });
+
+    it("links but does not overwrite a purchase with an active owner details correction", async () => {
+      const { db, tx } = setupDb();
+      prepareOrderHarness(tx);
+      const correctedPurchase = {
+        ...canonicalPurchase,
+        totalCents: 7000,
+        currency: "USD",
+        currencySource: "userOverride",
+        category: "dining",
+      };
+      tx.purchase.findFirst = orderLookup([correctedPurchase]);
+      tx.purchaseCorrection.findFirst.mockResolvedValue({ id: "correction-1" });
+
+      const result = await ingest(db, {
+        messageId: "simons-late-detail",
+        merchant: "simons.ca",
+        subject: "Order picked up in store",
+        orderId: "6777",
+        totalCents: 6777,
+        currency: "CAD",
+        items: [{ name: "Parser replacement", quantity: 1, price: 67.77 }],
+      });
+
+      expect(result.purchaseAction).toBe("linked");
+      expect(tx.purchaseCorrection.findFirst).toHaveBeenCalledWith({
+        where: {
+          userId: "user-1",
+          purchaseId: correctedPurchase.id,
+          kind: "details",
+          undoneAt: null,
+        },
+        select: { id: true },
+      });
+      expect(tx.purchase.update).not.toHaveBeenCalled();
+      expect(tx.purchaseItem.findFirst).not.toHaveBeenCalled();
+      expect(tx.purchaseItem.deleteMany).not.toHaveBeenCalled();
+      expect(tx.purchaseItem.createMany).not.toHaveBeenCalled();
+    });
+
+    it("fills missing fields and items when a later order email adds evidence", async () => {
+      const { db, tx } = setupDb();
+      prepareOrderHarness(tx);
+      const sparsePurchase = {
+        ...canonicalPurchase,
+        totalCents: null,
+        currency: null,
+        currencySource: null,
+      };
+      const enrichedPurchase = {
+        ...sparsePurchase,
+        totalCents: 6777,
+        currency: "CAD",
+        currencySource: "explicitCode",
+      };
+      tx.purchase.findFirst = orderLookup([sparsePurchase]);
+      tx.purchase.update.mockResolvedValue(enrichedPurchase);
+      tx.purchaseItem.findFirst.mockResolvedValue(null);
+
+      await ingest(db, {
+        messageId: "simons-detail",
+        merchant: "simons.ca",
+        subject: "Your receipt",
+        orderId: "6777",
+        totalCents: 6777,
+        currency: "CAD",
+        items: [{ name: "Linen shirt", quantity: 1, price: 67.77 }],
+      });
+
+      expect(tx.emailTransaction.upsert).toHaveBeenCalledWith(expect.objectContaining({
+        create: expect.objectContaining({
+          items: [{ name: "Linen shirt", quantity: 1, price: 67.77 }],
+        }),
+      }));
+      expect(tx.purchase.update).toHaveBeenCalledWith({
+        where: { id: sparsePurchase.id },
+        data: expect.objectContaining({
+          totalCents: 6777,
+          currency: "CAD",
+          currencySource: "explicitCode",
+        }),
+      });
+      expect(tx.purchaseItem.createMany).toHaveBeenCalledWith({
+        data: [expect.objectContaining({ purchaseId: sparsePurchase.id, title: "Linen shirt" })],
+      });
     });
   });
 
