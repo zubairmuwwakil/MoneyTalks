@@ -30,8 +30,8 @@ function request(body?: unknown) {
 const flushTokens = vi.fn();
 const gmail = { users: { messages: {} } };
 
-function transaction(messageId: string) {
-  return { id: `tx-${messageId}`, messageId };
+function transaction(messageId: string, connectionId: string | null = "conn-a") {
+  return { id: `tx-${messageId}`, messageId, connectionId };
 }
 
 function rawMessage(messageId: string) {
@@ -49,7 +49,11 @@ describe("POST /api/automation/reprocess", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(getSessionUserId).mockResolvedValue("user-1");
-    vi.mocked(listUserConnections).mockResolvedValue([{ id: "conn-a", userId: "user-1" }] as never);
+    vi.mocked(listUserConnections).mockResolvedValue([{
+      id: "conn-a",
+      userId: "user-1",
+      emailAddress: "first@gmail.com",
+    }] as never);
     vi.mocked(getAuthedGmail).mockResolvedValue({
       gmail,
       conn: { scope: "https://www.googleapis.com/auth/gmail.readonly" },
@@ -69,13 +73,18 @@ describe("POST /api/automation/reprocess", () => {
     expect(getAuthedGmail).not.toHaveBeenCalled();
   });
 
-  it("requires a Gmail read grant", async () => {
+  it("reports a missing Gmail read grant without losing the batch response", async () => {
     vi.mocked(hasGmailReadScope).mockReturnValue(false);
+    vi.mocked(prisma.emailTransaction.count).mockResolvedValue(1);
+    vi.mocked(prisma.emailTransaction.findMany).mockResolvedValue([transaction("gmail-1")] as never);
 
     const response = await POST(request() as never);
+    const body = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(prisma.emailTransaction.findMany).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ processed: 1, succeeded: 0, failed: 1 });
+    expect(body.errors).toEqual([{ messageId: "gmail-1", error: "gmail_scope_missing" }]);
+    expect(processRawGmailMessage).not.toHaveBeenCalled();
   });
 
   it("re-fetches only the caller's stored Gmail rows and reports batch progress", async () => {
@@ -100,7 +109,7 @@ describe("POST /api/automation/reprocess", () => {
       where: { userId: "user-1", provider: "GMAIL" },
       skip: 0,
       take: 2,
-      select: { id: true, messageId: true },
+      select: { id: true, messageId: true, connectionId: true },
     }));
     expect(listRecentRawGmailMessages).toHaveBeenNthCalledWith(1, gmail, { messageIds: ["gmail-1"] });
     expect(listRecentRawGmailMessages).toHaveBeenNthCalledWith(2, gmail, { messageIds: ["gmail-2"] });
@@ -108,6 +117,7 @@ describe("POST /api/automation/reprocess", () => {
       userId: "user-1",
       message: expect.objectContaining({ messageId: "gmail-1" }),
       mode: "reprocess",
+      connectionId: "conn-a",
     });
     expect(await response.json()).toEqual({
       ok: true,
@@ -128,6 +138,68 @@ describe("POST /api/automation/reprocess", () => {
       purchasesUnlinked: 0,
     });
     expect(flushTokens).toHaveBeenCalledOnce();
+  });
+
+  it("uses each transaction's originating mailbox", async () => {
+    const gmailB = { users: { messages: { mailbox: "b" } } };
+    const flushB = vi.fn();
+    vi.mocked(listUserConnections).mockResolvedValue([
+      { id: "conn-a", userId: "user-1", emailAddress: "first@gmail.com" },
+      { id: "conn-b", userId: "user-1", emailAddress: "second@gmail.com" },
+    ] as never);
+    vi.mocked(getAuthedGmail).mockImplementation(async (connectionId) => ({
+      gmail: connectionId === "conn-b" ? gmailB : gmail,
+      conn: { scope: "https://www.googleapis.com/auth/gmail.readonly" },
+      flushTokens: connectionId === "conn-b" ? flushB : flushTokens,
+    }) as never);
+    vi.mocked(prisma.emailTransaction.count).mockResolvedValue(1);
+    vi.mocked(prisma.emailTransaction.findMany).mockResolvedValue([
+      transaction("gmail-b", "conn-b"),
+    ] as never);
+    vi.mocked(listRecentRawGmailMessages).mockResolvedValue([rawMessage("gmail-b")]);
+    vi.mocked(processRawGmailMessage).mockResolvedValue({
+      parserError: null,
+      purchaseAction: "linked",
+    } as never);
+
+    await POST(request() as never);
+
+    expect(getAuthedGmail).toHaveBeenCalledWith("conn-b");
+    expect(listRecentRawGmailMessages).toHaveBeenCalledWith(gmailB, { messageIds: ["gmail-b"] });
+    expect(processRawGmailMessage).toHaveBeenCalledWith(prisma, expect.objectContaining({
+      connectionId: "conn-b",
+    }));
+    expect(flushB).toHaveBeenCalledOnce();
+    expect(flushTokens).not.toHaveBeenCalled();
+  });
+
+  it("tries every mailbox for a legacy row without connectionId", async () => {
+    const gmailB = { users: { messages: { mailbox: "b" } } };
+    vi.mocked(listUserConnections).mockResolvedValue([
+      { id: "conn-a", userId: "user-1", emailAddress: "first@gmail.com" },
+      { id: "conn-b", userId: "user-1", emailAddress: "second@gmail.com" },
+    ] as never);
+    vi.mocked(getAuthedGmail).mockImplementation(async (connectionId) => ({
+      gmail: connectionId === "conn-b" ? gmailB : gmail,
+      conn: { scope: "https://www.googleapis.com/auth/gmail.readonly" },
+      flushTokens,
+    }) as never);
+    vi.mocked(prisma.emailTransaction.count).mockResolvedValue(1);
+    vi.mocked(prisma.emailTransaction.findMany).mockResolvedValue([
+      transaction("legacy", null),
+    ] as never);
+    vi.mocked(listRecentRawGmailMessages)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([rawMessage("legacy")]);
+    vi.mocked(processRawGmailMessage).mockResolvedValue({ parserError: null, purchaseAction: "linked" } as never);
+
+    await POST(request() as never);
+
+    expect(listRecentRawGmailMessages).toHaveBeenNthCalledWith(1, gmail, { messageIds: ["legacy"] });
+    expect(listRecentRawGmailMessages).toHaveBeenNthCalledWith(2, gmailB, { messageIds: ["legacy"] });
+    expect(processRawGmailMessage).toHaveBeenCalledWith(prisma, expect.objectContaining({
+      connectionId: "conn-b",
+    }));
   });
 
   it("continues the batch when a stored Gmail message is gone", async () => {

@@ -54,7 +54,12 @@ describe("POST /api/automation/scan", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(getSessionUserId).mockResolvedValue("user-1");
-    vi.mocked(listUserConnections).mockResolvedValue([{ id: "conn-a", userId: "user-1" }] as never);
+    vi.mocked(listUserConnections).mockResolvedValue([{
+      id: "conn-a",
+      userId: "user-1",
+      emailAddress: "first@gmail.com",
+      scanMode: "ALL",
+    }] as never);
     vi.mocked(getAuthedGmail).mockResolvedValue({
       gmail: {},
       conn: { scope: "https://www.googleapis.com/auth/gmail.readonly", scanMode: "ALL" },
@@ -95,7 +100,10 @@ describe("POST /api/automation/scan", () => {
     await POST(request() as never);
 
     expect(prisma.emailConnection.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ lastScanAt: expect.any(Date) }) }),
+      {
+        where: { id: "conn-a", userId: "user-1" },
+        data: { lastScanAt: expect.any(Date), lastScanError: null },
+      },
     );
     expect(sendServiceFailureAlert).not.toHaveBeenCalled();
   });
@@ -107,8 +115,11 @@ describe("POST /api/automation/scan", () => {
 
     const response = await POST(request() as never);
 
-    expect(response.status).toBe(502);
-    expect(prisma.emailConnection.updateMany).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(prisma.emailConnection.updateMany).toHaveBeenCalledWith({
+      where: { id: "conn-a", userId: "user-1" },
+      data: { lastScanError: "Gmail API is disabled" },
+    });
     expect(sendServiceFailureAlert).toHaveBeenCalledOnce();
     expect(sendServiceFailureAlert).toHaveBeenCalledWith(expect.objectContaining({
       serviceName: "automation/scan",
@@ -136,6 +147,68 @@ describe("POST /api/automation/scan", () => {
     await POST(request() as never);
 
     expect(flushTokens).toHaveBeenCalled();
+  });
+
+  it("scans every connection and reports per-connection totals", async () => {
+    const gmailA = { mailbox: "a" };
+    const gmailB = { mailbox: "b" };
+    const flushA = vi.fn();
+    const flushB = vi.fn();
+    vi.mocked(listUserConnections).mockResolvedValue([
+      { id: "conn-a", userId: "user-1", emailAddress: "first@gmail.com", scanMode: "ALL" },
+      { id: "conn-b", userId: "user-1", emailAddress: "second@gmail.com", scanMode: "ALL" },
+    ] as never);
+    vi.mocked(getAuthedGmail).mockImplementation(async (connectionId) => ({
+      gmail: connectionId === "conn-a" ? gmailA : gmailB,
+      conn: { scope: "https://www.googleapis.com/auth/gmail.readonly" },
+      flushTokens: connectionId === "conn-a" ? flushA : flushB,
+    }) as never);
+    vi.mocked(listRecentRawGmailMessages)
+      .mockResolvedValueOnce([{ messageId: "gmail-a" }] as never)
+      .mockResolvedValueOnce([{ messageId: "gmail-b" }] as never);
+    vi.mocked(processRawGmailMessage)
+      .mockResolvedValueOnce(processedSuggestion("SUBSCRIPTION") as never)
+      .mockResolvedValueOnce(processedSuggestion("BILL") as never);
+
+    const body = await (await POST(request() as never)).json();
+
+    expect(body.perConnection).toEqual([
+      expect.objectContaining({ connectionId: "conn-a", emailAddress: "first@gmail.com", fetched: 1, imported: 1 }),
+      expect.objectContaining({ connectionId: "conn-b", emailAddress: "second@gmail.com", fetched: 1, imported: 1 }),
+    ]);
+    expect(body.importedEmails).toBe(2);
+    expect(processRawGmailMessage).toHaveBeenNthCalledWith(1, prisma, expect.objectContaining({ connectionId: "conn-a" }));
+    expect(processRawGmailMessage).toHaveBeenNthCalledWith(2, prisma, expect.objectContaining({ connectionId: "conn-b" }));
+    expect(flushA).toHaveBeenCalledOnce();
+    expect(flushB).toHaveBeenCalledOnce();
+  });
+
+  it("keeps scanning after one connection fails", async () => {
+    vi.mocked(listUserConnections).mockResolvedValue([
+      { id: "conn-a", userId: "user-1", emailAddress: "first@gmail.com", scanMode: "ALL" },
+      { id: "conn-b", userId: "user-1", emailAddress: "second@gmail.com", scanMode: "ALL" },
+    ] as never);
+    vi.mocked(getAuthedGmail)
+      .mockRejectedValueOnce(new Error("invalid_grant"))
+      .mockResolvedValueOnce({
+        gmail: {},
+        conn: { scope: "https://www.googleapis.com/auth/gmail.readonly" },
+        flushTokens,
+      } as never);
+    vi.mocked(processRawGmailMessage).mockResolvedValue(processedSuggestion("SUBSCRIPTION") as never);
+
+    const response = await POST(request() as never);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.perConnection).toContainEqual(expect.objectContaining({
+      connectionId: "conn-a",
+      error: "invalid_grant",
+    }));
+    expect(body.perConnection).toContainEqual(expect.objectContaining({
+      connectionId: "conn-b",
+      imported: 1,
+    }));
   });
 });
 
