@@ -9,13 +9,19 @@ import "server-only";
 async function loadPdfParse(): Promise<((input: Buffer) => Promise<{ text?: string }>) | null> {
   const mod = await import("pdf-parse").catch(() => null);
   if (!mod) return null;
-  const candidate =
-    (mod as Record<string, unknown>).default ??
-    (mod as Record<string, unknown>).PDFParse ??
-    mod;
-  return typeof candidate === "function"
-    ? (candidate as (input: Buffer) => Promise<{ text?: string }>)
-    : null;
+  const PDFParse = (mod as Record<string, unknown>).PDFParse;
+  if (typeof PDFParse !== "function") return null;
+  return async (input: Buffer) => {
+    const parser = new (PDFParse as new (options: { data: Buffer }) => {
+      getText(): Promise<{ text?: string }>;
+      destroy(): Promise<void>;
+    })({ data: input });
+    try {
+      return await parser.getText();
+    } finally {
+      await parser.destroy();
+    }
+  };
 }
 
 function firstNonEmptyLine(text: string) {
