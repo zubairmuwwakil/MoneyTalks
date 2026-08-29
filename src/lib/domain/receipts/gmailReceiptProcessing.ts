@@ -50,6 +50,7 @@ function emailTransactionData(
   parsed: ParsedPurchase,
   merchant: string,
   parserError: string | null,
+  connectionId: string | null,
 ) {
   const items = parsed.items === undefined
     ? Prisma.DbNull
@@ -59,6 +60,11 @@ function emailTransactionData(
     userId,
     provider: "GMAIL" as const,
     messageId: message.messageId,
+    connectionId,
+    // Gmail's messageId above identifies the message IN THIS MAILBOX; this one
+    // is assigned by the sender and is identical in every mailbox it reaches.
+    // Only the second can tell "one receipt, twice" from "two receipts".
+    rfc822MessageId: message.rfc822MessageId,
     merchant,
     fromEmail: parsed.fromEmail ?? null,
     subject: parsed.subject ?? null,
@@ -143,6 +149,35 @@ async function promotePurchase(
     });
     action = "updated";
   } else if (!purchase) {
+    // The canonical link and this email's own source key have both come up
+    // empty, so the same message may already have been ingested from another
+    // of this owner's mailboxes. Gmail's message id is per-mailbox; the
+    // sender's RFC822 Message-ID is not, which is what makes it the key here.
+    //
+    // Scoped to userId: two people can be sent receipts carrying the same
+    // sender-assigned id, and linking those would be a leak, not a merge.
+    const twin = emailTransaction.rfc822MessageId
+      ? await db.emailTransaction.findFirst({
+          where: {
+            userId,
+            rfc822MessageId: emailTransaction.rfc822MessageId,
+            id: { not: emailTransaction.id },
+            purchaseId: { not: null },
+          },
+          select: { purchaseId: true },
+        })
+      : null;
+    if (twin?.purchaseId) {
+      purchase = await db.purchase.findUnique({ where: { id: twin.purchaseId } });
+      if (purchase) action = "linked";
+    }
+  }
+
+  // Deliberately a fresh test rather than an `else`: the twin above may have
+  // resolved the purchase, and findMatchingPurchase must not run when it did.
+  // A shared Message-ID is evidence of ONE message; a merge candidate is only
+  // an inference from amount and date, so evidence goes first.
+  if (!purchase) {
     const observedAt = emailTransaction.purchasedAt ?? message.internalDate ?? new Date();
     const match = emailTransaction.totalCents != null
       ? await findMatchingPurchase(db, {
@@ -354,6 +389,8 @@ export async function processRawGmailMessage(
     userId: string;
     message: RawGmailMessage;
     mode: GmailMessageProcessingMode;
+    /** The mailbox this copy arrived in. Absent for legacy reprocessing. */
+    connectionId?: string | null;
   },
 ): Promise<GmailMessageProcessingResult> {
   let parsedPurchase: ParsedPurchase;
@@ -416,6 +453,7 @@ export async function processRawGmailMessage(
       parsedPurchase,
       merchant,
       parserError,
+      params.connectionId ?? null,
     );
     const qualifies = !parserError && hasPurchaseEvidence(parsedPurchase);
     const previousPurchaseId = existing?.purchaseId ?? null;
@@ -439,6 +477,12 @@ export async function processRawGmailMessage(
         items: data.items,
         rawSource: data.rawSource,
         parserError: data.parserError,
+        // Backfills the id onto rows ingested before it was captured, which is
+        // how an existing history becomes deduplicable at all.
+        rfc822MessageId: data.rfc822MessageId,
+        // Only ever set, never cleared: a reprocess that does not know which
+        // mailbox a row came from must not erase the answer.
+        ...(data.connectionId ? { connectionId: data.connectionId } : {}),
         ...(params.mode === "reprocess" && !qualifies ? { purchaseId: null } : {}),
       },
     });

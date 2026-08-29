@@ -6,6 +6,7 @@ import { parsePurchaseFromRawGmailMessage } from "./gmailPurchaseParser";
 import { resolveEmailMerchant } from "./emailMerchant";
 import { findMatchingPurchase } from "@/lib/domain/spine/purchaseMerge";
 import { removeCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
+import type { RawGmailMessage } from "@/lib/services/gmailScanSource";
 
 vi.mock("./gmailPurchaseParser", () => ({ parsePurchaseFromRawGmailMessage: vi.fn() }));
 vi.mock("./emailMerchant", () => ({ resolveEmailMerchant: vi.fn() }));
@@ -13,13 +14,50 @@ vi.mock("@/lib/domain/spine/purchaseMerge", () => ({ findMatchingPurchase: vi.fn
 vi.mock("@/lib/domain/ownerState", () => ({ ensureOwnerStateRecord: vi.fn() }));
 vi.mock("@/lib/spine/cap-usage", () => ({ applyCapAccrual: vi.fn(), removeCapAccrual: vi.fn(), reverseCapAccrual: vi.fn() }));
 
+// Deliberately a narrow literal rather than a `RawGmailMessage` annotation:
+// several fixtures below pass `message.internalDate` where a plain Date is
+// required, and widening it to `Date | null` would break them for no gain.
 const message = {
   messageId: "gmail-1",
   raw: Buffer.from("raw MIME"),
   subject: "Old subject",
   from: "orders@example.com",
   internalDate: new Date("2026-08-01T12:00:00.000Z"),
+  // Most fixtures predate the header; the cross-mailbox cases set it.
+  rfc822MessageId: null as string | null,
 };
+
+function rawMessage(overrides: Partial<RawGmailMessage> = {}): RawGmailMessage {
+  return { ...message, ...overrides };
+}
+
+type TwinRow = {
+  id: string;
+  userId: string;
+  rfc822MessageId: string | null;
+  purchaseId: string | null;
+};
+
+/**
+ * Stands in for `emailTransaction.findFirst` by actually APPLYING the
+ * where-clause the code passes, rather than asserting on its shape. Shape
+ * assertions still pass when `userId` is dropped from the filter; this fails,
+ * which is the whole point — an unscoped lookup would link one owner's
+ * receipt to another owner's purchase.
+ */
+function twinLookup(rows: TwinRow[]) {
+  const matches = (row: TwinRow, key: string, condition: unknown) => {
+    const value = row[key as keyof TwinRow];
+    if (condition !== null && typeof condition === "object" && "not" in condition) {
+      const excluded = (condition as { not: unknown }).not;
+      return excluded === null ? value !== null : value !== excluded;
+    }
+    return value === condition;
+  };
+  return vi.fn(async ({ where }: { where: Record<string, unknown> }) =>
+    rows.find((row) => Object.entries(where).every(([key, cond]) => matches(row, key, cond))) ?? null,
+  );
+}
 
 const existingTransaction = {
   id: "email-tx-1",
@@ -44,6 +82,7 @@ function setupDb() {
   const tx = {
     emailTransaction: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       upsert: vi.fn(),
       update: vi.fn(),
     },
@@ -72,6 +111,7 @@ function setupDb() {
   };
 
   tx.receiptDocument.findMany.mockResolvedValue([]);
+  tx.emailTransaction.findFirst.mockResolvedValue(null);
   tx.merchantAlias.findUnique.mockResolvedValue(null);
   vi.mocked(resolveEmailMerchant).mockImplementation(async (_db, merchant) => merchant);
   vi.mocked(findMatchingPurchase).mockResolvedValue(null);
@@ -556,6 +596,180 @@ describe("processRawGmailMessage", () => {
     }));
     expect(tx.purchaseItem.createMany).toHaveBeenCalledWith({
       data: [expect.objectContaining({ currency: null })],
+    });
+  });
+
+  describe("cross-mailbox dedup", () => {
+    // One receipt delivered to two of the owner's addresses: Gmail assigns a
+    // different per-mailbox id in each, but the sender's Message-ID is the
+    // same in both. Without this, the pair reads as two purchases and a
+    // monthly subscription is detected as biweekly.
+    const canonicalPurchase = {
+      id: "purchase-inbox-a",
+      userId: "user-1",
+      merchant: "Netflix",
+      totalCents: 1699,
+      currency: "CAD",
+      currencySource: "receiptExplicit",
+      purchasedAt: new Date("2026-08-01T12:00:00.000Z"),
+      orderNumber: null,
+      paymentMethod: null,
+      category: null,
+      source: "GMAIL",
+      sourceEmailId: "gmail-inbox-a",
+      sourceEventId: null,
+      possibleDuplicateOfId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    function arriveInSecondMailbox(
+      tx: ReturnType<typeof setupDb>["tx"],
+      opts: { userId?: string; rfc822MessageId: string | null; twins: TwinRow[] },
+    ) {
+      const transaction = {
+        ...existingTransaction,
+        id: "email-tx-b",
+        userId: opts.userId ?? "user-1",
+        messageId: "gmail-inbox-b",
+        merchant: "Netflix",
+        totalCents: 1699,
+        currency: "CAD",
+        items: null,
+        purchaseId: null,
+        rfc822MessageId: opts.rfc822MessageId,
+      };
+
+      vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue({
+        messageId: "gmail-inbox-b",
+        merchant: "Netflix",
+        rawSource: "text",
+        orderId: undefined,
+        totalCents: 1699,
+        currency: "cad",
+      });
+      tx.emailTransaction.findUnique.mockResolvedValue(null);
+      tx.emailTransaction.upsert.mockResolvedValue(transaction);
+      tx.emailTransaction.update.mockResolvedValue({ ...transaction, purchaseId: canonicalPurchase.id });
+      tx.emailTransaction.findFirst = twinLookup(opts.twins);
+      // The sourceEmailId probe passes a compound key and must miss; only the
+      // twin's own id lookup resolves.
+      tx.purchase.findUnique.mockImplementation(async ({ where }: { where: { id?: string } }) =>
+        where.id === canonicalPurchase.id ? canonicalPurchase : null,
+      );
+      tx.purchase.create.mockResolvedValue({ ...canonicalPurchase, id: "purchase-rival", sourceEmailId: "gmail-inbox-b" });
+
+      return processRawGmailMessage(db as never, {
+        userId: opts.userId ?? "user-1",
+        message: rawMessage({ messageId: "gmail-inbox-b", rfc822MessageId: opts.rfc822MessageId }),
+        mode: "scan",
+      });
+    }
+
+    let db: ReturnType<typeof setupDb>["db"];
+
+    it("links a receipt already ingested from another mailbox instead of creating a rival purchase", async () => {
+      const harness = setupDb();
+      db = harness.db;
+      const { tx } = harness;
+
+      const result = await arriveInSecondMailbox(tx, {
+        rfc822MessageId: "receipt-1@netflix.com",
+        twins: [{ id: "email-tx-a", userId: "user-1", rfc822MessageId: "receipt-1@netflix.com", purchaseId: canonicalPurchase.id }],
+      });
+
+      expect(result.purchaseAction).toBe("linked");
+      expect(tx.purchase.create).not.toHaveBeenCalled();
+      expect(tx.emailTransaction.update).toHaveBeenCalledWith({
+        where: { id: "email-tx-b" },
+        data: { purchaseId: canonicalPurchase.id },
+      });
+      // Evidence of one message outranks an inference from amount and date,
+      // so the merge search must not even be consulted.
+      expect(findMatchingPurchase).not.toHaveBeenCalled();
+      // Nothing about the canonical purchase changed; re-accruing it would be
+      // churn on the cap ledger.
+      expect(tx.purchase.update).not.toHaveBeenCalled();
+      expect(removeCapAccrual).not.toHaveBeenCalled();
+    });
+
+    it("still creates separate purchases for genuinely different receipts", async () => {
+      const harness = setupDb();
+      db = harness.db;
+      const { tx } = harness;
+
+      const result = await arriveInSecondMailbox(tx, {
+        rfc822MessageId: "receipt-2@netflix.com",
+        twins: [{ id: "email-tx-a", userId: "user-1", rfc822MessageId: "receipt-1@netflix.com", purchaseId: canonicalPurchase.id }],
+      });
+
+      expect(result.purchaseAction).toBe("created");
+      expect(tx.purchase.create).toHaveBeenCalled();
+    });
+
+    it("does not deduplicate across owners", async () => {
+      const harness = setupDb();
+      db = harness.db;
+      const { tx } = harness;
+
+      // Two people can be sent receipts carrying the same sender-assigned id.
+      // Linking them would hand one owner a pointer into another's ledger.
+      const result = await arriveInSecondMailbox(tx, {
+        userId: "user-2",
+        rfc822MessageId: "shared@vendor.com",
+        twins: [{ id: "email-tx-a", userId: "user-1", rfc822MessageId: "shared@vendor.com", purchaseId: canonicalPurchase.id }],
+      });
+
+      expect(result.purchaseAction).toBe("created");
+      expect(tx.purchase.create).toHaveBeenCalled();
+    });
+
+    it("never matches on an absent id", async () => {
+      const harness = setupDb();
+      db = harness.db;
+      const { tx } = harness;
+
+      // Every row written before the migration has a null id. Treating null
+      // as a key would collapse an owner's entire history into one purchase.
+      const result = await arriveInSecondMailbox(tx, {
+        rfc822MessageId: null,
+        twins: [{ id: "email-tx-a", userId: "user-1", rfc822MessageId: null, purchaseId: canonicalPurchase.id }],
+      });
+
+      expect(tx.emailTransaction.findFirst).not.toHaveBeenCalled();
+      expect(result.purchaseAction).toBe("created");
+    });
+
+    it("persists the sender-assigned id and the originating connection", async () => {
+      const harness = setupDb();
+      const { tx } = harness;
+
+      vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue({
+        messageId: "gmail-inbox-b",
+        merchant: "Netflix",
+        rawSource: "text",
+        orderId: undefined,
+        totalCents: 1699,
+      });
+      tx.emailTransaction.findUnique.mockResolvedValue(null);
+      tx.emailTransaction.upsert.mockResolvedValue({ ...existingTransaction, purchaseId: null, totalCents: null });
+      tx.purchase.findUnique.mockResolvedValue(null);
+      tx.purchase.create.mockResolvedValue(canonicalPurchase);
+      tx.emailTransaction.update.mockResolvedValue(existingTransaction);
+
+      await processRawGmailMessage(harness.db as never, {
+        userId: "user-1",
+        message: rawMessage({ messageId: "gmail-inbox-b", rfc822MessageId: "receipt-1@netflix.com" }),
+        mode: "scan",
+        connectionId: "conn-b",
+      });
+
+      expect(tx.emailTransaction.upsert).toHaveBeenCalledWith(expect.objectContaining({
+        create: expect.objectContaining({
+          rfc822MessageId: "receipt-1@netflix.com",
+          connectionId: "conn-b",
+        }),
+      }));
     });
   });
 
