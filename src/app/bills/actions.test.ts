@@ -1,11 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { allocateRecommendedCard, createBill, setBillCadence, setBillPaymentRail, setBillRoute, updateBillPayeeDetails } from "./actions";
+import {
+  allocateRecommendedCard,
+  createBill,
+  setBillCadence,
+  setBillPaymentRail,
+  setBillPaymentSource,
+  setBillRoute,
+  updateBillPayeeDetails,
+} from "./actions";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { revalidatePath } from "next/cache";
 
 vi.mock("@/lib/require-user", () => ({ requireUserId: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("@/lib/services/paymentsCanada", () => ({ lookupCorporateCreditor: vi.fn() }));
 vi.mock("@/lib/domain/ownerState", () => ({
   ensureOwnerStateRecord: vi.fn(),
   defaultOwnerState: vi.fn(),
@@ -25,6 +34,9 @@ vi.mock("@/lib/prisma", () => ({
       create: vi.fn(),
       update: vi.fn(),
     },
+    financialAccount: {
+      findFirst: vi.fn(),
+    },
     fxRate: {
       findMany: vi.fn(),
     },
@@ -32,6 +44,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
+import { lookupCorporateCreditor } from "@/lib/services/paymentsCanada";
 
 describe("allocateRecommendedCard", () => {
   beforeEach(() => {
@@ -354,6 +367,50 @@ describe("setBillPaymentRail", () => {
   });
 });
 
+describe("setBillPaymentSource", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(requireUserId).mockResolvedValue("user-1");
+    vi.mocked(prisma.bill.findFirst).mockResolvedValue({ id: "bill-1", userId: "user-1" } as never);
+    vi.mocked(prisma.bill.update).mockResolvedValue({} as never);
+  });
+
+  it("records an owned bank account and clears any card or smart route", async () => {
+    vi.mocked(prisma.financialAccount.findFirst).mockResolvedValue({ id: "account-1" } as never);
+    const fd = new FormData();
+    fd.set("billId", "bill-1");
+    fd.set("paymentSource", "account:account-1");
+
+    await expect(setBillPaymentSource(fd)).resolves.toEqual({ ok: true });
+    expect(prisma.financialAccount.findFirst).toHaveBeenCalledWith({
+      where: { id: "account-1", userId: "user-1", type: { in: ["CHEQUING", "CASH"] } },
+      select: { id: true },
+    });
+    expect(prisma.bill.update).toHaveBeenCalledWith({
+      where: { id: "bill-1" },
+      data: {
+        paymentCardId: null,
+        sourceAccountId: "account-1",
+        selectedRouteId: null,
+        selectedRouteIntermediaryId: null,
+      },
+    });
+  });
+
+  it("refuses a financial account that is not owned by the signed-in user", async () => {
+    vi.mocked(prisma.financialAccount.findFirst).mockResolvedValue(null);
+    const fd = new FormData();
+    fd.set("billId", "bill-1");
+    fd.set("paymentSource", "account:someone-elses-account");
+
+    await expect(setBillPaymentSource(fd)).resolves.toEqual({
+      ok: false,
+      error: "That bank account is not available as a payment source.",
+    });
+    expect(prisma.bill.update).not.toHaveBeenCalled();
+  });
+});
+
 describe("setBillCadence", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -406,12 +463,14 @@ describe("setBillCadence", () => {
 describe("updateBillPayeeDetails", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    process.env.SECRET_ENC_ACTIVE_VERSION = "1";
+    process.env.SECRET_ENC_KEY_V1 = Buffer.alloc(32, 7).toString("base64");
     vi.mocked(requireUserId).mockResolvedValue("user-1");
     vi.mocked(prisma.bill.findFirst).mockResolvedValue({ id: "bill-1", userId: "user-1" } as never);
     vi.mocked(prisma.bill.update).mockResolvedValue({} as never);
   });
 
-  it("updates payee details and persists granular taxonomy category", async () => {
+  it("encrypts the complete account identifier and persists the safe display suffix", async () => {
     const fd = new FormData();
     fd.set("billId", "bill-1");
     fd.set("name", "Netflix 4K");
@@ -424,13 +483,50 @@ describe("updateBillPayeeDetails", () => {
     expect(result).toEqual({ ok: true });
     expect(prisma.bill.update).toHaveBeenCalledWith({
       where: { id: "bill-1" },
-      data: {
+      data: expect.objectContaining({
         name: "Netflix 4K",
         payee: "Netflix Canada",
-        accountNumber: "NET-9912",
+        accountNumber: null,
+        accountNumberEncrypted: expect.stringMatching(/^encv1:1:/),
+        accountNumberLast4: "9912",
         category: "subscriptions:streaming",
         notes: "Shared family plan",
-      },
+        billerKind: "CUSTOM",
+      }),
+    });
+  });
+
+  it("revalidates a selected registered biller and stores its canonical name", async () => {
+    vi.mocked(lookupCorporateCreditor).mockResolvedValue({
+      ccin: "91234567",
+      shortName: "TORONTO HYDRO",
+      status: "ACTIVE",
+      statusDate: null,
+      cycleDate: null,
+      province: "ON",
+      country: "CANADA",
+      acceptsElectronic: true,
+      leadFinancialInstitution: null,
+      environment: "sandbox",
+    });
+    const fd = new FormData();
+    fd.set("billId", "bill-1");
+    fd.set("name", "Hydro");
+    fd.set("payee", "Something typed by the browser");
+    fd.set("category", "utilities:electricity");
+    fd.set("billerKind", "REGISTERED_BILLER");
+    fd.set("paymentsCanadaCcin", "91234567");
+
+    await expect(updateBillPayeeDetails(fd)).resolves.toEqual({ ok: true });
+    expect(prisma.bill.update).toHaveBeenCalledWith({
+      where: { id: "bill-1" },
+      data: expect.objectContaining({
+        payee: "TORONTO HYDRO",
+        billerKind: "REGISTERED_BILLER",
+        paymentsCanadaCcin: "91234567",
+        billerVerificationEnv: "sandbox",
+        billerVerifiedAt: expect.any(Date),
+      }),
     });
   });
 });

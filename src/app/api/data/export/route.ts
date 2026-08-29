@@ -59,7 +59,14 @@ export async function GET() {
     prisma.notificationPreference.findUnique({ where: { userId } }),
     prisma.snoozedEvent.findMany({ where: { userId }, orderBy: { createdAt: "desc" } }),
     prisma.valueEvent.findMany({ where: { userId }, orderBy: { occurredAt: "desc" } }),
-    prisma.bill.findMany({ where: { userId }, orderBy: { name: "asc" } }),
+    prisma.bill.findMany({
+      where: { userId },
+      // A browser export must never contain decryptable secret envelopes or
+      // legacy plaintext. The safe suffix still lets the user identify the
+      // account represented by each bill.
+      omit: { accountNumber: true, accountNumberEncrypted: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   const payload = {

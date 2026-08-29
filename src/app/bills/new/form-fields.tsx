@@ -1,11 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
   CalendarDays,
+  CheckCircle2,
   CreditCard,
+  Eye,
+  EyeOff,
+  Globe2,
+  Landmark,
+  LockKeyhole,
   Receipt,
+  Search,
   SlidersHorizontal,
   Sparkles,
   TrendingUp,
@@ -15,6 +22,7 @@ import { TaxCalculator } from "@/components/bills/tax-calculator";
 import { SmartRewardRouter } from "@/components/bills/smart-reward-router";
 import { Badge } from "@/components/ui/badge";
 import type { BillRouteWalletCard } from "@/engine/billRouteScorer";
+import { findKnownService } from "@/lib/domain/bills/serviceDirectory";
 import {
   BILL_PARENT_CATEGORIES,
   resolveBillTaxonomy,
@@ -27,6 +35,29 @@ const label = "block text-xs font-medium text-foreground mb-1";
 export interface SpendCategoryOption {
   value: string;
   label: string;
+}
+
+interface SavedCardOption {
+  id: string;
+  nickname: string;
+  lastFour: string | null;
+}
+
+interface BankAccountOption {
+  id: string;
+  name: string;
+  institution: string;
+  type: string;
+}
+
+interface VerifiedBillerResult {
+  ccin: string;
+  shortName: string;
+  status: "ACTIVE" | "INACTIVE" | "DELETED" | "PENDING";
+  province: string | null;
+  country: string | null;
+  acceptsElectronic: boolean;
+  environment: "sandbox" | "production";
 }
 
 interface PayeeSuggestion {
@@ -258,9 +289,13 @@ function findPayeeSuggestion(
 export function BillFormFields({
   spendCategoryOptions,
   routeWalletCards,
+  savedCards,
+  bankAccounts,
 }: {
   spendCategoryOptions: SpendCategoryOption[];
   routeWalletCards: BillRouteWalletCard[];
+  savedCards: SavedCardOption[];
+  bankAccounts: BankAccountOption[];
 }) {
   const todayIso = useMemo(() => getISODateToday(), []);
 
@@ -268,10 +303,24 @@ export function BillFormFields({
   const [category, setCategory] = useState("utilities:electricity_hydro");
   const [payee, setPayee] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
+  const [showAccountNumber, setShowAccountNumber] = useState(false);
+  const [accountNumberLabel, setAccountNumberLabel] = useState("Customer / account number");
+  const [loginIdentifier, setLoginIdentifier] = useState("");
+  const [credentialLocation, setCredentialLocation] = useState("");
+  const [serviceUrl, setServiceUrl] = useState("");
+  const [loginUrl, setLoginUrl] = useState("");
+  const [billingUrl, setBillingUrl] = useState("");
+  const [cancellationUrl, setCancellationUrl] = useState("");
+  const [billerKind, setBillerKind] = useState<"REGISTERED_BILLER" | "SERVICE" | "CUSTOM">("CUSTOM");
+  const [paymentsCanadaCcin, setPaymentsCanadaCcin] = useState("");
+  const [selectedBiller, setSelectedBiller] = useState<VerifiedBillerResult | null>(null);
+  const [billerResults, setBillerResults] = useState<VerifiedBillerResult[]>([]);
+  const [billerSearchState, setBillerSearchState] = useState<"idle" | "loading" | "error">("idle");
   const [currency, setCurrency] = useState("CAD");
   const [spendCategory, setSpendCategory] = useState("");
   const [paymentRail, setPaymentRail] = useState("unknown");
   const [railFeePct, setRailFeePct] = useState("");
+  const [paymentSource, setPaymentSource] = useState("");
 
   const [type, setType] = useState("MONTHLY");
   const [anchor, setAnchor] = useState(todayIso);
@@ -286,6 +335,39 @@ export function BillFormFields({
 
   // Payee Intelligence Suggestion
   const activeSuggestion = findPayeeSuggestion(name, payee, category, spendCategory);
+  const knownService = findKnownService(name, payee);
+
+  useEffect(() => {
+    const query = payee.trim();
+    if (query.length < 2 || selectedBiller?.shortName === query || knownService) {
+      setBillerResults([]);
+      setBillerSearchState("idle");
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setBillerSearchState("loading");
+      try {
+        const response = await fetch(`/api/billers/search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("lookup failed");
+        const body = await response.json() as { billers?: VerifiedBillerResult[] };
+        setBillerResults(body.billers ?? []);
+        setBillerSearchState("idle");
+      } catch {
+        if (controller.signal.aborted) return;
+        setBillerResults([]);
+        setBillerSearchState("error");
+      }
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [knownService, payee, selectedBiller]);
 
   const applySuggestion = (suggestion: PayeeSuggestion) => {
     setCategory(suggestion.category);
@@ -295,6 +377,31 @@ export function BillFormFields({
     if (suggestion.paymentRail && suggestion.paymentRail !== "unknown") {
       setPaymentRail(suggestion.paymentRail);
     }
+  };
+
+  const applyKnownService = () => {
+    if (!knownService) return;
+    const previousPayee = payee;
+    setPayee(knownService.displayName);
+    if (!name || name === previousPayee) setName(knownService.displayName);
+    setCategory(knownService.category);
+    setSpendCategory(knownService.spendCategory);
+    setPaymentRail(knownService.paymentRail);
+    setServiceUrl(knownService.serviceUrl);
+    setBillerKind("SERVICE");
+    setPaymentsCanadaCcin("");
+    setSelectedBiller(null);
+    setBillerResults([]);
+  };
+
+  const applyVerifiedBiller = (biller: VerifiedBillerResult) => {
+    const previousPayee = payee;
+    setPayee(biller.shortName);
+    if (!name || name === previousPayee) setName(biller.shortName);
+    setBillerKind("REGISTERED_BILLER");
+    setPaymentsCanadaCcin(biller.ccin);
+    setSelectedBiller(biller);
+    setBillerResults([]);
   };
 
   // Cadence JSON & Schedule JSON
@@ -385,6 +492,8 @@ export function BillFormFields({
     <div className="space-y-6">
       <input type="hidden" name="cadenceJson" value={JSON.stringify(cadence)} />
       <input type="hidden" name="scheduleJson" value={JSON.stringify(schedule)} />
+      <input type="hidden" name="billerKind" value={billerKind} />
+      <input type="hidden" name="paymentsCanadaCcin" value={paymentsCanadaCcin} />
 
       {/* SECTION 1: Payee & Account Information */}
       <div className="rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs space-y-4">
@@ -396,42 +505,87 @@ export function BillFormFields({
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
+          <div className="relative sm:col-span-2">
             <label className={label} htmlFor="bill-payee">
-              Payee Name <span className="text-red-500">*</span>
+              Company, payee or service <span className="text-red-500">*</span>
             </label>
-            <input
-              id="bill-payee"
-              name="payee"
-              required
-              value={payee}
-              onChange={(e) => {
-                const val = e.target.value;
-                setPayee(val);
-                if (!name || name === payee) {
-                  setName(val);
-                }
-              }}
-              placeholder="e.g. DURHAM WATER, REG MUN OF, Toronto Hydro"
-              className={input}
-            />
-          </div>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-2.5 size-3.5 text-muted-foreground" />
+              <input
+                id="bill-payee"
+                name="payee"
+                required
+                autoComplete="organization"
+                value={payee}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPayee(val);
+                  setSelectedBiller(null);
+                  setPaymentsCanadaCcin("");
+                  if (billerKind === "REGISTERED_BILLER") setBillerKind("CUSTOM");
+                  if (!name || name === payee) setName(val);
+                }}
+                placeholder="Search Toronto Hydro, Netflix, your municipality…"
+                className={`${input} pl-9 pr-24`}
+              />
+              <span className="pointer-events-none absolute right-3 top-2.5 text-[10px] font-medium text-muted-foreground">
+                {billerSearchState === "loading" ? "Searching…" : "Manual is OK"}
+              </span>
+            </div>
 
-          <div>
-            <label className={label} htmlFor="bill-account-number">
-              Account Number
-            </label>
-            <input
-              id="bill-account-number"
-              name="accountNumber"
-              value={accountNumber}
-              onChange={(e) => setAccountNumber(e.target.value)}
-              placeholder="e.g. 1643208999, 5849-01-2"
-              className={input}
-            />
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Used for bill payment routing &amp; auto-matching statement receipts.
-            </p>
+            {selectedBiller ? (
+              <div className="mt-2 flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="size-3.5 shrink-0" />
+                <span>
+                  Biller identity verified with Payments Canada
+                  {selectedBiller.environment === "sandbox" ? " sandbox" : ""} · CCIN {selectedBiller.ccin}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedBiller(null);
+                    setPaymentsCanadaCcin("");
+                    setBillerKind("CUSTOM");
+                  }}
+                  className="ml-auto text-[11px] underline underline-offset-2"
+                >
+                  Use manual entry
+                </button>
+              </div>
+            ) : null}
+
+            {billerResults.length > 0 ? (
+              <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
+                <div className="border-b border-border/60 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Payments Canada registered billers
+                </div>
+                {billerResults.map((biller) => (
+                  <button
+                    key={biller.ccin}
+                    type="button"
+                    disabled={biller.status !== "ACTIVE"}
+                    onClick={() => applyVerifiedBiller(biller)}
+                    className="flex w-full items-start justify-between gap-3 border-b border-border/50 px-3 py-2.5 text-left last:border-b-0 hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span>
+                      <span className="block text-sm font-medium text-foreground">{biller.shortName}</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        CCIN {biller.ccin}{biller.province ? ` · ${biller.province}` : ""}
+                      </span>
+                    </span>
+                    <Badge variant={biller.status === "ACTIVE" ? "success" : "outline"} className="text-[9px]">
+                      {biller.status.toLowerCase()}
+                    </Badge>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {billerSearchState === "error" ? (
+              <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">
+                Verified search is unavailable right now. You can continue manually.
+              </p>
+            ) : null}
           </div>
 
           <div>
@@ -499,6 +653,24 @@ export function BillFormFields({
           </div>
         </div>
 
+        {knownService && billerKind !== "SERVICE" ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-sky-500/20 bg-sky-500/5 p-2.5 text-xs text-foreground">
+            <div className="flex items-center gap-2">
+              <Globe2 className="size-3.5 shrink-0 text-sky-600" />
+              <span>
+                Recognized <strong>{knownService.displayName}</strong> · suggest {new URL(knownService.serviceUrl).hostname}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={applyKnownService}
+              className="rounded-md border border-sky-500/30 bg-background px-2.5 py-1 text-[11px] font-medium hover:bg-sky-500/10"
+            >
+              Apply service details
+            </button>
+          </div>
+        ) : null}
+
         {/* Smart Payee Suggestion Chip */}
         {activeSuggestion ? (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-xs text-foreground animate-fadeIn">
@@ -531,7 +703,131 @@ export function BillFormFields({
         ) : null}
       </div>
 
-      {/* SECTION 2: Card & Payment Optimization */}
+      {/* SECTION 2: Account access */}
+      <div className="rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs space-y-4">
+        <div className="flex items-center gap-2 border-b border-border/60 pb-2.5">
+          <LockKeyhole className="size-4 text-primary" />
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Account &amp; access
+            </h2>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Optional memory aids. Account numbers are encrypted; passwords are never collected.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className={label} htmlFor="bill-account-number-label">
+              Identifier type
+            </label>
+            <input
+              id="bill-account-number-label"
+              name="accountNumberLabel"
+              value={accountNumberLabel}
+              onChange={(event) => setAccountNumberLabel(event.target.value)}
+              placeholder="Customer number, policy number, roll number…"
+              className={input}
+            />
+          </div>
+
+          <div>
+            <label className={label} htmlFor="bill-account-number">
+              Complete account identifier
+            </label>
+            <div className="relative">
+              <input
+                id="bill-account-number"
+                name="accountNumber"
+                type={showAccountNumber ? "text" : "password"}
+                autoComplete="off"
+                value={accountNumber}
+                onChange={(event) => setAccountNumber(event.target.value)}
+                placeholder="Stored encrypted and masked after saving"
+                className={`${input} pr-10 font-mono`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowAccountNumber((visible) => !visible)}
+                className="absolute right-2 top-1.5 inline-flex size-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label={showAccountNumber ? "Hide account number" : "Show account number"}
+              >
+                {showAccountNumber ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className={label} htmlFor="bill-login-identifier">
+              Login email or username
+            </label>
+            <input
+              id="bill-login-identifier"
+              name="loginIdentifier"
+              value={loginIdentifier}
+              onChange={(event) => setLoginIdentifier(event.target.value)}
+              placeholder="billing@example.com"
+              autoComplete="username"
+              className={input}
+            />
+          </div>
+
+          <div>
+            <label className={label} htmlFor="bill-credential-location">
+              Password saved in
+            </label>
+            <input
+              id="bill-credential-location"
+              name="credentialLocation"
+              value={credentialLocation}
+              onChange={(event) => setCredentialLocation(event.target.value)}
+              placeholder="iCloud Passwords, 1Password, Chrome…"
+              className={input}
+            />
+            <p className="mt-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+              Record where it is saved—never enter the password itself.
+            </p>
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className={label} htmlFor="bill-service-url">
+              Company or account URL
+            </label>
+            <input
+              id="bill-service-url"
+              name="serviceUrl"
+              type="url"
+              value={serviceUrl}
+              onChange={(event) => setServiceUrl(event.target.value)}
+              placeholder="https://company.example/account"
+              className={input}
+            />
+          </div>
+        </div>
+
+        <details className="group border-t border-border/60 pt-3">
+          <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
+            Add separate login, billing and cancellation links
+          </summary>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <label className={label} htmlFor="bill-login-url">Login URL</label>
+              <input id="bill-login-url" name="loginUrl" type="url" value={loginUrl} onChange={(event) => setLoginUrl(event.target.value)} placeholder="https://…/login" className={input} />
+            </div>
+            <div>
+              <label className={label} htmlFor="bill-billing-url">Billing URL</label>
+              <input id="bill-billing-url" name="billingUrl" type="url" value={billingUrl} onChange={(event) => setBillingUrl(event.target.value)} placeholder="https://…/billing" className={input} />
+            </div>
+            <div>
+              <label className={label} htmlFor="bill-cancellation-url">Cancellation URL</label>
+              <input id="bill-cancellation-url" name="cancellationUrl" type="url" value={cancellationUrl} onChange={(event) => setCancellationUrl(event.target.value)} placeholder="https://…/cancel" className={input} />
+            </div>
+          </div>
+        </details>
+      </div>
+
+      {/* SECTION 3: Card & Payment Optimization */}
       <div className="rounded-xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs space-y-4">
         <div className="flex items-center gap-2 border-b border-border/60 pb-2.5">
           <CreditCard className="size-4 text-primary" />
@@ -541,6 +837,50 @@ export function BillFormFields({
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className={label} htmlFor="bill-payment-source">
+              Current payment source
+            </label>
+            <div className="relative">
+              <Landmark className="pointer-events-none absolute left-3 top-2.5 size-3.5 text-muted-foreground" />
+              <select
+                id="bill-payment-source"
+                name="paymentSource"
+                value={paymentSource}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setPaymentSource(value);
+                  if (value.startsWith("card:")) setPaymentRail("card");
+                  if (value.startsWith("account:")) setPaymentRail("pad");
+                }}
+                className={`${input} pl-9`}
+              >
+                <option value="">Not recorded yet</option>
+                {savedCards.length > 0 ? (
+                  <optgroup label="Cards in wallet">
+                    {savedCards.map((card) => (
+                      <option key={card.id} value={`card:${card.id}`}>
+                        {card.nickname}{card.lastFour ? ` · •••• ${card.lastFour}` : ""}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {bankAccounts.length > 0 ? (
+                  <optgroup label="Bank accounts">
+                    {bankAccounts.map((account) => (
+                      <option key={account.id} value={`account:${account.id}`}>
+                        {account.institution} · {account.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+              </select>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Records what is actually charged today; accepted payment methods are captured separately below.
+            </p>
+          </div>
+
           <div className="sm:col-span-2">
             <label className={label} htmlFor="bill-spend-category">
               Spend Category (Reward Multiplier Mapping)
@@ -613,12 +953,17 @@ export function BillFormFields({
 
         {/* Smart Reward Router Integration */}
         {name.trim() || payee.trim() ? (
-          <div className="pt-2">
+          <details className="group border-t border-border/60 pt-3">
+            <summary className="cursor-pointer text-xs font-semibold text-foreground">
+              Compare alternate payment routes and rewards
+            </summary>
+            <div className="pt-3">
             <SmartRewardRouter
               payeeName={payee.trim() || name.trim()}
               monthlyCad={Number(amount) > 0 ? Number(amount) : 0}
               ownedCards={routeWalletCards}
               onSelectRoute={(route) => {
+                setPaymentSource(route.walletCardId ? `card:${route.walletCardId}` : "");
                 switch (route.intermediary.type) {
                   case "creditIntermediary":
                     setPaymentRail("card_via_third_party");
@@ -636,7 +981,8 @@ export function BillFormFields({
                 }
               }}
             />
-          </div>
+            </div>
+          </details>
         ) : null}
       </div>
 

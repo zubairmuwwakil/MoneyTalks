@@ -11,6 +11,14 @@ function optional<T extends z.ZodType>(schema: T) {
   return z.preprocess((value) => (value === "" ? undefined : value), schema.optional());
 }
 
+const webUrl = z.string().trim().max(500).url().refine(
+  (value) => {
+    const protocol = new URL(value).protocol;
+    return protocol === "https:" || protocol === "http:";
+  },
+  "URL must use http or https",
+);
+
 export const cadenceInput = z.discriminatedUnion("type", [
   z.object({ type: z.literal("BIWEEKLY"), anchor: isoDate }),
   z.object({
@@ -37,7 +45,16 @@ export const billCore = z.object({
   name: z.string().trim().min(1).max(80),
   category: z.string().trim().min(1).max(80).default("other"),
   payee: optional(z.string().trim().max(80)),
-  accountNumber: optional(z.string().trim().max(80)),
+  accountNumber: optional(z.string().trim().max(120)),
+  accountNumberLabel: optional(z.string().trim().max(60)),
+  loginIdentifier: optional(z.string().trim().max(254)),
+  credentialLocation: optional(z.string().trim().max(80)),
+  serviceUrl: optional(webUrl),
+  loginUrl: optional(webUrl),
+  billingUrl: optional(webUrl),
+  cancellationUrl: optional(webUrl),
+  billerKind: z.enum(["REGISTERED_BILLER", "SERVICE", "CUSTOM"]).default("CUSTOM"),
+  paymentsCanadaCcin: optional(z.string().trim().regex(/^\d{1,20}$/)),
   currency: currencyCode.default("CAD"),
   autopay: formBoolean,
   variable: formBoolean,
@@ -94,6 +111,26 @@ function jsonField<T extends z.ZodType>(schema: T, label: string) {
 export const billFormInput = billCore.extend({
   cadenceJson: jsonField(cadenceInput, "cadence"),
   scheduleJson: jsonField(z.array(scheduleEntryInput).min(1), "schedule"),
+  paymentSource: optional(z.string().trim().max(180)),
+});
+
+export const billPayeeDetailsInput = billCore.pick({
+  name: true,
+  category: true,
+  payee: true,
+  accountNumber: true,
+  accountNumberLabel: true,
+  loginIdentifier: true,
+  credentialLocation: true,
+  serviceUrl: true,
+  loginUrl: true,
+  billingUrl: true,
+  cancellationUrl: true,
+  billerKind: true,
+  paymentsCanadaCcin: true,
+  notes: true,
+}).extend({
+  clearAccountNumber: formBoolean,
 });
 
 export type BillImportEntry = z.infer<typeof billImportEntry>;

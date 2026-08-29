@@ -1,13 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, CreditCard, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CheckCircle2, CreditCard, ExternalLink, Trash2 } from "lucide-react";
 import {
   addScheduleEntry,
   deleteBill,
   markPaid,
   removeScheduleEntry,
   setBillCadence,
-  setBillPaymentCard,
+  setBillPaymentSource,
   setBillPaymentRail,
   setBillRoute,
   setBillSpendCategory,
@@ -17,6 +17,7 @@ import {
 import { CadenceForm } from "./cadence-form";
 import { AddScheduleForm } from "./add-schedule-form";
 import { SmartRewardRouter } from "@/components/bills/smart-reward-router";
+import { SensitiveAccountNumber } from "@/components/bills/sensitive-account-number";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Catalogue, OwnerState } from "@/engine/cards-twin";
@@ -31,6 +32,7 @@ import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
+import { accountNumberLastFour, maskBillAccountNumber } from "@/lib/domain/bills/accountNumber";
 import {
   BILL_PARENT_CATEGORIES,
   formatBillCategoryLabel,
@@ -196,11 +198,16 @@ export default async function BillDetailPage({
   const { error, errorForm } = await searchParams;
   const now = new Date();
 
-  const [bill, ownerStateRecord, fxRatesRaw, ownedCards] = await Promise.all([
+  const [bill, ownerStateRecord, fxRatesRaw, ownedCards, bankAccounts] = await Promise.all([
     prisma.bill.findFirst({ where: { id, userId }, include: { payments: true } }),
     ensureOwnerStateRecord(prisma, userId),
     prisma.fxRate.findMany({ where: { userId, asOf: { lte: now } }, orderBy: [{ quote: "asc" }, { asOf: "desc" }] }),
-    prisma.creditCard.findMany({ where: { userId }, select: { id: true, nickname: true, contractCardId: true }, orderBy: { nickname: "asc" } }),
+    prisma.creditCard.findMany({ where: { userId }, select: { id: true, nickname: true, contractCardId: true, lastFour: true }, orderBy: { nickname: "asc" } }),
+    prisma.financialAccount.findMany({
+      where: { userId, type: { in: ["CHEQUING", "CASH"] } },
+      select: { id: true, name: true, institution: true },
+      orderBy: [{ institution: "asc" }, { name: "asc" }],
+    }),
   ]);
   if (!bill) notFound();
 
@@ -268,6 +275,8 @@ export default async function BillDetailPage({
     occurrenceCount12mo: upcoming.length,
     amountIsEstimate: bill.variable,
   });
+  const accountLastFour = bill.accountNumberLast4 ?? (bill.accountNumber ? accountNumberLastFour(bill.accountNumber) : null);
+  const maskedAccountNumber = maskBillAccountNumber(accountLastFour);
 
   async function submitAddSchedule(formData: FormData) {
     "use server";
@@ -325,10 +334,10 @@ export default async function BillDetailPage({
     redirect(`/bills/${id}`);
   }
 
-  async function submitSetPaymentCard(formData: FormData) {
+  async function submitSetPaymentSource(formData: FormData) {
     "use server";
-    const result = await setBillPaymentCard(formData);
-    if (!result.ok) redirect(billErrorPath(id, "paymentCard", result.error));
+    const result = await setBillPaymentSource(formData);
+    if (!result.ok) redirect(billErrorPath(id, "paymentSource", result.error));
     redirect(`/bills/${id}`);
   }
 
@@ -377,7 +386,7 @@ export default async function BillDetailPage({
           <p className="text-sm text-muted-foreground">
             {resolveBillTaxonomy(bill.category).formattedLabel} · {cadenceSummary}
             {bill.payee ? ` · Payee: ${bill.payee}` : ""}
-            {bill.accountNumber ? ` · Acct: ${bill.accountNumber}` : ""} · {bill.currency}
+            {maskedAccountNumber ? ` · Acct: ${maskedAccountNumber}` : ""} · {bill.currency}
             {bill.autopay ? " · autopay" : ""}
             {bill.variable ? " · variable" : ""}
             {bill.prepaymentMonthDay ? ` · prepayment window ${bill.prepaymentMonthDay}` : ""}
@@ -393,13 +402,31 @@ export default async function BillDetailPage({
           <div>
             <h2 className="text-base font-semibold tracking-tight">Payee &amp; Account Details</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Update payee information, utility account numbers, or notes for this bill.
+              Account identifiers are encrypted and stay masked until you explicitly reveal them.
             </p>
           </div>
         </div>
 
         <form action={submitUpdatePayeeDetails} className="mt-4 space-y-4">
           <input type="hidden" name="billId" value={bill.id} />
+          <input type="hidden" name="paymentsCanadaCcin" value={bill.paymentsCanadaCcin ?? ""} />
+
+          {bill.paymentsCanadaCcin ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="size-3.5" />
+              <span>
+                Biller identity verified with Payments Canada{bill.billerVerificationEnv === "sandbox" ? " sandbox" : ""} · CCIN {bill.paymentsCanadaCcin}
+              </span>
+            </div>
+          ) : null}
+
+          {maskedAccountNumber ? (
+            <SensitiveAccountNumber
+              billId={bill.id}
+              masked={maskedAccountNumber}
+              label={bill.accountNumberLabel}
+            />
+          ) : null}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -411,19 +438,6 @@ export default async function BillDetailPage({
                 name="payee"
                 defaultValue={bill.payee ?? ""}
                 placeholder="e.g. DURHAM WATER, REG MUN OF"
-                className={inputStyle}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-account">
-                Account Number
-              </label>
-              <input
-                id="edit-bill-account"
-                name="accountNumber"
-                defaultValue={bill.accountNumber ?? ""}
-                placeholder="e.g. 1643208999"
                 className={inputStyle}
               />
             </div>
@@ -464,16 +478,138 @@ export default async function BillDetailPage({
               </select>
             </div>
 
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-kind">
+                Record type
+              </label>
+              <select id="edit-bill-kind" name="billerKind" defaultValue={bill.billerKind} className={inputStyle}>
+                <option value="REGISTERED_BILLER">Payments Canada registered biller</option>
+                <option value="SERVICE">Subscription or recurring service</option>
+                <option value="CUSTOM">Custom/manual obligation</option>
+              </select>
+              {bill.paymentsCanadaCcin ? (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Choose service or custom to remove the verification link.
+                </p>
+              ) : null}
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-account-label">
+                Identifier type
+              </label>
+              <input
+                id="edit-bill-account-label"
+                name="accountNumberLabel"
+                defaultValue={bill.accountNumberLabel ?? "Customer / account number"}
+                placeholder="Policy number, roll number, loan number…"
+                className={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-account">
+                {maskedAccountNumber ? "Replace complete account identifier" : "Complete account identifier"}
+              </label>
+              <input
+                id="edit-bill-account"
+                name="accountNumber"
+                type="password"
+                autoComplete="off"
+                placeholder={maskedAccountNumber ? `Leave blank to keep ${maskedAccountNumber}` : "Stored encrypted after saving"}
+                className={`${inputStyle} font-mono`}
+              />
+              {maskedAccountNumber ? (
+                <label className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <input type="checkbox" name="clearAccountNumber" value="true" className="size-3.5 rounded" />
+                  Remove the stored account identifier
+                </label>
+              ) : null}
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-login-identifier">
+                Login email or username
+              </label>
+              <input
+                id="edit-bill-login-identifier"
+                name="loginIdentifier"
+                defaultValue={bill.loginIdentifier ?? ""}
+                autoComplete="username"
+                placeholder="billing@example.com"
+                className={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-credential-location">
+                Password saved in
+              </label>
+              <input
+                id="edit-bill-credential-location"
+                name="credentialLocation"
+                defaultValue={bill.credentialLocation ?? ""}
+                placeholder="iCloud Passwords, 1Password, Chrome…"
+                className={inputStyle}
+              />
+              <p className="mt-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                Record the location only—never the password.
+              </p>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-service-url">
+                Company or account URL
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="edit-bill-service-url"
+                  name="serviceUrl"
+                  type="url"
+                  defaultValue={bill.serviceUrl ?? ""}
+                  placeholder="https://company.example/account"
+                  className={inputStyle}
+                />
+                {bill.serviceUrl ? (
+                  <Button asChild type="button" variant="outline" size="icon">
+                    <a href={bill.serviceUrl} target="_blank" rel="noreferrer" aria-label="Open company account page">
+                      <ExternalLink className="size-3.5" />
+                    </a>
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+
+            <details className="sm:col-span-2 border-t border-border/60 pt-3">
+              <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
+                Login, billing and cancellation links
+              </summary>
+              <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-login-url">Login URL</label>
+                  <input id="edit-bill-login-url" name="loginUrl" type="url" defaultValue={bill.loginUrl ?? ""} className={inputStyle} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-billing-url">Billing URL</label>
+                  <input id="edit-bill-billing-url" name="billingUrl" type="url" defaultValue={bill.billingUrl ?? ""} className={inputStyle} />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-cancellation-url">Cancellation URL</label>
+                  <input id="edit-bill-cancellation-url" name="cancellationUrl" type="url" defaultValue={bill.cancellationUrl ?? ""} className={inputStyle} />
+                </div>
+              </div>
+            </details>
+
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-notes">
-                Notes &amp; Portal URL
+                Notes
               </label>
               <textarea
                 id="edit-bill-notes"
                 name="notes"
                 rows={2}
                 defaultValue={bill.notes ?? ""}
-                placeholder="e.g. ~$300/quarter, VARIES. Portal: https://secure8.i-doxs.net/RegionOfDurham/Secure/Bills.aspx"
+                placeholder="Plan details, promotion expiry, cancellation notice period…"
                 className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
               />
             </div>
@@ -592,31 +728,50 @@ export default async function BillDetailPage({
 
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Payment card
+              Paid from
             </p>
-            {ownedCards.length === 0 ? (
+            {ownedCards.length === 0 && bankAccounts.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                No cards on file yet.{" "}
-                <Link href="/cards/new" className="underline hover:text-foreground">
-                  Add a card
+                No cards or bank accounts are available yet.{" "}
+                <Link href="/investments/new" className="underline hover:text-foreground">
+                  Add an account
                 </Link>{" "}
-                to allocate one.
+                or add a card to record the source.
               </p>
             ) : (
-              <form action={submitSetPaymentCard} className="flex flex-wrap items-center gap-2">
+              <form action={submitSetPaymentSource} className="flex flex-wrap items-center gap-2">
                 <input type="hidden" name="billId" value={bill.id} />
                 <select
-                  name="paymentCardId"
-                  defaultValue={bill.paymentCardId ?? ""}
+                  name="paymentSource"
+                  defaultValue={
+                    bill.paymentCardId
+                      ? `card:${bill.paymentCardId}`
+                      : bill.sourceAccountId
+                        ? `account:${bill.sourceAccountId}`
+                        : ""
+                  }
                   className={`${inputStyle} max-w-64`}
                 >
-                  <option value="">Not allocated</option>
-                  {ownedCards.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nickname}
-                      {c.contractCardId ? "" : " (not linked to catalogue)"}
-                    </option>
-                  ))}
+                  <option value="">Not recorded</option>
+                  {ownedCards.length > 0 ? (
+                    <optgroup label="Cards">
+                      {ownedCards.map((card) => (
+                        <option key={card.id} value={`card:${card.id}`}>
+                          {card.nickname}{card.lastFour ? ` · •••• ${card.lastFour}` : ""}
+                          {card.contractCardId ? "" : " (not linked to catalogue)"}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
+                  {bankAccounts.length > 0 ? (
+                    <optgroup label="Bank accounts">
+                      {bankAccounts.map((account) => (
+                        <option key={account.id} value={`account:${account.id}`}>
+                          {account.institution} · {account.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
                 </select>
                 <button
                   type="submit"
@@ -626,7 +781,10 @@ export default async function BillDetailPage({
                 </button>
               </form>
             )}
-            {errorForm === "paymentCard" && error ? (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Records where the money comes from. Choosing a source clears any previously saved smart route.
+            </p>
+            {errorForm === "paymentSource" && error ? (
               <p className="mt-2 text-xs font-medium text-red-600" role="alert">
                 {error}
               </p>

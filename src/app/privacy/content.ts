@@ -10,7 +10,7 @@
 // Voice: plain, specific, and willing to say what the software does not do.
 // Do not make it sound like marketing.
 
-export const EFFECTIVE_DATE = "19 August 2026";
+export const EFFECTIVE_DATE = "29 August 2026";
 export const CONTACT_EMAIL = "zmuwwakil1@gmail.com";
 export const PUBLISHER = "Zubair Muwwakil";
 export const POLICY_URL = "https://moneytalks.zubairmuwwakil.com/privacy";
@@ -274,6 +274,7 @@ export const SECTIONS: Section[] = [
         items: [
           "Sign-in details, handled by Clerk, my authentication provider: your email address and the credentials or third-party sign-in you chose. Passwords are held by Clerk, not by me, and I never see them.",
           "Whatever you enter in the web hub: purchases, returns, subscriptions, bills, receipts and their uploaded files, investments, and notification preferences.",
+          "For a bill, this may include the complete customer, policy, loan, roll, or account identifier issued by the company you pay. It is encrypted at rest and masked by default. A login email or username and the name of your password manager may also be stored; the service password itself is never requested or stored.",
           "Transactions captured by the Wallet Shortcut, if you set it up — see the next section.",
           "Cap usage ledgers and accruals, which track progress toward your cards' bonus limits.",
           "Your PickMe wallet and reward settings: selected card products, default and drawer cards, card-specific reward conditions and categories, account-anniversary or cap-reset settings, cap-progress estimates, switching thresholds, and point or reward valuations.",
@@ -507,7 +508,7 @@ export const SECTIONS: Section[] = [
       },
       {
         kind: "p",
-        text: "On the server, traffic is encrypted in transit, sign-in is handled by Clerk rather than by hand-rolled password code, Wallet Shortcut tokens are stored only as hashes, and email credentials are encrypted at rest.",
+        text: "On the server, traffic is encrypted in transit, sign-in is handled by Clerk rather than by hand-rolled password code, Wallet Shortcut tokens are stored only as hashes, and email credentials and complete bill account identifiers are encrypted at rest. Bill identifiers are masked by default and revealed only after an authenticated request for a bill owned by that user.",
       },
       {
         kind: "note",

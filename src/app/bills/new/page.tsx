@@ -25,12 +25,17 @@ export default async function NewBillPage({
 }) {
   const userId = await requireUserId();
   const { error } = await searchParams;
-  const [ownerStateRecord, storedCards] = await Promise.all([
+  const [ownerStateRecord, storedCards, bankAccounts] = await Promise.all([
     ensureOwnerStateRecord(prisma, userId),
     prisma.creditCard.findMany({
       where: { userId },
-      select: { id: true, nickname: true, contractCardId: true },
+      select: { id: true, nickname: true, contractCardId: true, lastFour: true },
       orderBy: { nickname: "asc" },
+    }),
+    prisma.financialAccount.findMany({
+      where: { userId, type: { in: ["CHEQUING", "CASH"] } },
+      select: { id: true, name: true, institution: true, type: true },
+      orderBy: [{ institution: "asc" }, { name: "asc" }],
     }),
   ]);
   const ownerState = ownerStateRecord
@@ -62,9 +67,9 @@ export default async function NewBillPage({
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Add Payee</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Add bill or subscription</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Save a bill payee, choose its payment route, and add the recurring schedule.
+              Search verified billers and known services, or enter everything manually.
             </p>
           </div>
         </div>
@@ -100,6 +105,8 @@ export default async function NewBillPage({
             <BillFormFields
               spendCategoryOptions={spendCategoryOptions}
               routeWalletCards={routeWalletCards}
+              savedCards={storedCards.map(({ id, nickname, lastFour }) => ({ id, nickname, lastFour }))}
+              bankAccounts={bankAccounts}
             />
             <div className="pt-3 border-t border-border/60">
               <button
@@ -107,7 +114,7 @@ export default async function NewBillPage({
                 className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-sm hover:bg-foreground/90 active:scale-[0.99] transition-all cursor-pointer"
               >
                 <PlusCircle className="size-4" />
-                <span>Save Payee &amp; Route</span>
+                <span>Save bill or subscription</span>
               </button>
             </div>
           </form>
