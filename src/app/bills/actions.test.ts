@@ -311,6 +311,28 @@ describe("createBill route persistence", () => {
     });
     expect(revalidatePath).toHaveBeenCalledWith("/bills");
   });
+
+  it("automatically falls back name to payee if name was omitted", async () => {
+    const fd = new FormData();
+    fd.set("payee", "Local Fitness Club");
+    fd.set("category", "subscriptions:gym_fitness");
+    fd.set("currency", "CAD");
+    fd.set("billerKind", "CUSTOM");
+    fd.set("cadenceJson", JSON.stringify({ type: "MONTHLY", dayOfMonth: 1 }));
+    fd.set("scheduleJson", JSON.stringify([{ from: "2026-08-01", amount: "65.00" }]));
+
+    const result = await createBill(fd);
+
+    expect(result).toEqual({ ok: true });
+    expect(prisma.bill.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: "user-1",
+        name: "Local Fitness Club",
+        payee: "Local Fitness Club",
+        billerKind: "CUSTOM",
+      }),
+    });
+  });
 });
 
 describe("setBillPaymentRail", () => {

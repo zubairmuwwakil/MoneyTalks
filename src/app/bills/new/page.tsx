@@ -1,8 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { ArrowLeft, PlusCircle, Receipt, ShieldCheck } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { createBill } from "@/app/bills/actions";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import type { Catalogue, OwnerState } from "@/engine/cards-twin";
 import { billSpendCategoryOptions } from "@/lib/domain/bills/cardForBill";
 import { buildBillRouteWallet } from "@/lib/domain/bills/billRouteWallet";
@@ -48,78 +45,42 @@ export default async function NewBillPage({
     new Date().toISOString().slice(0, 10),
   );
 
-  async function submit(formData: FormData) {
-    "use server";
-    const result = await createBill(formData);
-    if (result.ok) redirect("/bills");
-    redirect(`/bills/new?error=${encodeURIComponent(result.error)}`);
-  }
-
   return (
-    <main className="max-w-2xl mx-auto space-y-6 py-6 sm:py-8 px-4 sm:px-0">
+    <main className="max-w-2xl mx-auto space-y-6 py-6 sm:py-10 px-4 sm:px-0">
+      {/* Header Navigation */}
       <div>
         <Link
           href="/bills"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground mb-3 transition-colors group"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground mb-3 transition-colors group"
         >
           <ArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
           <span>Back to Bills</span>
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Add bill or subscription</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Search verified billers and known services, or enter everything manually.
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              Add Bill or Subscription
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+              Forecast cashflow, eliminate late fees, and unlock maximum card multiplier rewards.
             </p>
+          </div>
+          <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
+            <Sparkles className="size-3.5" />
+            <span>Card Copilot Optimized</span>
           </div>
         </div>
       </div>
 
-      {error ? (
-        <div
-          className="rounded-lg border border-red-500/30 bg-red-500/10 p-3.5 text-xs font-medium text-red-600 dark:text-red-400 animate-shake"
-          role="alert"
-        >
-          {error}
-        </div>
-      ) : null}
-
-      <Card className="border-border/80 shadow-xs">
-        <CardHeader className="pb-4 border-b border-border/60">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Receipt className="size-4 text-primary" />
-              <CardTitle className="text-sm font-semibold">Bill Details &amp; Cadence</CardTitle>
-            </div>
-            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              <ShieldCheck className="size-3.5 text-emerald-500" />
-              <span>Smart Cadence Forecasting</span>
-            </div>
-          </div>
-          <CardDescription className="text-xs">
-            Enter bill parameters to forecast cashflow, eliminate late fees, and unlock card multipliers.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-5">
-          <form action={submit} className="space-y-6">
-            <BillFormFields
-              spendCategoryOptions={spendCategoryOptions}
-              routeWalletCards={routeWalletCards}
-              savedCards={storedCards.map(({ id, nickname, lastFour }) => ({ id, nickname, lastFour }))}
-              bankAccounts={bankAccounts}
-            />
-            <div className="pt-3 border-t border-border/60">
-              <button
-                type="submit"
-                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-foreground px-4 text-xs font-semibold text-background shadow-sm hover:bg-foreground/90 active:scale-[0.99] transition-all cursor-pointer"
-              >
-                <PlusCircle className="size-4" />
-                <span>Save bill or subscription</span>
-              </button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      {/* Bill Form Fields Component */}
+      <BillFormFields
+        spendCategoryOptions={spendCategoryOptions}
+        routeWalletCards={routeWalletCards}
+        savedCards={storedCards.map(({ id, nickname, lastFour }) => ({ id, nickname, lastFour }))}
+        bankAccounts={bankAccounts}
+        initialError={error}
+      />
     </main>
   );
 }
+

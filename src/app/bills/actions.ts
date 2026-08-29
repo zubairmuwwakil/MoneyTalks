@@ -69,8 +69,8 @@ async function resolvePaymentSource(userId: string, value: string | undefined) {
 
 async function resolveVerifiedBiller(billerKind: string, ccin: string | undefined) {
   if (billerKind !== "REGISTERED_BILLER") return null;
-  if (!ccin) throw new Error("Search for and select a Payments Canada biller first.");
-  const biller = await lookupCorporateCreditor(ccin);
+  if (!ccin || !ccin.trim()) return null;
+  const biller = await lookupCorporateCreditor(ccin.trim());
   if (biller.status !== "ACTIVE") {
     throw new Error(`${biller.shortName} is not an active Payments Canada biller.`);
   }
@@ -130,7 +130,16 @@ async function resolveSelectedRoute(
 
 export async function createBill(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
-  const parsed = billFormInput.safeParse(Object.fromEntries(formData));
+  const rawEntries = Object.fromEntries(formData);
+  const nameVal = typeof rawEntries.name === "string" ? rawEntries.name.trim() : "";
+  const payeeVal = typeof rawEntries.payee === "string" ? rawEntries.payee.trim() : "";
+  if (!nameVal && payeeVal) {
+    rawEntries.name = payeeVal;
+  }
+  if (!payeeVal && nameVal) {
+    rawEntries.payee = nameVal;
+  }
+  const parsed = billFormInput.safeParse(rawEntries);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message);
   const {
     cadenceJson,
