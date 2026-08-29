@@ -439,3 +439,48 @@ export async function unmarkPaid(formData: FormData): Promise<ActionResult> {
   }
   return { ok: true };
 }
+
+/**
+ * Updates a bill's core payee and identity information (name, payee, accountNumber, notes, category).
+ */
+export async function updateBillPayeeDetails(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const billId = String(formData.get("billId") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim().slice(0, 80);
+  const payeeRaw = String(formData.get("payee") ?? "").trim();
+  const accountRaw = String(formData.get("accountNumber") ?? "").trim();
+  const notesRaw = String(formData.get("notes") ?? "").trim();
+  const categoryRaw = String(formData.get("category") ?? "").trim();
+
+  if (!name) {
+    return { ok: false, error: "Bill name / nickname is required." };
+  }
+
+  const payee = payeeRaw.length > 0 ? payeeRaw.slice(0, 80) : null;
+  const accountNumber = accountRaw.length > 0 ? accountRaw.slice(0, 80) : null;
+  const notes = notesRaw.length > 0 ? notesRaw.slice(0, 500) : null;
+  const category = ["housing", "utilities", "subscriptions", "transport", "debt", "other"].includes(categoryRaw)
+    ? categoryRaw
+    : "utilities";
+
+  try {
+    const bill = await ownedBill(userId, billId);
+    await prisma.bill.update({
+      where: { id: bill.id },
+      data: {
+        name,
+        payee,
+        accountNumber,
+        notes,
+        category,
+      },
+    });
+    revalidatePath(`/bills/${bill.id}`);
+    revalidatePath("/bills");
+    revalidatePath("/");
+  } catch (e) {
+    return fail(e);
+  }
+  return { ok: true };
+}
+

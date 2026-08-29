@@ -11,6 +11,7 @@ import {
   setBillPaymentRail,
   setBillSpendCategory,
   unmarkPaid,
+  updateBillPayeeDetails,
 } from "@/app/bills/actions";
 import { CadenceForm } from "./cadence-form";
 import { AddScheduleForm } from "./add-schedule-form";
@@ -318,6 +319,13 @@ export default async function BillDetailPage({
     redirect(`/bills/${id}`);
   }
 
+  async function submitUpdatePayeeDetails(formData: FormData) {
+    "use server";
+    const result = await updateBillPayeeDetails(formData);
+    if (!result.ok) redirect(billErrorPath(id, "payeeDetails", result.error));
+    redirect(`/bills/${id}`);
+  }
+
   const cadenceSummary =
     def.cadence.type === "MONTHLY"
       ? `Monthly (day ${def.cadence.dayOfMonth})`
@@ -358,6 +366,112 @@ export default async function BillDetailPage({
           {bill.notes ? <p className="mt-2 text-xs text-foreground/80 rounded-lg bg-muted/40 p-2.5">{bill.notes}</p> : null}
         </header>
       </div>
+
+      {/* Payee & Account Details Card */}
+      <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
+        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+          <div>
+            <h2 className="text-base font-semibold tracking-tight">Payee &amp; Account Details</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Update payee information, utility account numbers, or notes for this bill.
+            </p>
+          </div>
+        </div>
+
+        <form action={submitUpdatePayeeDetails} className="mt-4 space-y-4">
+          <input type="hidden" name="billId" value={bill.id} />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-payee">
+                Payee Name
+              </label>
+              <input
+                id="edit-bill-payee"
+                name="payee"
+                defaultValue={bill.payee ?? ""}
+                placeholder="e.g. DURHAM WATER, REG MUN OF"
+                className={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-account">
+                Account Number
+              </label>
+              <input
+                id="edit-bill-account"
+                name="accountNumber"
+                defaultValue={bill.accountNumber ?? ""}
+                placeholder="e.g. 1643208999"
+                className={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-name">
+                Nickname / Bill Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="edit-bill-name"
+                name="name"
+                required
+                defaultValue={bill.name}
+                placeholder="e.g. Water (Durham Region)"
+                className={inputStyle}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-category">
+                Bill Type
+              </label>
+              <select
+                id="edit-bill-category"
+                name="category"
+                defaultValue={bill.category}
+                className={inputStyle}
+              >
+                <option value="utilities">Household Expenses &gt; Utilities (Water, Hydro, Gas)</option>
+                <option value="housing">Housing &gt; Rent / Mortgage / Property</option>
+                <option value="subscriptions">Subscriptions &gt; Digital Media, Gym, Streaming</option>
+                <option value="transport">Transport &gt; Transit / Parking / Tolls</option>
+                <option value="debt">Debt &gt; Loan / Card Paydown</option>
+                <option value="other">Other Household Expense</option>
+              </select>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-notes">
+                Notes &amp; Portal URL
+              </label>
+              <textarea
+                id="edit-bill-notes"
+                name="notes"
+                rows={2}
+                defaultValue={bill.notes ?? ""}
+                placeholder="e.g. ~$300/quarter, VARIES. Portal: https://secure8.i-doxs.net/RegionOfDurham/Secure/Bills.aspx"
+                className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            {errorForm === "payeeDetails" && error ? (
+              <p className="text-xs font-medium text-red-600" role="alert">
+                {error}
+              </p>
+            ) : <span />}
+
+            <button
+              type="submit"
+              className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer shadow-2xs"
+            >
+              Save Payee &amp; Account Details
+            </button>
+          </div>
+        </form>
+      </section>
 
       {/* Pay With Recommendation */}
       <section className="rounded-xl border border-border/80 bg-card p-5 shadow-2xs">
