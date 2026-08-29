@@ -176,4 +176,21 @@ describe("payment rail", () => {
     });
     expect(parsed.success).toBe(false);
   });
+
+  it("auto-normalizes plain web URLs by prepending https://", () => {
+    const parsed = billFormInput.safeParse({
+      name: base.name,
+      category: base.category,
+      cadenceJson: JSON.stringify(base.cadence),
+      scheduleJson: JSON.stringify(base.schedule),
+      serviceUrl: "example.com/account",
+      loginUrl: "subdomain.rogers.com/login",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.serviceUrl).toBe("https://example.com/account");
+      expect(parsed.data.loginUrl).toBe("https://subdomain.rogers.com/login");
+    }
+  });
 });
+
