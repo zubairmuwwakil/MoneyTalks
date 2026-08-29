@@ -3,7 +3,24 @@ import { inferAmountPattern } from "./amountPattern";
 import { inferCadence } from "./cadenceInference";
 
 const DAY_MS = 86_400_000;
-const MIN_SERIES_AMID_NOISE = 5;
+// Deliberately low. This is a SECOND filter sitting on top of inferCadence,
+// which already refuses anything under three occurrences unless an email
+// states the cadence outright — so at 2 this stops second-guessing P4a and
+// lets that threshold govern alone.
+//
+// Raised to 5, it silently dropped real obligations: against a live inbox,
+// Vercel (a 4-of-9 monthly subsequence) and Anthropic (3-of-6) were both
+// discarded while inferCadence had scored them MONTHLY at coverage 1.00 and
+// 0.75. Discarding evidence here is the wrong place to buy precision, because
+// nothing downstream can see what was dropped. Precision is enforced where
+// the evidence survives: THIN_EVIDENCE in confidence.ts, and a review inbox
+// that nothing bypasses.
+// P4a's own floor. Below this inferCadence returns null anyway.
+const MIN_SERIES_LENGTH = 3;
+// Long enough to be convincing on its own, however much noise surrounds it.
+const SELF_EVIDENT_SERIES_LENGTH = 5;
+// Or dense enough within its bucket to not look extracted from noise.
+const MIN_SERIES_SHARE_OF_BUCKET = 0.4;
 
 /**
  * Identity has already been resolved by the ingestion/orchestration boundary.
@@ -229,15 +246,41 @@ function bestSeries<Purchase extends ClusteringPurchase>(
     for (let anchor = 0; anchor < ordered.length; anchor += 1) {
       const candidatePurchases = extendSeed(ordered, ordinals, anchor, window);
       if (candidatePurchases.length < 3) continue;
-      // P4a intentionally accepts three observations. Repeating that test
-      // across every seed in a noisy merchant bucket, however, multiplies its
-      // false-positive rate. Weak series are accepted when they explain the
-      // whole residual bucket; extracting one from unrelated residual traffic
-      // requires more independent occurrences.
-      if (
-        candidatePurchases.length < MIN_SERIES_AMID_NOISE
-        && candidatePurchases.length < ordered.length
-      ) continue;
+      // Repeating P4a's test across every seed in a noisy bucket does
+      // multiply its false-positive rate, which is what this guard was for.
+      // It is kept at the floor rather than removed: a series must still
+      // clear inferCadence, and a thin one is scored down rather than hidden.
+      // Repeating P4a's test across every seed in a noisy bucket multiplies
+      // its false-positive rate, so a candidate must clear a noise floor. A
+      // flat count is the wrong shape for that: it scales with how much
+      // unrelated traffic a merchant happens to have, not with how convincing
+      // the series is. Against a live inbox, a flat 5 discarded Vercel
+      // (4-of-9 monthly) and Anthropic (3-of-6) while accepting Heroku only
+      // because it had no noise to hide in.
+      //
+      // What actually separates them is SHARE: a spurious series extracted
+      // from forty random Amazon orders explains a few percent of its bucket;
+      // a real obligation explains a large fraction of one. So require P4a's
+      // own floor, plus either the whole bucket or a substantial share of it.
+      // Two independent ways to be convincing, because real obligations
+      // arrive in both shapes and neither test alone admits both:
+      //
+      //   length  — twelve monthly charges are persuasive however much
+      //             unrelated traffic surrounds them (Amazon Prime is a
+      //             23% share of its own bucket and obviously real)
+      //   share   — a short series that explains most of its bucket is not
+      //             plausibly an artefact (Vercel 4-of-9, Anthropic 3-of-6,
+      //             both discarded by the flat count this replaces)
+      //
+      // A spurious series extracted from unrelated traffic fails both: it is
+      // short AND explains a few percent. That is the actual signature of
+      // noise, and the reason a flat count could not separate these cases.
+      const share = candidatePurchases.length / ordered.length;
+      const convincing =
+        candidatePurchases.length >= SELF_EVIDENT_SERIES_LENGTH
+        || candidatePurchases.length === ordered.length
+        || share >= MIN_SERIES_SHARE_OF_BUCKET;
+      if (candidatePurchases.length < MIN_SERIES_LENGTH || !convincing) continue;
       const signature = `${window.type}\0${candidatePurchases.map(({ id }) => id).join("\0")}`;
       if (seen.has(signature)) continue;
       seen.add(signature);
