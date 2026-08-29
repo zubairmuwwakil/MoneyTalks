@@ -20,7 +20,7 @@ them as a contract PickMe consumes.
 | Multi-account | **In scope.** Drop `EmailConnection.userId @unique`. |
 | `Subscription.cadence = CUSTOM` rows | Migrate to `MONTHLY` at `renewalDate`'s day, flagged for re-detection. |
 | Backfill consent | **User-initiated, strongly prompted.** Never silent on connect. |
-| Data retention | **Deferred** — see §15, D1. |
+| Data retention | **Deferred** — see §16, D1. |
 | LLM | **No.** See §12. |
 
 ### Why not `return-saas`
@@ -635,8 +635,47 @@ Then two parallel tracks, meeting at P6:
   `/settings/automation/review`. Migration steps 3–4.
 - **P7 — PickMe contract.** Emit observed obligations so `RecurringPlan` stops
   being hand-typed.
+- **P8 — Measurement.** Turn §5's weights from judgement into numbers. See
+  below; depends on P6 generating suggestions.
 
-## 15. Deferred decisions
+## 15. Measurement
+
+The confidence weights in §5 were chosen by judgement and have never been
+tested against anything but fixtures and one inbox. As of 2026-08-29 the
+engine has been validated on **60 messages from a single mailbox, yielding two
+detections**. That is a demonstration, not a precision figure, and nothing in
+phases P0–P7 changes it — which is why this is its own phase rather than a
+line in someone else's.
+
+Routing everything through review (§1) generates the labels for free: a
+confirm is a true positive, a dismiss a false positive, each already stamped
+with the `confidence` and `confidenceReasons` that produced it. No separate
+annotation exercise is needed.
+
+What P8 builds:
+
+- **Capture the dismissal reason.** Check whether `AutomationSuggestion`
+  records one; if not, it must, or a false positive cannot be told from a
+  duplicate or a merchant the owner simply does not care about.
+- **Precision by score bucket.** A reporting script over confirmed/dismissed
+  suggestions, grouped into confidence deciles. The shape to look for is
+  monotonic: if precision does not rise with score, the weights are not
+  ordering anything and the additive model itself is suspect.
+- **Per-signal contribution.** Which `Reason` codes appear in confirmations
+  versus dismissals. A term that appears equally in both is carrying no
+  information and should be dropped rather than retuned.
+- **A stated target.** Precision matters far more than recall here: a missed
+  obligation costs a detection, a false one costs trust in every other row.
+  Set the bar for what may reach the review inbox at all, and record it.
+
+Recall is harder and needs a held-out judgement — a manual pass over one
+inbox's real obligations, comparing what the engine found against what a
+person can see is there. Do it once, honestly, rather than pretending the
+number is continuously measurable.
+
+
+
+## 16. Deferred decisions
 
 Open questions deliberately not settled here. **Agents: these are open, not
 omitted — do not resolve them silently in an implementation.** Raise them with
@@ -662,7 +701,7 @@ Deferred because the answer depends on facts not yet in evidence: real corpus
 size per user, and whether re-derivation actually earns its keep in practice.
 Revisit once the backfill has run against real inboxes.
 
-## 16. Non-goals
+## 17. Non-goals
 
 - No changes to `return-saas` (B1).
 - No card-rule semantics. PickMe owns those, frozen (B6). We emit observations;
@@ -670,4 +709,4 @@ Revisit once the backfill has run against real inboxes.
 - No bank aggregation. Detection reads what we already observe.
 - No auto-creation of obligations. Everything routes through review.
 - No LLM (§12).
-- No retention policy — deliberately deferred (§15, D1).
+- No retention policy — deliberately deferred (§16, D1).
