@@ -3,7 +3,7 @@
 **Date:** 2026-08-28
 **Scope:** All six owner repos — MoneyTalks, marketdata, PickMe, return-saas,
 agent-orchestrator, pickleball-session-manager.
-**Status:** Design agreed across a four-round interview; awaiting spec review.
+**Status:** Ratified. M0/M1/M2/M4/M6 complete; M3/M5 pending.
 **Decomposition:** Larger than one implementation plan. Each milestone in §5 gets
 its **own** plan. Milestone 1 (MoneyTalks) proves the pattern and its outcome may
 revise this spec before milestone 2 is planned.
@@ -339,16 +339,39 @@ typecheck + test) in the required tier with auto-merge, because Dependabot will
 open PRs against a live public deployment handling encrypted credentials, and
 merging those without verification is the one real risk this repo still carries.
 
-**M6 — Cross-repo.** Ecosystem/fleet freshness jobs, Dependabot everywhere,
-`sync-ecosystem.sh` extended to carry the templates.
+**M6 — Cross-repo.** Completed 2026-08-28:
+
+- Mirrored canonical `ECOSYSTEM.md` and public `FLEET.md` content byte-for-byte;
+  corrected the remaining **Inunity** identity conflict.
+- Deleted the fictional stamp reader and made `cmp -s` the sole local freshness
+  authority; `sync-ecosystem.sh` now carries both documents.
+- Added weekly plus push/PR/manual advisory freshness workflows to every mirror.
+  These jobs are signals, never required status checks.
+- Added weekly Dependabot updates for every native package ecosystem and GitHub
+  Actions in all six repos. return-saas is limited to two npm PRs and one Actions
+  PR until M5 gives those updates a verification workflow.
 
 ## 6. Success criteria
 
+### Always-loaded context
+
+| Repo | Before | Target | Final (2026-08-28) |
+|---|---:|---:|---:|
+| MoneyTalks | 2,285 tok | ≤600 | **594 tok** |
+| marketdata | 2,385 tok | ≤600 | **489 tok** |
+| PickMe | 1,097 tok | ≤600 | **1,100 tok** |
+| return-saas | 1,157 tok | ≤600 | **1,160 tok** |
+| agent-orchestrator | 782 tok | ≤600 | **389 tok** |
+| pickleball-session-manager | 3,024 tok | ≤800 | **2,392 tok** |
+
+Counts use the design's established approximation: eager always-loaded character
+count divided by four, rounded to the nearest token. PickMe, return-saas, and PSM
+remain above target pending separate router work; M6 does not rewrite routers.
+
+### Other criteria
+
 | Measure | Now | Target |
 |---|---|---|
-| MoneyTalks always-loaded | 2,285 tok | ≤600 |
-| marketdata always-loaded | 2,385 tok | ≤600 |
-| PSM always-loaded | 3,024 tok | ≤800 |
 | MoneyTalks invariants compiled | 2 of ~15 | ≥8; rest demoted; **0 uncompiled always-loaded** |
 | Repos with a real `AGENTS.md` | 1 | 6 |
 | Repos with required status checks | 0 | 6 |
