@@ -29,7 +29,7 @@ the checklist.** There is no other checklist. Also: `npm run dev`, `npm run e2e`
 | [`exceptions.json`](docs/policies/exceptions.json) | a check is wrong for your task — add a dated entry and keep moving |
 | [`LOG.md`](docs/decisions/LOG.md) · [record](docs/decisions/2026-08-16-one-money-app.md) | cross-cutting work — both are ratified, not open |
 | [`ECOSYSTEM.md`](ECOSYSTEM.md) | anything spanning repos, or scoping v1 vs later |
-| [`FLEET.md`](FLEET.md) | choosing a model and effort — arrives with M4 |
+| [`FLEET.md`](https://github.com/zubairmuwwakil/agent-orchestrator/blob/main/FLEET.md) | choosing a model and effort |
 
 ## Freedom
 
