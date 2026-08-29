@@ -23,7 +23,7 @@ jobs:
           canonical="$(mktemp)"
           trap 'rm -f "$canonical"' EXIT
           curl --fail --silent --show-error --location --retry 3 \
-            "https://raw.githubusercontent.com/zubairmuwwakil/agent-orchestrator/main/FLEET.md" \
+            "https://raw.githubusercontent.com/zubairmuwwakil/agent-orchestrator/refs/heads/main/FLEET.md" \
             --output "$canonical"
           if ! diff -u "$canonical" FLEET.md; then
             echo "::error::FLEET.md has drifted from agent-orchestrator main"
