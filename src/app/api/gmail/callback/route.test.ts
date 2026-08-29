@@ -12,6 +12,22 @@ const grant = vi.hoisted(() => ({
   tokens: {} as Record<string, unknown>,
 }));
 
+type StoredConnection = Record<string, unknown> & {
+  emailAddress: string;
+  provider: string;
+  userId: string;
+};
+
+type UpsertArgs = {
+  where: {
+    userId_provider_emailAddress: Pick<StoredConnection, "emailAddress" | "provider" | "userId">;
+  };
+  create: StoredConnection;
+  update: Record<string, unknown>;
+};
+
+const storedConnections: StoredConnection[] = [];
+
 vi.mock("@/lib/require-user", () => ({ getSessionUserId: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({ prisma: { emailConnection: { upsert: vi.fn() } } }));
 vi.mock("@/lib/security/emailConnectionSecrets", () => ({
@@ -40,12 +56,10 @@ function callback() {
   return GET(new Request("http://localhost/api/gmail/callback?code=abc&state=state-1") as never);
 }
 
-function upsertArgs() {
-  return vi.mocked(prisma.emailConnection.upsert).mock.calls[0][0] as unknown as {
-    where: Record<string, unknown>;
-    create: Record<string, unknown>;
-    update: Record<string, unknown>;
-  };
+async function connectAs(email: string, tokens: Record<string, unknown> = grant.tokens) {
+  grant.email = email;
+  grant.tokens = tokens;
+  return callback();
 }
 
 describe("GET /api/gmail/callback", () => {
@@ -59,24 +73,66 @@ describe("GET /api/gmail/callback", () => {
       scope: "https://www.googleapis.com/auth/gmail.readonly",
     };
     vi.mocked(getSessionUserId).mockResolvedValue("user-1");
-    vi.mocked(prisma.emailConnection.upsert).mockResolvedValue({} as never);
+    storedConnections.length = 0;
+    vi.mocked(prisma.emailConnection.upsert).mockImplementation((async ({ where, create, update }: UpsertArgs) => {
+      const key = where.userId_provider_emailAddress;
+      const existing = storedConnections.find(
+        (connection) =>
+          connection.userId === key.userId &&
+          connection.provider === key.provider &&
+          connection.emailAddress === key.emailAddress,
+      );
+
+      if (!existing) {
+        const connection = { id: `conn-${storedConnections.length + 1}`, ...create } as StoredConnection;
+        storedConnections.push(connection);
+        return connection;
+      }
+
+      // Prisma omits undefined fields from an update. This is the behavior that
+      // keeps a first-consent refresh token when Google omits it on reconnect.
+      for (const [field, value] of Object.entries(update)) {
+        if (value !== undefined) existing[field] = value;
+      }
+      return existing;
+    }) as never);
   });
 
-  it("keys the connection on owner, provider and address so a second address adds a row", async () => {
-    grant.email = "second@gmail.com";
-
-    await callback();
+  it("adds a second connection for a different address", async () => {
+    await connectAs("first@gmail.com");
+    await connectAs("second@gmail.com");
 
     // Keyed on userId alone, a second address would OVERWRITE the first and
     // the owner would silently be left with one mailbox.
-    expect(upsertArgs().where).toEqual({
+    expect(storedConnections).toHaveLength(2);
+    expect(storedConnections.map(({ emailAddress }) => emailAddress)).toEqual([
+      "first@gmail.com",
+      "second@gmail.com",
+    ]);
+    expect(vi.mocked(prisma.emailConnection.upsert).mock.calls[1][0].where).toEqual({
       userId_provider_emailAddress: {
         userId: "user-1",
         provider: "GMAIL",
         emailAddress: "second@gmail.com",
       },
     });
-    expect(upsertArgs().create).toMatchObject({ emailAddress: "second@gmail.com" });
+  });
+
+  it("updates in place when the same address reconnects", async () => {
+    await connectAs("first@gmail.com");
+    await connectAs("first@gmail.com", {
+      access_token: "updated-at",
+      refresh_token: "updated-rt",
+      expiry_date: 1924992000000,
+      scope: "https://www.googleapis.com/auth/gmail.readonly",
+    });
+
+    expect(storedConnections).toHaveLength(1);
+    expect(storedConnections[0]).toMatchObject({
+      emailAddress: "first@gmail.com",
+      accessToken: "updated-at",
+      refreshToken: "updated-rt",
+    });
   });
 
   it("refuses a grant that returned no address", async () => {
@@ -94,12 +150,19 @@ describe("GET /api/gmail/callback", () => {
   it("does not erase a stored refresh token when Google omits one", async () => {
     // A refresh token arrives on FIRST consent only. Writing null on a repeat
     // consent would disconnect the mailbox at the next token expiry.
-    delete grant.tokens.refresh_token;
+    await connectAs("first@gmail.com");
+    await connectAs("first@gmail.com", {
+      access_token: "updated-at",
+      expiry_date: 1924992000000,
+      scope: "https://www.googleapis.com/auth/gmail.readonly",
+    });
 
-    await callback();
-
-    expect(upsertArgs().update.refreshToken).toBeUndefined();
-    expect(upsertArgs().create.refreshToken).toBeNull();
+    expect(storedConnections).toHaveLength(1);
+    expect(storedConnections[0]).toMatchObject({
+      accessToken: "updated-at",
+      refreshToken: "rt",
+    });
+    expect(vi.mocked(prisma.emailConnection.upsert).mock.calls[1][0].update.refreshToken).toBeUndefined();
   });
 
   it("encrypts the tokens under the owner, not the address", async () => {
