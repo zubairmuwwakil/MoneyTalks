@@ -45,6 +45,7 @@ export type RawGmailMessage = {
   subject: string | null;
   from: string | null;
   internalDate: Date | null;
+  rfc822MessageId: string | null;
 };
 
 type GmailLike = {
@@ -70,6 +71,25 @@ function headerValue(headerBlock: string, name: string): string | null {
   const unfolded = headerBlock.replace(/\r?\n[ \t]+/g, " ");
   const m = unfolded.match(new RegExp(`^${name}:[ \\t]*(.+)$`, "im"));
   return m ? m[1].trim() : null;
+}
+
+/**
+ * The RFC822 `Message-ID` header, which the SENDER assigns and which is
+ * therefore identical in every mailbox the message reaches. Gmail's own
+ * message id is per-mailbox, so it cannot tell "the same receipt, twice"
+ * from "two receipts".
+ *
+ * Only the header block is searched: a forwarded receipt quotes the original
+ * headers in its body, and reading those would give two genuinely different
+ * messages one identity. An empty `<>` is treated as absent for the same
+ * reason — a shared placeholder id would merge unrelated receipts.
+ */
+export function extractRfc822MessageId(raw: string): string | null {
+  const headerBlock = raw.split(/\r?\n\r?\n/, 1)[0] ?? "";
+  const value = headerValue(headerBlock, "Message-ID");
+  if (!value) return null;
+  const angled = value.match(/<([^>]*)>/);
+  return (angled ? angled[1] : value).trim() || null;
 }
 
 function addressFrom(headerText: string | null): string | null {
@@ -115,7 +135,8 @@ export async function listRecentRawGmailMessages(
     if (!res.data.raw) continue;
 
     const raw = Buffer.from(res.data.raw, "base64url");
-    const headerBlock = raw.toString("utf8").split(/\r?\n\r?\n/, 1)[0] ?? "";
+    const text = raw.toString("utf8");
+    const headerBlock = text.split(/\r?\n\r?\n/, 1)[0] ?? "";
 
     messages.push({
       messageId: id,
@@ -123,6 +144,7 @@ export async function listRecentRawGmailMessages(
       subject: headerValue(headerBlock, "Subject"),
       from: addressFrom(headerValue(headerBlock, "From")),
       internalDate: res.data.internalDate ? new Date(Number(res.data.internalDate)) : null,
+      rfc822MessageId: extractRfc822MessageId(text),
     });
   }
 

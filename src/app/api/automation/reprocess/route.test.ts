@@ -41,6 +41,7 @@ function rawMessage(messageId: string) {
     subject: "Receipt",
     from: "orders@example.com",
     internalDate: new Date("2026-08-01T00:00:00.000Z"),
+    rfc822MessageId: null,
   };
 }
 
