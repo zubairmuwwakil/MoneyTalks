@@ -52,4 +52,5 @@ Conflict outside that: **stop and ask. Do not average them.**
 - Long-form narrative (positioning, not a backlog): `MoneyTalks/docs/ECOSYSTEM-NARRATIVE.md`
 
 *This file is mirrored into all four repos. Edit the canonical copy, then run
-`scripts/sync/sync-ecosystem.sh` from MoneyTalks. A stamp mismatch means stale.*
+`scripts/sync/sync-ecosystem.sh`. Freshness is verified by
+`./scripts/sync/sync-ecosystem.sh --check` and advisory CI.*

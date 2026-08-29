@@ -1,0 +1,32 @@
+name: Document freshness (advisory)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "23 13 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fleet-freshness:
+    name: fleet-freshness (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare FLEET.md with agent-orchestrator main
+        run: |
+          set -euo pipefail
+          canonical="$(mktemp)"
+          trap 'rm -f "$canonical"' EXIT
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://raw.githubusercontent.com/zubairmuwwakil/agent-orchestrator/main/FLEET.md" \
+            --output "$canonical"
+          if ! diff -u "$canonical" FLEET.md; then
+            echo "::error::FLEET.md has drifted from agent-orchestrator main"
+            exit 1
+          fi
+          echo "FLEET.md is current with agent-orchestrator main"
