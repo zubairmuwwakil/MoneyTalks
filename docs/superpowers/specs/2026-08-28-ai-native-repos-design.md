@@ -146,10 +146,13 @@ Per repo, enumerate every stated invariant and assign an outcome. Every new
 check gets its own test.
 
 **Checks are written in each repo's native idiom, not as uniform scripts:**
-marketdata gets ArchUnit tests inside the existing surefire run; PickMe a Swift
-test target; agent-orchestrator pytest cases. Only MoneyTalks and PSM get `.mjs`
-check scripts, because JS has no equivalent already wired. Most checks therefore
-cost one test file and zero new CI plumbing.
+marketdata uses plain JUnit 5 source guardrails inside the existing surefire run,
+not ArchUnit: only one of its invariants is dependency-shaped, while the others
+are SQL literals, user-facing copy, and endpoint shapes that bytecode cannot see.
+PickMe uses a Swift test target and agent-orchestrator pytest cases. Only MoneyTalks
+and PSM get `.mjs` check scripts, because JS has no equivalent already wired. M3–M5
+must make the same choice by reading their invariants against the code first. Most
+checks therefore cost one test file and zero new CI plumbing.
 
 **MoneyTalks ledger (~15 → 8 compiled, 7 demoted):**
 
@@ -171,11 +174,11 @@ cost one test file and zero new CI plumbing.
 | Repo identity / In Unity (E1) | Keep — router identity lines |
 | Check decision record before cross-cutting work | Keep — one router line |
 
-**marketdata (ArchUnit-shaped):** sweep force-refreshes rather than consulting
-cache; candles after `expectedSession` discarded; all upserts route through
-`DatabaseDialect`; providers resolved via `MarketDataProviderRegistry` (no direct
-bean injection); no portfolio-valuation endpoint; **demo mode green in CI** via a
-`./mvnw -Pdemo` job — which compiles "demo mode is a product surface" into
+**marketdata (source-level guardrails):** sweep force-refreshes rather than
+consulting cache; candles after `expectedSession` discarded; all upserts route
+through `DatabaseDialect`; providers resolved via `MarketDataProviderRegistry` (no
+direct bean injection); no portfolio-valuation endpoint; **demo mode green in CI**
+via a `./mvnw -Pdemo` job — which compiles "demo mode is a product surface" into
 something that cannot quietly regress.
 
 Remaining repos' ledgers are produced in their own milestones.
@@ -317,7 +320,8 @@ unpushed work is structurally impossible.
 7 demotions, four skills, `REPO_MAP.md`, `settings.json`, typecheck, PR gating,
 `.env.example` repair, docs/scripts consolidation. Proves the pattern.
 
-**M2 — marketdata.** Same, ArchUnit-shaped, plus the `-Pdemo` CI job.
+**M2 — marketdata.** Same, with plain JUnit source guardrails selected by invariant
+shape, plus the `-Pdemo` CI job.
 
 **M3 — pickleball-session-manager.** Mostly subtraction: delete §1 Principles,
 collapse §3 into `pnpm check:quality`, make the six phantom `SKILLS.md` entries
