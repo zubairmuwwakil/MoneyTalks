@@ -6,6 +6,7 @@ import { getSessionUserId } from "@/lib/require-user";
 import { getAuthedGmail, listUserConnections } from "@/lib/services/gmailClient";
 import { hasGmailReadScope, listRecentRawGmailMessages } from "@/lib/services/gmailScanSource";
 import { processRawGmailMessage } from "@/lib/domain/receipts/gmailReceiptProcessing";
+import { sendServiceFailureAlert } from "@/lib/services/alerting";
 
 vi.mock("@/lib/require-user", () => ({ getSessionUserId: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
@@ -21,6 +22,7 @@ vi.mock("@/lib/services/gmailScanSource", () => ({
   listRecentRawGmailMessages: vi.fn(),
 }));
 vi.mock("@/lib/domain/receipts/gmailReceiptProcessing", () => ({ processRawGmailMessage: vi.fn() }));
+vi.mock("@/lib/services/alerting", () => ({ sendServiceFailureAlert: vi.fn() }));
 
 function request() {
   return new Request("http://localhost/api/automation/scan", { method: "POST", body: "{}" });
@@ -95,6 +97,7 @@ describe("POST /api/automation/scan", () => {
     expect(prisma.emailConnection.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ lastScanAt: expect.any(Date) }) }),
     );
+    expect(sendServiceFailureAlert).not.toHaveBeenCalled();
   });
 
   it("does NOT stamp lastScanAt when the scan throws", async () => {
@@ -106,6 +109,23 @@ describe("POST /api/automation/scan", () => {
 
     expect(response.status).toBe(502);
     expect(prisma.emailConnection.updateMany).not.toHaveBeenCalled();
+    expect(sendServiceFailureAlert).toHaveBeenCalledOnce();
+    expect(sendServiceFailureAlert).toHaveBeenCalledWith(expect.objectContaining({
+      serviceName: "automation/scan",
+      summary: "Unhandled error during Gmail scan",
+      error: "Gmail API is disabled",
+      details: {
+        connectionId: "conn-a",
+        days: 90,
+        fetched: 0,
+      },
+    }));
+
+    const alert = vi.mocked(sendServiceFailureAlert).mock.calls[0][0];
+    expect(alert).not.toHaveProperty("subject");
+    expect(alert).not.toHaveProperty("sender");
+    expect(alert.details).not.toHaveProperty("subject");
+    expect(alert.details).not.toHaveProperty("sender");
   });
 
   it("still flushes refreshed tokens when the scan throws", async () => {
@@ -124,4 +144,3 @@ describe("detectSubscriptionItem", () => {
     expect(detectSubscriptionItem("Your order has shipped", "Order total $42.00")).toBeNull();
   });
 });
-

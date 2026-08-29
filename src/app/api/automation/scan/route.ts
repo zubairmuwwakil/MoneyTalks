@@ -5,6 +5,7 @@ import { classifyReceiptEmail, hasPurchaseEvidence } from "@/lib/domain/receipts
 import { processRawGmailMessage } from "@/lib/domain/receipts/gmailReceiptProcessing";
 import { getAuthedGmail, listUserConnections } from "@/lib/services/gmailClient";
 import { hasGmailReadScope, listRecentRawGmailMessages } from "@/lib/services/gmailScanSource";
+import { sendServiceFailureAlert } from "@/lib/services/alerting";
 import type { Prisma } from "@prisma/client";
 import crypto from "crypto";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
@@ -279,6 +280,19 @@ export async function POST(req: NextRequest) {
   }
 
   if (scanError) {
+    // A completed scan that finds nothing is normal for a quiet mailbox. A
+    // thrown scan is actionable, and these details identify the connection
+    // without exporting mailbox content to Sentry or alert email.
+    await sendServiceFailureAlert({
+      serviceName: "automation/scan",
+      summary: "Unhandled error during Gmail scan",
+      error: scanError,
+      details: {
+        connectionId: connection.id,
+        days: Number.isFinite(days) ? days : 90,
+        fetched,
+      },
+    });
     return NextResponse.json({ error: `Scan failed: ${scanError}` }, { status: 502 });
   }
 
