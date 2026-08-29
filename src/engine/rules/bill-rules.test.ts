@@ -29,12 +29,12 @@ describe("digitalNewsRule", () => {
 });
 
 describe("studentLoanInterestRule", () => {
-  it("sums this year's paid amounts on student-loan-like bills", () => {
+  it("sums this year's paid amounts on student-loan-like bills with legacy or granular category", () => {
     const snapshot = makeSnapshot([], {
       bills: [
         makeBill({
-          name: "Fixture Student Loan",
-          category: "debt",
+          name: "National Student Loans Service Centre",
+          category: "debt:student_loan",
           payments: [
             { dueDate: "2026-02-05", expectedAmountMinor: 20_000, actualAmountMinor: 20_000, paidAt: "2026-02-05" },
             { dueDate: "2026-03-05", expectedAmountMinor: 20_000, actualAmountMinor: 20_000, paidAt: "2026-03-05" },
@@ -55,10 +55,10 @@ describe("studentLoanInterestRule", () => {
 });
 
 describe("mortgagePrepaymentRule", () => {
-  it("reminds within 60 days before the window", () => {
+  it("reminds within 60 days before the window for granular housing:mortgage bill", () => {
     const snapshot = makeSnapshot([], {
       today: "2026-02-01",
-      bills: [makeBill({ name: "Fixture Mortgage", category: "housing", prepaymentMonthDay: "03-15", interestRatePct: 5 })],
+      bills: [makeBill({ name: "RBC Homeline Plan", category: "housing:mortgage", prepaymentMonthDay: "03-15", interestRatePct: 5 })],
     });
     const alerts = mortgagePrepaymentRule.evaluate(profile, snapshot);
     expect(alerts).toHaveLength(1);

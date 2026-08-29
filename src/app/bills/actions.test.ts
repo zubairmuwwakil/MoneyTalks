@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { allocateRecommendedCard, createBill, setBillCadence, setBillPaymentRail, setBillRoute } from "./actions";
+import { allocateRecommendedCard, createBill, setBillCadence, setBillPaymentRail, setBillRoute, updateBillPayeeDetails } from "./actions";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { revalidatePath } from "next/cache";
@@ -400,5 +400,37 @@ describe("setBillCadence", () => {
     const result = await setBillCadence(fd);
     expect(result.ok).toBe(false);
     expect(prisma.bill.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateBillPayeeDetails", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(requireUserId).mockResolvedValue("user-1");
+    vi.mocked(prisma.bill.findFirst).mockResolvedValue({ id: "bill-1", userId: "user-1" } as never);
+    vi.mocked(prisma.bill.update).mockResolvedValue({} as never);
+  });
+
+  it("updates payee details and persists granular taxonomy category", async () => {
+    const fd = new FormData();
+    fd.set("billId", "bill-1");
+    fd.set("name", "Netflix 4K");
+    fd.set("payee", "Netflix Canada");
+    fd.set("accountNumber", "NET-9912");
+    fd.set("category", "subscriptions:streaming");
+    fd.set("notes", "Shared family plan");
+
+    const result = await updateBillPayeeDetails(fd);
+    expect(result).toEqual({ ok: true });
+    expect(prisma.bill.update).toHaveBeenCalledWith({
+      where: { id: "bill-1" },
+      data: {
+        name: "Netflix 4K",
+        payee: "Netflix Canada",
+        accountNumber: "NET-9912",
+        category: "subscriptions:streaming",
+        notes: "Shared family plan",
+      },
+    });
   });
 });

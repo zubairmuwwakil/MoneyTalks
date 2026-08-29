@@ -35,7 +35,7 @@ export const scheduleEntryInput = z
 
 export const billCore = z.object({
   name: z.string().trim().min(1).max(80),
-  category: z.enum(["housing", "utilities", "subscriptions", "transport", "debt", "other"]),
+  category: z.string().trim().min(1).max(80).default("other"),
   payee: optional(z.string().trim().max(80)),
   accountNumber: optional(z.string().trim().max(80)),
   currency: currencyCode.default("CAD"),

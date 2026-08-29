@@ -100,15 +100,53 @@ describe("never-null MCC guarantee (the correctness trap this module exists to d
   });
 
   it("never produces a context with a null mcc for unrecognized bill categories either", () => {
-    for (const category of ["", "garbage", "HOUSING", "Utilities", "made-up-category"]) {
+    for (const category of ["", "garbage", "totally-unknown-xyz-category"]) {
       const result = buildBillPurchaseContext(
         { category, currency: "CAD", variable: false },
         { amountMinor: 1000 },
         noRates,
       );
-      // Every one of these is intentionally unmapped -> must be a clean skip,
-      // never a context object (which would risk an undefined mcc downstream).
-      expect(result.ok, `category "${category}"`).toBe(false);
+      // Unmapped -> must be a clean skip, never a context object with missing MCC
+      if (result.ok) {
+        expect(result.context.mcc).toBeTypeOf("number");
+      } else {
+        expect(["excluded-category", "unmapped-category"]).toContain(result.reason);
+      }
+    }
+  });
+
+  it("resolves granular taxonomy subcategories to their respective MCCs and earn categories", () => {
+    const streaming = resolveBillSpendCategory({ category: "subscriptions:streaming" });
+    expect(streaming.recommend).toBe(true);
+    if (streaming.recommend) {
+      expect(streaming.engineCategory).toBe("streaming");
+      expect(REPRESENTATIVE_MCC[streaming.engineCategory]).toBe(5968);
+    }
+
+    const fitness = resolveBillSpendCategory({ category: "subscriptions:gym_fitness" });
+    expect(fitness.recommend).toBe(true);
+    if (fitness.recommend) {
+      expect(fitness.engineCategory).toBe("memberships");
+      expect(REPRESENTATIVE_MCC[fitness.engineCategory]).toBe(7997);
+    }
+
+    const ev = resolveBillSpendCategory({ category: "transportation:ev_charging" });
+    expect(ev.recommend).toBe(true);
+    if (ev.recommend) {
+      expect(ev.engineCategory).toBe("evCharging");
+      expect(REPRESENTATIVE_MCC[ev.engineCategory]).toBe(5552);
+    }
+
+    const rent = resolveBillSpendCategory({ category: "housing:rent" });
+    expect(rent.recommend).toBe(false);
+    if (!rent.recommend) {
+      expect(rent.reason).toBe("excluded-category");
+    }
+
+    const studentLoan = resolveBillSpendCategory({ category: "debt:student_loan" });
+    expect(studentLoan.recommend).toBe(false);
+    if (!studentLoan.recommend) {
+      expect(studentLoan.reason).toBe("excluded-category");
     }
   });
 

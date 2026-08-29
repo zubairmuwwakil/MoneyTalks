@@ -22,10 +22,10 @@ describe("cadenceInput", () => {
 });
 
 describe("billImportEntry", () => {
-  it("accepts a full bill with stepped schedule", () => {
+  it("accepts a full bill with stepped schedule and granular taxonomy category", () => {
     const parsed = billImportEntry.safeParse({
       name: "Fixture Stream Bundle",
-      category: "subscriptions",
+      category: "subscriptions:streaming",
       autopay: true,
       cadence: { type: "MONTHLY", dayOfMonth: 1 },
       schedule: [
@@ -34,13 +34,16 @@ describe("billImportEntry", () => {
       ],
     });
     expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.category).toBe("subscriptions:streaming");
+    }
   });
 
   it("requires at least one schedule entry", () => {
     expect(
       billImportEntry.safeParse({
         name: "x",
-        category: "other",
+        category: "other:uncategorized",
         cadence: { type: "MONTHLY", dayOfMonth: 1 },
         schedule: [],
       }).success,

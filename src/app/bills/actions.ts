@@ -15,6 +15,7 @@ import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { billFormInput, cadenceInput, scheduleEntryInput } from "@/lib/validation/bills";
+import { resolveBillTaxonomy } from "@/lib/taxonomy/billTaxonomy";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -553,9 +554,8 @@ export async function updateBillPayeeDetails(formData: FormData): Promise<Action
   const payee = payeeRaw.length > 0 ? payeeRaw.slice(0, 80) : null;
   const accountNumber = accountRaw.length > 0 ? accountRaw.slice(0, 80) : null;
   const notes = notesRaw.length > 0 ? notesRaw.slice(0, 500) : null;
-  const category = ["housing", "utilities", "subscriptions", "transport", "debt", "other"].includes(categoryRaw)
-    ? categoryRaw
-    : "utilities";
+  const resolvedCategory = resolveBillTaxonomy(categoryRaw);
+  const category = resolvedCategory.id;
 
   try {
     const bill = await ownedBill(userId, billId);

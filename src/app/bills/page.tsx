@@ -32,6 +32,7 @@ import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { billIntermediaries } from "@/lib/contracts/billIntermediaries";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
+import { formatBillCategoryLabel } from "@/lib/taxonomy/billTaxonomy";
 
 // Computed once at module load, not per request — the contract JSON never
 // changes at runtime. Cast from the zod-validated CardCatalogue shape
@@ -369,8 +370,8 @@ export default async function BillsPage({
           {categories.map((category) => (
             <section key={category} className="space-y-2.5">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[11px] font-semibold uppercase tracking-wider">
-                  {category}
+                <Badge variant="outline" className="text-xs font-semibold">
+                  {formatBillCategoryLabel(category)}
                 </Badge>
                 <span className="text-xs text-muted-foreground">
                   ({withNext.filter(({ bill }) => bill.category === category).length})

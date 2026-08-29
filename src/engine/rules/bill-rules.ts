@@ -52,7 +52,9 @@ export const studentLoanInterestRule: Rule = {
   evaluate(_profile, snapshot) {
     const year = currentYear(snapshot.today);
     const loans = snapshot.bills.filter(
-      (b) => b.category === "debt" && STUDENT_LOAN_PATTERN.test(`${b.name} ${b.notes ?? ""}`),
+      (b) =>
+        (b.category === "debt:student_loan" || b.category === "debt" || b.category.startsWith("debt")) &&
+        (b.category === "debt:student_loan" || STUDENT_LOAN_PATTERN.test(`${b.name} ${b.notes ?? ""}`)),
     );
     if (loans.length === 0) return [];
     return loans.map((bill) => {
@@ -81,7 +83,7 @@ export const mortgagePrepaymentRule: Rule = {
   lastReviewed: "2026-08-14",
   evaluate(_profile, snapshot) {
     return snapshot.bills
-      .filter((b) => b.category === "housing" && b.prepaymentMonthDay)
+      .filter((b) => (b.category === "housing" || b.category === "housing:mortgage" || b.category.startsWith("housing")) && b.prepaymentMonthDay)
       .flatMap((bill) => {
         const year = Number(currentYear(snapshot.today));
         // Both this year's and next year's window, so a January window is still

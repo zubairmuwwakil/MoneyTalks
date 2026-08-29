@@ -31,6 +31,11 @@ import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
+import {
+  BILL_PARENT_CATEGORIES,
+  formatBillCategoryLabel,
+  resolveBillTaxonomy,
+} from "@/lib/taxonomy/billTaxonomy";
 
 // Same module-level singleton as src/app/bills/page.tsx — see that file's
 // comment for why this cast is safe and why it's computed once, not per
@@ -363,14 +368,14 @@ export default async function BillDetailPage({
         <header className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">{bill.name}</h1>
-            <Badge variant="outline" className="text-xs font-semibold uppercase">
-              {bill.category}
+            <Badge variant="outline" className="text-xs font-semibold">
+              {formatBillCategoryLabel(bill.category)}
             </Badge>
             {bill.autopay ? <Badge variant="secondary">autopay</Badge> : null}
             {bill.variable ? <Badge variant="info">variable</Badge> : null}
           </div>
           <p className="text-sm text-muted-foreground">
-            {bill.category} · {cadenceSummary}
+            {resolveBillTaxonomy(bill.category).formattedLabel} · {cadenceSummary}
             {bill.payee ? ` · Payee: ${bill.payee}` : ""}
             {bill.accountNumber ? ` · Acct: ${bill.accountNumber}` : ""} · {bill.currency}
             {bill.autopay ? " · autopay" : ""}
@@ -439,7 +444,7 @@ export default async function BillDetailPage({
 
             <div>
               <label className="block text-xs font-medium text-foreground mb-1" htmlFor="edit-bill-category">
-                Bill Type
+                Bill Type / Category
               </label>
               <select
                 id="edit-bill-category"
@@ -447,12 +452,15 @@ export default async function BillDetailPage({
                 defaultValue={bill.category}
                 className={inputStyle}
               >
-                <option value="utilities">Household Expenses &gt; Utilities (Water, Hydro, Gas)</option>
-                <option value="housing">Housing &gt; Rent / Mortgage / Property</option>
-                <option value="subscriptions">Subscriptions &gt; Digital Media, Gym, Streaming</option>
-                <option value="transport">Transport &gt; Transit / Parking / Tolls</option>
-                <option value="debt">Debt &gt; Loan / Card Paydown</option>
-                <option value="other">Other Household Expense</option>
+                {BILL_PARENT_CATEGORIES.map((parent) => (
+                  <optgroup key={parent.id} label={`${parent.icon} ${parent.label}`}>
+                    {parent.subcategories.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
               </select>
             </div>
 

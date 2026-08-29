@@ -9,6 +9,7 @@ import type {
 } from "@/engine/cards-twin";
 import { convertMinor, MissingFxRateError, type FxRateInput } from "@/engine/fx";
 import type { Currency } from "@/engine/money";
+import { resolveBillTaxonomy } from "@/lib/taxonomy/billTaxonomy";
 
 /**
  * Maps a MoneyTalks `Bill` onto a card-recommendation `PurchaseContext` for
@@ -60,6 +61,9 @@ export const REPRESENTATIVE_MCC: Readonly<Record<string, number>> = Object.freez
   transit: 4121,
   foodDelivery: 5814,
   grocery: 5411,
+  evCharging: 5552,
+  drugStore: 5912,
+  travel: 4722,
 });
 
 // --- Payment rail (can a card even pay this?) ------------------------------
@@ -142,10 +146,14 @@ export function resolveBillPaymentRail(bill: BillRailInput): BillRailDecision {
   }
 }
 
-// --- Bill.category -> engine category mapping ------------------------------
+// --- Spend-category mapping -------------------------------------------------
 
 export type BillCategoryDecision =
-  | { recommend: true; engineCategory: string; rationale: string }
+  | {
+      recommend: true;
+      engineCategory: string;
+      rationale: string;
+    }
   | {
       recommend: false;
       reason: "excluded-category" | "unmapped-category" | "override-mcc-unknown";
@@ -153,76 +161,40 @@ export type BillCategoryDecision =
     };
 
 /**
- * `Bill.category` (Prisma: housing | utilities | subscriptions | transport |
- * debt | other) uses a different, coarser vocabulary than the engine's
- * earn-rule categories. Every entry below is a deliberate, documented
- * choice — a future reader should be able to audit this table without
- * re-deriving it.
+ * `Bill.category` maps to the card engine's spend categories.
+ * Preserves legacy categories verbatim and leverages `resolveBillTaxonomy`
+ * for the comprehensive 13-parent, 54-subcategory taxonomy.
  */
 export const BILL_CATEGORY_MAPPING: Readonly<Record<string, BillCategoryDecision>> = Object.freeze({
-  // Mortgage/rent payments generally can't be charged to a credit card at
-  // all; where a third-party rent-collection/bill-pay workaround exists, it
-  // typically charges ~2-2.5% per transaction — a cost that swamps every
-  // reward rate in this catalogue for a payment that isn't in any bonus
-  // category to begin with. A card pick here would be a confidently wrong
-  // answer, not a helpful one, so this renders an explanatory line instead.
   housing: {
     recommend: false,
     reason: "excluded-category",
     rationale:
       "Mortgage/rent payments generally aren't chargeable to a card directly, and the third-party services that allow it typically charge ~2-2.5% per transaction — more than any reward on offer here. No honest recommendation exists.",
   },
-  // Same economics as housing: loan/LOC/credit-card-debt paydowns don't
-  // clear card networks directly, and the surcharge-service workaround
-  // costs more than any reward this catalogue offers.
   debt: {
     recommend: false,
     reason: "excluded-category",
     rationale:
       "Debt payments (loans, lines of credit) face the same non-chargeable-or-surcharged economics as housing — no card reward here beats a ~2-2.5% pass-through fee.",
   },
-  // Direct match: MoneyTalks "utilities" (phone/internet/hydro/etc.) is
-  // exactly PickMe's householdUtilities bucket.
   utilities: {
     recommend: true,
     engineCategory: "householdUtilities",
     rationale:
       'Direct match — "utilities" bills (phone/internet/hydro/etc.) are exactly PickMe\'s householdUtilities bucket.',
   },
-  // Direct match: transit passes/tolls.
   transport: {
     recommend: true,
     engineCategory: "transit",
     rationale: 'Direct match — "transport" bills (transit passes, tolls) map onto the engine\'s transit category.',
   },
-  // Genuinely ambiguous: a generic "subscriptions" bill could be Netflix
-  // (streaming), iCloud/Dropbox/SaaS (digitalMedia), or a gym app
-  // (memberships). CONSERVATIVE pick: digitalMedia, not streaming.
-  // All three candidates tie at MBNA's 5x when MBNA is owned
-  // (mbna-digital-media-5x's predicate covers both streaming AND
-  // digitalMedia at the same rate; mbna-memberships-5x mirrors it for
-  // memberships). The one place they diverge: Amex Cobalt's
-  // cobalt-streaming-3x rule matches on the "streaming" category ALONE (no
-  // mccInclude gate at all), so mapping every generic subscription to
-  // "streaming" would hand a Cobalt-only owner a 3x bonus for something
-  // that might actually be a non-video subscription — an over-promise.
-  // digitalMedia and memberships both avoid that false positive;
-  // digitalMedia is chosen over memberships as the closer semantic fit for
-  // a generic "subscriptions" bill (software/cloud/media) vs. memberships
-  // (gym/club dues).
   subscriptions: {
     recommend: true,
     engineCategory: "digitalMedia",
     rationale:
       'Ambiguous (streaming vs. digitalMedia vs. memberships) — conservatively mapped to digitalMedia: ties with the others at MBNA\'s 5x, but unlike "streaming" it never falsely qualifies for Amex Cobalt\'s streaming-only 3x bonus on a subscription that might not be video streaming.',
   },
-  // Catch-all. Maps to the engine's own "recurring" pseudo-category, which
-  // matches purely on PurchaseContext.recurringIndicator (see
-  // RuleMatcher.matches's 'recurring' switch case) — it is deliberately
-  // MCC-agnostic, so an uncategorized bill never risks a false MCC-gated
-  // bonus. This is the same choice PickMe's own reference data
-  // (RecurringPlan.placeholderSubscriptions) uses for its miscellaneous
-  // recurring bills (insurance).
   other: {
     recommend: true,
     engineCategory: "recurring",
@@ -232,15 +204,8 @@ export const BILL_CATEGORY_MAPPING: Readonly<Record<string, BillCategoryDecision
 });
 
 /**
- * Resolves which engine category applies to a bill. Pure and side-effect
- * free — no engine calls, no I/O.
- *
- * `opts.override`, when supplied, wins over the derived `Bill.category`
- * mapping above. This is the seam a future per-bill "pin the spend
- * category" feature hangs off (a planned, not-yet-added nullable `Bill`
- * column, tracked separately) — this function doesn't know about that
- * column; it just accepts whatever engine category string the caller
- * already resolved for the bill and trusts it over the derived table.
+ * Resolves which engine category applies to a bill. Pure and side-effect free.
+ * Supports explicit overrides, static legacy mapping, and the expanded bill taxonomy.
  */
 export function resolveBillSpendCategory(
   bill: Pick<{ category: string }, "category">,
@@ -264,16 +229,40 @@ export function resolveBillSpendCategory(
     };
   }
 
-  const mapping = BILL_CATEGORY_MAPPING[bill.category];
-  if (!mapping) {
+  // 1. Check direct static mapping if present
+  const staticMapping = BILL_CATEGORY_MAPPING[bill.category];
+  if (staticMapping) {
+    return { ...staticMapping, source: "derived" };
+  }
+
+  // 2. Resolve via bill taxonomy
+  const resolved = resolveBillTaxonomy(bill.category);
+  if (resolved.isCardExcluded) {
     return {
       recommend: false,
-      reason: "unmapped-category",
-      rationale: `Unrecognized bill category "${bill.category}" — no documented mapping, so no recommendation is produced.`,
+      reason: "excluded-category",
+      rationale:
+        resolved.exclusionRationale ??
+        `${resolved.formattedLabel} payments are generally non-chargeable directly or face surcharges higher than standard card rewards.`,
       source: "derived",
     };
   }
-  return { ...mapping, source: "derived" };
+
+  if (resolved.defaultSpendCategory && REPRESENTATIVE_MCC[resolved.defaultSpendCategory] !== undefined) {
+    return {
+      recommend: true,
+      engineCategory: resolved.defaultSpendCategory,
+      rationale: `Derived from bill taxonomy (${resolved.formattedLabel}) mapped to engine category "${resolved.defaultSpendCategory}".`,
+      source: "derived",
+    };
+  }
+
+  return {
+    recommend: false,
+    reason: "unmapped-category",
+    rationale: `Unrecognized bill category "${bill.category}" — no documented mapping, so no recommendation is produced.`,
+    source: "derived",
+  };
 }
 
 // --- Spend-category picker options ------------------------------------------

@@ -15,6 +15,10 @@ import { TaxCalculator } from "@/components/bills/tax-calculator";
 import { SmartRewardRouter } from "@/components/bills/smart-reward-router";
 import { Badge } from "@/components/ui/badge";
 import type { BillRouteWalletCard } from "@/engine/billRouteScorer";
+import {
+  BILL_PARENT_CATEGORIES,
+  resolveBillTaxonomy,
+} from "@/lib/taxonomy/billTaxonomy";
 
 const input =
   "flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-sm shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring";
@@ -28,6 +32,7 @@ export interface SpendCategoryOption {
 interface PayeeSuggestion {
   category: string;
   spendCategory: string;
+  paymentRail?: "card" | "pad" | "card_via_third_party" | "unknown";
   reason: string;
 }
 
@@ -35,55 +40,176 @@ const SMART_PAYEE_RULES: Array<{
   pattern: RegExp;
   category: string;
   spendCategory: string;
+  paymentRail?: "card" | "pad" | "card_via_third_party" | "unknown";
   reason: string;
 }> = [
+  // Subscriptions: Gym & Fitness
   {
     pattern: /pickle|gym|fitness|sport|climb|goodlife|ymca|crossfit|f45|club|racquet|equinox|planet fitness|anytime/i,
-    category: "subscriptions",
-    spendCategory: "Memberships",
-    reason: "Fitness & Club Membership",
+    category: "subscriptions:gym_fitness",
+    spendCategory: "memberships",
+    paymentRail: "card",
+    reason: "Fitness & Gym Membership",
   },
+  // Subscriptions: Streaming
   {
-    pattern: /netflix|spotify|disney|youtube|crave|hbo|paramount|prime|apple tv|audible|crunchyroll/i,
-    category: "subscriptions",
-    spendCategory: "Streaming",
-    reason: "Digital Media & Streaming",
+    pattern: /netflix|spotify|disney|youtube|crave|hbo|paramount|prime video|apple tv|audible|crunchyroll/i,
+    category: "subscriptions:streaming",
+    spendCategory: "streaming",
+    paymentRail: "card",
+    reason: "Digital Media & Video/Audio Streaming",
   },
+  // Subscriptions: Software / SaaS
   {
-    pattern: /hydro|enbridge|water|electric|gas|epcor|alecta|toronto hydro|power|utilities/i,
-    category: "utilities",
-    spendCategory: "Utilities",
-    reason: "Municipal & Household Utilities",
+    pattern: /openai|chatgpt|claude|anthropic|github|gitlab|adobe|figma|notion|slack|zoom|aws|google cloud|digitalocean|cursor|1password|dropbox|icloud|jetbrains/i,
+    category: "subscriptions:software_saas",
+    spendCategory: "digitalMedia",
+    paymentRail: "card",
+    reason: "SaaS Software & Developer Tool",
   },
+  // Subscriptions: Gaming
   {
-    pattern: /rogers|bell|telus|fido|koodo|virgin|freedom|fizz|shaw|cogeco|chatr|public mobile/i,
-    category: "utilities",
-    spendCategory: "Telecom",
-    reason: "Mobile & Home Internet",
+    pattern: /playstation|xbox|nintendo|steam|ea play|game pass/i,
+    category: "subscriptions:gaming",
+    spendCategory: "digitalMedia",
+    paymentRail: "card",
+    reason: "Gaming Network Subscription",
   },
+  // Subscriptions: News & Media
   {
-    pattern: /presto|ttc|go transit|compass|transit|stm|translink/i,
-    category: "transport",
-    spendCategory: "Transit",
+    pattern: /nytimes|globe and mail|toronto star|wall street journal|wsj|the athletic|washington post/i,
+    category: "subscriptions:news_media",
+    spendCategory: "digitalMedia",
+    paymentRail: "card",
+    reason: "News & Publication Subscription",
+  },
+  // Utilities: Energy & Hydro
+  {
+    pattern: /hydro|enbridge|power|electric|gas|epcor|alecta|toronto hydro|bc hydro|hydro québec|enmax|fortis/i,
+    category: "utilities:electricity_hydro",
+    spendCategory: "householdUtilities",
+    paymentRail: "card",
+    reason: "Municipal Electricity & Energy Utility",
+  },
+  // Utilities: Water & Sewer
+  {
+    pattern: /water|sewer|durham water|toronto water|region of peel water|halton water/i,
+    category: "utilities:water_sewer",
+    spendCategory: "householdUtilities",
+    paymentRail: "pad",
+    reason: "Municipal Water & Sewer (PAD / Bill Pay)",
+  },
+  // Utilities: Mobile & Telecom
+  {
+    pattern: /rogers|bell|telus|fido|koodo|virgin|freedom|fizz|shaw|cogeco|chatr|public mobile|teksavvy|oxio|starlink/i,
+    category: "utilities:mobile_phone",
+    spendCategory: "householdUtilities",
+    paymentRail: "card",
+    reason: "Mobile & Home Internet Telecom",
+  },
+  // Transportation: Transit
+  {
+    pattern: /presto|ttc|go transit|compass|transit|stm|translink|brampton transit|miway|yrt/i,
+    category: "transportation:transit",
+    spendCategory: "transit",
+    paymentRail: "card",
     reason: "Public Transit & Commuting",
   },
+  // Transportation: Parking & Tolls
   {
-    pattern: /uber|lyft/i,
-    category: "transport",
-    spendCategory: "Rideshare",
-    reason: "Rideshare & Taxis",
+    pattern: /407 etr|toll|ezpass|green p|precise parklink|impark|indigone/i,
+    category: "transportation:tolls",
+    spendCategory: "transit",
+    paymentRail: "card",
+    reason: "Highway Tolls & Transit Parking",
   },
+  // Transportation: EV Charging
   {
-    pattern: /insurance|geico|intact|desjardins|aviva|td insurance|belair|sonnet|manulife|sun life/i,
-    category: "other",
-    spendCategory: "Insurance",
-    reason: "Insurance Policy",
+    pattern: /tesla supercharg|flo|chargepoint|circuit electrique|ivy charging|electrify canada/i,
+    category: "transportation:ev_charging",
+    spendCategory: "evCharging",
+    paymentRail: "card",
+    reason: "EV Fast Charging Network",
   },
+  // Insurance
   {
-    pattern: /rent|mortgage|condo|strata|property tax/i,
-    category: "housing",
+    pattern: /insurance|geico|intact|desjardins|aviva|td insurance|belair|sonnet|manulife|sun life|canada life|beneva|wawanesa/i,
+    category: "insurance:auto",
+    spendCategory: "recurring",
+    paymentRail: "card",
+    reason: "Insurance Coverage Policy",
+  },
+  // Housing: Rent
+  {
+    pattern: /rent|landlord|boardwalk|minto|capreit|chexy/i,
+    category: "housing:rent",
     spendCategory: "",
-    reason: "Housing & Property",
+    paymentRail: "pad",
+    reason: "Residential Rent",
+  },
+  // Housing: Mortgage
+  {
+    pattern: /mortgage|scotiabank mortgage|td mortgage|rbc mortgage|bmo mortgage|cibc mortgage|first national|mcap/i,
+    category: "housing:mortgage",
+    spendCategory: "",
+    paymentRail: "pad",
+    reason: "Residential Mortgage",
+  },
+  // Housing: Property Tax
+  {
+    pattern: /property tax|city of toronto|city of mississauga|city of brampton|city of ottawa|region of durham tax|vaughan tax/i,
+    category: "housing:property_tax",
+    spendCategory: "",
+    paymentRail: "pad",
+    reason: "Municipal Property Taxes",
+  },
+  // Government: Income Tax
+  {
+    pattern: /cra|canada revenue|receiver general|revenu quebec|income tax/i,
+    category: "government:income_tax",
+    spendCategory: "",
+    paymentRail: "pad",
+    reason: "CRA / Provincial Income Taxes",
+  },
+  // Donations
+  {
+    pattern: /red cross|sickkids|sick kids|united way|salvation army|world wildlife|wwf|unicef|doctors without borders|msf|cancer society|heart & stroke|canadahelps/i,
+    category: "donations:recurring",
+    spendCategory: "recurring",
+    paymentRail: "card",
+    reason: "Charitable Non-Profit Donation",
+  },
+  // Education: Tuition
+  {
+    pattern: /university|college|uoft|uwaterloo|mcgill|ubc|york u|ryerson|tmu|seneca|george brown|humber|tuition/i,
+    category: "education:tuition",
+    spendCategory: "",
+    paymentRail: "pad",
+    reason: "Post-Secondary Tuition (Triangle 1% Eligible)",
+  },
+  // Debt: Student Loan
+  {
+    pattern: /osap|nslsc|student loan|national student loans/i,
+    category: "debt:student_loan",
+    spendCategory: "",
+    paymentRail: "pad",
+    reason: "Government Student Loan (Line 31900)",
+  },
+  // Education: Professional Dues
+  {
+    pattern: /cpa ontario|cpa canada|peo|law society|ona|ontario nurses|osstf|etfo|bcnu|professional dues/i,
+    category: "education:professional_dues",
+    spendCategory: "recurring",
+    paymentRail: "card",
+    reason: "Professional License & Union Dues",
+  },
+  // Health: Medical / Dental / Pharmacy
+  {
+    pattern: /dentist|dental|shoppers|rexall|pharmacy|pocketpills|physio|massage|rmt|therapy|psychotherapy/i,
+    category: "health:medical",
+    spendCategory: "drugStore",
+    paymentRail: "card",
+    reason: "Medical & Dental Healthcare (Line 33099)",
   },
 ];
 
@@ -116,18 +242,11 @@ function findPayeeSuggestion(
 
   for (const rule of SMART_PAYEE_RULES) {
     if (rule.pattern.test(combinedText)) {
-      // If current settings don't match, suggest them
-      if (rule.spendCategory && spendCategory !== rule.spendCategory) {
+      if (category !== rule.category || (rule.spendCategory && spendCategory !== rule.spendCategory)) {
         return {
           category: rule.category,
           spendCategory: rule.spendCategory,
-          reason: rule.reason,
-        };
-      }
-      if (!rule.spendCategory && category !== rule.category) {
-        return {
-          category: rule.category,
-          spendCategory: rule.spendCategory,
+          paymentRail: rule.paymentRail,
           reason: rule.reason,
         };
       }
@@ -146,7 +265,7 @@ export function BillFormFields({
   const todayIso = useMemo(() => getISODateToday(), []);
 
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("utilities");
+  const [category, setCategory] = useState("utilities:electricity_hydro");
   const [payee, setPayee] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [currency, setCurrency] = useState("CAD");
@@ -172,6 +291,9 @@ export function BillFormFields({
     setCategory(suggestion.category);
     if (suggestion.spendCategory) {
       setSpendCategory(suggestion.spendCategory);
+    }
+    if (suggestion.paymentRail && suggestion.paymentRail !== "unknown") {
+      setPaymentRail(suggestion.paymentRail);
     }
   };
 
@@ -304,19 +426,21 @@ export function BillFormFields({
               name="accountNumber"
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value)}
-              placeholder="e.g. 1643208999"
+              placeholder="e.g. 1643208999, 5849-01-2"
               className={input}
             />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Used for bill payment routing &amp; auto-matching statement receipts.
+            </p>
           </div>
 
           <div>
             <label className={label} htmlFor="bill-name">
-              Nickname (optional)
+              Bill / Payee Nickname
             </label>
             <input
               id="bill-name"
               name="name"
-              required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Durham Water, Home Utilities"
@@ -329,21 +453,31 @@ export function BillFormFields({
 
           <div>
             <label className={label} htmlFor="bill-category">
-              Bill Type (optional)
+              Bill Type / Category
             </label>
             <select
               id="bill-category"
               name="category"
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCategory(val);
+                const res = resolveBillTaxonomy(val);
+                if (res.defaultPaymentRail && res.defaultPaymentRail !== "unknown") {
+                  setPaymentRail(res.defaultPaymentRail);
+                }
+              }}
               className={input}
             >
-              <option value="utilities">Household Expenses &gt; Utilities (Water, Hydro, Gas)</option>
-              <option value="housing">Housing &gt; Rent / Mortgage / Property</option>
-              <option value="subscriptions">Subscriptions &gt; Digital Media, Gym, Streaming</option>
-              <option value="transport">Transport &gt; Transit / Parking / Tolls</option>
-              <option value="debt">Debt &gt; Loan / Card Paydown</option>
-              <option value="other">Other Household Expense</option>
+              {BILL_PARENT_CATEGORIES.map((parent) => (
+                <optgroup key={parent.id} label={`${parent.icon} ${parent.label}`}>
+                  {parent.subcategories.map((sub) => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
 
@@ -372,8 +506,8 @@ export function BillFormFields({
               <Sparkles className="size-3.5 text-primary shrink-0" />
               <span>
                 Detected <strong>{activeSuggestion.reason}</strong>: suggest category{" "}
-                <Badge variant="outline" className="text-[10px] uppercase font-semibold">
-                  {activeSuggestion.category}
+                <Badge variant="outline" className="text-[10px] font-semibold">
+                  {resolveBillTaxonomy(activeSuggestion.category).formattedLabel}
                 </Badge>
                 {activeSuggestion.spendCategory ? (
                   <>
