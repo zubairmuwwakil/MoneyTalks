@@ -38,12 +38,23 @@ export async function GET(req: NextRequest) {
   const oauthApi = google.oauth2({ version: "v2", auth: oauth2 });
   const me = await oauthApi.userinfo.get();
 
+  // Without an address a connection cannot be told apart from another of this
+  // owner's, and Postgres treats NULLs as distinct — so a nullable value would
+  // defeat the unique constraint below rather than be caught by it. Refuse the
+  // grant outright instead of storing something unidentifiable.
+  const emailAddress = me.data.email;
+  if (!emailAddress) {
+    return new NextResponse("Google did not return an email address for this account", { status: 400 });
+  }
+
+  // Keyed on the address as well as the owner: repeat consent for the same
+  // mailbox updates it in place, while a new address adds a second row.
   await prisma.emailConnection.upsert({
-    where: { userId },
+    where: { userId_provider_emailAddress: { userId, provider: "GMAIL", emailAddress } },
     create: {
       userId,
       provider: "GMAIL",
-      emailAddress: me.data.email ?? null,
+      emailAddress,
       ...encryptConnectionSecrets(userId, {
         accessToken: tokens.access_token ?? null,
         refreshToken: tokens.refresh_token ?? null,
@@ -53,7 +64,7 @@ export async function GET(req: NextRequest) {
     },
     update: {
       provider: "GMAIL",
-      emailAddress: me.data.email ?? null,
+      emailAddress,
       ...encryptConnectionSecrets(userId, {
         accessToken: tokens.access_token ?? null,
         refreshToken: tokens.refresh_token ?? undefined, // only comes on first consent
