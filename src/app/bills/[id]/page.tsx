@@ -355,14 +355,26 @@ export default async function BillDetailPage({
     redirect(`/bills/${id}`);
   }
 
-  const cadenceSummary =
-    def.cadence.type === "MONTHLY"
-      ? `Monthly (day ${def.cadence.dayOfMonth})`
-      : def.cadence.type === "BIWEEKLY"
-        ? `Biweekly (anchor ${def.cadence.anchor})`
-        : def.cadence.type === "QUARTERLY"
-          ? `Quarterly (anchor ${def.cadence.anchor})`
-          : `Annual (anchor ${def.cadence.anchor})`;
+  const cadenceSummary = (() => {
+    switch (def.cadence.type) {
+      case "MONTHLY":
+        return `Monthly (day ${def.cadence.dayOfMonth})`;
+      case "WEEKLY":
+        return `Weekly (anchor ${def.cadence.anchor})`;
+      case "BIWEEKLY":
+        return `Biweekly (anchor ${def.cadence.anchor})`;
+      case "QUARTERLY":
+        return `Quarterly (anchor ${def.cadence.anchor})`;
+      case "SEMIANNUAL":
+        return `Semiannual (anchor ${def.cadence.anchor})`;
+      case "ANNUAL":
+        return `Annual (anchor ${def.cadence.anchor})`;
+      default: {
+        const exhaustive: never = def.cadence;
+        return exhaustive;
+      }
+    }
+  })();
 
   return (
     <main className="space-y-8 py-6 sm:py-8">

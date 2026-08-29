@@ -59,6 +59,29 @@ describe("occurrencesBetween — BIWEEKLY", () => {
   });
 });
 
+describe("occurrencesBetween — WEEKLY", () => {
+  const weekly: Cadence = { type: "WEEKLY", anchor: "2026-01-07" }; // a Wednesday
+
+  it("steps every 7 days in a window after the anchor", () => {
+    expect(occurrencesBetween(weekly, "2026-02-01", "2026-02-28")).toEqual([
+      "2026-02-04", "2026-02-11", "2026-02-18", "2026-02-25",
+    ]);
+  });
+
+  it("steps backwards through a window before the anchor", () => {
+    const futureAnchor: Cadence = { type: "WEEKLY", anchor: "2026-10-07" };
+    expect(occurrencesBetween(futureAnchor, "2026-09-01", "2026-09-30")).toEqual([
+      "2026-09-02", "2026-09-09", "2026-09-16", "2026-09-23", "2026-09-30",
+    ]);
+  });
+
+  it("keeps the grid continuous in a window straddling the anchor", () => {
+    expect(occurrencesBetween(weekly, "2025-12-30", "2026-01-12")).toEqual([
+      "2025-12-31", "2026-01-07",
+    ]);
+  });
+});
+
 describe("occurrencesBetween — MONTHLY", () => {
   it("clamps dayOfMonth to short months", () => {
     const eom: Cadence = { type: "MONTHLY", dayOfMonth: 31 };
@@ -94,6 +117,36 @@ describe("occurrencesBetween — QUARTERLY and ANNUAL", () => {
     const a: Cadence = { type: "ANNUAL", anchor: "2026-03-15" };
     expect(occurrencesBetween(a, "2026-01-01", "2028-12-31")).toEqual([
       "2026-03-15", "2027-03-15", "2028-03-15",
+    ]);
+  });
+});
+
+describe("occurrencesBetween — SEMIANNUAL", () => {
+  const semiannual: Cadence = { type: "SEMIANNUAL", anchor: "2026-01-15" };
+
+  it("steps every 6 months in a window after the anchor", () => {
+    expect(occurrencesBetween(semiannual, "2026-02-01", "2027-12-31")).toEqual([
+      "2026-07-15", "2027-01-15", "2027-07-15",
+    ]);
+  });
+
+  it("steps backwards through a window before the anchor", () => {
+    const futureAnchor: Cadence = { type: "SEMIANNUAL", anchor: "2027-01-20" };
+    expect(occurrencesBetween(futureAnchor, "2026-01-01", "2026-12-31")).toEqual([
+      "2026-01-20", "2026-07-20",
+    ]);
+  });
+
+  it("keeps the grid continuous in a window straddling the anchor", () => {
+    expect(occurrencesBetween(semiannual, "2025-10-01", "2026-02-01")).toEqual([
+      "2026-01-15",
+    ]);
+  });
+
+  it("clamps a 31st anchor in short months", () => {
+    const eom: Cadence = { type: "SEMIANNUAL", anchor: "2026-08-31" };
+    expect(occurrencesBetween(eom, "2026-08-01", "2027-09-01")).toEqual([
+      "2026-08-31", "2027-02-28", "2027-08-31",
     ]);
   });
 });

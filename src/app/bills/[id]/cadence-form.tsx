@@ -35,12 +35,20 @@ export function CadenceForm({
     switch (c.type) {
       case "MONTHLY":
         return `Monthly on day ${c.dayOfMonth}${c.startsFrom ? ` (starts from ${c.startsFrom})` : ""}`;
+      case "WEEKLY":
+        return `Weekly (every 7 days, anchored to ${c.anchor})`;
       case "BIWEEKLY":
         return `Biweekly (every 14 days, anchored to ${c.anchor})`;
       case "QUARTERLY":
         return `Quarterly (every 3 months, anchored to ${c.anchor})`;
+      case "SEMIANNUAL":
+        return `Semiannual (every 6 months, anchored to ${c.anchor})`;
       case "ANNUAL":
         return `Annual (every 12 months, anchored to ${c.anchor})`;
+      default: {
+        const exhaustive: never = c;
+        return exhaustive;
+      }
     }
   };
 
@@ -82,8 +90,10 @@ export function CadenceForm({
                 className={inputStyle}
               >
                 <option value="MONTHLY">Monthly</option>
+                <option value="WEEKLY">Weekly</option>
                 <option value="BIWEEKLY">Biweekly (every 2 weeks)</option>
                 <option value="QUARTERLY">Quarterly (every 3 months)</option>
+                <option value="SEMIANNUAL">Semiannual (every 6 months)</option>
                 <option value="ANNUAL">Annual (every 12 months)</option>
               </select>
             </div>

@@ -3,6 +3,7 @@ import { billFormInput, billImportEntry, cadenceInput, scheduleEntryInput } from
 
 describe("cadenceInput", () => {
   it("accepts each cadence shape", () => {
+    expect(cadenceInput.safeParse({ type: "WEEKLY", anchor: "2026-01-07" }).success).toBe(true);
     expect(cadenceInput.safeParse({ type: "BIWEEKLY", anchor: "2026-01-07" }).success).toBe(true);
     expect(
       cadenceInput.safeParse({
@@ -13,6 +14,8 @@ describe("cadenceInput", () => {
       }).success,
     ).toBe(true);
     expect(cadenceInput.safeParse({ type: "QUARTERLY", anchor: "2026-09-30" }).success).toBe(true);
+    expect(cadenceInput.safeParse({ type: "SEMIANNUAL", anchor: "2026-09-30" }).success).toBe(true);
+    expect(cadenceInput.safeParse({ type: "ANNUAL", anchor: "2026-09-30" }).success).toBe(true);
   });
 
   it("rejects a biweekly cadence without an anchor and bad day numbers", () => {

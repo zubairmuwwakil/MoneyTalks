@@ -1,7 +1,9 @@
 export type Cadence =
+  | { type: "WEEKLY"; anchor: string }
   | { type: "BIWEEKLY"; anchor: string }
   | { type: "MONTHLY"; dayOfMonth: number; startsFrom?: string; activeMonths?: number[] }
   | { type: "QUARTERLY"; anchor: string }
+  | { type: "SEMIANNUAL"; anchor: string }
   | { type: "ANNUAL"; anchor: string };
 
 export interface ScheduleEntry {
@@ -57,14 +59,15 @@ export function occurrencesBetween(cadence: Cadence, from: string, to: string): 
 
   const out: string[] = [];
 
-  if (cadence.type === "BIWEEKLY") {
+  if (cadence.type === "WEEKLY" || cadence.type === "BIWEEKLY") {
     const anchorMs = toMs(cadence.anchor);
     const fromMs = toMs(from);
     // Signed: the anchor is any one known payment date, past or future. A future
     // anchor must still generate the grid backwards through the window, or every
     // month before it reads as "nothing due".
-    const steps = Math.ceil((fromMs - anchorMs) / (14 * DAY_MS));
-    for (let ms = anchorMs + steps * 14 * DAY_MS; ms <= toMs(to); ms += 14 * DAY_MS) {
+    const stepDays = cadence.type === "WEEKLY" ? 7 : 14;
+    const steps = Math.ceil((fromMs - anchorMs) / (stepDays * DAY_MS));
+    for (let ms = anchorMs + steps * stepDays * DAY_MS; ms <= toMs(to); ms += stepDays * DAY_MS) {
       if (ms >= fromMs) out.push(toIso(ms));
     }
     return out;
@@ -88,10 +91,23 @@ export function occurrencesBetween(cadence: Cadence, from: string, to: string): 
     return out;
   }
 
-  // QUARTERLY / ANNUAL: month-stepping from the anchor with day clamping.
+  // QUARTERLY / SEMIANNUAL / ANNUAL: month-stepping from the anchor with day clamping.
   // Same rule as biweekly — step back to the window rather than starting at the
   // anchor, so a window entirely before the anchor is not silently empty.
-  const stepMonths = cadence.type === "QUARTERLY" ? 3 : 12;
+  const stepMonths = (() => {
+    switch (cadence.type) {
+      case "QUARTERLY":
+        return 3;
+      case "SEMIANNUAL":
+        return 6;
+      case "ANNUAL":
+        return 12;
+      default: {
+        const exhaustive: never = cadence;
+        return exhaustive;
+      }
+    }
+  })();
   const anchor = parse(cadence.anchor);
   const start = parse(from);
   const monthsFromAnchor = (start.y - anchor.y) * 12 + (start.m - anchor.m);

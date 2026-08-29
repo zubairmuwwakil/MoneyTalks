@@ -11,15 +11,28 @@ function optional<T extends z.ZodType>(schema: T) {
   return z.preprocess((value) => (value === "" ? undefined : value), schema.optional());
 }
 
-const webUrl = z.string().trim().max(500).url().refine(
+const webUrl = z.preprocess((val) => {
+  if (typeof val !== "string") return val;
+  const trimmed = val.trim();
+  if (!trimmed) return undefined;
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+}, z.string().trim().max(500).url().refine(
   (value) => {
-    const protocol = new URL(value).protocol;
-    return protocol === "https:" || protocol === "http:";
+    try {
+      const protocol = new URL(value).protocol;
+      return protocol === "https:" || protocol === "http:";
+    } catch {
+      return false;
+    }
   },
   "URL must use http or https",
-);
+));
 
 export const cadenceInput = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("WEEKLY"), anchor: isoDate }),
   z.object({ type: z.literal("BIWEEKLY"), anchor: isoDate }),
   z.object({
     type: z.literal("MONTHLY"),
@@ -28,6 +41,7 @@ export const cadenceInput = z.discriminatedUnion("type", [
     activeMonths: z.array(z.number().int().min(1).max(12)).nonempty().optional(),
   }),
   z.object({ type: z.literal("QUARTERLY"), anchor: isoDate }),
+  z.object({ type: z.literal("SEMIANNUAL"), anchor: isoDate }),
   z.object({ type: z.literal("ANNUAL"), anchor: isoDate }),
 ]);
 

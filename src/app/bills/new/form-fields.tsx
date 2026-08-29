@@ -419,10 +419,14 @@ export function BillFormFields({
     switch (type) {
       case "MONTHLY":
         return numericAmount * 12;
+      case "WEEKLY":
+        return numericAmount * 52;
       case "BIWEEKLY":
         return numericAmount * 26;
       case "QUARTERLY":
         return numericAmount * 4;
+      case "SEMIANNUAL":
+        return numericAmount * 2;
       case "ANNUAL":
         return numericAmount;
       default:
@@ -449,10 +453,14 @@ export function BillFormFields({
         const dom = parseInt(dayOfMonth, 10) || 1;
         d.setUTCMonth(d.getUTCMonth() + i);
         d.setUTCDate(Math.min(dom, 28)); // Safe day
+      } else if (type === "WEEKLY") {
+        d.setUTCDate(d.getUTCDate() + i * 7);
       } else if (type === "BIWEEKLY") {
         d.setUTCDate(d.getUTCDate() + i * 14);
       } else if (type === "QUARTERLY") {
         d.setUTCMonth(d.getUTCMonth() + i * 3);
+      } else if (type === "SEMIANNUAL") {
+        d.setUTCMonth(d.getUTCMonth() + i * 6);
       } else if (type === "ANNUAL") {
         d.setUTCFullYear(d.getUTCFullYear() + i);
       }
@@ -1018,8 +1026,10 @@ export function BillFormFields({
               className={input}
             >
               <option value="MONTHLY">Monthly</option>
+              <option value="WEEKLY">Weekly (Every 7 days)</option>
               <option value="BIWEEKLY">Biweekly (Every 14 days)</option>
               <option value="QUARTERLY">Quarterly (Every 3 months)</option>
+              <option value="SEMIANNUAL">Semiannual (Every 6 months)</option>
               <option value="ANNUAL">Annual (Once a year)</option>
             </select>
           </div>
