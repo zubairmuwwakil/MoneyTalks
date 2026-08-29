@@ -65,6 +65,7 @@ export function scoreBillRoutes({
   ownedCardIds = [],
   intermediariesCatalog = billIntermediaries,
 }: ScoreBillRoutesParams): RouteRecommendation[] {
+  const detectedCategory = detectBillCategory(payeeName);
   const annualSpend = monthlyCad * 12.0;
   const routes: RouteRecommendation[] = [];
 

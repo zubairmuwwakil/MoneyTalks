@@ -5,8 +5,6 @@ import {
   Calendar,
   CalendarDays,
   CreditCard,
-  HelpCircle,
-  Info,
   Receipt,
   SlidersHorizontal,
   Sparkles,

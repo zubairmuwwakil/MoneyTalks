@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Info, CheckCircle2, Circle, ArrowUpRight, ShieldCheck, Wallet } from "lucide-react";
+import { Sparkles, Info, CheckCircle2, Circle, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   scoreBillRoutes,
