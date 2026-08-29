@@ -134,7 +134,9 @@ export function findPackMerchantByBrandKey(...candidateKeys: (string | null | un
  */
 export function findPackMerchantByEmail(address: string | null | undefined): PackMerchant | null {
   if (!address) return null;
-  const domain = address.trim().toLowerCase().split("@").pop()?.replace(/^www\./, "");
+  const domain = (
+    address.match(/@([^>\s,;]+)/)?.[1] ?? address
+  ).trim().toLowerCase().replace(/^www\./, "");
   if (!domain) return null;
 
   const direct = EMAIL_DOMAIN_INDEX.get(domain);

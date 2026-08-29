@@ -3,6 +3,7 @@
 import "server-only";
 import { simpleParser } from "mailparser";
 import * as cheerio from "cheerio";
+import { getDomain } from "tldts";
 import { z } from "zod";
 
 export type PurchaseItem = { name?: string; quantity?: number; price?: number };
@@ -39,14 +40,12 @@ function normalizeMerchant(fromEmail?: string, subject?: string) {
   const domain = domainFromEmail(fromEmail);
   if (!domain) return subject?.split(" ")[0]?.toLowerCase() ?? "unknown";
 
-  if (domain.includes("amazon.")) return "Amazon";
-  if (domain.includes("netflix.")) return "Netflix";
-  if (domain.includes("spotify.")) return "Spotify";
-  if (domain.includes("nike.")) return "Nike";
-
-  const parts = domain.split(".");
-  const root = parts.length >= 2 ? parts.slice(-2).join(".") : domain;
-  return root;
+  // tldts is larger than psl, but this path only runs in Node routes where
+  // client bundle size is irrelevant. It embeds a current PSL snapshot (no
+  // runtime fetch) and is actively maintained. Private suffixes are enabled
+  // because collapsing two tenants of a hosted domain is the same false-merge
+  // class as collapsing two .co.uk merchants.
+  return getDomain(domain, { allowPrivateDomains: true }) ?? domain;
 }
 
 function extractFromJsonLd(html: string): Partial<Purchase> | null {

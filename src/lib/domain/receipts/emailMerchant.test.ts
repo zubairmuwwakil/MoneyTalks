@@ -26,6 +26,35 @@ it("returns the curated name for a known sender", async () => {
   expect(await resolveEmailMerchant(db, "americanexpress.com")).toBe("American Express");
 });
 
+it("pack-beats-heuristic", async () => {
+  const db = fakeDb([{ rawString: "ubereats.com", normalizedName: "Wrong alias" }]);
+
+  expect(
+    await resolveEmailMerchant(db, "ubereats.com", "Uber Receipts <receipts@ubereats.com>"),
+  ).toBe("Uber Eats");
+});
+
+it("uses pack match keys before an alias for an unlisted country domain", async () => {
+  const db = fakeDb([{ rawString: "netflix.co.uk", normalizedName: "Wrong alias" }]);
+
+  expect(
+    await resolveEmailMerchant(db, "netflix.co.uk", "info@netflix.co.uk"),
+  ).toBe("Netflix");
+});
+
+it("keeps UK merchants distinct after every resolution tier", async () => {
+  const db = fakeDb();
+  const merchants = await Promise.all([
+    resolveEmailMerchant(db, "shopify.co.uk", "notifications@shopify.co.uk"),
+    resolveEmailMerchant(db, "britishgas.co.uk", "billing@britishgas.co.uk"),
+    resolveEmailMerchant(db, "netflix.co.uk", "info@netflix.co.uk"),
+  ]);
+
+  expect(merchants).toEqual(["shopify.co.uk", "britishgas.co.uk", "Netflix"]);
+  expect(new Set(merchants).size).toBe(3);
+  expect(merchants).not.toContain("co.uk");
+});
+
 it("seeds an alias on first sighting so it becomes curatable", async () => {
   const db = fakeDb();
 

@@ -190,6 +190,74 @@ describe("processRawGmailMessage", () => {
     });
   });
 
+  it("reprocessing reconciles a persisted public-suffix merchant", async () => {
+    const { db, tx } = setupDb();
+    const linkedTransaction = {
+      ...existingTransaction,
+      merchant: "co.uk",
+      fromEmail: "notifications@shopify.co.uk",
+      purchaseId: "purchase-legacy-domain",
+    };
+    const parsed = {
+      messageId: message.messageId,
+      merchant: "shopify.co.uk",
+      fromEmail: "notifications@shopify.co.uk",
+      subject: "Your Shopify receipt",
+      purchasedAt: message.internalDate,
+      orderId: "ORDER-42",
+      totalCents: 4200,
+      currency: "gbp",
+      rawSource: "text" as const,
+      textBody: "Order total: GBP 42.00",
+    };
+    const refreshedTransaction = {
+      ...linkedTransaction,
+      ...parsed,
+      merchant: "shopify.co.uk",
+      currency: "GBP",
+    };
+    const legacyPurchase = {
+      id: linkedTransaction.purchaseId,
+      userId: "user-1",
+      merchant: "co.uk",
+      totalCents: 4200,
+      currency: "GBP",
+      purchasedAt: message.internalDate,
+      orderNumber: "ORDER-42",
+      paymentMethod: null,
+      category: null,
+      source: "GMAIL",
+      sourceEmailId: message.messageId,
+    };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue(parsed);
+    vi.mocked(resolveEmailMerchant).mockResolvedValue("shopify.co.uk");
+    tx.emailTransaction.findUnique.mockResolvedValue(linkedTransaction);
+    tx.emailTransaction.upsert.mockResolvedValue(refreshedTransaction);
+    tx.purchase.findUnique.mockResolvedValue(legacyPurchase);
+    tx.walletEvent.findFirst.mockResolvedValue(null);
+    tx.purchase.update.mockResolvedValue({ ...legacyPurchase, merchant: "shopify.co.uk" });
+
+    await processRawGmailMessage(db as never, {
+      userId: "user-1",
+      message,
+      mode: "reprocess",
+    });
+
+    expect(resolveEmailMerchant).toHaveBeenCalledWith(
+      db,
+      "shopify.co.uk",
+      "notifications@shopify.co.uk",
+    );
+    expect(tx.emailTransaction.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      update: expect.objectContaining({ merchant: "shopify.co.uk" }),
+    }));
+    expect(tx.purchase.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: legacyPurchase.id },
+      data: expect.objectContaining({ merchant: "shopify.co.uk" }),
+    }));
+  });
+
   it("categorizes a new purchase from the receipt's sender domain", async () => {
     const { db, tx } = setupDb();
     // The descriptor is useless; the sender is not. Before the resolver, this
