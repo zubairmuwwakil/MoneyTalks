@@ -196,7 +196,7 @@ describe("unpriced observations", () => {
       currency: "CAD",
     }));
 
-    const clusters = clusterRecurringPurchases(monthly);
+    const clusters = clusterRecurringPurchases(monthly, "UTC");
 
     expect(clusters).toHaveLength(1);
     expect(clusters[0].cadence.cadence.type).toBe("MONTHLY");
@@ -208,7 +208,7 @@ describe("unpriced observations", () => {
     expect(() =>
       clusterRecurringPurchases([
         { id: "a", userId: "u", canonicalMerchantId: "m", date: new Date(), amountMinor: 1.5, currency: "CAD" },
-      ]),
+      ], "UTC"),
     ).toThrow(RangeError);
   });
 });
