@@ -182,3 +182,33 @@ describe("clusterRecurringPurchases", () => {
     ], "UTC")).toEqual([]);
   });
 });
+
+describe("unpriced observations", () => {
+  it("clusters a series whose receipts never state a price", () => {
+    // Cloudflare's "Your invoice is available" — dated, never priced. The
+    // cadence is real and must be detectable; only the amount is unknown.
+    const monthly = [0, 1, 2, 3, 4].map((n) => ({
+      id: `cf-${n}`,
+      userId: "user-1",
+      canonicalMerchantId: "cloudflare.com",
+      date: new Date(Date.UTC(2026, 2 + n, 11)),
+      amountMinor: null,
+      currency: "CAD",
+    }));
+
+    const clusters = clusterRecurringPurchases(monthly);
+
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].cadence.cadence.type).toBe("MONTHLY");
+    expect(clusters[0].amountPattern.pattern).toBe("UNKNOWN");
+    expect(clusters[0].amountPattern.schedule).toEqual([]);
+  });
+
+  it("still rejects a non-integer amount", () => {
+    expect(() =>
+      clusterRecurringPurchases([
+        { id: "a", userId: "u", canonicalMerchantId: "m", date: new Date(), amountMinor: 1.5, currency: "CAD" },
+      ]),
+    ).toThrow(RangeError);
+  });
+});

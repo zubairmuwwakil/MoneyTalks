@@ -67,8 +67,12 @@ function validatePurchases(purchases: readonly ClusteringPurchase[], timeZone: s
     if (!Number.isFinite(purchase.date.getTime())) {
       throw new RangeError("clustering dates must be valid Dates");
     }
-    if (!Number.isSafeInteger(purchase.amountMinor)) {
-      throw new RangeError("clustering amounts must be safe integers in minor units");
+    // null is valid and expected — a biller whose mail never states a price
+    // (see Observation.amountMinor) still produces dated observations, and
+    // cadence is inferred from dates alone. Only a present amount must be a
+    // safe integer in minor units.
+    if (purchase.amountMinor !== null && !Number.isSafeInteger(purchase.amountMinor)) {
+      throw new RangeError("clustering amounts must be safe integers in minor units, or null");
     }
   }
 }
