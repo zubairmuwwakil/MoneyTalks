@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import { useClerk } from "@clerk/nextjs";
 
-type GmailStatus = {
+type GmailConnectionStatus = {
+  id: string;
   connected: boolean;
   needsReauth: boolean;
-  emailAddress: string | null;
+  emailAddress: string;
   scope?: string | null;
-  scanMode?: "ALL" | "RECEIPTS_ONLY" | "SHIPPING_ONLY" | "SUBSCRIPTIONS_ONLY";
   lastScanAt?: string | null;
 };
+
+type GmailStatus = { connections: GmailConnectionStatus[] };
 
 type Summary = {
   purchases: number;
@@ -38,8 +40,6 @@ type Summary = {
 export default function PrivacySettings() {
   const [status, setStatus] = useState<GmailStatus | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [scanMode, setScanMode] = useState<GmailStatus["scanMode"]>("ALL");
-  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [accountConfirm, setAccountConfirm] = useState("");
@@ -56,7 +56,6 @@ export default function PrivacySettings() {
     const summaryJson = await summaryRes.json();
     setStatus(statusJson);
     setSummary(summaryJson);
-    setScanMode(statusJson.scanMode ?? "ALL");
   }
 
   useEffect(() => {
@@ -69,19 +68,6 @@ export default function PrivacySettings() {
       active = false;
     };
   }, []);
-
-  async function saveScanMode() {
-    setSaving(true);
-    setMessage(null);
-    await fetch("/api/gmail/scan-mode", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scanMode }),
-    });
-    setSaving(false);
-    setMessage("Scan mode saved");
-    await load();
-  }
 
   async function deleteData() {
     const ok = confirm("This will delete your stored data. Continue?");
@@ -129,54 +115,20 @@ export default function PrivacySettings() {
             <p className="text-lg font-semibold text-white">Email access</p>
           </div>
           <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] text-white">
-            {status?.connected ? "Connected" : "Not connected"}
+            {status?.connections.length ?? 0} connected
           </span>
         </div>
-        <div className="mt-3 text-sm text-slate-300">
-          {status?.emailAddress ? `Email: ${status.emailAddress}` : "No connected account"}
-        </div>
-        <div className="mt-2 text-xs text-slate-400">
-          Scopes: {status?.scope ?? "—"}
-        </div>
-        <div className="mt-2 text-xs text-slate-400">
-          Last scan: {status?.lastScanAt ? new Date(status.lastScanAt).toLocaleString() : "—"}
-        </div>
-      </div>
-
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl shadow-black/30">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-cyan-100">Scan modes</p>
-            <p className="text-lg font-semibold text-white">Choose what PickMe scans</p>
-          </div>
-        </div>
-        <div className="mt-3 grid gap-2 text-sm text-slate-200">
-          <label className="flex items-center gap-2">
-            <input type="radio" name="scanMode" checked={scanMode === "ALL"} onChange={() => setScanMode("ALL")} />
-            <span>All</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="radio" name="scanMode" checked={scanMode === "RECEIPTS_ONLY"} onChange={() => setScanMode("RECEIPTS_ONLY")} />
-            <span>Receipts only</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="radio" name="scanMode" checked={scanMode === "SHIPPING_ONLY"} onChange={() => setScanMode("SHIPPING_ONLY")} />
-            <span>Shipping only</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="radio" name="scanMode" checked={scanMode === "SUBSCRIPTIONS_ONLY"} onChange={() => setScanMode("SUBSCRIPTIONS_ONLY")} />
-            <span>Subscriptions only</span>
-          </label>
-        </div>
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            className="rounded-full border px-4 py-2 text-sm hover:bg-white/10 disabled:opacity-60"
-            onClick={saveScanMode}
-            disabled={saving}
-          >
-            {saving ? "Saving…" : "Save scan mode"}
-          </button>
-          {message ? <span className="text-xs text-emerald-200">{message}</span> : null}
+        <div className="mt-3 space-y-2 text-sm text-slate-300">
+          {(status?.connections ?? []).map((connection) => (
+            <div key={connection.id} className="rounded-xl border border-white/10 px-3 py-2">
+              <div>{connection.emailAddress}</div>
+              <div className="text-xs text-slate-400">
+                {connection.connected ? "Connected" : "Needs reconnection"} · Last scan:{" "}
+                {connection.lastScanAt ? new Date(connection.lastScanAt).toLocaleString() : "Never"}
+              </div>
+            </div>
+          ))}
+          {(status?.connections.length ?? 0) === 0 ? <div>No connected account</div> : null}
         </div>
       </div>
 
@@ -207,6 +159,7 @@ export default function PrivacySettings() {
           >
             Export JSON
           </a>
+          {message ? <span className="text-xs text-emerald-200">{message}</span> : null}
         </div>
       </div>
 
