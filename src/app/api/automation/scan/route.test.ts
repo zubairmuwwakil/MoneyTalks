@@ -85,6 +85,37 @@ describe("POST /api/automation/scan", () => {
       data: expect.objectContaining({ type: "BILL", draft: { autopay: false } }),
     }));
   });
+
+  it("stamps lastScanAt when the scan completes", async () => {
+    vi.mocked(processRawGmailMessage).mockResolvedValue(processedSuggestion("SUBSCRIPTION") as never);
+
+    await POST(request() as never);
+
+    expect(prisma.emailConnection.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ lastScanAt: expect.any(Date) }) }),
+    );
+  });
+
+  it("does NOT stamp lastScanAt when the scan throws", async () => {
+    // Stamping unconditionally makes a broken integration indistinguishable
+    // from a quiet inbox, and lends the failure false credibility.
+    vi.mocked(listRecentRawGmailMessages).mockRejectedValue(new Error("Gmail API is disabled"));
+
+    const response = await POST(request() as never);
+
+    expect(response.status).toBe(502);
+    expect(prisma.emailConnection.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("still flushes refreshed tokens when the scan throws", async () => {
+    // A token refreshed mid-scan is valid regardless of the failure; dropping
+    // it would silently disconnect the owner.
+    vi.mocked(listRecentRawGmailMessages).mockRejectedValue(new Error("boom"));
+
+    await POST(request() as never);
+
+    expect(flushTokens).toHaveBeenCalled();
+  });
 });
 
 describe("detectSubscriptionItem", () => {
@@ -92,3 +123,4 @@ describe("detectSubscriptionItem", () => {
     expect(detectSubscriptionItem("Your order has shipped", "Order total $42.00")).toBeNull();
   });
 });
+
