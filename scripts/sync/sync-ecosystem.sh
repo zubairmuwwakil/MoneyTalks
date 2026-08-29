@@ -1,43 +1,62 @@
 #!/usr/bin/env bash
-# Mirror the canonical ECOSYSTEM.md into the sibling ecosystem repos.
+# Mirror canonical cross-repo documents into their sibling repos.
 #
 #   ./scripts/sync/sync-ecosystem.sh          copy canonical -> siblings
 #   ./scripts/sync/sync-ecosystem.sh --check  verify only; non-zero exit if stale
 #
-# Canonical copy is MoneyTalks/ECOSYSTEM.md. Edit that one, never a mirror.
+# Canonical copies:
+#   MoneyTalks/ECOSYSTEM.md
+#   agent-orchestrator/FLEET.md
+# Edit those, never a mirror.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-SRC="$ROOT/ECOSYSTEM.md"
-SIBLINGS=(PickMe return-saas marketdata)
 CHECK=0
 [[ "${1:-}" == "--check" ]] && CHECK=1
 
-[[ -f "$SRC" ]] || { echo "fatal: canonical $SRC missing"; exit 1; }
-stamp() { grep -o 'ecosystem-sync: [^ ]* [0-9-]*' "$1" 2>/dev/null || echo "(no stamp)"; }
-
-echo "canonical: $(stamp "$SRC")"
 stale=0 missing=0
 
-for repo in "${SIBLINGS[@]}"; do
-  dst="$ROOT/../$repo/ECOSYSTEM.md"
-  if [[ ! -d "$ROOT/../$repo" ]]; then
-    echo "  SKIP $repo — not checked out beside MoneyTalks"
+sync_mirrors() {
+  local file="$1"
+  local src="$2"
+  shift 2
+
+  if [[ ! -f "$src" ]]; then
+    echo "SKIP $file — canonical copy is not checked out at $src"
     missing=1
-    continue
+    return
   fi
-  if [[ -f "$dst" ]] && cmp -s "$SRC" "$dst"; then
-    echo "  ok   $repo — $(stamp "$dst")"
-    continue
-  fi
-  if (( CHECK )); then
-    echo "  STALE $repo — $(stamp "$dst")"
-    stale=1
-  else
-    cp "$SRC" "$dst"
-    echo "  sync $repo — $(stamp "$dst")"
-  fi
-done
+
+  echo "$file canonical: $src"
+  for repo in "$@"; do
+    local repo_root="$ROOT/../$repo"
+    [[ "$repo" == "MoneyTalks" ]] && repo_root="$ROOT"
+
+    if [[ ! -d "$repo_root" ]]; then
+      echo "  SKIP $repo — not checked out beside MoneyTalks"
+      missing=1
+      continue
+    fi
+
+    local dst="$repo_root/$file"
+    if [[ -f "$dst" ]] && cmp -s "$src" "$dst"; then
+      echo "  ok   $repo"
+      continue
+    fi
+
+    if (( CHECK )); then
+      echo "  STALE $repo"
+      stale=1
+    else
+      cp "$src" "$dst"
+      echo "  sync $repo"
+    fi
+  done
+}
+
+sync_mirrors "ECOSYSTEM.md" "$ROOT/ECOSYSTEM.md" PickMe return-saas marketdata
+sync_mirrors "FLEET.md" "$ROOT/../agent-orchestrator/FLEET.md" \
+  MoneyTalks PickMe return-saas marketdata pickleball-session-manager
 
 if (( CHECK && stale )); then
   echo
