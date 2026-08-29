@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { removeCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
-import { createReturnForPurchase, keepSeparatePurchase, mergeDuplicatePurchase,
+import { correctPurchaseDetails, createReturnForPurchase, keepSeparatePurchase, mergeDuplicatePurchase,
   markPurchaseDeclined, markPurchaseReversed, undoLatestPurchaseCorrection, permanentlyDeletePurchase } from "./actions";
 
 vi.mock("@/lib/require-user", () => ({ requireUserId: vi.fn(async () => "user-1") }));
@@ -158,6 +158,39 @@ describe("purchase financial corrections", () => {
     });
     expect(reverseCapAccrual).not.toHaveBeenCalled();
     expect(tx.purchase.update).not.toHaveBeenCalled();
+  });
+
+  it("marks a corrected currency as the owner's, so reprocessing stops restating it", async () => {
+    const formData = new FormData();
+    formData.set("purchaseId", "purchase-1");
+    formData.set("merchant", "Store");
+    formData.set("currency", "usd");
+    formData.set("amount", "10.00");
+
+    expect(await correctPurchaseDetails(formData)).toEqual({ ok: true });
+    expect(tx.purchase.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ currency: "USD", currencySource: "userOverride" }),
+    }));
+  });
+
+  it("carries the currency's provenance into the undo snapshot", async () => {
+    // Undo restores beforeState wholesale, so a snapshot without
+    // currencySource would leave the row claiming an override it no longer has.
+    tx.purchase.findFirst.mockResolvedValue({ ...purchase, currencySource: "explicitCode" });
+    const formData = new FormData();
+    formData.set("purchaseId", "purchase-1");
+    formData.set("merchant", "Store");
+    formData.set("currency", "USD");
+    formData.set("amount", "10.00");
+
+    await correctPurchaseDetails(formData);
+
+    expect(tx.purchaseCorrection.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        beforeState: expect.objectContaining({ currency: "CAD", currencySource: "explicitCode" }),
+        afterState: expect.objectContaining({ currency: "USD", currencySource: "userOverride" }),
+      }),
+    });
   });
 
   it("undoes the latest non-undone correction", async () => {

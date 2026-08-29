@@ -7,6 +7,11 @@ import { z } from "zod";
 import {
   normalizeMerchantFromSender as normalizeMerchant,
 } from "@/lib/domain/merchants/emailDomain";
+import {
+  resolveCurrency,
+  shouldAutoApply as shouldApplyCurrency,
+  type CurrencySource,
+} from "./resolveCurrency";
 
 export type PurchaseItem = { name?: string; quantity?: number; price?: number };
 export type Purchase = {
@@ -18,6 +23,8 @@ export type Purchase = {
   orderId?: string;
   totalCents?: number;
   currency?: string;
+  /** Which resolver tier decided `currency` (./resolveCurrency.ts). */
+  currencySource?: CurrencySource;
   items?: PurchaseItem[];
   rawSource: "jsonld" | "pdf" | "text";
   /** Decoded text body, so callers never re-parse raw MIME themselves. */
@@ -243,8 +250,11 @@ async function extractFromPdfAttachments(attachments: { contentType?: string; fi
       if (typeof pdfParse !== "function") continue;
 
       const parsed = await pdfParse(a.content);
-      const hit = extractTotalFromText((parsed as { text?: string })?.text ?? "");
-      if (hit.totalCents) return { rawSource: "pdf" as const, ...hit };
+      const pdfText = (parsed as { text?: string })?.text ?? "";
+      const hit = extractTotalFromText(pdfText);
+      // The PDF's own text is currency evidence the message body does not
+      // carry, so hand it back rather than resolving against the body alone.
+      if (hit.totalCents) return { rawSource: "pdf" as const, ...hit, sourceText: pdfText };
     } catch (err) {
       console.error("pdf-parse failed, skipping attachment", err);
       continue;
@@ -281,7 +291,9 @@ export async function parsePurchaseFromRawGmailMessage(params: {
   };
 
   const jsonLdHit = html ? extractFromJsonLd(html) : null;
-  if (jsonLdHit) return { ...base, ...jsonLdHit, rawSource: "jsonld" as const };
+  if (jsonLdHit) {
+    return withResolvedCurrency({ ...base, ...jsonLdHit, rawSource: "jsonld" as const }, text);
+  }
 
   const pdfHit = await extractFromPdfAttachments(
     (parsed.attachments ?? []).map((a: { contentType?: string; filename?: string; content: Buffer }) => ({
@@ -290,9 +302,39 @@ export async function parsePurchaseFromRawGmailMessage(params: {
       content: a.content,
     }))
   );
-  if (pdfHit) return { ...base, ...pdfHit };
+  if (pdfHit) {
+    const { sourceText, ...hit } = pdfHit;
+    return withResolvedCurrency({ ...base, ...hit }, [text, sourceText].join("\n"));
+  }
 
   const txtHit = extractTotalFromText(text);
   const orderId = extractOrderNumber(subject, text);
-  return { ...base, ...txtHit, orderId, rawSource: "text" as const };
+  return withResolvedCurrency({ ...base, ...txtHit, orderId, rawSource: "text" as const }, text);
+}
+
+/**
+ * Decide the receipt's currency and record which tier decided it.
+ *
+ * `extractTotalFromText` refuses to read a currency out of a bare "$" — a
+ * refusal that is correct at line level and is why `Purchase.currency` was
+ * null on 56 of 60 real receipts. The resolver gets what that extractor never
+ * had: the whole message, footers included, where "All amounts in USD" lives.
+ *
+ * A currency the extractor DID read is not carried through unchanged. It is
+ * re-derived from the same text, so a total line reading "USD" while the
+ * footer reads "CAD" resolves to null instead of to whichever the extractor
+ * happened to see first. The only value passed in as its own tier is JSON-LD's
+ * `priceCurrency`, which is markup rather than something stated in the body.
+ */
+function withResolvedCurrency(purchase: Purchase, evidenceText: string): Purchase {
+  const resolution = resolveCurrency({
+    messageText: evidenceText,
+    markupCurrency: purchase.rawSource === "jsonld" ? purchase.currency : undefined,
+  });
+
+  return {
+    ...purchase,
+    currency: shouldApplyCurrency(resolution) ? resolution.currency ?? undefined : undefined,
+    currencySource: resolution.source,
+  };
 }

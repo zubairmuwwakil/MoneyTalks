@@ -16,6 +16,7 @@ import {
 import { hasPurchaseEvidence } from "./receiptEvidence";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
 import { resolveCategory, shouldAutoApply } from "@/lib/domain/merchants/resolveCategory";
+import { reconcileCurrency, type CurrencySource } from "./resolveCurrency";
 
 export type GmailMessageProcessingMode = "scan" | "reprocess";
 export type GmailTransactionAction = "created" | "updated" | "skipped";
@@ -86,6 +87,12 @@ async function promotePurchase(
     userId: string;
     message: RawGmailMessage;
     transaction: EmailTransaction;
+    /**
+     * Which tier of ./resolveCurrency decided the parsed currency. It rides
+     * alongside rather than through `EmailTransaction`, which stores the value
+     * but has no column for its provenance.
+     */
+    currencySource: CurrencySource;
   },
 ): Promise<{ transaction: EmailTransaction; action: GmailPurchaseAction }> {
   const { userId, message } = params;
@@ -121,6 +128,13 @@ async function promotePurchase(
   const emailCategory = shouldAutoApply(emailResolution) ? emailResolution.category : null;
   const emailCategorySource = emailCategory ? emailResolution.source : null;
 
+  // What this email alone says the currency is. Reconciled below against the
+  // owner's own correction and any linked Wallet capture.
+  const emailCurrency = {
+    currency: normalizeCurrencyCode(emailTransaction.currency),
+    source: params.currencySource,
+  };
+
   if (purchase?.source === "GMAIL") {
     // Reprocessing must clear a historical guessed CAD value, but a linked
     // Wallet observation with an explicit code is valid enrichment and wins
@@ -130,15 +144,20 @@ async function promotePurchase(
       select: { currencyRaw: true },
       orderBy: { capturedAt: "asc" },
     });
-    const canonicalCurrency =
-      normalizeCurrencyCode(emailTransaction.currency) ??
-      normalizeCurrencyCode(walletCurrency?.currencyRaw);
+    // An owner's correction is an instruction, not evidence: a reprocess may
+    // refresh every other field but must not restate the unit they fixed.
+    const canonical = reconcileCurrency({
+      ownerCurrency: purchase.currencySource === "userOverride" ? purchase.currency : null,
+      receipt: emailCurrency,
+      walletCurrency: walletCurrency?.currencyRaw,
+    });
     purchase = await db.purchase.update({
       where: { id: purchase.id },
       data: {
         merchant: emailTransaction.merchant,
         totalCents: emailTransaction.totalCents ?? null,
-        currency: canonicalCurrency,
+        currency: canonical.currency,
+        currencySource: canonical.source,
         purchasedAt: emailTransaction.purchasedAt ?? message.internalDate ?? new Date(),
         orderNumber: emailTransaction.orderId ?? null,
         // Never overwrite a category already on the row: it may be an owner
@@ -195,7 +214,11 @@ async function promotePurchase(
         where: { id: match.purchase.id },
         data: {
           orderNumber: match.purchase.orderNumber ?? emailTransaction.orderId ?? undefined,
-          currency: match.purchase.currency ?? normalizeCurrencyCode(emailTransaction.currency),
+          // Gap-fill only, like the category below: the wallet side of this
+          // purchase may already carry a currency, and it is not this email's
+          // place to restate it.
+          currency: match.purchase.currency ?? emailCurrency.currency,
+          currencySource: match.purchase.currency ? undefined : emailCurrency.source,
           // The wallet side of this purchase had only a descriptor to go on;
           // the email side has a sender domain. Filling a gap here is the
           // cross-source merge earning its keep.
@@ -210,7 +233,8 @@ async function promotePurchase(
           userId,
           merchant: emailTransaction.merchant,
           totalCents: emailTransaction.totalCents ?? null,
-          currency: normalizeCurrencyCode(emailTransaction.currency),
+          currency: emailCurrency.currency,
+          currencySource: emailCurrency.source,
           purchasedAt: observedAt,
           orderNumber: emailTransaction.orderId ?? null,
           paymentMethod: null,
@@ -492,6 +516,7 @@ export async function processRawGmailMessage(
         userId: params.userId,
         message: params.message,
         transaction,
+        currencySource: parsedPurchase.currencySource ?? "none",
       });
       return {
         transaction: promoted.transaction,

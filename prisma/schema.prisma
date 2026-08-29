@@ -529,6 +529,10 @@ model Purchase {
   merchant                  String
   totalCents                Int?
   currency                  String?
+  /// Which resolver tier decided `currency` (src/lib/domain/receipts/resolveCurrency.ts).
+  /// Null means the row predates provenance tracking; "none" means the tiers
+  /// ran and found no evidence, which is a read fact and not the same thing.
+  currencySource            String?
   purchasedAt               DateTime
   orderNumber               String?
   paymentMethod             String?

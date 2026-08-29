@@ -391,6 +391,101 @@ describe("processRawGmailMessage", () => {
     }));
   });
 
+  it("records which tier decided the currency of a new purchase", async () => {
+    const { db, tx } = setupDb();
+    const reparsed = {
+      messageId: message.messageId, merchant: "anthropic.com", fromEmail: "billing@anthropic.com",
+      subject: "Your receipt", purchasedAt: new Date("2026-08-03T10:00:00.000Z"), orderId: undefined,
+      totalCents: 12000, currency: "USD", currencySource: "explicitCode" as const, items: undefined,
+      rawSource: "text" as const, textBody: "Total $120.00\nAll amounts are in USD.",
+    };
+    const refreshed = { ...existingTransaction, merchant: reparsed.merchant, fromEmail: reparsed.fromEmail,
+      totalCents: 12000, currency: "USD", purchasedAt: reparsed.purchasedAt, items: null };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue(reparsed);
+    tx.emailTransaction.findUnique.mockResolvedValue(existingTransaction);
+    tx.emailTransaction.upsert.mockResolvedValue(refreshed);
+    tx.emailTransaction.update.mockResolvedValue({ ...refreshed, purchaseId: "purchase-11" });
+    tx.purchase.findUnique.mockResolvedValue(null);
+    tx.purchase.create.mockResolvedValue({ id: "purchase-11", userId: "user-1", merchant: reparsed.merchant,
+      totalCents: 12000, currency: "USD", currencySource: "explicitCode", purchasedAt: reparsed.purchasedAt,
+      orderNumber: null, paymentMethod: null, category: null, categorySource: null, source: "GMAIL",
+      sourceEmailId: message.messageId, sourceEventId: null, possibleDuplicateOfId: null,
+      createdAt: new Date(), updatedAt: new Date() });
+
+    await processRawGmailMessage(db as never, { userId: "user-1", message, mode: "reprocess" });
+
+    expect(tx.purchase.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ currency: "USD", currencySource: "explicitCode" }),
+    });
+  });
+
+  it("does not overwrite a currency the owner corrected", async () => {
+    const { db, tx } = setupDb();
+    // Reprocessing used to restate Purchase.currency unconditionally, so a
+    // correction survived only until the next scan re-read the receipt.
+    const reparsed = {
+      messageId: message.messageId, merchant: "store.com", fromEmail: "orders@store.com",
+      subject: "receipt", purchasedAt: new Date("2026-08-03T10:00:00.000Z"), orderId: undefined,
+      totalCents: 3199, currency: "USD", currencySource: "explicitCode" as const, items: undefined,
+      rawSource: "text" as const, textBody: "Total USD 31.99",
+    };
+    const refreshed = { ...existingTransaction, merchant: reparsed.merchant, fromEmail: reparsed.fromEmail,
+      totalCents: 3199, currency: "USD", purchasedAt: reparsed.purchasedAt, items: null,
+      purchaseId: "purchase-12" };
+    const existingPurchase = { id: "purchase-12", userId: "user-1", merchant: "store.com", totalCents: 3199,
+      currency: "CAD", currencySource: "userOverride", purchasedAt: reparsed.purchasedAt, orderNumber: null,
+      paymentMethod: null, category: null, categorySource: null, source: "GMAIL",
+      sourceEmailId: message.messageId, sourceEventId: null, possibleDuplicateOfId: null,
+      createdAt: new Date(), updatedAt: new Date() };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue(reparsed);
+    tx.emailTransaction.findUnique.mockResolvedValue(existingTransaction);
+    tx.emailTransaction.upsert.mockResolvedValue(refreshed);
+    tx.emailTransaction.update.mockResolvedValue(refreshed);
+    tx.purchase.findUnique.mockResolvedValue(existingPurchase);
+    tx.purchase.update.mockResolvedValue(existingPurchase);
+    tx.walletEvent.findFirst.mockResolvedValue(null);
+
+    await processRawGmailMessage(db as never, { userId: "user-1", message, mode: "reprocess" });
+
+    expect(tx.purchase.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ currency: "CAD", currencySource: "userOverride" }),
+    }));
+  });
+
+  it("labels a currency that only a linked wallet capture stated", async () => {
+    const { db, tx } = setupDb();
+    const reparsed = {
+      messageId: message.messageId, merchant: "store.com", fromEmail: "orders@store.com",
+      subject: "receipt", purchasedAt: new Date("2026-08-03T10:00:00.000Z"), orderId: undefined,
+      totalCents: 3199, currency: undefined, currencySource: "none" as const, items: undefined,
+      rawSource: "text" as const, textBody: "Total $31.99",
+    };
+    const refreshed = { ...existingTransaction, merchant: reparsed.merchant, fromEmail: reparsed.fromEmail,
+      totalCents: 3199, currency: null, purchasedAt: reparsed.purchasedAt, items: null,
+      purchaseId: "purchase-13" };
+    const existingPurchase = { id: "purchase-13", userId: "user-1", merchant: "store.com", totalCents: 3199,
+      currency: null, currencySource: null, purchasedAt: reparsed.purchasedAt, orderNumber: null,
+      paymentMethod: null, category: null, categorySource: null, source: "GMAIL",
+      sourceEmailId: message.messageId, sourceEventId: null, possibleDuplicateOfId: null,
+      createdAt: new Date(), updatedAt: new Date() };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue(reparsed);
+    tx.emailTransaction.findUnique.mockResolvedValue(existingTransaction);
+    tx.emailTransaction.upsert.mockResolvedValue(refreshed);
+    tx.emailTransaction.update.mockResolvedValue(refreshed);
+    tx.purchase.findUnique.mockResolvedValue(existingPurchase);
+    tx.purchase.update.mockResolvedValue(existingPurchase);
+    tx.walletEvent.findFirst.mockResolvedValue({ currencyRaw: "CAD" });
+
+    await processRawGmailMessage(db as never, { userId: "user-1", message, mode: "reprocess" });
+
+    expect(tx.purchase.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ currency: "CAD", currencySource: "walletObservation" }),
+    }));
+  });
+
   it("unlinks and deletes an orphaned Gmail purchase that no longer qualifies", async () => {
     const { db, tx } = setupDb();
     const linkedTransaction = { ...existingTransaction, purchaseId: "purchase-1" };

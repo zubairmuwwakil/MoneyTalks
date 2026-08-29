@@ -14,9 +14,13 @@ import type { Prisma } from "@prisma/client";
 const idInput = z.string().min(1);
 
 type PurchaseSnapshot = { merchant: string; totalCents: number | null; currency: string | null;
+  currencySource: string | null;
   paymentMethod: string | null; financialState: "NORMALIZED" | "RECONCILED" | "ADJUSTED" | "DECLINED" | "REVERSED" };
+// currencySource travels with currency: undo restores this snapshot wholesale,
+// so omitting it would leave the row claiming an override it no longer has.
 const snapshot = (p: PurchaseSnapshot) => ({ merchant: p.merchant, totalCents: p.totalCents,
-  currency: p.currency, paymentMethod: p.paymentMethod, financialState: p.financialState });
+  currency: p.currency, currencySource: p.currencySource, paymentMethod: p.paymentMethod,
+  financialState: p.financialState });
 
 async function replacePurchaseAccrual(tx: Prisma.TransactionClient, purchase: PurchaseSnapshot & { id: string; userId: string; category: string | null; purchasedAt: Date }) {
   await removeCapAccrual(tx, `purchase:${purchase.id}`);
@@ -71,6 +75,9 @@ export async function correctPurchaseDetails(formData: FormData) {
     const before = snapshot(purchase);
     const updated = await tx.purchase.update({ where: { id: purchase.id }, data: { merchant: merchant.data,
       totalCents: amount == null ? null : Math.round(amount * 100), currency: currency.data,
+      // The owner's answer is the top tier of src/lib/domain/receipts/resolveCurrency.ts:
+      // marking it is what stops the next Gmail reprocess from restating the unit.
+      currencySource: "userOverride",
       paymentMethod, financialState: "ADJUSTED" } });
     await tx.walletEvent.updateMany({ where: { purchaseId: purchase.id }, data: { financialState: "ADJUSTED" } });
     await replacePurchaseAccrual(tx, updated);
