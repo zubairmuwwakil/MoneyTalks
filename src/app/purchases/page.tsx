@@ -31,6 +31,7 @@ import { categoryQueryTokens } from "@/lib/categories";
 import { isSuggestion, resolveCategory } from "@/lib/domain/merchants/resolveCategory";
 import { buildPurchaseImpact } from "@/lib/domain/purchases/purchaseImpact";
 import { PurchaseImpactWorkspace } from "@/components/purchases/purchase-impact-workspace";
+import { classifyWriteOff } from "@/engine/tax-writeoffs/classifyWriteOff";
 import { Prisma } from "@prisma/client";
 
 const PAGE_SIZE = 50;
@@ -768,6 +769,29 @@ export default async function PurchasesInboxPage({
                                   <span>No Receipt</span>
                                 </Badge>
                               )}
+
+                              {(() => {
+                                const taxCandidate = classifyWriteOff({
+                                  merchant: p.merchant,
+                                  category: p.category,
+                                  items: p.items,
+                                });
+                                if (taxCandidate.isCandidate && taxCandidate.taxLine) {
+                                  return (
+                                    <Link href="/money-finder/write-offs" title={taxCandidate.rationale}>
+                                      <Badge
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-1 border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                                      >
+                                        <Sparkles className="size-2.5" />
+                                        <span>CRA {taxCandidate.taxLine.line}</span>
+                                      </Badge>
+                                    </Link>
+                                  );
+                                }
+                                return null;
+                              })()}
 
                               {p.possibleDuplicateOfId ? (
                                 <Badge variant="destructive" size="sm" className="gap-1">

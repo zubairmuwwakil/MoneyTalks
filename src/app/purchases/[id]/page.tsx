@@ -26,6 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import DuplicateResolution from "./DuplicateResolution";
 import { createReturnForPurchase } from "./actions";
 import PurchaseCorrections from "./PurchaseCorrections";
+import { classifyWriteOff } from "@/engine/tax-writeoffs/classifyWriteOff";
 
 function formatSource(source: string) {
   switch (source) {
@@ -295,19 +296,45 @@ export default async function PurchaseDetailPage({
               </CardHeader>
               <CardContent>
                 <div className="divide-y divide-border/60 rounded-xl border border-border/60">
-                  {purchase.items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-3 text-sm">
-                      <div className="space-y-0.5">
-                        <p className="font-medium text-foreground">{item.title}</p>
-                        {item.qty ? <p className="text-xs text-muted-foreground">Quantity: {item.qty}</p> : null}
+                  {purchase.items.map((item) => {
+                    const itemTax = classifyWriteOff({
+                      name: item.title,
+                      merchant: purchase.merchant,
+                    });
+                    return (
+                      <div key={item.id} className="flex items-center justify-between p-3 text-sm">
+                        <div className="space-y-1">
+                          <p className="font-medium text-foreground">{item.title}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {item.qty ? (
+                              <span className="text-xs text-muted-foreground">Qty: {item.qty}</span>
+                            ) : null}
+                            {itemTax.isCandidate && itemTax.taxLine ? (
+                              <Link
+                                href="/money-finder/write-offs"
+                                title={itemTax.rationale}
+                              >
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] font-mono border-primary/30 bg-primary/5 text-primary gap-1 hover:bg-primary/10"
+                                >
+                                  <Sparkles className="size-2.5" />
+                                  <span>
+                                    {itemTax.taxLine.form} Line {itemTax.taxLine.line}: {itemTax.taxLine.name}
+                                  </span>
+                                </Badge>
+                              </Link>
+                            ) : null}
+                          </div>
+                        </div>
+                        {typeof item.priceCents === "number" ? (
+                          <span className="font-mono text-sm font-semibold text-foreground">
+                            {formatMoney(item.priceCents, item.currency)}
+                          </span>
+                        ) : null}
                       </div>
-                      {typeof item.priceCents === "number" ? (
-                        <span className="font-mono text-sm font-semibold text-foreground">
-                          {formatMoney(item.priceCents, item.currency)}
-                        </span>
-                      ) : null}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

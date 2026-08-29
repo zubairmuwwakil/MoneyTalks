@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   FileCheck,
+  Receipt,
   RotateCcw,
   ShieldAlert,
   Sparkles,
@@ -48,6 +49,12 @@ export default async function MoneyFinderPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/money-finder/write-offs" className="flex items-center gap-1.5 text-sm underline">
+              <Receipt className="size-3.5 text-primary" />
+              <span>CRA Write-Offs</span>
+            </Link>
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link href="/money-finder/tax" className="flex items-center gap-1.5 text-sm underline">
               <FileCheck className="size-3.5" />
