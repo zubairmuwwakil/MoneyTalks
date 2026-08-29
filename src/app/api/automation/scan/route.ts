@@ -3,7 +3,7 @@ import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { classifyReceiptEmail, hasPurchaseEvidence } from "@/lib/domain/receipts/receiptEvidence";
 import { processRawGmailMessage } from "@/lib/domain/receipts/gmailReceiptProcessing";
-import { getAuthedGmail } from "@/lib/services/gmailClient";
+import { getAuthedGmail, listUserConnections } from "@/lib/services/gmailClient";
 import { hasGmailReadScope, listRecentRawGmailMessages } from "@/lib/services/gmailScanSource";
 import type { Prisma } from "@prisma/client";
 import crypto from "crypto";
@@ -72,7 +72,12 @@ export async function POST(req: NextRequest) {
   const days = Number(body?.days ?? 90);
   const max = Number(body?.max ?? 200);
 
-  const authed = await getAuthedGmail(userId);
+  // Task 6 fans this out across every connection. Until then, resolve the
+  // owner's mailbox explicitly rather than handing getAuthedGmail a userId:
+  // it now takes a connection id, and both are plain strings, so the swap
+  // would compile cleanly and simply report "not connected" forever.
+  const [connection] = await listUserConnections(userId);
+  const authed = connection ? await getAuthedGmail(connection.id) : null;
   if (!authed) {
     return NextResponse.json({ error: "Gmail not connected. Connect it in Settings → Automation." }, { status: 400 });
   }

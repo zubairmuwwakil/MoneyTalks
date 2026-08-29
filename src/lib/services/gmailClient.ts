@@ -12,13 +12,27 @@ export function oauthClient() {
   );
 }
 
-export async function getAuthedGmail(userId: string) {
-  const conn = await prisma.emailConnection.findUnique({ where: { userId } });
+/** Every mailbox an owner has connected, oldest first. */
+export async function listUserConnections(userId: string) {
+  return prisma.emailConnection.findMany({ where: { userId }, orderBy: { createdAt: "asc" } });
+}
+
+/**
+ * Authenticate ONE connection. Takes a connection id, not an owner id — an
+ * owner may now have several mailboxes, and "the owner's connection" is no
+ * longer a well-defined thing. Both are plain strings, so a call site that
+ * passes the wrong one still compiles: check the argument, not the type.
+ */
+export async function getAuthedGmail(connectionId: string) {
+  const conn = await prisma.emailConnection.findUnique({ where: { id: connectionId } });
   if (!conn) return null;
 
+  // Secrets are keyed by OWNER — a person's mailboxes share one derived key.
+  // Keying them on the connection id would encrypt under a key nothing can
+  // reproduce, quietly making every stored token undecryptable.
   // Decrypted in memory only; never re-assigned onto `conn` or logged.
-  const accessToken = readConnectionSecret(userId, "accessToken", conn.accessToken);
-  const refreshToken = readConnectionSecret(userId, "refreshToken", conn.refreshToken);
+  const accessToken = readConnectionSecret(conn.userId, "accessToken", conn.accessToken);
+  const refreshToken = readConnectionSecret(conn.userId, "refreshToken", conn.refreshToken);
 
   const hasAccess = Boolean(accessToken);
   const hasRefresh = Boolean(refreshToken);
@@ -44,7 +58,7 @@ export async function getAuthedGmail(userId: string) {
   let pendingPersist: Promise<void> = Promise.resolve();
 
   oauth2.on("tokens", (t) => {
-    const secrets = encryptConnectionSecrets(userId, {
+    const secrets = encryptConnectionSecrets(conn.userId, {
       ...(t.access_token ? { accessToken: t.access_token } : {}),
       ...(t.refresh_token ? { refreshToken: t.refresh_token } : {}),
     });
@@ -55,10 +69,10 @@ export async function getAuthedGmail(userId: string) {
     if (Object.keys(data).length === 0) return;
 
     pendingPersist = pendingPersist
-      .then(() => prisma.emailConnection.update({ where: { userId }, data }))
+      .then(() => prisma.emailConnection.update({ where: { id: connectionId }, data }))
       .then(() => undefined)
       .catch((err) => {
-        console.error(`[gmail] failed to persist refreshed tokens for ${userId}`, err);
+        console.error(`[gmail] failed to persist refreshed tokens for connection ${connectionId}`, err);
       });
   });
 

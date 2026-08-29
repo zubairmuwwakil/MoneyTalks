@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { detectSubscriptionItem, POST } from "./route";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
-import { getAuthedGmail } from "@/lib/services/gmailClient";
+import { getAuthedGmail, listUserConnections } from "@/lib/services/gmailClient";
 import { hasGmailReadScope, listRecentRawGmailMessages } from "@/lib/services/gmailScanSource";
 import { processRawGmailMessage } from "@/lib/domain/receipts/gmailReceiptProcessing";
 
@@ -15,7 +15,7 @@ vi.mock("@/lib/prisma", () => ({
     emailConnection: { updateMany: vi.fn() },
   },
 }));
-vi.mock("@/lib/services/gmailClient", () => ({ getAuthedGmail: vi.fn() }));
+vi.mock("@/lib/services/gmailClient", () => ({ getAuthedGmail: vi.fn(), listUserConnections: vi.fn() }));
 vi.mock("@/lib/services/gmailScanSource", () => ({
   hasGmailReadScope: vi.fn(),
   listRecentRawGmailMessages: vi.fn(),
@@ -52,6 +52,7 @@ describe("POST /api/automation/scan", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(getSessionUserId).mockResolvedValue("user-1");
+    vi.mocked(listUserConnections).mockResolvedValue([{ id: "conn-a", userId: "user-1" }] as never);
     vi.mocked(getAuthedGmail).mockResolvedValue({
       gmail: {},
       conn: { scope: "https://www.googleapis.com/auth/gmail.readonly", scanMode: "ALL" },
