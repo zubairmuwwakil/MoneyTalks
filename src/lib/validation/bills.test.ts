@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { billImportEntry, cadenceInput, scheduleEntryInput } from "./bills";
+import { billFormInput, billImportEntry, cadenceInput, scheduleEntryInput } from "./bills";
 
 describe("cadenceInput", () => {
   it("accepts each cadence shape", () => {
@@ -138,5 +138,39 @@ describe("payment rail", () => {
       expect(parsed.data.payee).toBe("DURHAM WATER, REG MUN OF");
       expect(parsed.data.accountNumber).toBe("1643208999");
     }
+  });
+
+  it("accepts manual account access and safe portal metadata", () => {
+    const parsed = billFormInput.safeParse({
+      name: base.name,
+      category: base.category,
+      cadenceJson: JSON.stringify(base.cadence),
+      scheduleJson: JSON.stringify(base.schedule),
+      accountNumber: "POL-AB-9912",
+      accountNumberLabel: "Policy number",
+      loginIdentifier: "billing@example.com",
+      credentialLocation: "iCloud Passwords",
+      serviceUrl: "https://example.com",
+      loginUrl: "https://example.com/login",
+      billerKind: "SERVICE",
+      paymentSource: "card:card-1",
+    });
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.loginIdentifier).toBe("billing@example.com");
+      expect(parsed.data.paymentSource).toBe("card:card-1");
+    }
+  });
+
+  it("rejects non-web portal URL schemes", () => {
+    const parsed = billFormInput.safeParse({
+      name: base.name,
+      category: base.category,
+      cadenceJson: JSON.stringify(base.cadence),
+      scheduleJson: JSON.stringify(base.schedule),
+      serviceUrl: "javascript:alert(1)",
+    });
+    expect(parsed.success).toBe(false);
   });
 });

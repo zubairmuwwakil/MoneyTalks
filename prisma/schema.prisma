@@ -119,6 +119,7 @@ model FinancialAccount {
   holdings            Holding[]
   investmentSnapshots InvestmentAccountSnapshot[]
   transactions        Transaction[]
+  sourceBills         Bill[]                      @relation("BillSourceAccount")
 
   @@unique([userId, name, institution])
   @@index([userId])
@@ -294,35 +295,53 @@ model Alert {
 }
 
 model Bill {
-  id                          String      @id @default(cuid())
+  id                          String            @id @default(cuid())
   userId                      String
   name                        String
   category                    String
   payee                       String?
+  /// Legacy plaintext column. New writes leave this null; existing values are
+  /// migrated into accountNumberEncrypted on the first explicit reveal/update.
   accountNumber               String?
+  accountNumberEncrypted      String?
+  accountNumberLast4          String?
+  accountNumberLabel          String?
+  loginIdentifier             String?
+  credentialLocation          String?
+  serviceUrl                  String?
+  loginUrl                    String?
+  billingUrl                  String?
+  cancellationUrl             String?
+  billerKind                  String            @default("CUSTOM")
+  paymentsCanadaCcin          String?
+  billerVerifiedAt            DateTime?
+  billerVerificationEnv       String?
   sourceAccountId             String?
-  currency                    String      @default("CAD")
-  autopay                     Boolean     @default(false)
-  variable                    Boolean     @default(false)
+  currency                    String            @default("CAD")
+  autopay                     Boolean           @default(false)
+  variable                    Boolean           @default(false)
   notes                       String?
   cadence                     Json
   schedule                    Json
   prepaymentMonthDay          String?
   interestRatePct             Decimal?
-  createdAt                   DateTime    @default(now())
-  updatedAt                   DateTime    @updatedAt
+  createdAt                   DateTime          @default(now())
+  updatedAt                   DateTime          @updatedAt
   spendCategory               String?
   paymentCardId               String?
-  paymentRail                 String      @default("unknown")
+  paymentRail                 String            @default("unknown")
   railFeePct                  Decimal?
   selectedRouteId             String?
   selectedRouteIntermediaryId String?
-  paymentCard                 CreditCard? @relation(fields: [paymentCardId], references: [id])
-  user                        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentCard                 CreditCard?       @relation(fields: [paymentCardId], references: [id])
+  sourceAccount               FinancialAccount? @relation("BillSourceAccount", fields: [sourceAccountId], references: [id], onDelete: SetNull)
+  user                        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments                    Payment[]
 
   @@unique([userId, name])
   @@index([paymentCardId])
+  @@index([sourceAccountId])
+  @@index([paymentsCanadaCcin])
 }
 
 model Payment {

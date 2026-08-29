@@ -74,6 +74,30 @@ it("rejects a ciphertext replayed into a different column", () => {
   });
 });
 
+it("binds bill account numbers to the exact bill row", () => {
+  withKeys(activeKeyEnv, () => {
+    const envelope = encryptSecret("00123456789", {
+      userId: "user_abc",
+      field: "billAccountNumber",
+      entityRef: "bill_one",
+    });
+    expect(
+      decryptSecret(envelope, {
+        userId: "user_abc",
+        field: "billAccountNumber",
+        entityRef: "bill_one",
+      }),
+    ).toBe("00123456789");
+    expect(() =>
+      decryptSecret(envelope, {
+        userId: "user_abc",
+        field: "billAccountNumber",
+        entityRef: "bill_two",
+      }),
+    ).toThrow(expect.objectContaining({ code: "DECRYPT_FAILED" }));
+  });
+});
+
 it("refuses to encrypt when the active key is unset (fails closed)", () => {
   withKeys({ SECRET_ENC_ACTIVE_VERSION: "1", SECRET_ENC_KEY_V1: undefined }, () => {
     expect(() => encryptSecret("anything", ctx)).toThrow(expect.objectContaining({ code: "MISSING_KEY" }));

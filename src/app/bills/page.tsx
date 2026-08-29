@@ -27,6 +27,7 @@ import {
 } from "@/lib/domain/bills/billAllocationSummary";
 import { recommendCardForBill, type BillRecommendationResult } from "@/lib/domain/bills/cardForBill";
 import { buildBillImpact } from "@/lib/domain/bills/billImpact";
+import { accountNumberLastFour, maskBillAccountNumber } from "@/lib/domain/bills/accountNumber";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { billIntermediaries } from "@/lib/contracts/billIntermediaries";
@@ -402,10 +403,14 @@ export default async function BillsPage({
                               </Badge>
                             ) : null}
                           </div>
-                          {bill.payee || bill.accountNumber ? (
+                          {bill.payee || bill.accountNumberLast4 || bill.accountNumber ? (
                             <p className="text-xs text-muted-foreground">
                               {bill.payee ? `Payee: ${bill.payee}` : ""}
-                              {bill.accountNumber ? ` · Acct: ${bill.accountNumber}` : ""}
+                              {bill.accountNumberLast4 || bill.accountNumber
+                                ? ` · Acct: ${maskBillAccountNumber(
+                                    bill.accountNumberLast4 ?? accountNumberLastFour(bill.accountNumber ?? ""),
+                                  )}`
+                                : ""}
                             </p>
                           ) : null}
                           {routeLabel ? (

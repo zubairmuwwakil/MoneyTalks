@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { toReporting, type Catalogue, type OwnerState } from "@/engine/cards-twin";
@@ -14,7 +15,9 @@ import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
-import { billFormInput, cadenceInput, scheduleEntryInput } from "@/lib/validation/bills";
+import { protectBillAccountNumber, revealBillAccountNumber } from "@/lib/domain/bills/accountNumber";
+import { lookupCorporateCreditor } from "@/lib/services/paymentsCanada";
+import { billFormInput, billPayeeDetailsInput, cadenceInput, scheduleEntryInput } from "@/lib/validation/bills";
 import { resolveBillTaxonomy } from "@/lib/taxonomy/billTaxonomy";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -37,6 +40,47 @@ async function ownedBill(userId: string, billId: string) {
   const bill = await prisma.bill.findFirst({ where: { id: billId, userId } });
   if (!bill) throw new Error("Bill not found");
   return bill;
+}
+
+async function resolvePaymentSource(userId: string, value: string | undefined) {
+  if (!value) return {};
+  const separator = value.indexOf(":");
+  const kind = separator === -1 ? "" : value.slice(0, separator);
+  const id = separator === -1 ? "" : value.slice(separator + 1);
+  if (!id) throw new Error("Choose a valid payment source.");
+
+  if (kind === "card") {
+    const card = await prisma.creditCard.findFirst({ where: { id, userId }, select: { id: true } });
+    if (!card) throw new Error("That card is not in your wallet.");
+    return { paymentCardId: card.id, sourceAccountId: null };
+  }
+
+  if (kind === "account") {
+    const account = await prisma.financialAccount.findFirst({
+      where: { id, userId, type: { in: ["CHEQUING", "CASH"] } },
+      select: { id: true },
+    });
+    if (!account) throw new Error("That bank account is not available as a payment source.");
+    return { paymentCardId: null, sourceAccountId: account.id };
+  }
+
+  throw new Error("Choose a valid payment source.");
+}
+
+async function resolveVerifiedBiller(billerKind: string, ccin: string | undefined) {
+  if (billerKind !== "REGISTERED_BILLER") return null;
+  if (!ccin) throw new Error("Search for and select a Payments Canada biller first.");
+  const biller = await lookupCorporateCreditor(ccin);
+  if (biller.status !== "ACTIVE") {
+    throw new Error(`${biller.shortName} is not an active Payments Canada biller.`);
+  }
+  return {
+    payee: biller.shortName,
+    billerKind: "REGISTERED_BILLER",
+    paymentsCanadaCcin: biller.ccin,
+    billerVerifiedAt: new Date(),
+    billerVerificationEnv: biller.environment,
+  } as const;
 }
 
 async function resolveSelectedRoute(
@@ -88,7 +132,15 @@ export async function createBill(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const parsed = billFormInput.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fail(parsed.error.issues[0]?.message);
-  const { cadenceJson, scheduleJson, selectedRouteId, ...core } = parsed.data;
+  const {
+    cadenceJson,
+    scheduleJson,
+    selectedRouteId,
+    paymentSource,
+    accountNumber,
+    paymentsCanadaCcin,
+    ...core
+  } = parsed.data;
 
   if (core.spendCategory && !spendCategoryOptions.some((o) => o.value === core.spendCategory)) {
     return { ok: false, error: `Unrecognized spend category "${core.spendCategory}".` };
@@ -105,7 +157,8 @@ export async function createBill(formData: FormData): Promise<ActionResult> {
   }
 
   try {
-    const routeData = selectedRouteId
+    const billId = randomUUID();
+    const resolvedRouteData = selectedRouteId
       ? await resolveSelectedRoute(
           userId,
           selectedRouteId,
@@ -113,10 +166,29 @@ export async function createBill(formData: FormData): Promise<ActionResult> {
           scheduleJson[0].amountMinor / 100,
         )
       : {};
+    const [paymentSourceData, verifiedBiller] = await Promise.all([
+      resolvePaymentSource(userId, paymentSource),
+      resolveVerifiedBiller(core.billerKind, paymentsCanadaCcin),
+    ]);
+    const selectedCardId = paymentSource?.startsWith("card:") ? paymentSource.slice("card:".length) : null;
+    const routedCardId = "paymentCardId" in resolvedRouteData ? resolvedRouteData.paymentCardId : null;
+    const routeData =
+      !paymentSource || (selectedCardId && routedCardId === selectedCardId)
+        ? resolvedRouteData
+        : {};
+    const protectedAccount = accountNumber
+      ? protectBillAccountNumber(accountNumber, userId, billId)
+      : null;
     await prisma.bill.create({
       data: {
+        id: billId,
         ...core,
         ...routeData,
+        ...paymentSourceData,
+        ...(verifiedBiller ?? {}),
+        accountNumber: null,
+        accountNumberEncrypted: protectedAccount?.encrypted ?? null,
+        accountNumberLast4: protectedAccount?.lastFour ?? null,
         userId,
         cadence: asJson(cadenceJson),
         schedule: asJson(scheduleJson),
@@ -248,6 +320,31 @@ export async function setBillPaymentCard(formData: FormData): Promise<ActionResu
       if (!card) return { ok: false, error: "Card not found." };
       await prisma.bill.update({ where: { id: bill.id }, data: { paymentCardId: card.id } });
     }
+    revalidatePath(`/bills/${bill.id}`);
+    revalidatePath("/bills");
+  } catch (e) {
+    return fail(e);
+  }
+  return { ok: true };
+}
+
+export async function setBillPaymentSource(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const billId = String(formData.get("billId") ?? "").trim();
+  const paymentSource = String(formData.get("paymentSource") ?? "").trim();
+  try {
+    const bill = await ownedBill(userId, billId);
+    const source = paymentSource
+      ? await resolvePaymentSource(userId, paymentSource)
+      : { paymentCardId: null, sourceAccountId: null };
+    await prisma.bill.update({
+      where: { id: bill.id },
+      data: {
+        ...source,
+        selectedRouteId: null,
+        selectedRouteIntermediaryId: null,
+      },
+    });
     revalidatePath(`/bills/${bill.id}`);
     revalidatePath("/bills");
   } catch (e) {
@@ -535,38 +632,55 @@ export async function unmarkPaid(formData: FormData): Promise<ActionResult> {
   return { ok: true };
 }
 
-/**
- * Updates a bill's core payee and identity information (name, payee, accountNumber, notes, category).
- */
+/** Updates a bill's payee, encrypted account access and service metadata. */
 export async function updateBillPayeeDetails(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const billId = String(formData.get("billId") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim().slice(0, 80);
-  const payeeRaw = String(formData.get("payee") ?? "").trim();
-  const accountRaw = String(formData.get("accountNumber") ?? "").trim();
-  const notesRaw = String(formData.get("notes") ?? "").trim();
-  const categoryRaw = String(formData.get("category") ?? "").trim();
-
-  if (!name) {
-    return { ok: false, error: "Bill name / nickname is required." };
-  }
-
-  const payee = payeeRaw.length > 0 ? payeeRaw.slice(0, 80) : null;
-  const accountNumber = accountRaw.length > 0 ? accountRaw.slice(0, 80) : null;
-  const notes = notesRaw.length > 0 ? notesRaw.slice(0, 500) : null;
-  const resolvedCategory = resolveBillTaxonomy(categoryRaw);
-  const category = resolvedCategory.id;
+  const parsed = billPayeeDetailsInput.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message);
+  const {
+    accountNumber,
+    clearAccountNumber,
+    paymentsCanadaCcin,
+    category: categoryRaw,
+    ...details
+  } = parsed.data;
+  const category = resolveBillTaxonomy(categoryRaw).id;
 
   try {
     const bill = await ownedBill(userId, billId);
+    const verifiedBiller = await resolveVerifiedBiller(details.billerKind, paymentsCanadaCcin);
+    const accountData = clearAccountNumber
+      ? { accountNumber: null, accountNumberEncrypted: null, accountNumberLast4: null }
+      : accountNumber
+        ? (() => {
+            const protectedAccount = protectBillAccountNumber(accountNumber, userId, bill.id);
+            return {
+              accountNumber: null,
+              accountNumberEncrypted: protectedAccount.encrypted,
+              accountNumberLast4: protectedAccount.lastFour,
+            };
+          })()
+        : {};
     await prisma.bill.update({
       where: { id: bill.id },
       data: {
-        name,
-        payee,
-        accountNumber,
-        notes,
+        name: details.name,
         category,
+        payee: verifiedBiller?.payee ?? details.payee ?? null,
+        accountNumberLabel: details.accountNumberLabel ?? null,
+        loginIdentifier: details.loginIdentifier ?? null,
+        credentialLocation: details.credentialLocation ?? null,
+        serviceUrl: details.serviceUrl ?? null,
+        loginUrl: details.loginUrl ?? null,
+        billingUrl: details.billingUrl ?? null,
+        cancellationUrl: details.cancellationUrl ?? null,
+        billerKind: verifiedBiller?.billerKind ?? details.billerKind,
+        notes: details.notes ?? null,
+        ...accountData,
+        paymentsCanadaCcin: verifiedBiller?.paymentsCanadaCcin ?? null,
+        billerVerifiedAt: verifiedBiller?.billerVerifiedAt ?? null,
+        billerVerificationEnv: verifiedBiller?.billerVerificationEnv ?? null,
       },
     });
     revalidatePath(`/bills/${bill.id}`);
@@ -576,4 +690,48 @@ export async function updateBillPayeeDetails(formData: FormData): Promise<Action
     return fail(e);
   }
   return { ok: true };
+}
+
+export type RevealBillAccountNumberResult =
+  | { ok: true; accountNumber: string }
+  | { ok: false; error: string };
+
+export async function revealStoredBillAccountNumber(billId: string): Promise<RevealBillAccountNumberResult> {
+  const userId = await requireUserId();
+  try {
+    const bill = await prisma.bill.findFirst({
+      where: { id: billId, userId },
+      select: {
+        id: true,
+        accountNumber: true,
+        accountNumberEncrypted: true,
+      },
+    });
+    if (!bill) return { ok: false, error: "Bill not found." };
+
+    if (bill.accountNumberEncrypted) {
+      return {
+        ok: true,
+        accountNumber: revealBillAccountNumber(bill.accountNumberEncrypted, userId, bill.id),
+      };
+    }
+
+    // Lazy migration for values created before encrypted bill accounts shipped.
+    // The plaintext is never returned until this authenticated, bill-owned action.
+    if (bill.accountNumber) {
+      const protectedAccount = protectBillAccountNumber(bill.accountNumber, userId, bill.id);
+      await prisma.bill.update({
+        where: { id: bill.id },
+        data: {
+          accountNumber: null,
+          accountNumberEncrypted: protectedAccount.encrypted,
+          accountNumberLast4: protectedAccount.lastFour,
+        },
+      });
+      return { ok: true, accountNumber: bill.accountNumber };
+    }
+    return { ok: false, error: "No account number is stored for this bill." };
+  } catch {
+    return { ok: false, error: "The account number could not be revealed." };
+  }
 }

@@ -127,7 +127,7 @@ A finance app behind a public URL is a named honeypot; treat it accordingly.
 
 - **Auth:** Auth.js — passkey (WebAuthn) primary, magic-link email fallback (Resend). Registration closed: an allowlist of exactly one email. Sessions in httpOnly, secure cookies. Unauthenticated API access → 401, tested.
 - **Repo hygiene:** zero personal data in code, docs, tests, or git history. `seed/`, `*.seed.json`, `docs/private/`, and `.env*` are gitignored; real data is imported through an authenticated import screen or a local script pointed at the production DB, never committed. Tests use fictional fixtures only. Secrets live in Vercel env vars and `.env.local`.
-- **Data minimization:** no full account numbers, roll numbers, or customer numbers anywhere in the app — last-4 only; biller portal URLs are fine. No card numbers, CVVs, or credentials, ever.
+- **Data minimization (amended 2026-08-29):** a bill may retain its complete biller-issued customer/account identifier (including a roll, policy, loan, or utility account number) only encrypted at rest and masked by default. No full payment-card numbers, CVVs, PINs, bank-account/routing numbers, online-banking credentials, or service passwords, ever. Login email/username, password-manager location, and biller portal URLs are allowed.
 - **Transport/storage:** HTTPS enforced by Vercel; Neon Postgres over TLS.
 - **Backup:** "export everything" (JSON/CSV) is the backup strategy; prompt occasionally.
 - **Cost:** $0 — Vercel Hobby + Neon free tier + Resend free tier.
