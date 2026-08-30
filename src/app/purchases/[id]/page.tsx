@@ -13,6 +13,7 @@ import {
   UploadCloud,
   AlertTriangle,
   Clock,
+  Mail,
 } from "lucide-react";
 import { InlineCategoryPicker } from "../ui/InlineCategoryPicker";
 import { getCategoryMeta } from "@/lib/categories";
@@ -87,7 +88,19 @@ export default async function PurchaseDetailPage({
       },
       corrections: { where: { undoneAt: null }, orderBy: { createdAt: "desc" }, take: 1, select: { id: true } },
       emailTransactions: {
-        select: { id: true, fromEmail: true, subject: true, orderId: true, purchasedAt: true, provider: true },
+        select: {
+          id: true,
+          fromEmail: true,
+          subject: true,
+          orderId: true,
+          purchasedAt: true,
+          provider: true,
+          messageId: true,
+          rfc822MessageId: true,
+          receiptDocuments: {
+            select: { id: true, filename: true, contentType: true, sizeBytes: true },
+          },
+        },
       },
     },
   });
@@ -346,7 +359,7 @@ export default async function PurchaseDetailPage({
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-sm font-semibold text-foreground">Receipts & Attachments</CardTitle>
-                  <CardDescription>Paper receipts, invoices, and confirmation documents.</CardDescription>
+                  <CardDescription>Digital e-receipts, paper scans, invoices, and confirmation documents.</CardDescription>
                 </div>
                 <Button asChild variant="outline" size="sm">
                   <Link href="/receipts/upload">
@@ -356,9 +369,100 @@ export default async function PurchaseDetailPage({
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {/* 1. Digital E-Receipts from Email */}
+              {purchase.emailTransactions.length > 0 ? (
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <span>Digital E-Receipts ({purchase.emailTransactions.length})</span>
+                  </div>
+                  {purchase.emailTransactions.map((email) => {
+                    const gmailQuery = email.rfc822MessageId
+                      ? `rfc822msgid:${email.rfc822MessageId}`
+                      : email.orderId
+                        ? `"${email.orderId}"`
+                        : email.subject ?? purchase.merchant;
+                    const gmailUrl = `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(gmailQuery)}`;
+
+                    return (
+                      <div
+                        key={email.id}
+                        className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3.5 text-sm space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                              <Mail className="size-3.5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-xs text-foreground">
+                                  {email.fromEmail ? email.fromEmail : "Email Receipt"}
+                                </span>
+                                <Badge variant="success" size="sm" className="text-[10px] py-0 px-1.5 h-4">
+                                  Verified E-Receipt
+                                </Badge>
+                              </div>
+                              {email.purchasedAt ? (
+                                <p className="text-[11px] text-muted-foreground">
+                                  {purchaseLocalDateTime(email.purchasedAt, null, homeZone).toFormat("MMM d, yyyy · h:mm a")}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                          <Button asChild variant="ghost" size="xs" className="gap-1 text-xs text-primary hover:text-primary">
+                            <a href={gmailUrl} target="_blank" rel="noreferrer">
+                              <span>Open in Gmail</span>
+                              <ExternalLink className="size-3" />
+                            </a>
+                          </Button>
+                        </div>
+
+                        {email.subject ? (
+                          <div className="text-xs text-foreground/90 font-medium pl-9">
+                            “{email.subject}”
+                          </div>
+                        ) : null}
+
+                        {/* Email Attached Documents (PDFs, invoices) */}
+                        {email.receiptDocuments.length > 0 ? (
+                          <div className="pt-2 border-t border-emerald-500/20 pl-9 space-y-1.5">
+                            <p className="text-[11px] font-medium text-muted-foreground">Attached Documents:</p>
+                            {email.receiptDocuments.map((doc) => (
+                              <div
+                                key={doc.id}
+                                className="flex items-center justify-between rounded-lg border border-border/60 bg-background/80 px-2.5 py-1.5 text-xs"
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+                                  <span className="truncate font-medium text-foreground">{doc.filename}</span>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    ({(doc.sizeBytes / 1024).toFixed(0)} KB)
+                                  </span>
+                                </div>
+                                <Button asChild variant="ghost" size="xs">
+                                  <a href={`/api/documents/${doc.id}`} target="_blank" rel="noreferrer">
+                                    Download
+                                  </a>
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {/* 2. File Upload Attachments */}
               {purchase.attachments.length > 0 ? (
                 <div className="space-y-2">
+                  {purchase.emailTransactions.length > 0 ? (
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pt-1">
+                      <span>Uploaded Receipts & Documents ({purchase.attachments.length})</span>
+                    </div>
+                  ) : null}
                   {purchase.attachments.map((doc) => (
                     <div
                       key={doc.id}
@@ -376,7 +480,10 @@ export default async function PurchaseDetailPage({
                     </div>
                   ))}
                 </div>
-              ) : (
+              ) : null}
+
+              {/* 3. Empty or Supplemental Upload State */}
+              {purchase.emailTransactions.length === 0 && purchase.attachments.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/80 p-6 text-center text-muted-foreground">
                   <FileText className="size-8 text-muted-foreground/50 mb-2" />
                   <p className="text-xs font-medium text-foreground">No paper receipt attached yet</p>
@@ -390,7 +497,20 @@ export default async function PurchaseDetailPage({
                     </Link>
                   </Button>
                 </div>
-              )}
+              ) : purchase.emailTransactions.length > 0 && purchase.attachments.length === 0 ? (
+                <div className="flex items-center justify-between rounded-xl border border-dashed border-border/70 bg-muted/20 p-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <FileText className="size-3.5 text-muted-foreground" />
+                    <span>Have a physical paper receipt or store slip?</span>
+                  </div>
+                  <Button asChild variant="ghost" size="xs" className="h-7 text-xs">
+                    <Link href="/receipts/upload">
+                      <UploadCloud className="size-3 mr-1" />
+                      Attach Paper Copy
+                    </Link>
+                  </Button>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         </div>
