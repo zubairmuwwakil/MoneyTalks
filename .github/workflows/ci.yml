@@ -1,12 +1,17 @@
 name: CI
 
 on:
+  # Must include push. Work lands directly on main (LOG.md 2026-08-30) and PRs
+  # were abolished, so a pull_request-only trigger means CI runs on nothing at
+  # all — which is exactly what happened between 2026-08-30 10:56 and 15:xx.
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
   verify:
-    name: verify (required)
+    name: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
