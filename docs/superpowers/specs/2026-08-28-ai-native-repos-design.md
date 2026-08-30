@@ -351,6 +351,45 @@ merging those without verification is the one real risk this repo still carries.
   Actions in all six repos. return-saas is limited to two npm PRs and one Actions
   PR until M5 gives those updates a verification workflow.
 
+**M7 — PickMe.** *Added 2026-08-29. Omitted from the original sequence in error:
+§1 scoped six repos and §7 sequenced five, and nothing compared the two lists. The
+repo that owns the ecosystem's most-protected fact was left with no enforcement of
+it.*
+
+- Root `AGENTS.md` router, plus nested routers where the stack genuinely differs:
+  `Engine/` (contract authority), `android/` (Kotlin), `catalogue-pipeline/`.
+- **Compile the contract-copy invariant.** `card-catalogue.json` exists in three
+  hand-maintained source copies (`contracts/`, `Engine/Sources/CardCopilotEngine/
+  Resources/`, `android/core/engine/src/main/resources/com/cardcopilot/engine/`) and
+  `engine-fixtures.json` in three more (`contracts/`,
+  `Engine/Tests/CardCopilotEngineTests/Fixtures/`,
+  `android/core/engine/src/test/resources/com/cardcopilot/engine/`). They are
+  byte-identical today by discipline alone. If one moves and another does not, the
+  Swift and Kotlin suites both pass against stale fixtures while the published
+  artifact disagrees — silent cross-language drift, in the repo whose whole job is
+  to be canonical.
+- `.claude/settings.json`, a `card-contract-authoring` skill, and required status
+  checks on the four green jobs. `app (xcodebuild test)` and `android app` join the
+  required tier only once they have been green for a week — they were red for days
+  on runner-image drift, and a gate that cries wolf is discounted.
+- `REPO_MAP.md`. PickMe has `docs/`, `scripts/`, `contracts/`, `AppStore/` and four
+  language trees; "where does this go" has more plausible answers here than anywhere
+  else in the ecosystem.
+
+## Remaining work, in priority order
+
+Milestone numbers record when a milestone was written, not what to do next.
+
+1. **M7 — PickMe.** Strictest ownership rules in the ecosystem, currently zero
+   enforcement, and no `AGENTS.md` at all.
+2. **M3 — pickleball-session-manager.** The largest remaining context win:
+   3,024 tokens, ~6× MoneyTalks after M1. Quality Gates is red and needs diagnosing
+   first — the three expired dependency exemptions were renewed to 2026-11-30, so
+   the current failure has a different cause.
+3. **M5 — return-saas.** Smallest, but it closes a live hole: M6 gave it Dependabot
+   and it has no CI, so dependency PRs land unverified on a public deployment that
+   handles encrypted credentials.
+
 ## 6. Success criteria
 
 ### Always-loaded context
@@ -373,7 +412,10 @@ remain above target pending separate router work; M6 does not rewrite routers.
 | Measure | Now | Target |
 |---|---|---|
 | MoneyTalks invariants compiled | 2 of ~15 | ≥8; rest demoted; **0 uncompiled always-loaded** |
-| Repos with a real `AGENTS.md` | 1 | 6 |
+| Repos with a real `AGENTS.md` | 1 | 6 | *measured 2026-08-29: 4 — PickMe and return-saas outstanding* |
+| MoneyTalks always-loaded | 2,285 tok | ≤600 | **598 achieved** |
+| marketdata always-loaded | 2,385 tok | ≤600 | **493 achieved** |
+| PSM always-loaded | 3,024 tok | ≤800 | *unchanged — M3 outstanding* |
 | Repos with required status checks | 0 | 6 |
 | Repos with checked-in `settings.json` | 0 | 6 |
 | Repos green on main | 4 of 6 | 6 of 6 |
