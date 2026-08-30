@@ -246,7 +246,13 @@ async function promotePurchase(
         currency: canonical.currency,
         currencySource: canonical.source,
         purchasedAt: emailTransaction.purchasedAt ?? message.internalDate ?? new Date(),
-        orderNumber: emailTransaction.orderId ?? null,
+        // Reprocessing exists to correct stale values, but a re-parse that
+        // finds no order number is a parser miss, not evidence the stored one
+        // was wrong — and unlike the guessed currency above, an order number
+        // was extracted rather than defaulted. Writing null here erased 15 of
+        // them across Vercel and Anthropic in a production dry run. This is
+        // the same rule the `category` line below already states.
+        orderNumber: usableOrderNumber(emailTransaction.orderId) ?? purchase.orderNumber,
         // Never overwrite a category already on the row: it may be an owner
         // decision, and this resolution is only ever as good as its tier.
         category: purchase.category ?? emailCategory,
