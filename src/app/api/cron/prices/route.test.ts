@@ -66,6 +66,8 @@ describe("price cron performance capture", () => {
 
     expect(prisma.user.findMany).toHaveBeenCalledWith({
       where: { financialAccounts: { some: {} } },
+      orderBy: { id: "asc" },
+      take: 25,
       select: {
         id: true,
         financialAccounts: { select: { holdings: { select: { id: true }, take: 1 } } },

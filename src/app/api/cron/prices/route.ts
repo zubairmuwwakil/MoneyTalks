@@ -6,6 +6,8 @@ import { refreshHoldingPrices } from "@/lib/domain/investments/refreshHoldingPri
 import { captureInvestmentSnapshots } from "@/lib/domain/investments/captureInvestmentSnapshots";
 import { isAuthorizedCronRequest } from "@/lib/security/cronAuth";
 import { sendServiceFailureAlert } from "@/lib/services/alerting";
+import { enqueueCronContinuation } from "@/lib/services/qstashContinuation";
+import { withSpan } from "@/lib/observability";
 
 export const runtime = "nodejs";
 
@@ -40,6 +42,29 @@ export const maxDuration = 120;
  * over — so it is bounded, and its failure is non-fatal.
  */
 const BACKSTOP_SWEEP_TIMEOUT_MS = 45_000;
+const USER_BATCH_SIZE = 25;
+
+type PriceCronPayload = {
+  runId?: string;
+  userCursor?: string;
+};
+
+async function readPayload(req: NextRequest): Promise<PriceCronPayload> {
+  try {
+    const body = await req.json();
+    if (!body || typeof body !== "object") return {};
+    const payload = body as Record<string, unknown>;
+    return {
+      runId: typeof payload.runId === "string" ? payload.runId.slice(0, 100) : undefined,
+      userCursor:
+        typeof payload.userCursor === "string" && payload.userCursor.length > 0
+          ? payload.userCursor.slice(0, 100)
+          : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
 
 async function runPriceCron(req: NextRequest) {
   if (!(await isAuthorizedCronRequest(req))) {
@@ -50,6 +75,9 @@ async function runPriceCron(req: NextRequest) {
   if (!marketLensConfigured) {
     console.warn("[cron/prices] market data is not configured; recording diagnostic snapshots only");
   }
+
+  const payload = await readPayload(req);
+  const runId = payload.runId ?? crypto.randomUUID();
 
   try {
     // Correct the cache before reading it. Never fatal: a sweep that fails leaves
@@ -68,13 +96,20 @@ async function runPriceCron(req: NextRequest) {
 
     // Cash-only accounts still need a daily valuation, so account ownership — not
     // the presence of a priceable holding — determines who participates.
-    const users = await prisma.user.findMany({
-      where: { financialAccounts: { some: {} } },
-      select: {
-        id: true,
-        financialAccounts: { select: { holdings: { select: { id: true }, take: 1 } } },
-      },
-    });
+    const users = await withSpan(
+      "cron.prices.load-user-batch",
+      () => prisma.user.findMany({
+        where: { financialAccounts: { some: {} } },
+        ...(payload.userCursor ? { cursor: { id: payload.userCursor }, skip: 1 } : {}),
+        orderBy: { id: "asc" },
+        take: USER_BATCH_SIZE,
+        select: {
+          id: true,
+          financialAccounts: { select: { holdings: { select: { id: true }, take: 1 } } },
+        },
+      }),
+      { batch_size: USER_BATCH_SIZE },
+    );
 
     let updated = 0;
     let usersRefreshed = 0;
@@ -148,7 +183,36 @@ async function runPriceCron(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ ok: true, users: users.length, usersRefreshed, updated, snapshots });
+    const hasMore = users.length === USER_BATCH_SIZE;
+    let continuation: { queued: true; messageId: string } | undefined;
+    if (hasMore) {
+      const next = await enqueueCronContinuation({
+        path: "/api/cron/prices",
+        body: { source: "qstash", job: "prices", runId, userCursor: users.at(-1)?.id },
+        deduplicationId: `prices:${runId}:${users.at(-1)?.id ?? "missing"}`,
+      });
+      if (!next.queued) {
+        await sendServiceFailureAlert({
+          serviceName: "cron/prices",
+          summary: "Price cron reached its batch limit but cannot enqueue its continuation",
+          details: { users: users.length, userCursor: users.at(-1)?.id, runId },
+        });
+        return NextResponse.json(
+          { ok: false, reason: "continuation-not-configured", users: users.length, snapshots },
+          { status: 503 },
+        );
+      }
+      continuation = next;
+    }
+
+    return NextResponse.json({
+      ok: true,
+      users: users.length,
+      usersRefreshed,
+      updated,
+      snapshots,
+      ...(continuation ? { continuation } : {}),
+    });
   } catch (fatalError) {
     await sendServiceFailureAlert({
       serviceName: "cron/prices",
@@ -166,4 +230,3 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   return runPriceCron(req);
 }
-

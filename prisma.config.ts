@@ -14,6 +14,8 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Migrations should use a direct Postgres endpoint when the runtime URL is
+    // behind a transaction pooler such as Neon PgBouncer.
+    url: process.env["DIRECT_URL"] || process.env["DATABASE_URL"],
   },
 });

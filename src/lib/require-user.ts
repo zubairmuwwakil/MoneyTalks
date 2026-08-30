@@ -118,3 +118,4 @@ export async function getSessionAccount(): Promise<{ id: string; clerkId: string
   const user = await resolveUser();
   return user ? { id: user.id, clerkId: user.clerkId } : null;
 }
+import "server-only";

@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
+  // A stable deployment id lets multiple Next.js instances coordinate cache
+  // invalidation and server-action encryption during rolling deploys.
+  deploymentId: process.env.DEPLOYMENT_VERSION || undefined,
   images: {
     remotePatterns: [
       {

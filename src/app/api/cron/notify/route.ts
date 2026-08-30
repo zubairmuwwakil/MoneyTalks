@@ -14,13 +14,61 @@ import type { CardDef } from "@/lib/cards/types";
 import { refreshShipmentTimeline } from "@/lib/domain/shipping/tracking";
 import { processWalletEvents } from "@/lib/domain/wallet/walletNormalization";
 import { sendServiceFailureAlert } from "@/lib/services/alerting";
+import { enqueueCronContinuation } from "@/lib/services/qstashContinuation";
+import { withSpan } from "@/lib/observability";
 
 export const runtime = "nodejs";
+
+// Five independent streams can contribute to one invocation. Keep the total
+// work comfortably below the QStash delivery timeout, then continue by cursor.
+const BATCH_SIZE = 50;
+export const maxDuration = 120;
+
+type NotifyCursor = string | null | undefined;
+type NotifyPayload = {
+  runId?: string;
+  trackableCursor?: NotifyCursor;
+  subscriptionCursor?: NotifyCursor;
+  returnCursor?: NotifyCursor;
+  refundCursor?: NotifyCursor;
+  cardCursor?: NotifyCursor;
+};
+
+function readCursor(value: unknown): NotifyCursor {
+  if (value === null) return null;
+  if (typeof value !== "string" || value.length === 0) return undefined;
+  return value.slice(0, 100);
+}
+
+async function readPayload(req: NextRequest): Promise<NotifyPayload> {
+  try {
+    const body = await req.json();
+    if (!body || typeof body !== "object") return {};
+    const payload = body as Record<string, unknown>;
+    return {
+      runId: typeof payload.runId === "string" ? payload.runId.slice(0, 100) : undefined,
+      trackableCursor: readCursor(payload.trackableCursor),
+      subscriptionCursor: readCursor(payload.subscriptionCursor),
+      returnCursor: readCursor(payload.returnCursor),
+      refundCursor: readCursor(payload.refundCursor),
+      cardCursor: readCursor(payload.cardCursor),
+    };
+  } catch {
+    return {};
+  }
+}
+
+function pageArgs(cursor: NotifyCursor): { cursor?: { id: string }; skip?: number } {
+  return cursor ? { cursor: { id: cursor }, skip: 1 } : {};
+}
 
 async function runNotifyCron(req: NextRequest) {
   if (!(await isAuthorizedCronRequest(req))) {
     return new NextResponse("Forbidden", { status: 403 });
   }
+
+  const payload = await readPayload(req);
+  const runId = payload.runId ?? crypto.randomUUID();
 
   try {
     const walletProcessed = await processWalletEvents();
@@ -30,16 +78,20 @@ async function runNotifyCron(req: NextRequest) {
     const now = new Date();
 
     // Refund sweep from old cron/shipping
-    const trackable = await prisma.returnItem.findMany({
-      where: {
-        trackingNumber: { not: null },
-        deliveredAt: null,
-        refundedDate: null,
-        status: { in: ["NOT_STARTED", "PACKED", "DROPPED_OFF"] },
-      },
-      select: { id: true, userId: true },
-      take: 200,
-    });
+    const trackable = payload.trackableCursor === null
+      ? []
+      : await prisma.returnItem.findMany({
+          where: {
+            trackingNumber: { not: null },
+            deliveredAt: null,
+            refundedDate: null,
+            status: { in: ["NOT_STARTED", "PACKED", "DROPPED_OFF"] },
+          },
+          select: { id: true, userId: true },
+          orderBy: { id: "asc" },
+          ...pageArgs(payload.trackableCursor),
+          take: BATCH_SIZE,
+        });
 
     let polled = 0;
     for (const r of trackable) {
@@ -48,50 +100,74 @@ async function runNotifyCron(req: NextRequest) {
       polled++;
     }
 
-    const [subs, returns, refundCandidates, feeCards] = await Promise.all([
-      prisma.subscription.findMany({
-        where: { status: "ACTIVE", renewalDate: { gte: today, lt: horizon } },
-        select: { id: true, userId: true, name: true, renewalDate: true, amountCents: true, currency: true },
-      }),
-      prisma.returnItem.findMany({
-        where: {
-          status: { in: ["NOT_STARTED", "PACKED"] },
-          returnBy: { gte: today, lt: horizon },
-        },
-        select: { id: true, userId: true, store: true, itemNote: true, amountCents: true, currency: true, returnBy: true, status: true },
-      }),
-      prisma.returnItem.findMany({
-        where: {
-          OR: [
-            { dropoffDate: { not: null }, refundedDate: null },
-            { refundExpectedAt: { not: null }, refundedDate: null },
-          ],
-        },
-        select: { id: true, userId: true, store: true, dropoffDate: true, refundedDate: true, refundExpectedAt: true },
-      }),
-      // Every card, not a windowed slice: currentFeeCycle decides whether there
-      // is anything to say, and a card whose date was just removed still needs a
-      // sweep to clear its stale reminder.
-      prisma.creditCard.findMany({
-        select: {
-          id: true,
-          userId: true,
-          nickname: true,
-          network: true,
-          annualFeeMinor: true,
-          feeRebateMinor: true,
-          contractCardId: true,
-          currency: true,
-          feeMonthDay: true,
-          feeCancelGraceDays: true,
-        },
-      }),
-    ]);
+    const [subs, returns, refundCandidates, feeCards] = await withSpan(
+      "cron.notify.load-batches",
+      () => Promise.all([
+        payload.subscriptionCursor === null
+          ? Promise.resolve([])
+          : prisma.subscription.findMany({
+              where: { status: "ACTIVE", renewalDate: { gte: today, lt: horizon } },
+              select: { id: true, userId: true, name: true, renewalDate: true, amountCents: true, currency: true },
+              orderBy: { id: "asc" },
+              ...pageArgs(payload.subscriptionCursor),
+              take: BATCH_SIZE,
+            }),
+        payload.returnCursor === null
+          ? Promise.resolve([])
+          : prisma.returnItem.findMany({
+              where: {
+                status: { in: ["NOT_STARTED", "PACKED"] },
+                returnBy: { gte: today, lt: horizon },
+              },
+              select: { id: true, userId: true, store: true, itemNote: true, amountCents: true, currency: true, returnBy: true, status: true },
+              orderBy: { id: "asc" },
+              ...pageArgs(payload.returnCursor),
+              take: BATCH_SIZE,
+            }),
+        payload.refundCursor === null
+          ? Promise.resolve([])
+          : prisma.returnItem.findMany({
+              where: {
+                OR: [
+                  { dropoffDate: { not: null }, refundedDate: null },
+                  { refundExpectedAt: { not: null }, refundedDate: null },
+                ],
+              },
+              select: { id: true, userId: true, store: true, dropoffDate: true, refundedDate: true, refundExpectedAt: true },
+              orderBy: { id: "asc" },
+              ...pageArgs(payload.refundCursor),
+              take: BATCH_SIZE,
+            }),
+        payload.cardCursor === null
+          ? Promise.resolve([])
+          : prisma.creditCard.findMany({
+              select: {
+                id: true,
+                userId: true,
+                nickname: true,
+                network: true,
+                annualFeeMinor: true,
+                feeRebateMinor: true,
+                contractCardId: true,
+                currency: true,
+                feeMonthDay: true,
+                feeCancelGraceDays: true,
+              },
+              orderBy: { id: "asc" },
+              ...pageArgs(payload.cardCursor),
+              take: BATCH_SIZE,
+            }),
+      ]),
+      { batch_size: BATCH_SIZE },
+    );
 
-    const prefs = await prisma.notificationPreference.findMany({
-      where: { userId: { in: Array.from(new Set(refundCandidates.map(r => r.userId))) } },
-      select: { userId: true, notifyOnRefundOverdue: true },
-    });
+    const refundUserIds = Array.from(new Set(refundCandidates.map((r) => r.userId)));
+    const prefs = refundUserIds.length === 0
+      ? []
+      : await prisma.notificationPreference.findMany({
+          where: { userId: { in: refundUserIds } },
+          select: { userId: true, notifyOnRefundOverdue: true },
+        });
     const prefMap = new Map(prefs.map(p => [p.userId, p.notifyOnRefundOverdue]));
 
     let attempted = 0;
@@ -170,6 +246,35 @@ async function runNotifyCron(req: NextRequest) {
       }
     }
 
+    const nextCursors = {
+      trackableCursor: trackable.length === BATCH_SIZE ? trackable.at(-1)?.id ?? null : null,
+      subscriptionCursor: subs.length === BATCH_SIZE ? subs.at(-1)?.id ?? null : null,
+      returnCursor: returns.length === BATCH_SIZE ? returns.at(-1)?.id ?? null : null,
+      refundCursor: refundCandidates.length === BATCH_SIZE ? refundCandidates.at(-1)?.id ?? null : null,
+      cardCursor: feeCards.length === BATCH_SIZE ? feeCards.at(-1)?.id ?? null : null,
+    };
+    const hasMore = Object.values(nextCursors).some(Boolean);
+    let continuation: { queued: true; messageId: string } | undefined;
+    if (hasMore) {
+      const next = await enqueueCronContinuation({
+        path: "/api/cron/notify",
+        body: { source: "qstash", job: "notify", runId, ...nextCursors },
+        deduplicationId: `notify:${runId}:${JSON.stringify(nextCursors)}`,
+      });
+      if (!next.queued) {
+        await sendServiceFailureAlert({
+          serviceName: "cron/notify",
+          summary: "Notification cron reached a batch limit but cannot enqueue its continuation",
+          details: { runId, nextCursors },
+        });
+        return NextResponse.json(
+          { ok: false, reason: "continuation-not-configured", attempted, polled },
+          { status: 503 },
+        );
+      }
+      continuation = next;
+    }
+
     return NextResponse.json({
       ok: true,
       attempted,
@@ -177,6 +282,7 @@ async function runNotifyCron(req: NextRequest) {
       overdueNotified,
       scanned: { subs: subs.length, returns: returns.length, refundCandidates: refundCandidates.length },
       walletProcessed,
+      ...(continuation ? { continuation } : {}),
     });
   } catch (error) {
     await sendServiceFailureAlert({
@@ -195,4 +301,3 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   return runNotifyCron(req);
 }
-
