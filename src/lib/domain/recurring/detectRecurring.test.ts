@@ -51,7 +51,7 @@ type ObligationRow = {
   confidenceReasons: unknown;
   lastObservedAt: Date;
   algorithmVersion: number;
-  origin: "DETECTED" | "USER" | "MIGRATED";
+  origin: "DETECTED" | "EMAIL_STATED" | "USER" | "MIGRATED";
   needsReview: boolean;
   dismissedAt: Date | null;
   confirmedAt: Date | null;
@@ -294,6 +294,59 @@ describe("sweepRecurringObligations", () => {
       needsReview: true,
     });
     expect(await db.recurringObligationEvidence.count({ where: { obligationId: db.obligations[0].id } })).toBe(3);
+  });
+
+  it("creates a review-only EMAIL_STATED obligation from cadence and next billing facts without charges", async () => {
+    const db = new MemoryRecurringDb();
+    db.emails.push({
+      id: "email-renewal",
+      userId: "user-1",
+      merchant: "fictional-stream.example",
+      subject: "Your plan renews monthly",
+      purchasedAt: null,
+      createdAt: at("2026-08-29"),
+    });
+    db.emailFacts.push(
+      {
+        id: "fact-cadence",
+        userId: "user-1",
+        emailTransactionId: "email-renewal",
+        type: "EXPLICIT_CADENCE",
+        occurredAt: at("2026-08-29"),
+        effectiveAt: null,
+        billingAt: null,
+        amountMinor: null,
+        currency: null,
+        cadence: "MONTHLY",
+      },
+      {
+        id: "fact-next-billing",
+        userId: "user-1",
+        emailTransactionId: "email-renewal",
+        type: "NEXT_BILLING_DATE",
+        occurredAt: at("2026-08-29"),
+        effectiveAt: null,
+        billingAt: at("2026-09-15"),
+        amountMinor: null,
+        currency: null,
+        cadence: null,
+      },
+    );
+
+    const result = await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
+
+    expect(result).toMatchObject({ created: 1, updated: 0, unchanged: 0 });
+    expect(db.obligations).toEqual([expect.objectContaining({
+      merchantCanonicalId: "fictional-stream.example",
+      currency: null,
+      origin: "EMAIL_STATED",
+      needsReview: true,
+      confidence: 0.2,
+      cadence: expect.objectContaining({ type: "MONTHLY", dayOfMonth: 15 }),
+      nextExpectedDate: at("2026-09-15"),
+    })]);
+    expect(db.evidence).toHaveLength(2);
+    expect(db.evidence.every(({ purchaseId, emailFactId }) => purchaseId === null && emailFactId !== null)).toBe(true);
   });
 
   it("is idempotent — a second sweep does not duplicate obligations or evidence", async () => {

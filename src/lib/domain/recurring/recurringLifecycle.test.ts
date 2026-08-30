@@ -91,6 +91,49 @@ describe("P4c recurring lifecycle", () => {
     expect(hasSufficientRecurringEvidence(2, [])).toBe(false);
   });
 
+  it("email-stated: admits zero charges only with cadence plus a stated amount or billing date", () => {
+    const occurredAt = date("2026-08-29");
+    const cadence: ObligationFact = { type: "EXPLICIT_CADENCE", occurredAt, cadence: "MONTHLY" };
+    const statedAmount: ObligationFact = { type: "PRICE_CHANGE", occurredAt, amountMinor: 1_499 };
+    const nextBillingDate: ObligationFact = {
+      type: "NEXT_BILLING_DATE",
+      occurredAt,
+      billingAt: date("2026-09-15"),
+    };
+
+    expect(hasSufficientRecurringEvidence(0, [cadence, statedAmount])).toBe(true);
+    expect(hasSufficientRecurringEvidence(0, [cadence, nextBillingDate])).toBe(true);
+    expect(hasSufficientRecurringEvidence(0, [cadence])).toBe(false);
+    expect(hasSufficientRecurringEvidence(0, [statedAmount, nextBillingDate])).toBe(false);
+    expect(hasSufficientRecurringEvidence(1, [cadence, statedAmount, nextBillingDate])).toBe(false);
+  });
+
+  it("email-stated: confidence remains structurally capped at 0.45 without charge reasons", () => {
+    const occurredAt = date("2026-08-29");
+    const cluster: CandidateCluster = {
+      userId: "user-1",
+      canonicalMerchantId: "fictional-stream.example",
+      currency: "CAD",
+      discriminator: null,
+      purchases: [],
+      cadence: { cadence: monthlyCadence, coverage: 0, mad: 0 },
+      amountPattern: { pattern: "UNKNOWN", schedule: [{ amountMinor: 1_499, from: "2026-08-29" }] },
+    };
+    const result = scoreRecurringConfidence(cluster, [
+      { type: "EXPLICIT_CADENCE", occurredAt, cadence: "MONTHLY" },
+      { type: "EXPLICIT_RECURRING", occurredAt },
+      { type: "PRICE_CHANGE", occurredAt, amountMinor: 1_499 },
+    ], { knownMerchant: true });
+
+    expect(result.score).toBeCloseTo(0.45, 10);
+    expect(result.score).toBeLessThanOrEqual(0.45);
+    expect(result.reasons.map(({ code }) => code).sort()).toEqual([
+      "EXPLICIT_CADENCE",
+      "EXPLICIT_RECURRING",
+      "KNOWN_MERCHANT",
+    ]);
+  });
+
   it("stores readable confidence reasons rather than serialized diagnostics", () => {
     const cluster = monthlyCluster(["2026-01-15", "2026-02-15", "2026-03-15", "2026-04-15", "2026-05-15"]);
     const result = scoreRecurringConfidence(cluster, [], { knownMerchant: true, merchantName: "Spotify" });

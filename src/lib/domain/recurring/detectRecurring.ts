@@ -1,8 +1,8 @@
 import { Prisma, type EmailFactType, type PrismaClient } from "@prisma/client";
 
-import { occurrencesBetween } from "@/engine/recurrence";
+import { occurrencesBetween, type Cadence } from "@/engine/recurrence";
 import { clusterRecurringPurchases, type CandidateCluster, type ClusteringPurchase } from "./clustering";
-import { scoreRecurringConfidence } from "./confidence";
+import { hasSufficientRecurringEvidence, scoreRecurringConfidence } from "./confidence";
 import { deriveObligationStatus } from "./lifecycle";
 import type { ObligationFact } from "./types";
 
@@ -38,12 +38,20 @@ type ExcludedEvidence = {
 
 type PersistedSeries = PersistedIdentity & {
   id: string;
-  origin: "DETECTED" | "USER" | "MIGRATED";
+  origin: "DETECTED" | "EMAIL_STATED" | "USER" | "MIGRATED";
   evidence: ExcludedEvidence[];
+};
+
+type SweepCandidate = {
+  cluster: CandidateCluster;
+  emailFactIds: Set<string>;
+  origin: "DETECTED" | "EMAIL_STATED";
+  seriesKeySeed: string;
 };
 
 type ResolvedCluster = {
   cluster: CandidateCluster;
+  origin: SweepCandidate["origin"];
   identity: PersistedIdentity;
   persisted: PersistedSeries | null;
   protectedByOwner: boolean;
@@ -57,6 +65,7 @@ type SweepEmailFact = {
   effectiveAt: Date | null;
   billingAt: Date | null;
   amountMinor: number | null;
+  currency: string | null;
   cadence: string | null;
   emailTransaction: {
     id: string;
@@ -133,9 +142,10 @@ function bucketKey(identity: Omit<PersistedIdentity, "seriesKey">): string {
  * concurrent first sweeps converge on the same unique identity.
  */
 function resolveSeries(
-  clusters: readonly CandidateCluster[],
+  candidates: readonly SweepCandidate[],
   persisted: readonly PersistedSeries[],
 ): ResolvedCluster[] {
+  const clusters = candidates.map(({ cluster }) => cluster);
   const clusterBuckets = clusters.map((cluster) => bucketKey({
     userId: cluster.userId,
     merchantCanonicalId: cluster.canonicalMerchantId,
@@ -150,16 +160,16 @@ function resolveSeries(
     .filter(({ origin }) => origin !== "USER")
     .flatMap((row) => clusters.flatMap((cluster, clusterIndex) => {
       if (bucketKey(row) !== clusterBuckets[clusterIndex]) return [];
-      const overlap = row.evidence.reduce((count, evidence) => (
-        evidence.purchaseId && clusterPurchaseIds[clusterIndex].has(evidence.purchaseId)
-          ? count + 1
-          : count
-      ), 0);
+      const overlap = row.evidence.reduce((count, evidence) => {
+        if (evidence.purchaseId && clusterPurchaseIds[clusterIndex].has(evidence.purchaseId)) return count + 1;
+        if (evidence.emailFactId && candidates[clusterIndex].emailFactIds.has(evidence.emailFactId)) return count + 1;
+        return count;
+      }, 0);
       return overlap > 0 ? [{ clusterIndex, overlap, row }] : [];
     }))
     .sort((left, right) => (
       right.overlap - left.overlap
-      || clusters[left.clusterIndex].purchases[0].id.localeCompare(clusters[right.clusterIndex].purchases[0].id)
+      || candidates[left.clusterIndex].seriesKeySeed.localeCompare(candidates[right.clusterIndex].seriesKeySeed)
       || left.row.id.localeCompare(right.row.id)
     ));
 
@@ -176,6 +186,7 @@ function resolveSeries(
     const protectedByOwner = ownerBuckets.has(clusterBuckets[clusterIndex]);
     return {
       cluster,
+      origin: candidates[clusterIndex].origin,
       persisted: matched,
       protectedByOwner,
       identity: {
@@ -183,7 +194,7 @@ function resolveSeries(
         merchantCanonicalId: cluster.canonicalMerchantId,
         currency: cluster.currency,
         discriminator: cluster.discriminator ?? "",
-        seriesKey: matched?.seriesKey ?? `purchase:${cluster.purchases[0].id}`,
+        seriesKey: matched?.seriesKey ?? candidates[clusterIndex].seriesKeySeed,
       },
     };
   });
@@ -198,6 +209,73 @@ function resolveSeries(
     assigned.add(key);
   }
   return resolved;
+}
+
+function emailStatedCadence(type: Cadence["type"], anchor: Date): Cadence {
+  const iso = anchor.toISOString().slice(0, 10);
+  if (type === "MONTHLY") return { type, dayOfMonth: anchor.getUTCDate(), startsFrom: iso };
+  return { type, anchor: iso };
+}
+
+function emailStatedCandidates(
+  rows: readonly SweepEmailFact[],
+  userId: string,
+  merchantsWithCharges: ReadonlySet<string>,
+): SweepCandidate[] {
+  const groups = new Map<string, EmailFact[]>();
+  for (const source of rows) {
+    const merchant = source.emailTransaction.merchant.trim();
+    const fact = toObligationFact(source);
+    if (!merchant || !fact || merchantsWithCharges.has(merchant)) continue;
+    const group = groups.get(merchant) ?? [];
+    group.push({ source, fact });
+    groups.set(merchant, group);
+  }
+
+  const candidates: SweepCandidate[] = [];
+  for (const [merchant, emailFacts] of [...groups.entries()].sort(([left], [right]) => left.localeCompare(right))) {
+    const ordered = [...emailFacts].sort((left, right) => (
+      left.fact.occurredAt.getTime() - right.fact.occurredAt.getTime()
+      || left.source.id.localeCompare(right.source.id)
+    ));
+    const facts = ordered.map(({ fact }) => fact);
+    if (!hasSufficientRecurringEvidence(0, facts)) continue;
+
+    const cadenceEvidence = ordered.findLast(({ fact }) => fact.type === "EXPLICIT_CADENCE");
+    if (!cadenceEvidence || cadenceEvidence.fact.type !== "EXPLICIT_CADENCE") continue;
+    const billingEvidence = ordered.findLast(({ fact }) => fact.type === "NEXT_BILLING_DATE");
+    const billingAt = billingEvidence?.fact.type === "NEXT_BILLING_DATE" ? billingEvidence.fact.billingAt : null;
+    const amountEvidence = ordered.findLast(({ fact }) => "amountMinor" in fact && fact.amountMinor !== undefined);
+    const amountMinor = amountEvidence?.fact.type === "PRICE_CHANGE" ? amountEvidence.fact.amountMinor ?? null : null;
+    const currency = amountMinor === null ? null : amountEvidence?.source.currency?.trim() || null;
+    const anchor = billingAt ?? cadenceEvidence.fact.occurredAt;
+    const schedule = amountMinor === null ? [] : [{
+      amountMinor,
+      from: (
+        amountEvidence?.fact.type === "PRICE_CHANGE" && amountEvidence.fact.effectiveAt
+          ? amountEvidence.fact.effectiveAt
+          : amountEvidence!.fact.occurredAt
+      ).toISOString().slice(0, 10),
+    }];
+
+    candidates.push({
+      cluster: {
+        userId,
+        canonicalMerchantId: merchant,
+        currency,
+        discriminator: null,
+        purchases: [],
+        cadence: { cadence: emailStatedCadence(cadenceEvidence.fact.cadence, anchor), coverage: 0, mad: 0 },
+        // A stated amount is not an observed pattern. Keeping UNKNOWN also
+        // prevents FIXED_AMOUNT from inflating the email-only confidence ceiling.
+        amountPattern: { pattern: "UNKNOWN", schedule },
+      },
+      emailFactIds: new Set(ordered.map(({ source }) => source.id)),
+      origin: "EMAIL_STATED",
+      seriesKeySeed: `email:${ordered[0].source.id}`,
+    });
+  }
+  return candidates;
 }
 
 function localIsoDate(date: Date, timeZone: string): string {
@@ -299,6 +377,7 @@ export async function sweepRecurringObligations(
         effectiveAt: true,
         billingAt: true,
         amountMinor: true,
+        currency: true,
         cadence: true,
         emailTransaction: {
           select: {
@@ -356,11 +435,28 @@ export async function sweepRecurringObligations(
     });
   }
 
-  const clusters = clusterRecurringPurchases(purchases, args.timeZone);
+  const emailFactIdsByMerchant = new Map<string, Set<string>>();
+  for (const row of emailFactRows) {
+    const merchant = row.emailTransaction.merchant;
+    const ids = emailFactIdsByMerchant.get(merchant) ?? new Set<string>();
+    ids.add(row.id);
+    emailFactIdsByMerchant.set(merchant, ids);
+  }
+  const chargeCandidates: SweepCandidate[] = clusterRecurringPurchases(purchases, args.timeZone).map((cluster) => ({
+    cluster,
+    emailFactIds: emailFactIdsByMerchant.get(cluster.canonicalMerchantId) ?? new Set<string>(),
+    origin: "DETECTED",
+    seriesKeySeed: `purchase:${cluster.purchases[0].id}`,
+  }));
+  const merchantsWithCharges = new Set(purchaseRows.map(({ merchant }) => merchant.trim()).filter(Boolean));
+  const candidates = [
+    ...chargeCandidates,
+    ...emailStatedCandidates(emailFactRows, args.userId, merchantsWithCharges),
+  ];
   const result: RecurringSweepResult = { created: 0, updated: 0, unchanged: 0, skipped };
   const asOf = new Date();
 
-  for (const resolution of resolveSeries(clusters, persisted)) {
+  for (const resolution of resolveSeries(candidates, persisted)) {
     const { cluster, identity } = resolution;
     if (resolution.protectedByOwner) {
       result.skipped += 1;
@@ -387,10 +483,16 @@ export async function sweepRecurringObligations(
       ...cluster.purchases.map((purchase) => ({ type: "CHARGE" as const, occurredAt: purchase.date })),
       ...emailFacts.map(({ fact }) => fact),
     ];
+    if (!hasSufficientRecurringEvidence(cluster.purchases.length, facts)) {
+      result.skipped += 1;
+      continue;
+    }
     const confidence = scoreRecurringConfidence(cluster, facts);
     const status = deriveObligationStatus(facts, cluster.cadence.cadence, asOf);
     const projectedDate = nextExpectedDate(cluster, asOf, args.timeZone);
-    const lastObservedAt = cluster.purchases.at(-1)!.date;
+    const lastObservedAt = cluster.purchases.at(-1)?.date
+      ?? emailFacts.at(-1)?.fact.occurredAt
+      ?? asOf;
     const derived = {
       cadence: cluster.cadence.cadence as Prisma.InputJsonValue,
       schedule: cluster.amountPattern.schedule as unknown as Prisma.InputJsonValue,
@@ -439,7 +541,7 @@ export async function sweepRecurringObligations(
             ...identity,
             ...derived,
             needsReview: true,
-            origin: "DETECTED",
+            origin: resolution.origin,
           },
         });
         obligationId = created.id;

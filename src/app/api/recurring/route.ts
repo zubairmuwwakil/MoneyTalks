@@ -28,7 +28,7 @@ export async function GET() {
 
   const [rows, preference] = await Promise.all([
     prisma.recurringObligation.findMany({
-      where: { userId, origin: "DETECTED", needsReview: true },
+      where: { userId, origin: { in: ["DETECTED", "EMAIL_STATED"] }, needsReview: true },
       include: {
         evidence: { orderBy: { occurredAt: "asc" } },
       },

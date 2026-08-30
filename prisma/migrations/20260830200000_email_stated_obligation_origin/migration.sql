@@ -1,0 +1,1 @@
+ALTER TYPE "ObligationOrigin" ADD VALUE 'EMAIL_STATED';

@@ -57,7 +57,11 @@ describe("GET /api/recurring", () => {
     await GET();
 
     expect(prisma.recurringObligation.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { userId: "user-1", origin: "DETECTED", needsReview: true },
+      where: {
+        userId: "user-1",
+        origin: { in: ["DETECTED", "EMAIL_STATED"] },
+        needsReview: true,
+      },
     }));
   });
 

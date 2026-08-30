@@ -1390,6 +1390,7 @@ enum ObligationLifecycleStatus {
 
 enum ObligationOrigin {
   DETECTED
+  EMAIL_STATED
   USER
   MIGRATED
 }

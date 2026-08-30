@@ -66,7 +66,14 @@ function isCancelledAfterLastCharge(cluster: CandidateCluster, facts: readonly O
 
 /** The only legitimate route for detecting a new annual obligation after two charges. */
 export function hasSufficientRecurringEvidence(occurrenceCount: number, facts: readonly ObligationFact[]): boolean {
-  return occurrenceCount >= 3 || (occurrenceCount === 2 && hasFact(facts, "EXPLICIT_CADENCE"));
+  const hasStatedAmount = facts.some((fact) => "amountMinor" in fact && fact.amountMinor !== undefined);
+  return occurrenceCount >= 3
+    || (occurrenceCount === 2 && hasFact(facts, "EXPLICIT_CADENCE"))
+    || (
+      occurrenceCount === 0
+      && hasFact(facts, "EXPLICIT_CADENCE")
+      && (hasStatedAmount || hasFact(facts, "NEXT_BILLING_DATE"))
+    );
 }
 
 /** Score an already-detected candidate. It orders review; it never gates review creation. */
