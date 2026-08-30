@@ -8,8 +8,11 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 
 export default async function EditCardPage({ params }: { params: Promise<{ id: string }> }) {
-  const userId = await requireUserId();
   const { id } = await params;
+  if (/\.(png|webp|svg|jpg|jpeg|gif|ico|json)$/i.test(id)) {
+    notFound();
+  }
+  const userId = await requireUserId();
   const card = await prisma.creditCard.findFirst({ where: { id, userId } });
   if (!card) notFound();
 

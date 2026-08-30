@@ -39,6 +39,14 @@ const modernPrograms = {
   },
   cashback: { model: "cashback", cadPerDollar: 1 },
   aeroplan: { model: "points", centsPerPoint: 1.5 },
+  noRewards: { model: "noRewards", basis: "Zero earn card" },
+  costcoCashRewards: {
+    model: "merchantCredit",
+    cadPerUnit: 1,
+    optionalUsabilityFactor: 0.95,
+    usabilityFactorApplied: true,
+    merchantScope: ["costco"],
+  },
 };
 
 const modernState = { ...state, valuationsCad: { programs: modernPrograms } };
@@ -152,6 +160,8 @@ describe("PUT /api/spine/owner-state", () => {
       };
     }).stateData.valuationsCad;
     expect(written.programs.aeroplan).toEqual(modernPrograms.aeroplan);
+    expect(written.programs.noRewards).toEqual(modernPrograms.noRewards);
+    expect(written.programs.costcoCashRewards).toEqual(modernPrograms.costcoCashRewards);
     expect(written.cro.model).toBe("reward-currency");
     expect(written.cashBack.cadPerDollar).toBe(1);
   });
@@ -262,5 +272,9 @@ describe("GET /api/spine/owner-state", () => {
 });
 
 function modernProgramsWithoutAeroplan() {
-  return Object.fromEntries(Object.entries(modernPrograms).filter(([programId]) => programId !== "aeroplan"));
+  return Object.fromEntries(
+    Object.entries(modernPrograms).filter(
+      ([programId]) => !["aeroplan", "noRewards", "costcoCashRewards"].includes(programId),
+    ),
+  );
 }

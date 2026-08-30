@@ -73,6 +73,8 @@ export const CATEGORIES: CategoryDefinition[] = [
     badgeClass: "bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/20" },
   { id: "ctFamily", label: "Canadian Tire family", icon: "🔧", scorable: true,
     badgeClass: "bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/20" },
+  { id: "retailShopping", label: "Retail & Shopping", icon: "🛍️", scorable: true,
+    badgeClass: "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20" },
   { id: "wholesaleClub", label: "Warehouse Clubs", icon: "📦", scorable: false,
     badgeClass: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20" },
   { id: "other", label: "General Merchandise", icon: "🏷️", scorable: false,

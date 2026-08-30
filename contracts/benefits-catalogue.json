@@ -1,5 +1,5 @@
 {
-  "benefitsCatalogueVersion": "1.2",
+  "benefitsCatalogueVersion": "1.3",
   "_provenance": "Official issuer and underwriter document research refreshed 2026-08-29 for all 27 current wallet cards. Each card now has a document index; public issuer sources remain issuerPage evidence and certificateVerified is reserved for matching the owner’s own issued documents. Crypto.com Royal Indigo now has its official prepaid-card agreement, but no public insurance certificate was located, so its benefits remain stubbed.",
   "triggers": {
     "bigTicketThresholdCad": 150,
@@ -4108,6 +4108,2110 @@
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
           "notes": "Official source already used by the benefits catalogue; coverage terms can vary by account-open date and jurisdiction."
+        }
+      ]
+    },
+    {
+      "cardId": "cibc-dividend-visa",
+      "certificate": {
+        "underwriter": "Belair Insurance Company Inc.",
+        "sourceUrl": "https://www.cibc.com/content/dam/personal_banking/credit_cards/agreements_and_insurance/dividend-ins-en.pdf",
+        "certificateDate": "2025-07",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "cibc-dividend-visa-purchase-security",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": 60000
+          },
+          "conditions": [
+            "At least a portion of the purchase price must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Protects against loss, theft or physical damage for 90 days. $60,000 lifetime aggregate per cardholder across all CIBC cards. Master Policy PSI033759392."
+        },
+        {
+          "benefitId": "cibc-dividend-visa-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Original manufacturer warranty must be charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Doubles original manufacturer warranty up to +1 additional year. Master Policy PSI033759392."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "cibc-dividend-visa-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "CIBC Dividend Visa Card Certificate of Insurance",
+          "url": "https://www.cibc.com/content/dam/personal_banking/credit_cards/agreements_and_insurance/dividend-ins-en.pdf",
+          "effectiveDate": "2025-07",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Master Policy PSI033759392 underwritten by Belair Insurance Company Inc."
+        }
+      ]
+    },
+    {
+      "cardId": "td-business-travel-visa",
+      "certificate": {
+        "underwriter": "TD Life Insurance Company & TD Home and Auto Insurance Company",
+        "sourceUrl": "https://www.td.com/content/dam/tdct/document/pdf/personal-banking/12348-528619-cha-benefitscoverageguide-btv-e-03-a01-final-en.pdf",
+        "certificateDate": "2026-08",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "td-biz-travel-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 2000000,
+            "maxTripLengthDays": 15,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "15 consecutive days for insured persons under 65; 4 consecutive days for age 65+."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Life Insurance Company, Group Policy TGV002."
+        },
+        {
+          "benefitId": "td-biz-travel-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxCad": 1500
+          },
+          "conditions": [
+            "Charge full cost of eligible travel to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "$1,500 per person, up to $5,000 total per covered trip."
+        },
+        {
+          "benefitId": "td-biz-travel-trip-interruption",
+          "family": "travelDisruption",
+          "kind": "tripInterruption",
+          "coverage": {
+            "maxCad": 5000
+          },
+          "conditions": [
+            "Loss must result from a covered cause after departure."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "$5,000 per person, up to $25,000 total per covered trip."
+        },
+        {
+          "benefitId": "td-biz-travel-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "Flight delayed by more than 4 hours; full fare charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Up to $500 for reasonable meals and accommodations. Master Policy TGV010."
+        },
+        {
+          "benefitId": "td-biz-travel-delayed-baggage",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 6,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Checked baggage delayed more than 6 hours."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Shared $1,000 maximum per covered person with lost baggage."
+        },
+        {
+          "benefitId": "td-biz-travel-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Charge full rental cost to the Card.",
+            "Decline rental agency collision damage waiver (CDW)."
+          ],
+          "exclusions": [
+            "Vehicles with MSRP exceeding $65,000 CAD are excluded."
+          ],
+          "certificateQuote": null,
+          "notes": "Maximum rental duration 48 consecutive days. Policy TDV092010."
+        },
+        {
+          "benefitId": "td-biz-travel-purchase-security",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": 60000
+          },
+          "conditions": [
+            "Charge full purchase price to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "90 days against loss, theft or damage. $60,000 lifetime aggregate per account holder. Master Policy TDVP112008."
+        },
+        {
+          "benefitId": "td-biz-travel-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Original manufacturer warranty must be five years or less; full cost charged to Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Doubles original warranty up to +1 additional year."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "td-business-travel-benefits-guide",
+          "kind": "certificateOfInsurance",
+          "title": "TD Business Travel Visa Benefit Coverages Guide",
+          "url": "https://www.td.com/content/dam/tdct/document/pdf/personal-banking/12348-528619-cha-benefitscoverageguide-btv-e-03-a01-final-en.pdf",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Comprehensive benefits guide underwritten by TD Life & TD Home and Auto."
+        }
+      ]
+    },
+    {
+      "cardId": "walmart-rewards-world-mastercard",
+      "certificate": {
+        "underwriter": "First North American Insurance Company (Manulife)",
+        "sourceUrl": "https://www.walmartrewards.ca/content/dam/wr/legal-documents-footer/insurance-purchase-assurance/PAEW_Certificate_Sep22_EN.pdf",
+        "certificateDate": "2022-09",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "walmart-world-purchase-assurance",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 10000,
+            "maxAnnualCad": 60000
+          },
+          "conditions": [
+            "Full cost of eligible personal property charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "90 days worldwide against direct physical loss, theft or damage. $10,000 per incident, $60,000 lifetime per Card Account. Policy No. 727."
+        },
+        {
+          "benefitId": "walmart-world-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 10
+          },
+          "conditions": [
+            "Original manufacturer warranty must be 10 years or less; full cost charged to Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Doubles original manufacturer warranty period, up to +1 full year. Group Master Policy No. 727."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "walmart-world-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Certificate of Insurance — Purchase Assurance & Extended Warranty — Walmart Rewards World Mastercard",
+          "url": "https://www.walmartrewards.ca/content/dam/wr/legal-documents-footer/insurance-purchase-assurance/PAEW_Certificate_Sep22_EN.pdf",
+          "effectiveDate": "2022-09",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Policy No. 727 underwritten by First North American Insurance Company (Manulife)."
+        }
+      ]
+    },
+    {
+      "cardId": "cibc-costco-mastercard",
+      "certificate": {
+        "underwriter": "Belair Insurance Company Inc.",
+        "sourceUrl": "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/all-credit-cards/costco/documents/cibc-costco-ins-cert-en.pdf",
+        "certificateDate": "2025-07",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "cibc-costco-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxAnnualCad": 60000
+          },
+          "conditions": [
+            "Purchase must be charged to the Card.",
+            "Covers eligible items for 90 days from purchase date against theft or damage.",
+            "Aggregate maximum of $60,000 per cardholder across applicable CIBC cards."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI033759392."
+        },
+        {
+          "benefitId": "cibc-costco-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Doubles original manufacturer warranty duration up to +1 additional year.",
+            "Warranties longer than 5 years qualify if registered with insurer within the first year."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI033759392."
+        },
+        {
+          "benefitId": "cibc-costco-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Full cost of mobile device or monthly cellular service charged to the Card.",
+            "Maximum $1,000 per occurrence per insured person.",
+            "Depreciation of 2% per completed month.",
+            "Deductible is 10% of depreciated value."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI054390507."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "cibc-costco-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "CIBC Costco Mastercard Certificate of Insurance",
+          "url": "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/all-credit-cards/costco/documents/cibc-costco-ins-cert-en.pdf",
+          "effectiveDate": "2025-07-01",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Amended and Restated July 1, 2025."
+        }
+      ]
+    },
+    {
+      "cardId": "royal-bank-of-canada-rbc-british-airways-visa",
+      "certificate": {
+        "underwriter": "RBC Insurance Company of Canada / Aviva General Insurance Company",
+        "sourceUrl": "https://www.rbcroyalbank.com/credit-cards/travel/rbc-british-airways-visa-infinite/rbc-british-airways-visa-Infinite-certificate-of-insurance.pdf",
+        "certificateDate": "2023-11",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "rbc-ba-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxTripLengthDays": 31,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "Unlimited maximum coverage amount.",
+            "First 31 consecutive days covered for insured persons under age 65; first 7 consecutive days for age 65 and older."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy U-1014451-A."
+        },
+        {
+          "benefitId": "rbc-ba-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxPerOccurrenceCad": 250,
+            "maxCad": 500
+          },
+          "conditions": [
+            "Flight delay exceeding 4 hours.",
+            "Up to $250 per person, maximum $500 per occurrence for all covered persons.",
+            "Full flight ticket cost charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy U-1014455-A."
+        },
+        {
+          "benefitId": "rbc-ba-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxPerOccurrenceCad": 500,
+            "maxCad": 2500
+          },
+          "conditions": [
+            "Baggage delay exceeding 4 hours.",
+            "Up to $500 per person, maximum $2,500 per occurrence for all covered persons.",
+            "Full flight ticket cost charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy U-1014456-A."
+        },
+        {
+          "benefitId": "rbc-ba-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Maximum 48 consecutive days.",
+            "Vehicle manufacturer's suggested retail price (MSRP) up to $65,000.",
+            "Rental charged to the Card and collision damage waiver declined."
+          ],
+          "exclusions": [
+            "Vehicles exceeding $65,000 MSRP, exotic vehicles, vans/buses/minibuses, and specified commercial vehicle types."
+          ],
+          "certificateQuote": null,
+          "notes": "Policy F-2000375-A underwritten by Aviva General Insurance Company."
+        },
+        {
+          "benefitId": "rbc-ba-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxAnnualCad": 50000
+          },
+          "conditions": [
+            "Purchase must be charged to the Card.",
+            "90 days from date of purchase.",
+            "Maximum aggregate $50,000 per account per calendar year."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy U-1014457-A."
+        },
+        {
+          "benefitId": "rbc-ba-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Doubles original manufacturer warranty up to +1 additional year.",
+            "Combined original warranty and extension period cannot exceed 5 years."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy U-1014457-A."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "rbc-ba-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "RBC British Airways Visa Infinite Certificate of Insurance",
+          "url": "https://www.rbcroyalbank.com/credit-cards/travel/rbc-british-airways-visa-infinite/rbc-british-airways-visa-Infinite-certificate-of-insurance.pdf",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Document carries revision marker 11/2023."
+        }
+      ]
+    },
+    {
+      "cardId": "amex-aeroplan-reserve",
+      "certificate": {
+        "underwriter": "Belair Insurance Company Inc. / Chubb Life Insurance Company of Canada",
+        "sourceUrl": "https://www.americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/Aeroplan-Reserve-Card-COI-EN.pdf",
+        "certificateDate": "2025-07",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "amex-aeroplan-reserve-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 5000000,
+            "maxTripLengthDays": 15,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "Up to $5,000,000 per insured person per trip.",
+            "First 15 consecutive days for insured age 64 or under.",
+            "No coverage for age 65 and older."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047257741."
+        },
+        {
+          "benefitId": "amex-aeroplan-reserve-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxPerOccurrenceCad": 1500,
+            "maxCad": 3000
+          },
+          "conditions": [
+            "Up to $1,500 per person, maximum $3,000 per trip.",
+            "Eligible ticket fare charged to Card.",
+            "Loss must result from a covered cause under §8 chart."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258485."
+        },
+        {
+          "benefitId": "amex-aeroplan-reserve-trip-interruption",
+          "family": "travelDisruption",
+          "kind": "tripInterruption",
+          "coverage": {
+            "maxPerOccurrenceCad": 1500,
+            "maxCad": 6000,
+            "perDayCad": 100
+          },
+          "conditions": [
+            "Up to $1,500 per person, maximum $6,000 per trip.",
+            "Additional interruption/delay expenses subject to $100/day/person, maximum $1,000 combined."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258485."
+        },
+        {
+          "benefitId": "amex-aeroplan-reserve-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Flight delay of 4 hours or more.",
+            "Flight delay, baggage delay, and hotel burglary share a maximum of $1,000 per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258505."
+        },
+        {
+          "benefitId": "amex-aeroplan-reserve-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 6,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Baggage delay of 6 hours or more.",
+            "Shared $1,000 per occurrence aggregate across delay benefits."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258505."
+        },
+        {
+          "benefitId": "amex-aeroplan-reserve-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Up to $1,000 combined for all insured persons per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258521."
+        },
+        {
+          "benefitId": "amex-aeroplan-reserve-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 85000
+          },
+          "conditions": [
+            "Up to 48 consecutive days.",
+            "Vehicle MSRP under $85,000.",
+            "Rental charged to Card and CDW declined."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI018515861."
+        },
+        {
+          "benefitId": "amex-aeroplan-reserve-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 1000
+          },
+          "conditions": [
+            "90 days from date of purchase.",
+            "Maximum $1,000 per Cardmember per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI018516570."
+        },
+        {
+          "benefitId": "amex-aeroplan-reserve-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Buyer's Assurance extends eligible warranty up to +1 additional year.",
+            "Products with original manufacturer warranties exceeding 5 years are excluded."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI018966745."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "amex-aeroplan-reserve-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "American Express Aeroplan Reserve Card Certificate of Insurance",
+          "url": "https://www.americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/Aeroplan-Reserve-Card-COI-EN.pdf",
+          "effectiveDate": "2025-07-01",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Amended and Restated July 1, 2025."
+        }
+      ]
+    },
+    {
+      "cardId": "bmo-cashback-world-elite",
+      "certificate": {
+        "underwriter": "CUMIS General Insurance Company / Allianz Global Assistance",
+        "sourceUrl": "https://www.bmo.com/pdf/Certificate_of_Insurance_BMO_CashBack_World_Elite_Mastercard.pdf",
+        "certificateDate": "2023-07",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "bmo-cashback-we-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 5000000,
+            "maxTripLengthDays": 8,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "$5,000,000 per person per trip.",
+            "First 8 consecutive days covered for age 64 or under.",
+            "No coverage for age 65 and older."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy FC310000-A."
+        },
+        {
+          "benefitId": "bmo-cashback-we-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "Delay exceeding 4 hours.",
+            "Maximum $500 per trip combined for all insured persons."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy FC310000-A."
+        },
+        {
+          "benefitId": "bmo-cashback-we-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 6,
+            "maxPerOccurrenceCad": 500,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Delay exceeding 6 hours.",
+            "$500 per person, maximum $1,000 per trip combined."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy FC310000-A."
+        },
+        {
+          "benefitId": "bmo-cashback-we-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxPerOccurrenceCad": 500,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "$500 per person, maximum $1,000 per trip combined."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy FC310000-A."
+        },
+        {
+          "benefitId": "bmo-cashback-we-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Maximum 48 consecutive days.",
+            "MSRP up to $65,000.",
+            "Rental charged to Card and CDW declined."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy FC310000-A."
+        },
+        {
+          "benefitId": "bmo-cashback-we-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxAnnualCad": 60000
+          },
+          "conditions": [
+            "90 days from date of purchase.",
+            "Combined lifetime maximum $60,000 per account across purchase protection and extended warranty."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy FC310000-A."
+        },
+        {
+          "benefitId": "bmo-cashback-we-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Doubles original manufacturer warranty up to +1 additional year.",
+            "Original warranty over 5 years requires registration during first year."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy FC310000-A."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "bmo-cashback-we-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "BMO CashBack World Elite Mastercard Certificate of Insurance",
+          "url": "https://www.bmo.com/pdf/Certificate_of_Insurance_BMO_CashBack_World_Elite_Mastercard.pdf",
+          "effectiveDate": "2023-07-06",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Group Policy FC310000-A."
+        }
+      ]
+    },
+    {
+      "cardId": "simplii-cashback-visa",
+      "certificate": {
+        "underwriter": "Belair Insurance Company Inc.",
+        "sourceUrl": "https://www.simplii.com/content/dam/simplii-public-assets/documents/pdf/credit-cards/SF-0021018v1INT.pdf",
+        "certificateDate": "2025-07",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "simplii-cashback-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxAnnualCad": 60000
+          },
+          "conditions": [
+            "Purchase must be charged to the Card.",
+            "90 days from date of purchase against theft or damage.",
+            "Maximum aggregate $60,000 per cardholder across applicable Simplii cards."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Master Policy PSI033759392."
+        },
+        {
+          "benefitId": "simplii-cashback-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Doubles manufacturer warranty up to +1 additional year.",
+            "Original warranty over 5 years requires registration during first year."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Master Policy PSI033759392."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "simplii-cashback-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "Simplii Financial Cash Back Visa Card Certificate of Insurance",
+          "url": "https://www.simplii.com/content/dam/simplii-public-assets/documents/pdf/credit-cards/SF-0021018v1INT.pdf",
+          "effectiveDate": "2025-07-01",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Master Policy PSI033759392."
+        }
+      ]
+    },
+    {
+      "cardId": "pc-financial-world-mastercard",
+      "certificate": {
+        "underwriter": "American Bankers Insurance Company of Florida",
+        "sourceUrl": "https://www.pcfinancial.ca/en/legal-stuff/terms-and-conditions/",
+        "certificateDate": "2017-08",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "pc-world-purchase-assurance",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 1000,
+            "maxAnnualCad": 50000
+          },
+          "conditions": [
+            "Purchase charged to the Card.",
+            "90 days from date of purchase.",
+            "Maximum $1,000 per incident, lifetime maximum $50,000 per account."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy PCF0817."
+        },
+        {
+          "benefitId": "pc-world-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Doubles manufacturer's warranty up to +1 additional year.",
+            "Original warranty <= 5 years is automatic; longer warranties require registration within first year."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy PCF0817."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "pc-world-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "PC Financial Purchase Assurance and Extended Warranty Certificate",
+          "url": "https://www.pcfinancial.ca/en/legal-stuff/terms-and-conditions/",
+          "effectiveDate": "2017-08-01",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Group Policy PCF0817."
+        }
+      ]
+    },
+    {
+      "cardId": "pc-financial-world-elite",
+      "certificate": {
+        "underwriter": "American Bankers Insurance Company of Florida / American Bankers Life Assurance Company of Florida",
+        "sourceUrl": "https://www.pcfinancial.ca/en/credit-cards/world-elite/",
+        "certificateDate": "2017-08",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "pc-world-elite-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxTripLengthDays": 10,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "Emergency medical coverage for trips up to 10 days for cardholders under age 65.",
+            "No coverage for age 65 and older.",
+            "Detailed limits delivered with cardholder documentation."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by American Bankers Life Assurance Company of Florida; policy number unverified publicly."
+        },
+        {
+          "benefitId": "pc-world-elite-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": null,
+            "maxVehicleValueCad": null
+          },
+          "conditions": [
+            "Rental CDW coverage included when rental is charged to the Card and CDW declined.",
+            "Detailed limits and exclusions delivered with cardholder documentation."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Underwritten by American Bankers Insurance Company of Florida; policy number unverified publicly."
+        },
+        {
+          "benefitId": "pc-world-elite-purchase-assurance",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 1000,
+            "maxAnnualCad": 50000
+          },
+          "conditions": [
+            "Purchase charged to the Card.",
+            "90 days from date of purchase.",
+            "Maximum $1,000 per incident, lifetime maximum $50,000 per account."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy PCF0817."
+        },
+        {
+          "benefitId": "pc-world-elite-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Doubles manufacturer's warranty up to +1 additional year.",
+            "Original warranty <= 5 years is automatic; longer warranties require registration within first year."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy PCF0817."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "pc-world-elite-certificate-source",
+          "kind": "productPage",
+          "title": "PC Financial World Elite Mastercard — Benefits Summary",
+          "url": "https://www.pcfinancial.ca/en/credit-cards/world-elite/",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Travel and rental certificates delivered directly to cardholders upon account opening."
+        }
+      ]
+    },
+    {
+      "cardId": "desjardins-odyssey-world-elite",
+      "certificate": {
+        "underwriter": "Desjardins Financial Security Life Assurance Company / American Bankers Insurance Company of Florida",
+        "sourceUrl": "https://www.desjardins.com/content/dam/pdf/en/personal/loans-credit/credit-cards/insurance-guide-odyssey-world-elite.pdf",
+        "certificateDate": "2022-10",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "desjardins-odyssey-we-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 5000000,
+            "maxTripLengthDays": 60,
+            "ageLimit": 76
+          },
+          "conditions": [
+            "$5,000,000 per person per trip.",
+            "Age <= 59: 60 days; age 60-64: 31 days; age 65-75: 15 days; age 76+: no coverage."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Individual insurance contract underwritten by Desjardins Financial Security."
+        },
+        {
+          "benefitId": "desjardins-odyssey-we-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxPerOccurrenceCad": 2500
+          },
+          "conditions": [
+            "Maximum $2,500 per person per trip before departure.",
+            "Loss must result from 18 recognized covered causes in §4.1."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Individual travel policy."
+        },
+        {
+          "benefitId": "desjardins-odyssey-we-trip-interruption",
+          "family": "travelDisruption",
+          "kind": "tripInterruption",
+          "coverage": {},
+          "conditions": [
+            "For insured changes during the trip, policy specifies no overall maximum for eligible trip-modification benefit."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Individual travel policy."
+        },
+        {
+          "benefitId": "desjardins-odyssey-we-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 6,
+            "maxCad": 500
+          },
+          "conditions": [
+            "Baggage delay threshold 6 hours; delayed-baggage sublimit $500.",
+            "Overall baggage maximum $1,000 per person per trip."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Individual travel policy."
+        },
+        {
+          "benefitId": "desjardins-odyssey-we-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Overall baggage maximum $1,000 per person per trip."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Individual travel policy."
+        },
+        {
+          "benefitId": "desjardins-odyssey-we-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 85000
+          },
+          "conditions": [
+            "48 consecutive days.",
+            "Vehicle MSRP up to $85,000.",
+            "Rental charged to the Card and CDW declined."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy DCS0514."
+        },
+        {
+          "benefitId": "desjardins-odyssey-we-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 120,
+            "maxPerOccurrenceCad": 10000,
+            "maxAnnualCad": 50000
+          },
+          "conditions": [
+            "120 days from date of purchase.",
+            "Maximum $10,000 per item, lifetime maximum $50,000 per account."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy DCS0514."
+        },
+        {
+          "benefitId": "desjardins-odyssey-we-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 2,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Doubles original manufacturer warranty up to +2 additional years.",
+            "Original manufacturer warranty must be 5 years or less."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy DCS0514."
+        },
+        {
+          "benefitId": "desjardins-odyssey-we-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1500,
+            "deductibleCad": 25
+          },
+          "conditions": [
+            "Maximum $1,500.",
+            "Depreciation 2% per completed month.",
+            "Deductible is tiered at $25 / $50 / $75 / $100 depending on purchase price."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy DCS0514."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "desjardins-odyssey-we-travel-source",
+          "kind": "certificateOfInsurance",
+          "title": "Desjardins Odyssey World Elite Mastercard Insurance Guide",
+          "url": "https://www.desjardins.com/content/dam/pdf/en/personal/loans-credit/credit-cards/insurance-guide-odyssey-world-elite.pdf",
+          "effectiveDate": "2022-10-11",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Combines Desjardins Travel Contract and Group Policy DCS0514."
+        }
+      ]
+    },
+    {
+      "cardId": "rbc-cashback-preferred-we",
+      "certificate": {
+        "underwriter": "Aviva General Insurance Company / RBC Insurance Company of Canada",
+        "sourceUrl": "https://www.rbcroyalbank.com/credit-cards/cash-back/rbc-cashback-preferred-world-elite-mastercard/rbc-cashback-preferred-world-elite-mastercard-certificate-of-insurance.pdf",
+        "certificateDate": "2023-11",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "rbc-cb-preferred-we-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Maximum 48 consecutive days.",
+            "Vehicle manufacturer's suggested retail price (MSRP) up to $65,000.",
+            "Rental charged to the Card and collision damage waiver declined."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy F-2000375-A underwritten by Aviva General Insurance Company."
+        },
+        {
+          "benefitId": "rbc-cb-preferred-we-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 120,
+            "maxAnnualCad": 50000
+          },
+          "conditions": [
+            "Purchase must be charged to the Card.",
+            "120 days from date of purchase.",
+            "Maximum aggregate $50,000 per account per calendar year."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy U-1014457-A."
+        },
+        {
+          "benefitId": "rbc-cb-preferred-we-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 2,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Triples original manufacturer warranty up to +2 additional years.",
+            "Combined original warranty and extension period cannot exceed 5 years."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy U-1014457-A. Scheduled October 1, 2026 update adds Medical, Flight Delay, Baggage Delay, and Mobile Device."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "rbc-cb-preferred-we-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "RBC Cash Back Preferred World Elite Mastercard Certificate of Insurance",
+          "url": "https://www.rbcroyalbank.com/credit-cards/cash-back/rbc-cashback-preferred-world-elite-mastercard/rbc-cashback-preferred-world-elite-mastercard-certificate-of-insurance.pdf",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Current terms active as of 2026-08-30."
+        }
+      ]
+    },
+    {
+      "cardId": "amex-gold-rewards",
+      "certificate": {
+        "underwriter": "Belair Insurance Company Inc.",
+        "sourceUrl": "https://www.americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/Gold-Rewards-Card-COI-EN.pdf",
+        "certificateDate": "2025-07",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "amex-gold-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 5000000,
+            "maxTripLengthDays": 15,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "$5,000,000 per insured person per trip.",
+            "First 15 consecutive days for insured age 64 or under.",
+            "No coverage for age 65 and older."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047257741."
+        },
+        {
+          "benefitId": "amex-gold-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxPerOccurrenceCad": 1500,
+            "maxCad": 3000
+          },
+          "conditions": [
+            "Up to $1,500 per person, maximum $3,000 per trip.",
+            "Eligible ticket fare charged to Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258485."
+        },
+        {
+          "benefitId": "amex-gold-trip-interruption",
+          "family": "travelDisruption",
+          "kind": "tripInterruption",
+          "coverage": {
+            "maxPerOccurrenceCad": 1500,
+            "maxCad": 6000,
+            "perDayCad": 100
+          },
+          "conditions": [
+            "Up to $1,500 per person, maximum $6,000 per trip.",
+            "Additional interruption/delay expenses up to $100/day/person, maximum $1,000 combined."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258485."
+        },
+        {
+          "benefitId": "amex-gold-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "Flight delay of 4 hours or more.",
+            "Flight delay, baggage delay, and hotel burglary share a maximum of $500 per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258505."
+        },
+        {
+          "benefitId": "amex-gold-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 6,
+            "maxCad": 500
+          },
+          "conditions": [
+            "Baggage delay of 6 hours or more.",
+            "Shared $500 per occurrence aggregate across delay benefits."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258505."
+        },
+        {
+          "benefitId": "amex-gold-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 500
+          },
+          "conditions": [
+            "Up to $500 combined per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258521."
+        },
+        {
+          "benefitId": "amex-gold-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 85000
+          },
+          "conditions": [
+            "Up to 48 consecutive days.",
+            "Vehicle MSRP under $85,000.",
+            "Rental charged to Card and CDW declined."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI018515861."
+        },
+        {
+          "benefitId": "amex-gold-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 1000
+          },
+          "conditions": [
+            "90 days from date of purchase.",
+            "Up to $1,000 per Cardmember per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI018516570."
+        },
+        {
+          "benefitId": "amex-gold-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Buyer's Assurance adds up to +1 additional year.",
+            "Original manufacturer warranty maximum 5 years."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI018966745."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "amex-gold-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "American Express Gold Rewards Card Certificate of Insurance",
+          "url": "https://www.americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/Gold-Rewards-Card-COI-EN.pdf",
+          "effectiveDate": "2025-07-01",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Amended and Restated July 1, 2025."
+        }
+      ]
+    },
+    {
+      "cardId": "amex-simplycash-preferred",
+      "certificate": {
+        "underwriter": "Belair Insurance Company Inc.",
+        "sourceUrl": "https://www.americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/SimplyCash-Preferred-Card-COI-EN.pdf",
+        "certificateDate": "2025-07",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "amex-scp-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 5000000,
+            "maxTripLengthDays": 15,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "$5,000,000 per person per trip.",
+            "First 15 consecutive days for insured age 64 or under.",
+            "No coverage for age 65 and older."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047257741."
+        },
+        {
+          "benefitId": "amex-scp-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 500
+          },
+          "conditions": [
+            "Flight delay of 4 hours or more.",
+            "Flight delay, baggage delay, and hotel burglary share a maximum of $500 per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258505."
+        },
+        {
+          "benefitId": "amex-scp-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 6,
+            "maxCad": 500
+          },
+          "conditions": [
+            "Baggage delay of 6 hours or more.",
+            "Shared $500 per occurrence aggregate across delay benefits."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258505."
+        },
+        {
+          "benefitId": "amex-scp-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 500
+          },
+          "conditions": [
+            "Up to $500 combined per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI047258521."
+        },
+        {
+          "benefitId": "amex-scp-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 85000
+          },
+          "conditions": [
+            "Up to 48 consecutive days.",
+            "Vehicle MSRP under $85,000.",
+            "Rental charged to Card and CDW declined."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI018515861."
+        },
+        {
+          "benefitId": "amex-scp-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 1000
+          },
+          "conditions": [
+            "90 days from date of purchase.",
+            "Up to $1,000 per Cardmember per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI018516570."
+        },
+        {
+          "benefitId": "amex-scp-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Buyer's Assurance adds up to +1 additional year.",
+            "Original warranty maximum 5 years."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI018966745."
+        },
+        {
+          "benefitId": "amex-scp-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1000
+          },
+          "conditions": [
+            "$1,000 maximum per person per occurrence.",
+            "Depreciation of 2% per completed month.",
+            "Deductible is 10% of depreciated value."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy PSI060355149."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "amex-scp-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "SimplyCash Preferred Card from American Express Certificate of Insurance",
+          "url": "https://www.americanexpress.com/content/dam/amex/en-ca/insurance/pdfs/certificates-of-insurance/SimplyCash-Preferred-Card-COI-EN.pdf",
+          "effectiveDate": "2025-07-01",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Amended and Restated July 1, 2025."
+        }
+      ]
+    },
+    {
+      "cardId": "cibc-aeroplan-visa-infinite-privilege",
+      "certificate": {
+        "underwriter": "Belair Insurance Company Inc.",
+        "sourceUrl": "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/all-credit-cards/aeroplan-vip/documents/cibc-aeroplan-vip-ins-cert-en.pdf",
+        "certificateDate": "2025-07",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "cibc-aero-vip-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 5000000,
+            "maxTripLengthDays": 31,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "$5,000,000 per person per trip.",
+            "Age <= 64: 31 consecutive days; age >= 65: 10 consecutive days."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Master Policy PSI033849248."
+        },
+        {
+          "benefitId": "cibc-aero-vip-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxPerOccurrenceCad": 2500,
+            "maxCad": 10000
+          },
+          "conditions": [
+            "$2,500 per person, maximum $10,000 per trip.",
+            "Eligible flight/travel fare charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Master Policy PSI037171999."
+        },
+        {
+          "benefitId": "cibc-aero-vip-trip-interruption",
+          "family": "travelDisruption",
+          "kind": "tripInterruption",
+          "coverage": {
+            "maxPerOccurrenceCad": 5000,
+            "maxCad": 25000
+          },
+          "conditions": [
+            "$5,000 per person, maximum $25,000 per trip.",
+            "Eligible flight/travel fare charged to the Card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Master Policy PSI037171999."
+        },
+        {
+          "benefitId": "cibc-aero-vip-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxPerOccurrenceCad": 500,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Flight delay of 4 hours or more.",
+            "$500 per person, maximum $1,000 per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Master Policy PSI033759743."
+        },
+        {
+          "benefitId": "cibc-aero-vip-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 6,
+            "maxPerOccurrenceCad": 500,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Baggage delay of 6 hours or more.",
+            "$500 per person, maximum $1,000 per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Master Policy PSI033759743."
+        },
+        {
+          "benefitId": "cibc-aero-vip-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxPerOccurrenceCad": 1000,
+            "maxCad": 2500
+          },
+          "conditions": [
+            "$1,000 per person, maximum $2,500 per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Master Policy PSI033759743."
+        },
+        {
+          "benefitId": "cibc-aero-vip-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 100000
+          },
+          "conditions": [
+            "48 consecutive days.",
+            "Vehicle MSRP up to $100,000.",
+            "Rental charged to Card and CDW declined."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Master Policy PSI018005873."
+        },
+        {
+          "benefitId": "cibc-aero-vip-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 180,
+            "maxAnnualCad": 60000
+          },
+          "conditions": [
+            "Purchase charged to the Card.",
+            "180 days from date of purchase.",
+            "Aggregate maximum $60,000 per cardholder across applicable CIBC cards."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Master Policy PSI033759392."
+        },
+        {
+          "benefitId": "cibc-aero-vip-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 2,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Triples original manufacturer warranty duration up to +2 additional years.",
+            "Original warranties over 5 years require registration."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Master Policy PSI033759392."
+        },
+        {
+          "benefitId": "cibc-aero-vip-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1500
+          },
+          "conditions": [
+            "Full cost of device or monthly service charged to Card.",
+            "$1,500 per person per occurrence.",
+            "Depreciation of 2% per completed month.",
+            "Deductible is 10% of depreciated value."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Master Policy PSI054390507."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "cibc-aero-vip-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "CIBC Aeroplan Visa Infinite Privilege Certificate of Insurance",
+          "url": "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/all-credit-cards/aeroplan-vip/documents/cibc-aeroplan-vip-ins-cert-en.pdf",
+          "effectiveDate": "2025-07-01",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Amended and Restated July 1, 2025."
+        }
+      ]
+    },
+    {
+      "cardId": "td-aeroplan-visa-infinite-privilege",
+      "certificate": {
+        "underwriter": "TD Life Insurance Company / TD Home and Auto Insurance Company / American Bankers Insurance Company of Florida",
+        "sourceUrl": "https://www.td.com/content/dam/tdct/document/pdf/personal-banking/aeroplan-vip-benefits-guide-en.pdf",
+        "certificateDate": "2020-11",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "td-aero-vip-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 5000000,
+            "maxTripLengthDays": 31,
+            "ageLimit": 65
+          },
+          "conditions": [
+            "$5,000,000 per person per trip.",
+            "Age <= 64: 31 consecutive days; age >= 65: 4 consecutive days."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy TGV002 underwritten by TD Life."
+        },
+        {
+          "benefitId": "td-aero-vip-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxPerOccurrenceCad": 2500,
+            "maxCad": 5000
+          },
+          "conditions": [
+            "$2,500 per person, maximum $5,000 per trip.",
+            "Medical causes governed by TGV003; non-medical causes governed by TGV006."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policies TGV003 / TGV006."
+        },
+        {
+          "benefitId": "td-aero-vip-trip-interruption",
+          "family": "travelDisruption",
+          "kind": "tripInterruption",
+          "coverage": {
+            "maxPerOccurrenceCad": 5000,
+            "maxCad": 25000
+          },
+          "conditions": [
+            "$5,000 per person, maximum $25,000 per trip."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policies TGV003 / TGV006."
+        },
+        {
+          "benefitId": "td-aero-vip-flight-delay",
+          "family": "travelDisruption",
+          "kind": "flightDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Flight delay of 4 hours or more.",
+            "Maximum $1,000 for eligible meals, lodging, and ground transportation."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy TGV010."
+        },
+        {
+          "benefitId": "td-aero-vip-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 1000
+          },
+          "conditions": [
+            "Baggage delay of more than 4 hours.",
+            "Maximum $1,000 per person per trip."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy TDVB112008."
+        },
+        {
+          "benefitId": "td-aero-vip-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 2500
+          },
+          "conditions": [
+            "Maximum $2,500 per person per trip."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy TDVB112008."
+        },
+        {
+          "benefitId": "td-aero-vip-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 48,
+            "maxVehicleValueCad": 85000
+          },
+          "conditions": [
+            "48 consecutive days.",
+            "Vehicle MSRP up to $85,000.",
+            "Rental charged to Card and CDW declined."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy TDV092010."
+        },
+        {
+          "benefitId": "td-aero-vip-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 120,
+            "maxAnnualCad": 60000
+          },
+          "conditions": [
+            "120 days from date of purchase.",
+            "Aggregate lifetime maximum $60,000 per account holder across applicable TD cards."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy TDVP112008."
+        },
+        {
+          "benefitId": "td-aero-vip-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 2,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Extension equal to 2x original warranty or 2 years, whichever is less.",
+            "Original warranties <= 5 years automatic; > 5 years require registration within first year."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy TDVP112008."
+        },
+        {
+          "benefitId": "td-aero-vip-mobile-device",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1500,
+            "deductibleCad": 25
+          },
+          "conditions": [
+            "$1,500 maximum.",
+            "Depreciation 2% per completed month.",
+            "Deductible is $25 / $50 / $75 / $100 depending on device price."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy TDA112020 underwritten by American Bankers Insurance Company of Florida."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "td-aero-vip-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "TD Aeroplan Visa Infinite Privilege Card Benefits Guide",
+          "url": "https://www.td.com/content/dam/tdct/document/pdf/personal-banking/aeroplan-vip-benefits-guide-en.pdf",
+          "effectiveDate": "2020-11-08",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Comprehensive Benefits Guide."
+        }
+      ]
+    },
+    {
+      "cardId": "home-trust-preferred-visa",
+      "certificate": {
+        "underwriter": "Chubb Insurance Company of Canada",
+        "sourceUrl": "https://www.hometrust.ca/credit-cards/preferred-visa-card/",
+        "certificateDate": "2021-09",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "home-trust-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 5000
+          },
+          "conditions": [
+            "Purchase charged to the Card.",
+            "90 days from date of purchase against loss, theft, or damage.",
+            "Maximum $5,000 per cardholder per occurrence."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy 9908-8631 underwritten by Chubb Insurance Company of Canada."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "home-trust-certificate-source",
+          "kind": "productPage",
+          "title": "Home Trust Preferred Visa Card Benefits",
+          "url": "https://www.hometrust.ca/credit-cards/preferred-visa-card/",
+          "effectiveDate": "2021-09-17",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Policy 9908-8631."
+        }
+      ]
+    },
+    {
+      "cardId": "mbna-smart-cash-world",
+      "certificate": {
+        "underwriter": "TD Home and Auto Insurance Company",
+        "sourceUrl": "https://www.mbna.ca/en/credit-cards/cash-back/smart-cash-world-mastercard",
+        "certificateDate": "2023-01",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "mbna-smart-cash-rental-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxRentalDays": 31,
+            "maxVehicleValueCad": 65000
+          },
+          "conditions": [
+            "Maximum 31 consecutive days.",
+            "Vehicles with market value under $65,000.",
+            "Rental charged to Card and CDW declined."
+          ],
+          "exclusions": [
+            "Vans other than qualifying SUVs, trucks, campers/trailers, off-road vehicles, motorcycles, exotic/antique vehicles, recreational vehicles, limousines and leased vehicles."
+          ],
+          "certificateQuote": null,
+          "notes": "Policy TGV009."
+        },
+        {
+          "benefitId": "mbna-smart-cash-purchase-assurance",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxAnnualCad": 60000
+          },
+          "conditions": [
+            "Purchase charged to the Card.",
+            "90 days from date of purchase.",
+            "Lifetime maximum $60,000 per account."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy TGV012."
+        },
+        {
+          "benefitId": "mbna-smart-cash-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Doubles original manufacturer warranty up to +1 additional year.",
+            "Original warranty <= 5 years automatic; longer warranties require registration within first year."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Policy TGV012."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "mbna-smart-cash-certificate-source",
+          "kind": "productPage",
+          "title": "MBNA Smart Cash World Mastercard Benefits Summary",
+          "url": "https://www.mbna.ca/en/credit-cards/cash-back/smart-cash-world-mastercard",
+          "effectiveDate": null,
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Policies TGV009, TGV012, TGV014."
+        }
+      ]
+    },
+    {
+      "cardId": "pc-financial-mastercard",
+      "certificate": {
+        "underwriter": "American Bankers Insurance Company of Florida",
+        "sourceUrl": "https://www.pcfinancial.ca/en/legal-stuff/terms-and-conditions/",
+        "certificateDate": "2017-08",
+        "lastVerifiedAt": "2026-08-30",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "pc-mastercard-purchase-assurance",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 1000,
+            "maxAnnualCad": 50000
+          },
+          "conditions": [
+            "Purchase charged to the Card.",
+            "90 days from date of purchase.",
+            "Maximum $1,000 per incident, lifetime maximum $50,000 per account."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy PCF0817."
+        },
+        {
+          "benefitId": "pc-mastercard-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 5
+          },
+          "conditions": [
+            "Doubles manufacturer warranty up to +1 additional year.",
+            "Original warranty <= 5 years automatic; longer warranties require registration within first year."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Group Policy PCF0817."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "pc-mastercard-certificate-source",
+          "kind": "certificateOfInsurance",
+          "title": "PC Financial Purchase Assurance and Extended Warranty Certificate",
+          "url": "https://www.pcfinancial.ca/en/legal-stuff/terms-and-conditions/",
+          "effectiveDate": "2017-08-01",
+          "jurisdiction": "Canada",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-30",
+          "notes": "Group Policy PCF0817."
         }
       ]
     }

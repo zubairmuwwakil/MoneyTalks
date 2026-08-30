@@ -129,7 +129,7 @@ const capSchema = annotatedObject({
   limit: z.number(),
   // calendarQuarter added for US rotating-category cards (e.g. 5x groceries up to $1,500/quarter)
   // — a shape this catalogue could not previously express at all.
-  period: z.enum(["calendarMonth", "calendarQuarter", "calendarYear", "accountYear"]),
+  period: z.enum(["calendarMonth", "calendarQuarter", "calendarYear", "accountYear", "statementYear"]),
   anchor: z.string().optional(),
   resetTimeZone: z.string(),
   postCapEarn: earnSchema.optional(),
@@ -145,7 +145,8 @@ const earnRuleSchema = annotatedObject({
   lastVerifiedAt: z.string(),
   earn: earnSchema,
   predicate: predicateSchema,
-  capId: z.string().nullable(),
+  capId: z.string().nullable().optional(),
+  capIds: z.array(z.string()).nullable().optional(),
   ownerConditions: z.array(z.string()).optional(),
   scoredInV1: z.boolean().optional(),
   // Engine capabilities the rule waits on ("not yet"). Deliberately z.string() and NOT a closed

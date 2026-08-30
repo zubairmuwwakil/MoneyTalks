@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "2.11",
+  "catalogueVersion": "2.13",
   "currency": "CAD",
   "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md — all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
@@ -1675,7 +1675,10 @@
             "rate": 0.01
           },
           "predicate": {},
-          "capId": null
+          "capId": null,
+          "capIds": [
+            "cibc-dividend-vi-global-50k"
+          ]
         },
         {
           "ruleId": "cibc-dividend-gas-grocery-ev-4pct",
@@ -1696,9 +1699,14 @@
             ]
           },
           "capId": null,
+          "capIds": [
+            "cibc-dividend-vi-global-50k",
+            "cibc-dividend-vi-accelerated-20k"
+          ],
           "_note": "Requires first-of-two cap group: $50k all-card purchases OR $20k accelerated purchases, reset after December Statement Date.",
           "requires": [
-            "cap.globalGroup"
+            "cap.globalGroup",
+            "cap.statementYear"
           ]
         },
         {
@@ -1720,9 +1728,14 @@
             ]
           },
           "capId": null,
+          "capIds": [
+            "cibc-dividend-vi-global-50k",
+            "cibc-dividend-vi-accelerated-20k"
+          ],
           "_note": "Same unsupported first-of-two cap structure as the 4% accelerator.",
           "requires": [
-            "cap.globalGroup"
+            "cap.globalGroup",
+            "cap.statementYear"
           ]
         },
         {
@@ -1748,7 +1761,32 @@
           }
         }
       ],
-      "caps": [],
+      "caps": [
+        {
+          "capId": "cibc-dividend-vi-global-50k",
+          "measure": "spendNative",
+          "limit": 50000,
+          "period": "statementYear",
+          "resetTimeZone": "America/Toronto",
+          "proration": false,
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.01
+          }
+        },
+        {
+          "capId": "cibc-dividend-vi-accelerated-20k",
+          "measure": "spendNative",
+          "limit": 20000,
+          "period": "statementYear",
+          "resetTimeZone": "America/Toronto",
+          "proration": false,
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.01
+          }
+        }
+      ],
       "perTransactionRewardVisibility": "unknown",
       "sources": [
         "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/dividend-visa-infinite-card.html"
@@ -5173,6 +5211,486 @@
       "lastVerifiedAt": "2026-08-24"
     },
     {
+      "cardId": "cibc-dividend-visa",
+      "officialName": "CIBC Dividend® Visa* Card",
+      "issuer": "CIBC",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "cad"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "cibc-dividend-base-halfpct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "predicate": {},
+          "capId": null,
+          "capIds": [
+            "cibc-dividend-global-30k"
+          ],
+          "_note": "0.5% base cash back on all other eligible card purchases."
+        },
+        {
+          "ruleId": "cibc-dividend-grocery-2pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.02
+          },
+          "predicate": {
+            "categories": [
+              "grocery"
+            ]
+          },
+          "capId": null,
+          "capIds": [
+            "cibc-dividend-global-30k",
+            "cibc-dividend-accelerated-20k"
+          ],
+          "_note": "2% cash back on groceries. Dual cap: $30k all-card purchases OR $20k accelerated purchases, reset after December Statement Date.",
+          "requires": [
+            "cap.globalGroup",
+            "cap.statementYear"
+          ]
+        },
+        {
+          "ruleId": "cibc-dividend-gas-transit-dining-recurring-1pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {
+            "categories": [
+              "gasStation",
+              "evCharging",
+              "transit",
+              "dining",
+              "recurring"
+            ]
+          },
+          "capId": null,
+          "capIds": [
+            "cibc-dividend-global-30k",
+            "cibc-dividend-accelerated-20k"
+          ],
+          "_note": "1% cash back on gas, EV charging (MCC 5552), commuter transit, dining, and recurring payments. Shared $20k accelerated cap.",
+          "requires": [
+            "cap.globalGroup",
+            "cap.statementYear"
+          ]
+        },
+        {
+          "ruleId": "cibc-dividend-expedia-1pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {
+            "merchantInclude": [
+              "cibc-by-expedia"
+            ]
+          },
+          "capId": null,
+          "_note": "1% cash back on eligible CIBC by Expedia purchases.",
+          "outOfScope": {
+            "reason": "online booking channel; PickMe is an at-the-register copilot"
+          }
+        }
+      ],
+      "caps": [
+        {
+          "capId": "cibc-dividend-global-30k",
+          "measure": "spendNative",
+          "limit": 30000,
+          "period": "statementYear",
+          "resetTimeZone": "America/Toronto",
+          "proration": false,
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          }
+        },
+        {
+          "capId": "cibc-dividend-accelerated-20k",
+          "measure": "spendNative",
+          "limit": 20000,
+          "period": "statementYear",
+          "resetTimeZone": "America/Toronto",
+          "proration": false,
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          }
+        }
+      ],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "sources": [
+        "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/dividend-visa-card.html",
+        "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/documents/cibc-creditcard-annual-interest-rate-fees-11995-en.pdf"
+      ],
+      "lastVerifiedAt": "2026-08-30",
+      "_note": "Do not approximate CIBC's dual annual thresholds ($30k all-spend / $20k accelerated) as a single calendar-year cap."
+    },
+    {
+      "cardId": "td-business-travel-visa",
+      "officialName": "TD Business Travel Visa* Card",
+      "issuer": "TD Canada Trust",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "network": "visa",
+      "kind": "credit",
+      "eligibility": {
+        "businessOnly": true
+      },
+      "fee": {
+        "annual": {
+          "amount": 149,
+          "currency": "CAD"
+        },
+        "waiver": "First-year annual fee rebate for primary ($149) and up to 4 additional cardholders ($49 each) for accounts opened by October 2, 2026."
+      },
+      "program": {
+        "programId": "tdRewards",
+        "unit": "point"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "td-biz-travel-base-2x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 2
+          },
+          "predicate": {},
+          "capId": null,
+          "_note": "2 TD Rewards Points per $1 spent on all other purchases."
+        },
+        {
+          "ruleId": "td-biz-travel-expedia-online-9x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 9
+          },
+          "predicate": {
+            "channels": [
+              "expediaForTD"
+            ]
+          },
+          "capId": null,
+          "_note": "9 TD Rewards Points per $1 spent on travel booked online through Expedia For TD.",
+          "outOfScope": {
+            "reason": "online booking channel; PickMe is an at-the-register copilot"
+          }
+        },
+        {
+          "ruleId": "td-biz-travel-dining-6x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 6
+          },
+          "predicate": {
+            "categories": [
+              "dining"
+            ]
+          },
+          "capId": null,
+          "_note": "6 TD Rewards Points per $1 on dining up to $80,000 net annual spend, then 2 pts/$1."
+        },
+        {
+          "ruleId": "td-biz-travel-ev-6x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 6
+          },
+          "predicate": {
+            "categories": [
+              "evCharging"
+            ]
+          },
+          "capId": null,
+          "_note": "6 TD Rewards Points per $1 on EV charging up to $80,000 net annual spend, then 2 pts/$1."
+        },
+        {
+          "ruleId": "td-biz-travel-transit-6x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 6
+          },
+          "predicate": {
+            "categories": [
+              "transit"
+            ]
+          },
+          "capId": null,
+          "_note": "6 TD Rewards Points per $1 on public transit up to $80,000 net annual spend, then 2 pts/$1."
+        },
+        {
+          "ruleId": "td-biz-travel-recurring-digital-6x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 6
+          },
+          "predicate": {
+            "categories": [
+              "recurring",
+              "digitalMedia",
+              "streaming"
+            ]
+          },
+          "capId": null,
+          "_note": "6 TD Rewards Points per $1 on recurring bill payments, digital media, gaming, and streaming (shared $80k annual cap)."
+        },
+        {
+          "ruleId": "td-biz-travel-fx-6x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 6
+          },
+          "predicate": {
+            "currency": "USD"
+          },
+          "capId": null,
+          "_note": "6 TD Rewards Points per $1 on purchases made in a foreign currency up to $80,000 net annual spend."
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "sources": [
+        "https://www.td.com/ca/en/business-banking/small-business/credit-cards/business-travel-visa-card/invitetoapply",
+        "https://www.td.com/content/dam/tdct/document/pdf/business-banking/11614-528618-cha-td-business-travel-06-en.pdf"
+      ],
+      "lastVerifiedAt": "2026-08-30"
+    },
+    {
+      "cardId": "walmart-rewards-mastercard",
+      "officialName": "Walmart Rewards™ Mastercard®",
+      "issuer": "Fairstone Bank of Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
+      },
+      "program": {
+        "programId": "walmartRewards",
+        "unit": "cad"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "walmart-rewards-base-1pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {},
+          "capId": null,
+          "_note": "1% in Walmart Reward Dollars on all other eligible purchases."
+        },
+        {
+          "ruleId": "walmart-rewards-walmart-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "merchantInclude": [
+              "walmart"
+            ]
+          },
+          "capId": null,
+          "_note": "3% in Walmart Reward Dollars on purchases before taxes at Walmart Canada stores and online at Walmart.ca."
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "sources": [
+        "https://www.walmartrewards.ca/en/creditcards",
+        "https://www.walmartrewards.ca/wrmcprogramterms"
+      ],
+      "lastVerifiedAt": "2026-08-30"
+    },
+    {
+      "cardId": "walmart-rewards-world-mastercard",
+      "officialName": "Walmart Rewards™ World Mastercard®",
+      "issuer": "Fairstone Bank of Canada",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
+      },
+      "program": {
+        "programId": "walmartRewards",
+        "unit": "cad"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "walmart-rewards-world-base-1pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {},
+          "capId": null,
+          "_note": "1% in Walmart Reward Dollars on all other eligible purchases."
+        },
+        {
+          "ruleId": "walmart-rewards-world-walmart-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "merchantInclude": [
+              "walmart"
+            ]
+          },
+          "capId": null,
+          "_note": "3% in Walmart Reward Dollars on purchases before taxes at Walmart Canada stores and online at Walmart.ca."
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "sources": [
+        "https://www.walmartrewards.ca/en/creditcards",
+        "https://www.walmartrewards.ca/wrmcprogramterms"
+      ],
+      "lastVerifiedAt": "2026-08-30"
+    },
+    {
       "cardId": "alliant-credit-union-alliant-cashback-visa",
       "officialName": "Alliant Cashback Visa® Signature Credit Card",
       "issuer": "Alliant Credit Union",
@@ -6077,11 +6595,11 @@
     },
     {
       "cardId": "capital-one-canada-capital-one-guaranteed",
-      "officialName": "Capital One Guaranteed Secured Mastercard",
+      "officialName": "Guaranteed Secured Mastercard",
       "issuer": "Capital One Canada",
       "market": "CA",
       "billingCurrency": "CAD",
-      "status": "draft",
+      "status": "published",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
@@ -6094,11 +6612,39 @@
         "programId": "noRewards",
         "unit": "none"
       },
-      "fxRules": [],
-      "earnRules": [],
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "inferred",
+          "lastVerifiedAt": "2026-08-30"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "capital-one-guaranteed-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 0
+          },
+          "predicate": {},
+          "capId": null
+        }
+      ],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "sources": [
+        "https://www.capitalone.ca/credit-cards/compare?filter=build",
+        "https://www.capitalone.ca/assets/documents/pdf/Cardholder_Agreement.pdf"
+      ],
+      "lastVerifiedAt": "2026-08-30"
     },
     {
       "cardId": "mbna-true-line-mastercard",
@@ -6106,7 +6652,7 @@
       "issuer": "MBNA",
       "market": "CA",
       "billingCurrency": "CAD",
-      "status": "draft",
+      "status": "published",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
@@ -6119,11 +6665,39 @@
         "programId": "noRewards",
         "unit": "none"
       },
-      "fxRules": [],
-      "earnRules": [],
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "inferred",
+          "lastVerifiedAt": "2026-08-30"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "mbna-true-line-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 0
+          },
+          "predicate": {},
+          "capId": null
+        }
+      ],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "sources": [
+        "https://www.mbna.ca/en/credit-cards/low-interest/true-line-mastercard",
+        "https://www.mbna.ca/content/dam/mbna/document/pdf/credit-cards/mbna-acct-agreement-0322-en.pdf"
+      ],
+      "lastVerifiedAt": "2026-08-30"
     },
     {
       "cardId": "neo-financial-neo-world-mastercard",
@@ -6131,7 +6705,7 @@
       "issuer": "Neo Financial",
       "market": "CA",
       "billingCurrency": "CAD",
-      "status": "draft",
+      "status": "published",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
@@ -6144,11 +6718,237 @@
         "programId": "cashback",
         "unit": "cad"
       },
-      "fxRules": [],
-      "earnRules": [],
-      "caps": [],
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.03,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "neo-base-half-pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "neo-gg-grocery-2pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.02
+          },
+          "predicate": {
+            "categories": [
+              "grocery"
+            ]
+          },
+          "capId": "neo-gas-grocery-grocery-monthly",
+          "ownerConditions": [
+            "neoProfileGasAndGrocery"
+          ]
+        },
+        {
+          "ruleId": "neo-gg-gas-ev-2pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.02
+          },
+          "predicate": {
+            "categories": [
+              "gasStation",
+              "evCharging"
+            ]
+          },
+          "capId": "neo-gas-grocery-gas-ev-monthly",
+          "ownerConditions": [
+            "neoProfileGasAndGrocery"
+          ]
+        },
+        {
+          "ruleId": "neo-gg-recurring-2pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.02
+          },
+          "predicate": {
+            "categories": [
+              "recurring"
+            ]
+          },
+          "capId": "neo-gas-grocery-recurring-monthly",
+          "ownerConditions": [
+            "neoProfileGasAndGrocery"
+          ]
+        },
+        {
+          "ruleId": "neo-sd-food-drink-2pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.02
+          },
+          "predicate": {
+            "categories": [
+              "dining",
+              "foodDelivery"
+            ]
+          },
+          "capId": "neo-shop-dine-food-monthly",
+          "ownerConditions": [
+            "neoProfileShopAndDine"
+          ]
+        },
+        {
+          "ruleId": "neo-sd-retail-2pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.02
+          },
+          "predicate": {
+            "categories": [
+              "retailShopping"
+            ],
+            "merchantExclude": [
+              "amazon",
+              "costco",
+              "walmart-superstore",
+              "walmart"
+            ]
+          },
+          "capId": "neo-shop-dine-retail-monthly",
+          "ownerConditions": [
+            "neoProfileShopAndDine"
+          ],
+          "_note": "2% retail shopping accelerator under Shop & Dine. Amazon, Costco, and wholesale purchases excluded."
+        },
+        {
+          "ruleId": "neo-everywhere-1pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {},
+          "capId": null,
+          "ownerConditions": [
+            "neoProfileEverywhere"
+          ]
+        }
+      ],
+      "caps": [
+        {
+          "capId": "neo-gas-grocery-grocery-monthly",
+          "measure": "spendNative",
+          "limit": 1000,
+          "period": "calendarMonth",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "proration": true
+        },
+        {
+          "capId": "neo-gas-grocery-gas-ev-monthly",
+          "measure": "spendNative",
+          "limit": 1000,
+          "period": "calendarMonth",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "proration": true
+        },
+        {
+          "capId": "neo-gas-grocery-recurring-monthly",
+          "measure": "spendNative",
+          "limit": 500,
+          "period": "calendarMonth",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "proration": true
+        },
+        {
+          "capId": "neo-shop-dine-food-monthly",
+          "measure": "spendNative",
+          "limit": 500,
+          "period": "calendarMonth",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "proration": true
+        },
+        {
+          "capId": "neo-shop-dine-retail-monthly",
+          "measure": "spendNative",
+          "limit": 500,
+          "period": "calendarMonth",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "proration": true
+        }
+      ],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "sources": [
+        "https://www.neofinancial.com/lp/neo-world",
+        "https://www.neofinancial.com/lp/neo-world/gas-and-grocery",
+        "https://www.neofinancial.com/credit-cards/shop-and-dine",
+        "https://www.neofinancial.com/lp/neo-world/everywhere",
+        "https://support.neofinancial.com/en/articles/14009843-fees-on-your-credit-card",
+        "https://legal.neo.cc/neo-credit-cardholder-agreement",
+        "https://legal.neo.cc/neo-credit-disclosures-rates-fees",
+        "https://legal.neo.cc/rewards-policy"
+      ],
+      "lastVerifiedAt": "2026-08-30"
     },
     {
       "cardId": "american-express-delta-blue",
@@ -6506,12 +7306,12 @@
       "issuer": "Royal Bank of Canada",
       "market": "CA",
       "billingCurrency": "CAD",
-      "status": "draft",
+      "status": "published",
       "network": "visa",
       "kind": "credit",
       "fee": {
         "annual": {
-          "amount": 165.0,
+          "amount": 165,
           "currency": "CAD"
         }
       },
@@ -6519,11 +7319,84 @@
         "programId": "avios",
         "unit": "point"
       },
-      "fxRules": [],
-      "earnRules": [],
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "rbc-ba-base-1x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "rbc-ba-direct-3x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 3
+          },
+          "predicate": {
+            "mccInclude": [
+              3005
+            ]
+          },
+          "capId": null,
+          "_note": "3x Avios on qualifying flights and services booked directly through British Airways (Visa MCC 3005)."
+        },
+        {
+          "ruleId": "rbc-ba-dining-2x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 2
+          },
+          "predicate": {
+            "categories": [
+              "dining",
+              "foodDelivery"
+            ],
+            "mccInclude": [
+              5812,
+              5813,
+              5814
+            ]
+          },
+          "capId": null,
+          "_note": "2x Avios on dining and food delivery merchants classified under MCC 5812, 5813, or 5814."
+        }
+      ],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "sources": [
+        "https://www.rbcroyalbank.com/credit-cards/travel/rbc-british-airways-visa-infinite.html",
+        "https://www.rbcroyalbank.com/credit-cards/travel/rbc-british-airways-visa-infinite/rbc-british-airways-visa-Infinite-co-application.pdf",
+        "https://www.rbcroyalbank.com/credit-cards/cardholders/additional-documents/rbc-royal-bank-credit-card-agreement.pdf"
+      ],
+      "lastVerifiedAt": "2026-08-30"
     },
     {
       "cardId": "american-express-delta-skymiles-gold-business",
@@ -7943,7 +8816,7 @@
       "issuer": "CIBC",
       "market": "CA",
       "billingCurrency": "CAD",
-      "status": "draft",
+      "status": "published",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
@@ -7956,11 +8829,169 @@
         "programId": "costcoCashRewardsCa",
         "unit": "cad"
       },
-      "fxRules": [],
-      "earnRules": [],
-      "caps": [],
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "cibc-costco-base-1pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "cibc-costco-dining-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "categories": [
+              "dining",
+              "foodDelivery"
+            ]
+          },
+          "capId": null,
+          "_note": "3% cash back on restaurant and dining purchases. Processor coding controls."
+        },
+        {
+          "ruleId": "cibc-costco-gas-costco-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "categories": [
+              "gasStation"
+            ],
+            "merchantInclude": [
+              "costco"
+            ]
+          },
+          "capId": "cibc-costco-gas-ev-annual",
+          "_note": "3% on Costco gas stations in Canada, sharing the $5,000 annual gas/EV spend cap (1% thereafter)."
+        },
+        {
+          "ruleId": "cibc-costco-gas-non-costco-2pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.02
+          },
+          "predicate": {
+            "categories": [
+              "gasStation"
+            ]
+          },
+          "capId": "cibc-costco-gas-ev-annual",
+          "_note": "2% on non-Costco gas stations, sharing the $5,000 annual gas/EV spend cap (1% thereafter)."
+        },
+        {
+          "ruleId": "cibc-costco-ev-charging-2pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.02
+          },
+          "predicate": {
+            "categories": [
+              "evCharging"
+            ],
+            "mccInclude": [
+              5552
+            ]
+          },
+          "capId": "cibc-costco-gas-ev-annual",
+          "_note": "2% on EV charging stations (MCC 5552), sharing the $5,000 annual gas/EV spend cap (1% thereafter)."
+        },
+        {
+          "ruleId": "cibc-costco-ca-online-2pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-30",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.02
+          },
+          "predicate": {
+            "merchantInclude": [
+              "costco-ca"
+            ]
+          },
+          "capId": "cibc-costco-ca-annual",
+          "_note": "2% on online purchases at Costco.ca up to $8,000 per calendar year (1% thereafter)."
+        }
+      ],
+      "caps": [
+        {
+          "capId": "cibc-costco-gas-ev-annual",
+          "measure": "spendNative",
+          "limit": 5000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "proration": true
+        },
+        {
+          "capId": "cibc-costco-ca-annual",
+          "measure": "spendNative",
+          "limit": 8000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "proration": true
+        }
+      ],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "sources": [
+        "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/costco-mastercard.html",
+        "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/all-credit-cards/costco/documents/cibc-costco-benefit-guide-en.pdf",
+        "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/all-credit-cards/costco/documents/summary-rates-and-fees-en.pdf",
+        "https://www.cibc.com/content/dam/personal_banking/credit_cards/agreements_and_insurance/cardholder-agreement-en.pdf",
+        "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/all-credit-cards/costco/documents/cibc-costco-evc-station-guide-en.pdf"
+      ],
+      "lastVerifiedAt": "2026-08-30"
     },
     {
       "cardId": "capital-one-venture-business",

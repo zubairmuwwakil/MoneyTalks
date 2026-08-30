@@ -37,8 +37,11 @@ export default async function CardDetailPage({
   params: Promise<{ id: string }>;
   searchParams?: Promise<{ error?: string; errorForm?: string }>;
 }) {
-  const userId = await requireUserId();
   const { id } = await params;
+  if (/\.(png|webp|svg|jpg|jpeg|gif|ico|json)$/i.test(id)) {
+    notFound();
+  }
+  const userId = await requireUserId();
   const { error, errorForm } = (await searchParams) ?? {};
   const card = await prisma.creditCard.findFirst({ where: { id, userId }, include: { state: true } });
   if (!card) notFound();

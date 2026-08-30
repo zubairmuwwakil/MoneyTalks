@@ -216,6 +216,13 @@
       "model": "cashback",
       "cadPerDollar": 1.0,
       "basis": "Bank of America cash rewards deposit 1:1 into eligible BofA accounts."
+    },
+    "walmartRewards": {
+      "model": "ctMoney",
+      "cadPerUnit": 1.0,
+      "optionalUsabilityFactor": 0.95,
+      "usabilityFactorApplied": true,
+      "basis": "1 Walmart Reward Dollar = $1.00 CAD toward eligible Walmart purchases in Canada (in-store and online at Walmart.ca), an issuer fact (checked 2026-08-30). Reward Dollars cannot be redeemed for cash or applied to the card balance. ASSUMPTION: a 0.95 usability factor is applied by default because the reward is store-locked to Walmart. Set usabilityFactorApplied false to value at 1.0 face."
     }
   }
 }

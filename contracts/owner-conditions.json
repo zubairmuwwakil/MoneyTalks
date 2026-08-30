@@ -1,5 +1,5 @@
 {
-  "conditionsVersion": "1.0",
+  "conditionsVersion": "1.1",
   "_provenance": "Owner conditions are facts about an ACCOUNT, not a product: whether a card's higher rate applies to this particular holder. RuleMatcher fails closed on an unanswered one, so a condition with no entry here is a rate the owner can never unlock. Declared as data so adding one is a contract edit rather than a change in six places across two languages — see docs/plans/2026-08-20-catalogue-scalability-program-design.md 3.2, and the 2026-08-28 CHANGELOG entry for why this is a sidecar registry rather than that section's inline object shape.",
   "_localization": "`prompt` and `detail` are ENGLISH SOURCE STRINGS, not display strings. Consumers resolve ownerCondition.<id>.prompt from their own string catalogue and fall back to these. A new condition therefore ships working in English immediately and picks up translations without a contract release.",
   "conditions": {
@@ -22,6 +22,21 @@
       "answerKind": "categorySelection",
       "maxSelections": 3,
       "detail": "Tangerine pays 2% on the categories you have selected on your account. Leave all unselected if you are not sure."
+    },
+    "neoProfileGasAndGrocery": {
+      "answerKind": "boolean",
+      "prompt": "Is your Neo World Mastercard set to the Gas & Grocery cashback plan?",
+      "detail": "The Gas & Grocery configuration earns 2% on groceries ($1,000/mo cap), gas/EV ($1,000/mo cap), and recurring bills ($500/mo cap)."
+    },
+    "neoProfileShopAndDine": {
+      "answerKind": "boolean",
+      "prompt": "Is your Neo World Mastercard set to the Shop & Dine cashback plan?",
+      "detail": "The Shop & Dine configuration earns 2% on food & drink ($500/mo cap) and retail shopping ($500/mo cap, excluding Amazon/Costco/wholesale)."
+    },
+    "neoProfileEverywhere": {
+      "answerKind": "boolean",
+      "prompt": "Is your Neo World Mastercard set to the Everywhere cashback plan?",
+      "detail": "The Everywhere configuration earns flat 1% cashback on all purchases with no spend caps."
     }
   }
 }

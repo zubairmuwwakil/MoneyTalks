@@ -55,6 +55,18 @@ const storedLegacyValuations = legacyValuations.extend({
   }),
 }).passthrough();
 
+const merchantCreditValuation = z.object({
+  cadPerUnit: finiteNonNegative,
+  optionalUsabilityFactor: finiteNonNegative,
+  usabilityFactorApplied: z.boolean(),
+  merchantScope: z.array(z.string().min(1)),
+  basis: z.string().optional(),
+}).strict();
+
+const noRewardsValuation = z.object({
+  basis: z.string().optional(),
+}).strict();
+
 const programValuation = z.discriminatedUnion("model", [
   pointValuation.extend({ model: z.literal("points") }),
   ctMoneyValuation.extend({ model: z.literal("ctMoney") }),
@@ -66,6 +78,8 @@ const programValuation = z.discriminatedUnion("model", [
     basis: z.string().optional(),
   }).strict(),
   cashBackValuation.extend({ model: z.literal("cashback") }),
+  merchantCreditValuation.extend({ model: z.literal("merchantCredit") }),
+  noRewardsValuation.extend({ model: z.literal("noRewards") }),
 ]);
 
 const programsDictionary = z.record(z.string().min(1), programValuation);
