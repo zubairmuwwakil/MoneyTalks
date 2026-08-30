@@ -8,7 +8,7 @@ import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { findMatchingPurchase } from "@/lib/domain/spine/purchaseMerge";
 import { applyCapAccrual, removeCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
 import type { RawGmailMessage } from "@/lib/services/gmailScanSource";
-import { resolveEmailMerchant } from "./emailMerchant";
+import { resolveEmailMerchantIdentity } from "./emailMerchant";
 import {
   parsePurchaseFromRawGmailMessage,
   type Purchase as ParsedPurchase,
@@ -648,9 +648,19 @@ export async function processRawGmailMessage(
     parsedPurchase = failedParse(params.message);
   }
 
-  const merchant = parserError
-    ? parsedPurchase.merchant
-    : await resolveEmailMerchant(db, parsedPurchase.merchant, parsedPurchase.fromEmail);
+  const merchantResolution = parserError
+    ? {
+        merchant: parsedPurchase.merchant,
+        identity: "RESOLVED" as const,
+        source: "SENDER" as const,
+      }
+    : await resolveEmailMerchantIdentity(
+        db,
+        parsedPurchase.merchant,
+        parsedPurchase.fromEmail,
+        { subject: parsedPurchase.subject, textBody: parsedPurchase.textBody },
+      );
+  const merchant = merchantResolution.merchant;
 
   return db.$transaction(async (transactionDb) => {
     const merchantCurrency = await transactionDb.merchantCurrencyConfirmation.findUnique({
@@ -708,7 +718,12 @@ export async function processRawGmailMessage(
       parserError,
       params.connectionId ?? null,
     );
-    const qualifies = !parserError && hasPurchaseEvidence(parsedPurchase);
+    // A conduit proves that money moved but does not identify who received it.
+    // Preserve the EmailTransaction for later replay, but do not manufacture a
+    // Purchase that every downstream aggregation would confidently pool.
+    const qualifies = !parserError
+      && merchantResolution.identity === "RESOLVED"
+      && hasPurchaseEvidence(parsedPurchase);
     const previousPurchaseId = existing?.purchaseId ?? null;
     const transaction = await transactionDb.emailTransaction.upsert({
       where: {

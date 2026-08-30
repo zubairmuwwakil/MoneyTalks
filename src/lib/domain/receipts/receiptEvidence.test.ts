@@ -81,6 +81,24 @@ it("keeps an invoice awaiting an automatic card charge out of completed purchase
   expect(classifyReceiptEmail(invoice.subject, invoice.textBody)).toBe("BILL");
 });
 
+it("does not promote a PayPal authorization that remains pending", () => {
+  expect(hasPurchaseEvidence({
+    rawSource: "text",
+    subject: "You authorized a payment to HelloFresh CA",
+    totalCents: 100,
+    textBody: "You'll see this purchase as pending until HelloFresh CA processes it.",
+  })).toBe(false);
+});
+
+it("does not turn a PayPal refund into a new positive purchase", () => {
+  expect(hasPurchaseEvidence({
+    rawSource: "text",
+    subject: "Your refund from Acme Inc. is on the way",
+    totalCents: 1318,
+    textBody: "Refund total $13.18 CAD. You originally paid Acme Inc. $13.18 CAD.",
+  })).toBe(false);
+});
+
 it("refuses to classify marketing email that carries no purchase signal", () => {
   for (const subject of OBSERVED_NEWSLETTERS) {
     expect(classifyReceiptEmail(subject, "Shop now and save big on everything."), subject).toBe(null);
