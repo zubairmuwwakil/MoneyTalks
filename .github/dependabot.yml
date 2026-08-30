@@ -4,6 +4,13 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # typescript-eslint does not support TS 7.0 (it errors out and takes
+      # eslint with it). A Dependabot 5.9.3 -> 7.0.2 bump merged with a red
+      # CI on 2026-08-30 and broke lint for every fresh install. Lift this
+      # once typescript-eslint ships TS >=7.1 support.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
