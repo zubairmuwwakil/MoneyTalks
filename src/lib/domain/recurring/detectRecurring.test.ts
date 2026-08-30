@@ -21,6 +21,19 @@ type EmailRow = {
   createdAt: Date;
 };
 
+type EmailFactRow = {
+  id: string;
+  userId: string;
+  emailTransactionId: string;
+  type: "EXPLICIT_CADENCE" | "EXPLICIT_RECURRING" | "CANCELLATION" | "TRIAL_STARTED" | "TRIAL_ENDED" | "PRICE_CHANGE" | "NEXT_BILLING_DATE";
+  occurredAt: Date;
+  effectiveAt: Date | null;
+  billingAt: Date | null;
+  amountMinor: number | null;
+  currency: string | null;
+  cadence: string | null;
+};
+
 type ObligationRow = {
   id: string;
   userId: string;
@@ -54,6 +67,7 @@ type EvidenceRow = {
   obligationId: string;
   purchaseId: string | null;
   emailTransactionId: string | null;
+  emailFactId: string | null;
   role: "OCCURRENCE" | "CADENCE_FACT" | "CANCELLATION" | "TRIAL" | "PRICE_CHANGE";
   excludedByUser: boolean;
   occurredAt: Date;
@@ -84,6 +98,7 @@ type MemoryEvidenceDelegate = {
 class MemoryRecurringDb {
   purchases: PurchaseRow[] = [];
   emails: EmailRow[] = [];
+  emailFacts: EmailFactRow[] = [];
   obligations: ObligationRow[] = [];
   evidence: EvidenceRow[] = [];
   private sequence = 0;
@@ -95,12 +110,22 @@ class MemoryRecurringDb {
 
   purchase: { findMany(args: { where: { userId: string } }): Promise<PurchaseRow[]> };
   emailTransaction: { findMany(args: { where: { userId: string } }): Promise<EmailRow[]> };
+  emailObligationFact: { findMany(args: { where: { userId: string } }): Promise<Array<EmailFactRow & { emailTransaction: Pick<EmailRow, "id" | "merchant"> }>> };
   recurringObligation: MemoryObligationDelegate;
   recurringObligationEvidence: MemoryEvidenceDelegate;
 
   constructor() {
     this.purchase = { findMany: async ({ where }) => this.purchases.filter((row) => row.userId === where.userId) };
     this.emailTransaction = { findMany: async ({ where }) => this.emails.filter((row) => row.userId === where.userId) };
+    this.emailObligationFact = {
+      findMany: async ({ where }) => this.emailFacts
+        .filter((row) => row.userId === where.userId)
+        .map((row) => {
+          const emailTransaction = this.emails.find((email) => email.id === row.emailTransactionId);
+          if (!emailTransaction) throw new Error("email transaction not found");
+          return { ...row, emailTransaction };
+        }),
+    };
 
     const findMany: MemoryObligationDelegate["findMany"] = async ({ where } = {}) =>
       this.obligations
@@ -366,6 +391,18 @@ describe("sweepRecurringObligations", () => {
       purchasedAt: at("2026-07-20"),
       createdAt: at("2026-07-20"),
     });
+    db.emailFacts.push({
+      id: "fact-cancelled-subject",
+      userId: "user-1",
+      emailTransactionId: "email-cancelled",
+      type: "CANCELLATION",
+      occurredAt: at("2026-07-20"),
+      effectiveAt: at("2026-07-20"),
+      billingAt: null,
+      amountMinor: null,
+      currency: null,
+      cadence: null,
+    });
 
     await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
 
@@ -373,7 +410,97 @@ describe("sweepRecurringObligations", () => {
     expect(db.obligations[0].confidence).toBeLessThan(0.5);
     expect(db.evidence).toContainEqual(expect.objectContaining({
       emailTransactionId: "email-cancelled",
+      emailFactId: "fact-cancelled-subject",
       role: "CANCELLATION",
+    }));
+  });
+
+  it("reads a body-derived persisted fact and links its payload-bearing row", async () => {
+    const db = new MemoryRecurringDb();
+    seedPurchases(db, "orbitstream.example", ["2026-05-11", "2026-06-11", "2026-07-11"], 1_499);
+    db.emails.push({
+      id: "email-body-only",
+      userId: "user-1",
+      merchant: "orbitstream.example",
+      subject: "An update about your account",
+      purchasedAt: null,
+      createdAt: at("2026-07-20"),
+    });
+    db.emailFacts.push({
+      id: "fact-cancelled",
+      userId: "user-1",
+      emailTransactionId: "email-body-only",
+      type: "CANCELLATION",
+      occurredAt: at("2026-07-20"),
+      effectiveAt: at("2026-07-20"),
+      billingAt: null,
+      amountMinor: null,
+      currency: null,
+      cadence: null,
+    });
+
+    await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
+
+    expect(db.obligations[0].status).toBe("CANCELLED");
+    expect(db.evidence).toContainEqual(expect.objectContaining({
+      emailTransactionId: "email-body-only",
+      emailFactId: "fact-cancelled",
+      role: "CANCELLATION",
+    }));
+  });
+
+  it("honours an excluded fact without suppressing sibling facts from the email", async () => {
+    const db = new MemoryRecurringDb();
+    seedPurchases(db, "nebulapass.example", ["2026-05-11", "2026-06-11", "2026-07-11"], 999);
+    db.emails.push({
+      id: "email-multiple-facts",
+      userId: "user-1",
+      merchant: "nebulapass.example",
+      subject: "An update about your account",
+      purchasedAt: null,
+      createdAt: at("2026-07-20"),
+    });
+    db.emailFacts.push(
+      {
+        id: "fact-cancellation-to-exclude",
+        userId: "user-1",
+        emailTransactionId: "email-multiple-facts",
+        type: "CANCELLATION",
+        occurredAt: at("2026-07-20"),
+        effectiveAt: at("2026-07-20"),
+        billingAt: null,
+        amountMinor: null,
+        currency: null,
+        cadence: null,
+      },
+      {
+        id: "fact-recurring-to-keep",
+        userId: "user-1",
+        emailTransactionId: "email-multiple-facts",
+        type: "EXPLICIT_RECURRING",
+        occurredAt: at("2026-07-20"),
+        effectiveAt: null,
+        billingAt: null,
+        amountMinor: null,
+        currency: null,
+        cadence: null,
+      },
+    );
+    await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
+    const excluded = db.evidence.find((row) => row.emailFactId === "fact-cancellation-to-exclude")!;
+    await db.recurringObligationEvidence.update({
+      where: { id: excluded.id },
+      data: { excludedByUser: true },
+    });
+
+    await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
+
+    expect(db.obligations[0].status).toBe("ACTIVE");
+    expect(db.evidence.filter((row) => row.emailFactId === "fact-cancellation-to-exclude"))
+      .toEqual([expect.objectContaining({ id: excluded.id, excludedByUser: true })]);
+    expect(db.evidence).toContainEqual(expect.objectContaining({
+      emailFactId: "fact-recurring-to-keep",
+      excludedByUser: false,
     }));
   });
 

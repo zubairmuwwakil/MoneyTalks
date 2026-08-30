@@ -633,18 +633,22 @@ model MerchantCurrencyConfirmation {
 
 /// Evidence is stored as auditable links rather than an aggregate count.
 model RecurringObligationEvidence {
-  id                 String              @id @default(cuid())
+  id                 String               @id @default(cuid())
   obligationId       String
   purchaseId         String?
   emailTransactionId String?
+  emailFactId        String?
   role               EvidenceRole
-  excludedByUser     Boolean             @default(false)
+  excludedByUser     Boolean              @default(false)
   occurredAt         DateTime
-  obligation         RecurringObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  obligation         RecurringObligation  @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  emailFact          EmailObligationFact? @relation(fields: [emailFactId], references: [id], onDelete: Cascade)
 
   @@unique([obligationId, purchaseId])
+  @@unique([obligationId, emailFactId])
   @@index([obligationId, occurredAt])
   @@index([purchaseId])
+  @@index([emailFactId])
 }
 
 /// Durable, recurring work item for one owner's obligation sweep.
@@ -866,7 +870,7 @@ model EmailTransaction {
 ///
 /// See docs/decisions/2026-08-30-email-fact-lane.md.
 model EmailObligationFact {
-  id                 String           @id @default(cuid())
+  id                 String                        @id @default(cuid())
   userId             String
   emailTransactionId String
   type               EmailFactType
@@ -874,12 +878,12 @@ model EmailObligationFact {
   extractorId        String
   /// Versioned per extractor, never globally, so one extractor can be re-run
   /// and measured without re-extracting the whole mailbox.
-  extractorVersion   Int              @default(1)
+  extractorVersion   Int                           @default(1)
   /// Distinguishes two facts of one type on one message — an Apple or Google
   /// Play receipt lists several subscriptions with separate renewal dates.
   /// Empty for the ordinary single-fact message, the same escape hatch
   /// RecurringObligation.seriesKey uses.
-  factKey            String           @default("")
+  factKey            String                        @default("")
   occurredAt         DateTime
   effectiveAt        DateTime?
   billingAt          DateTime?
@@ -889,10 +893,11 @@ model EmailObligationFact {
   /// The merchant's own words that produced this fact. Bounded and
   /// URL-stripped; never the body.
   evidenceSnippet    String
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  emailTransaction   EmailTransaction @relation(fields: [emailTransactionId], references: [id], onDelete: Cascade)
-  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+  emailTransaction   EmailTransaction              @relation(fields: [emailTransactionId], references: [id], onDelete: Cascade)
+  user               User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recurringEvidence  RecurringObligationEvidence[]
 
   @@unique([emailTransactionId, extractorId, type, factKey])
   @@index([userId, type, effectiveAt])

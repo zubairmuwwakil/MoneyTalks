@@ -1,9 +1,8 @@
-import { Prisma, type PrismaClient } from "@prisma/client";
+import { Prisma, type EmailFactType, type PrismaClient } from "@prisma/client";
 
 import { occurrencesBetween } from "@/engine/recurrence";
 import { clusterRecurringPurchases, type CandidateCluster, type ClusteringPurchase } from "./clustering";
 import { scoreRecurringConfidence } from "./confidence";
-import { extractEmailSignals } from "./emailSignals";
 import { deriveObligationStatus } from "./lifecycle";
 import type { ObligationFact } from "./types";
 
@@ -33,6 +32,7 @@ type PersistedIdentity = {
 type ExcludedEvidence = {
   purchaseId: string | null;
   emailTransactionId: string | null;
+  emailFactId: string | null;
   excludedByUser: boolean;
 };
 
@@ -49,18 +49,61 @@ type ResolvedCluster = {
   protectedByOwner: boolean;
 };
 
-type SweepEmail = {
+type SweepEmailFact = {
   id: string;
-  merchant: string;
-  subject: string | null;
-  purchasedAt: Date | null;
-  createdAt: Date;
+  emailTransactionId: string;
+  type: EmailFactType;
+  occurredAt: Date;
+  effectiveAt: Date | null;
+  billingAt: Date | null;
+  amountMinor: number | null;
+  cadence: string | null;
+  emailTransaction: {
+    id: string;
+    merchant: string;
+  };
 };
 
 type EmailFact = {
-  email: SweepEmail;
+  source: SweepEmailFact;
   fact: ObligationFact;
 };
+
+const CADENCE_TYPES = new Set(["WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY", "SEMIANNUAL", "ANNUAL"]);
+
+/** Map the persistence union back to the existing domain union without widening it. */
+function toObligationFact(row: SweepEmailFact): ObligationFact | null {
+  switch (row.type) {
+    case "EXPLICIT_CADENCE":
+      if (!row.cadence || !CADENCE_TYPES.has(row.cadence)) return null;
+      return {
+        type: row.type,
+        occurredAt: row.occurredAt,
+        cadence: row.cadence as Extract<ObligationFact, { type: "EXPLICIT_CADENCE" }>["cadence"],
+      };
+    case "EXPLICIT_RECURRING":
+      return { type: row.type, occurredAt: row.occurredAt };
+    case "CANCELLATION":
+    case "TRIAL_STARTED":
+    case "TRIAL_ENDED":
+      return { type: row.type, occurredAt: row.occurredAt, effectiveAt: row.effectiveAt ?? undefined };
+    case "PRICE_CHANGE":
+      return {
+        type: row.type,
+        occurredAt: row.occurredAt,
+        effectiveAt: row.effectiveAt ?? undefined,
+        amountMinor: row.amountMinor ?? undefined,
+      };
+    case "NEXT_BILLING_DATE":
+      return row.billingAt
+        ? { type: row.type, occurredAt: row.occurredAt, billingAt: row.billingAt }
+        : null;
+    default: {
+      const exhaustive: never = row.type;
+      return exhaustive;
+    }
+  }
+}
 
 function identityKey(identity: PersistedIdentity): string {
   return JSON.stringify([
@@ -234,7 +277,7 @@ export async function sweepRecurringObligations(
     throw new RangeError("algorithmVersion must be a positive safe integer");
   }
 
-  const [purchaseRows, emailRows, persisted] = await Promise.all([
+  const [purchaseRows, emailFactRows, persisted] = await Promise.all([
     db.purchase.findMany({
       where: { userId: args.userId },
       select: {
@@ -246,14 +289,23 @@ export async function sweepRecurringObligations(
         purchasedAt: true,
       },
     }),
-    db.emailTransaction.findMany({
+    db.emailObligationFact.findMany({
       where: { userId: args.userId },
       select: {
         id: true,
-        merchant: true,
-        subject: true,
-        purchasedAt: true,
-        createdAt: true,
+        emailTransactionId: true,
+        type: true,
+        occurredAt: true,
+        effectiveAt: true,
+        billingAt: true,
+        amountMinor: true,
+        cadence: true,
+        emailTransaction: {
+          select: {
+            id: true,
+            merchant: true,
+          },
+        },
       },
     }),
     db.recurringObligation.findMany({
@@ -267,7 +319,7 @@ export async function sweepRecurringObligations(
         seriesKey: true,
         origin: true,
         evidence: {
-          select: { purchaseId: true, emailTransactionId: true, excludedByUser: true },
+          select: { purchaseId: true, emailTransactionId: true, emailFactId: true, excludedByUser: true },
         },
       },
     }),
@@ -315,10 +367,22 @@ export async function sweepRecurringObligations(
       continue;
     }
     const excluded = resolution.persisted?.evidence.filter(({ excludedByUser }) => excludedByUser) ?? [];
-    const excludedEmailIds = new Set(excluded.flatMap(({ emailTransactionId }) => emailTransactionId ? [emailTransactionId] : []));
-    const emailFacts: EmailFact[] = emailRows
-      .filter((email) => email.merchant === cluster.canonicalMerchantId && !excludedEmailIds.has(email.id))
-      .flatMap((email) => extractEmailSignals([email]).map((fact) => ({ email, fact })));
+    const excludedFactIds = new Set(excluded.flatMap(({ emailFactId }) => emailFactId ? [emailFactId] : []));
+    // Evidence created before emailFactId existed excluded the whole source
+    // message. Honour those durable owner choices during the migration window.
+    const legacyExcludedEmailIds = new Set(excluded.flatMap(({ emailFactId, emailTransactionId }) => (
+      !emailFactId && emailTransactionId ? [emailTransactionId] : []
+    )));
+    const emailFacts: EmailFact[] = emailFactRows
+      .filter((row) => (
+        row.emailTransaction.merchant === cluster.canonicalMerchantId
+        && !excludedFactIds.has(row.id)
+        && !legacyExcludedEmailIds.has(row.emailTransactionId)
+      ))
+      .flatMap((source) => {
+        const fact = toObligationFact(source);
+        return fact ? [{ source, fact }] : [];
+      });
     const facts: ObligationFact[] = [
       ...cluster.purchases.map((purchase) => ({ type: "CHARGE" as const, occurredAt: purchase.date })),
       ...emailFacts.map(({ fact }) => fact),
@@ -343,20 +407,22 @@ export async function sweepRecurringObligations(
       ...cluster.purchases.map((purchase) => ({
         purchaseId: purchase.id,
         emailTransactionId: null,
+        emailFactId: null,
         role: "OCCURRENCE" as const,
         excludedByUser: false,
         occurredAt: purchase.date,
       })),
-      ...[...new Map(emailFacts.map(({ email, fact }) => {
+      ...emailFacts.map(({ source, fact }) => {
         const role = evidenceRole(fact);
-        return [`${email.id}\0${role}`, {
+        return {
           purchaseId: null,
-          emailTransactionId: email.id,
+          emailTransactionId: source.emailTransactionId,
+          emailFactId: source.id,
           role,
           excludedByUser: false,
           occurredAt: fact.occurredAt,
-        }] as const;
-      })).values()],
+        };
+      }),
     ];
 
     const persist = async (): Promise<SweepOutcome> => db.$transaction(async (tx) => {
