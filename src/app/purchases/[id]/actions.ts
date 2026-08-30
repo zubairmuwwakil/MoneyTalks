@@ -8,6 +8,7 @@ import { requireUserId } from "@/lib/require-user";
 import { applyCapAccrual, removeCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
 import { orderedPurchasePair } from "@/lib/domain/spine/purchaseMerge";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
+import { applyMerchantCurrencyConfirmation } from "@/lib/domain/recurring/confirmMerchantCurrency";
 import type { OwnerState } from "@/engine/cards-twin";
 import type { Prisma } from "@prisma/client";
 
@@ -66,6 +67,7 @@ export async function correctPurchaseDetails(formData: FormData) {
   const amount = amountRaw === "" ? null : Number(amountRaw);
   if (!id.success || !merchant.success || !currency.success || (amount != null && (!Number.isFinite(amount) || amount < 0))) return { ok: false as const, error: "invalid details" };
   const paymentMethod = String(formData.get("paymentMethod") ?? "").trim() || null;
+  const rememberMerchantCurrency = formData.get("rememberMerchantCurrency") === "on";
   const corrected = await prisma.$transaction(async (tx) => {
     const purchase = await tx.purchase.findFirst({ where: { id: id.data, userId } });
     if (!purchase) return "missing" as const;
@@ -83,6 +85,13 @@ export async function correctPurchaseDetails(formData: FormData) {
     await replacePurchaseAccrual(tx, updated);
     await tx.purchaseCorrection.create({ data: { userId, purchaseId: purchase.id, kind: "details",
       beforeState: before, afterState: snapshot(updated) } });
+    if (rememberMerchantCurrency) {
+      await applyMerchantCurrencyConfirmation(tx, {
+        userId,
+        merchantCanonicalId: merchant.data,
+        currency: currency.data,
+      });
+    }
     return "changed" as const;
   });
   if (corrected !== "changed") return { ok: false as const,

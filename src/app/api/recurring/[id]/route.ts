@@ -58,7 +58,7 @@ export async function PATCH(
       userId,
       merchantCanonicalId: obligation.merchantCanonicalId,
       currency,
-    });
+    }, { replaceLearnedPurchases: true });
 
     const preference = await prisma.notificationPreference.findUnique({
       where: { userId },
