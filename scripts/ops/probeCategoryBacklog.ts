@@ -94,21 +94,32 @@ async function main() {
     `    of the uncategorized: ${withCoordsUncategorized}  ${pct(withCoordsUncategorized, uncategorized)}   <-- the ceiling`,
   );
 
-  // Whether a tight-radius rule can be trusted. A +/-500m fix cannot support a
-  // 50m "exactly one POI" test, so these buckets decide the gate's threshold.
+  // Whether a tight-radius rule can be trusted at all. A +/-500m fix cannot
+  // support a 50m "exactly one POI" test.
+  //
+  // The boundaries are the PROPOSED GATES, not round numbers: 30m is the
+  // geoNearby gate and 100m the geoConfirmed gate, so each row answers "could
+  // that tier ever fire?" directly. Bucketing at 20/50 instead would have made
+  // this table unable to answer the question it exists to answer. A null
+  // accuracy fails both gates and is counted with the failures, because the
+  // rule treats "not told" as "not good enough".
   const events = await prisma.walletEvent.findMany({
     where: { ...scope, latitude: { not: null } },
     select: { locationAccuracyMeters: true },
   });
+  const acc = (lo: number, hi: number) =>
+    events.filter(
+      (e) => e.locationAccuracyMeters != null && e.locationAccuracyMeters > lo && e.locationAccuracyMeters <= hi,
+    ).length;
   const buckets: [string, number][] = [
-    ["<= 20 m", events.filter((e) => e.locationAccuracyMeters != null && e.locationAccuracyMeters <= 20).length],
-    ["<= 50 m", events.filter((e) => e.locationAccuracyMeters != null && e.locationAccuracyMeters > 20 && e.locationAccuracyMeters <= 50).length],
-    ["<= 100 m", events.filter((e) => e.locationAccuracyMeters != null && e.locationAccuracyMeters > 50 && e.locationAccuracyMeters <= 100).length],
-    ["> 100 m", events.filter((e) => e.locationAccuracyMeters != null && e.locationAccuracyMeters > 100).length],
-    ["unreported", events.filter((e) => e.locationAccuracyMeters == null).length],
+    ["<= 30 m  (both tiers eligible)", acc(-1, 30)],
+    ["<= 100 m (geoConfirmed only)", acc(30, 100)],
+    ["> 100 m  (neither tier)", events.filter((e) => e.locationAccuracyMeters != null && e.locationAccuracyMeters > 100).length],
+    ["unreported (neither tier)", events.filter((e) => e.locationAccuracyMeters == null).length],
   ];
   console.log(`\n  Fix accuracy across ${events.length} located wallet events:`);
   table(buckets, events.length);
+  console.log("    (a near-empty first row means geoNearby ships dead — drop it rather than build it)");
 
   // What is already working, so the new tier is judged against a baseline
   // rather than against zero.
