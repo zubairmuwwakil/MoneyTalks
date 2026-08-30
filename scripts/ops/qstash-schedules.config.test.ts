@@ -69,6 +69,14 @@ describe("QStash schedule contract", () => {
     );
   });
 
+  it("runs requested Gmail backfills in resumable five-minute increments", () => {
+    const backfill = bySlug("gmail-backfill");
+
+    expect(backfill.path).toBe("/api/cron/gmail-backfill");
+    expect(backfill.cron).toBe("*/5 * * * *");
+    expect(backfill.timeout).toBe("2m");
+  });
+
   it("keeps scheduleIds frozen, because renaming one orphans the old schedule", () => {
     // QStash keys on scheduleId. A rename does not rename anything: it creates a
     // second schedule and leaves the first firing forever.
@@ -77,6 +85,7 @@ describe("QStash schedule contract", () => {
       notify: "moneytalks-notify",
       "purchase-merge": "moneytalks-purchase-merge",
       "recurring-sweep": "moneytalks-recurring-sweep",
+      "gmail-backfill": "moneytalks-gmail-backfill",
       fx: "moneytalks-fx",
       "prices-warmup": "moneytalks-prices-warmup",
       prices: "moneytalks-prices",

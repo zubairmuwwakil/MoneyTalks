@@ -16,6 +16,7 @@ Optional env:
   QSTASH_NOTIFY_CRON   default: 0 * * * *
   QSTASH_PURCHASE_MERGE_CRON default: 30 3 * * *
   QSTASH_RECURRING_SWEEP_CRON default: 45 3 * * *
+  QSTASH_GMAIL_BACKFILL_CRON default: */5 * * * *
   QSTASH_FX_CRON       default: 0 11 * * *
   QSTASH_PRICES_CRON   default: 0 2 * * *
 
