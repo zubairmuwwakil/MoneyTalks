@@ -32,35 +32,43 @@ import { clusterRecurringPurchases, type ClusteringPurchase } from "../../src/li
 const ALGORITHM_VERSION = 1;
 const DEFAULT_TIME_ZONE = "America/Toronto";
 
-type Identity = {
+type BucketIdentity = {
   userId: string;
   merchantCanonicalId: string;
   currency: string | null;
   discriminator: string;
 };
 
-type CandidateSummary = Identity & {
+type Identity = BucketIdentity & {
+  seriesKey: string;
+};
+
+type CandidateSummary = BucketIdentity & {
   cadence: string;
   coverage: number;
   occurrenceCount: number;
   amountPattern: string;
+  purchaseIds: string[];
+};
+
+type ObligationSummary = Identity & {
+  origin: string;
+  status: string | null;
+  confidence: number;
+  confidenceReasons: PrismaTypes.JsonValue;
+  purchaseIds: string[];
 };
 
 type SweepPreview = {
   userId: string;
   result: RecurringSweepResult;
   candidates: CandidateSummary[];
-  obligations: Map<string, {
-    origin: string;
-    status: string | null;
-    confidence: number;
-    confidenceReasons: PrismaTypes.JsonValue;
-  }>;
+  obligations: ObligationSummary[];
 };
 
 class DryRunRollback extends Error {}
 
-function identityKey(identity: Identity): string {
+function bucketKey(identity: BucketIdentity): string {
   return JSON.stringify([
     identity.userId,
     identity.merchantCanonicalId,
@@ -118,18 +126,9 @@ async function candidatesForOwner(
     }),
   ]);
 
-  const exclusionsByIdentity = new Map<string, Set<string>>();
-  for (const obligation of persisted) {
-    const key = identityKey({
-      userId,
-      merchantCanonicalId: obligation.merchantCanonicalId,
-      currency: obligation.currency,
-      discriminator: obligation.discriminator,
-    });
-    exclusionsByIdentity.set(key, new Set(
-      obligation.evidence.flatMap(({ purchaseId }) => purchaseId ? [purchaseId] : []),
-    ));
-  }
+  const excludedPurchaseIds = new Set(persisted.flatMap(({ evidence }) => (
+    evidence.flatMap(({ purchaseId }) => purchaseId ? [purchaseId] : [])
+  )));
 
   const clusteringPurchases: ClusteringPurchase[] = purchases.flatMap((purchase) => {
     // Keep this guard aligned with sweepRecurringObligations. A priced row
@@ -137,13 +136,7 @@ async function candidatesForOwner(
     // its honest identity, never a guessed unit.
     const currency = purchase.currency?.trim() || null;
     if (!purchase.merchant.trim() || (purchase.totalCents !== null && !currency)) return [];
-    const identity: Identity = {
-      userId: purchase.userId,
-      merchantCanonicalId: purchase.merchant,
-      currency,
-      discriminator: "",
-    };
-    if (exclusionsByIdentity.get(identityKey(identity))?.has(purchase.id)) return [];
+    if (excludedPurchaseIds.has(purchase.id)) return [];
     return [{
       id: purchase.id,
       userId: purchase.userId,
@@ -164,7 +157,23 @@ async function candidatesForOwner(
     coverage: cluster.cadence.coverage,
     occurrenceCount: cluster.purchases.length,
     amountPattern: cluster.amountPattern.pattern,
+    purchaseIds: cluster.purchases.map(({ id }) => id),
   }));
+}
+
+function obligationForCandidate(
+  candidate: CandidateSummary,
+  obligations: readonly ObligationSummary[],
+): ObligationSummary | undefined {
+  const candidateIds = new Set(candidate.purchaseIds);
+  return obligations
+    .filter((obligation) => bucketKey(obligation) === bucketKey(candidate))
+    .map((obligation) => ({
+      obligation,
+      overlap: obligation.purchaseIds.reduce((count, id) => count + Number(candidateIds.has(id)), 0),
+    }))
+    .sort((left, right) => right.overlap - left.overlap || left.obligation.seriesKey.localeCompare(right.obligation.seriesKey))[0]
+    ?.obligation;
 }
 
 function reasonCodes(value: PrismaTypes.JsonValue): string {
@@ -191,7 +200,7 @@ function printPreview(previews: SweepPreview[]) {
     }
 
     for (const candidate of preview.candidates) {
-      const obligation = preview.obligations.get(identityKey(candidate));
+      const obligation = obligationForCandidate(candidate, preview.obligations);
       const state = obligation?.origin === "USER"
         ? "owner-created row protected"
         : obligation
@@ -290,17 +299,25 @@ async function main() {
               merchantCanonicalId: true,
               currency: true,
               discriminator: true,
+              seriesKey: true,
               origin: true,
               status: true,
               confidence: true,
               confidenceReasons: true,
+              evidence: {
+                where: { purchaseId: { not: null } },
+                select: { purchaseId: true },
+              },
             },
           });
           previews.push({
             userId: owner.id,
             result,
             candidates,
-            obligations: new Map(rows.map((row) => [identityKey(row), row])),
+            obligations: rows.map(({ evidence, ...row }) => ({
+              ...row,
+              purchaseIds: evidence.flatMap(({ purchaseId }) => purchaseId ? [purchaseId] : []),
+            })),
           });
         }
         if (!apply) throw new DryRunRollback("rollback dry-run preview");

@@ -26,8 +26,9 @@ type ObligationRow = {
   userId: string;
   kind: string | null;
   merchantCanonicalId: string;
-  currency: string;
+  currency: string | null;
   discriminator: string;
+  seriesKey: string;
   cadence: unknown;
   schedule: unknown;
   amountPattern: "FIXED" | "VARIABLE" | "USAGE_BASED" | "UNKNOWN";
@@ -63,8 +64,7 @@ type ObligationCreateData = Partial<ObligationRow>
 
 type MemoryObligationDelegate = {
   findMany(args?: { where?: { userId?: string } }): Promise<Array<ObligationRow & { evidence: EvidenceRow[] }>>;
-  findFirst(args: { where: { userId: string; merchantCanonicalId: string; currency: string | null; discriminator: string } }): Promise<ObligationRow | null>;
-  findUnique(args: { where: Record<string, Record<string, string>> }): Promise<ObligationRow | null>;
+  findFirst(args: { where: { userId: string; merchantCanonicalId: string; currency: string | null; discriminator: string; seriesKey: string } }): Promise<ObligationRow | null>;
   count(): Promise<number>;
   create(args: { data: ObligationCreateData }): Promise<ObligationRow>;
   updateMany(args: {
@@ -107,28 +107,22 @@ class MemoryRecurringDb {
         .filter((row) => !where?.userId || row.userId === where.userId)
         .map((row) => ({
           ...row,
-          evidence: this.evidence.filter((candidate) => candidate.obligationId === row.id && candidate.excludedByUser),
+          evidence: this.evidence.filter((candidate) => candidate.obligationId === row.id),
         }));
-    const findUnique: MemoryObligationDelegate["findUnique"] = async ({ where }) => {
-      const identity = where.userId_merchantCanonicalId_currency_discriminator;
-      return this.obligations.find((row) =>
-        row.userId === identity.userId
-        && row.merchantCanonicalId === identity.merchantCanonicalId
-        && row.currency === identity.currency
-        && row.discriminator === identity.discriminator) ?? null;
-    };
     const findFirst: MemoryObligationDelegate["findFirst"] = async ({ where }) =>
       this.obligations.find((row) =>
         row.userId === where.userId
         && row.merchantCanonicalId === where.merchantCanonicalId
         && row.currency === where.currency
-        && row.discriminator === where.discriminator) ?? null;
+        && row.discriminator === where.discriminator
+        && row.seriesKey === where.seriesKey) ?? null;
     const create: MemoryObligationDelegate["create"] = async ({ data }) => {
       const now = new Date();
       const row = {
         id: this.id("obligation"),
         kind: null,
         discriminator: "",
+        seriesKey: "",
         cadence: { type: "MONTHLY", dayOfMonth: 11 },
         schedule: [],
         amountPattern: "UNKNOWN" as const,
@@ -153,7 +147,8 @@ class MemoryRecurringDb {
         candidate.userId === row.userId
         && candidate.merchantCanonicalId === row.merchantCanonicalId
         && candidate.currency === row.currency
-        && candidate.discriminator === row.discriminator)) {
+        && candidate.discriminator === row.discriminator
+        && candidate.seriesKey === row.seriesKey)) {
         throw new Error("unique obligation identity");
       }
       this.obligations.push(row);
@@ -168,7 +163,6 @@ class MemoryRecurringDb {
     this.recurringObligation = {
       findMany,
       findFirst,
-      findUnique,
       count: async () => this.obligations.length,
       create,
       updateMany,
@@ -287,6 +281,48 @@ describe("sweepRecurringObligations", () => {
     expect(second).toMatchObject({ created: 0, updated: 0, unchanged: 1 });
     expect(await db.recurringObligation.count()).toBe(1);
     expect(await db.recurringObligationEvidence.count()).toBe(3);
+  });
+
+  it("persists two series in one merchant/currency bucket without order-dependent loss", async () => {
+    const db = new MemoryRecurringDb();
+    const monthlyDates = ["2026-01-02", "2026-02-01", "2026-03-03", "2026-04-02", "2026-05-02", "2026-06-01"];
+    db.purchases.push(
+      ...monthlyDates.map((date, index) => ({
+        id: `anthropic-plan-${index}`,
+        userId: "user-1",
+        merchant: "anthropic.com",
+        totalCents: 2_000,
+        currency: "USD",
+        purchasedAt: at(date),
+      })),
+      ...monthlyDates.map((date, index) => ({
+        id: `anthropic-usage-${index}`,
+        userId: "user-1",
+        merchant: "anthropic.com",
+        totalCents: 500 + index * 700,
+        currency: "USD",
+        purchasedAt: new Date(at(date).getTime() + 10 * 86_400_000),
+      })),
+    );
+
+    const first = await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
+    db.purchases.push({
+      id: "anthropic-plan-6",
+      userId: "user-1",
+      merchant: "anthropic.com",
+      totalCents: 2_000,
+      currency: "USD",
+      purchasedAt: at("2026-07-01"),
+    });
+    db.purchases.reverse();
+    const second = await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
+
+    expect(first).toMatchObject({ created: 2, updated: 0, unchanged: 0 });
+    expect(second).toMatchObject({ created: 0, updated: 1, unchanged: 1 });
+    expect(db.obligations).toHaveLength(2);
+    expect(new Set(db.obligations.map(({ cadence }) => JSON.stringify(cadence))).size).toBe(2);
+    expect(new Set(db.obligations.map(({ seriesKey }) => seriesKey).filter(Boolean)).size).toBe(2);
+    expect(db.evidence).toHaveLength(13);
   });
 
   it("never overwrites an owner-created obligation", async () => {

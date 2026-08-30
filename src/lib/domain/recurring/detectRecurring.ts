@@ -27,11 +27,26 @@ type PersistedIdentity = {
   merchantCanonicalId: string;
   currency: string | null;
   discriminator: string;
+  seriesKey: string;
 };
 
 type ExcludedEvidence = {
   purchaseId: string | null;
   emailTransactionId: string | null;
+  excludedByUser: boolean;
+};
+
+type PersistedSeries = PersistedIdentity & {
+  id: string;
+  origin: "DETECTED" | "USER" | "MIGRATED";
+  evidence: ExcludedEvidence[];
+};
+
+type ResolvedCluster = {
+  cluster: CandidateCluster;
+  identity: PersistedIdentity;
+  persisted: PersistedSeries | null;
+  protectedByOwner: boolean;
 };
 
 type SweepEmail = {
@@ -53,7 +68,93 @@ function identityKey(identity: PersistedIdentity): string {
     identity.merchantCanonicalId,
     identity.currency,
     identity.discriminator,
+    identity.seriesKey,
   ]);
+}
+
+function bucketKey(identity: Omit<PersistedIdentity, "seriesKey">): string {
+  return JSON.stringify([
+    identity.userId,
+    identity.merchantCanonicalId,
+    identity.currency,
+    identity.discriminator,
+  ]);
+}
+
+/**
+ * Reconcile this sweep's mutable clusters to durable series identities.
+ *
+ * Evidence overlap preserves an existing key when a charge is appended,
+ * cadence inference shifts, or older evidence is backfilled. Only a genuinely
+ * unmatched series receives a new key, seeded from its earliest occurrence so
+ * concurrent first sweeps converge on the same unique identity.
+ */
+function resolveSeries(
+  clusters: readonly CandidateCluster[],
+  persisted: readonly PersistedSeries[],
+): ResolvedCluster[] {
+  const clusterBuckets = clusters.map((cluster) => bucketKey({
+    userId: cluster.userId,
+    merchantCanonicalId: cluster.canonicalMerchantId,
+    currency: cluster.currency,
+    discriminator: cluster.discriminator ?? "",
+  }));
+  const ownerBuckets = new Set(persisted
+    .filter(({ origin }) => origin === "USER")
+    .map((row) => bucketKey(row)));
+  const clusterPurchaseIds = clusters.map((cluster) => new Set(cluster.purchases.map(({ id }) => id)));
+  const edges = persisted
+    .filter(({ origin }) => origin !== "USER")
+    .flatMap((row) => clusters.flatMap((cluster, clusterIndex) => {
+      if (bucketKey(row) !== clusterBuckets[clusterIndex]) return [];
+      const overlap = row.evidence.reduce((count, evidence) => (
+        evidence.purchaseId && clusterPurchaseIds[clusterIndex].has(evidence.purchaseId)
+          ? count + 1
+          : count
+      ), 0);
+      return overlap > 0 ? [{ clusterIndex, overlap, row }] : [];
+    }))
+    .sort((left, right) => (
+      right.overlap - left.overlap
+      || clusters[left.clusterIndex].purchases[0].id.localeCompare(clusters[right.clusterIndex].purchases[0].id)
+      || left.row.id.localeCompare(right.row.id)
+    ));
+
+  const matchedByCluster = new Map<number, PersistedSeries>();
+  const matchedRowIds = new Set<string>();
+  for (const edge of edges) {
+    if (matchedByCluster.has(edge.clusterIndex) || matchedRowIds.has(edge.row.id)) continue;
+    matchedByCluster.set(edge.clusterIndex, edge.row);
+    matchedRowIds.add(edge.row.id);
+  }
+
+  const resolved = clusters.map((cluster, clusterIndex): ResolvedCluster => {
+    const matched = matchedByCluster.get(clusterIndex) ?? null;
+    const protectedByOwner = ownerBuckets.has(clusterBuckets[clusterIndex]);
+    return {
+      cluster,
+      persisted: matched,
+      protectedByOwner,
+      identity: {
+        userId: cluster.userId,
+        merchantCanonicalId: cluster.canonicalMerchantId,
+        currency: cluster.currency,
+        discriminator: cluster.discriminator ?? "",
+        seriesKey: matched?.seriesKey ?? `purchase:${cluster.purchases[0].id}`,
+      },
+    };
+  });
+
+  const assigned = new Set<string>();
+  for (const resolution of resolved) {
+    if (resolution.protectedByOwner) continue;
+    const key = identityKey(resolution.identity);
+    if (assigned.has(key)) {
+      throw new Error(`recurring series identity collision: ${key}`);
+    }
+    assigned.add(key);
+  }
+  return resolved;
 }
 
 function localIsoDate(date: Date, timeZone: string): string {
@@ -158,22 +259,23 @@ export async function sweepRecurringObligations(
     db.recurringObligation.findMany({
       where: { userId: args.userId },
       select: {
+        id: true,
         userId: true,
         merchantCanonicalId: true,
         currency: true,
         discriminator: true,
+        seriesKey: true,
+        origin: true,
         evidence: {
-          where: { excludedByUser: true },
-          select: { purchaseId: true, emailTransactionId: true },
+          select: { purchaseId: true, emailTransactionId: true, excludedByUser: true },
         },
       },
     }),
   ]);
 
-  const exclusionsByIdentity = new Map<string, ExcludedEvidence[]>();
-  for (const obligation of persisted) {
-    exclusionsByIdentity.set(identityKey(obligation), obligation.evidence);
-  }
+  const excludedPurchaseIds = new Set(persisted.flatMap(({ evidence }) => evidence.flatMap((item) => (
+    item.excludedByUser && item.purchaseId ? [item.purchaseId] : []
+  ))));
 
   let skipped = 0;
   const purchases: ClusteringPurchase[] = [];
@@ -187,14 +289,7 @@ export async function sweepRecurringObligations(
       skipped += 1;
       continue;
     }
-    const key = identityKey({
-      userId: purchase.userId,
-      merchantCanonicalId: purchase.merchant,
-      currency,
-      discriminator: "",
-    });
-    const excluded = exclusionsByIdentity.get(key) ?? [];
-    if (excluded.some((evidence) => evidence.purchaseId === purchase.id)) {
+    if (excludedPurchaseIds.has(purchase.id)) {
       skipped += 1;
       continue;
     }
@@ -213,14 +308,13 @@ export async function sweepRecurringObligations(
   const result: RecurringSweepResult = { created: 0, updated: 0, unchanged: 0, skipped };
   const asOf = new Date();
 
-  for (const cluster of clusters) {
-    const identity: PersistedIdentity = {
-      userId: cluster.userId,
-      merchantCanonicalId: cluster.canonicalMerchantId,
-      currency: cluster.currency,
-      discriminator: cluster.discriminator ?? "",
-    };
-    const excluded = exclusionsByIdentity.get(identityKey(identity)) ?? [];
+  for (const resolution of resolveSeries(clusters, persisted)) {
+    const { cluster, identity } = resolution;
+    if (resolution.protectedByOwner) {
+      result.skipped += 1;
+      continue;
+    }
+    const excluded = resolution.persisted?.evidence.filter(({ excludedByUser }) => excludedByUser) ?? [];
     const excludedEmailIds = new Set(excluded.flatMap(({ emailTransactionId }) => emailTransactionId ? [emailTransactionId] : []));
     const emailFacts: EmailFact[] = emailRows
       .filter((email) => email.merchant === cluster.canonicalMerchantId && !excludedEmailIds.has(email.id))
