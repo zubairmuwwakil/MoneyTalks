@@ -8,15 +8,20 @@ import { requireUserId } from "@/lib/require-user";
 import { applyCapAccrual, removeCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
 import { orderedPurchasePair } from "@/lib/domain/spine/purchaseMerge";
 import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
+import { applyMerchantCurrencyConfirmation } from "@/lib/domain/recurring/confirmMerchantCurrency";
 import type { OwnerState } from "@/engine/cards-twin";
 import type { Prisma } from "@prisma/client";
 
 const idInput = z.string().min(1);
 
 type PurchaseSnapshot = { merchant: string; totalCents: number | null; currency: string | null;
+  currencySource: string | null;
   paymentMethod: string | null; financialState: "NORMALIZED" | "RECONCILED" | "ADJUSTED" | "DECLINED" | "REVERSED" };
+// currencySource travels with currency: undo restores this snapshot wholesale,
+// so omitting it would leave the row claiming an override it no longer has.
 const snapshot = (p: PurchaseSnapshot) => ({ merchant: p.merchant, totalCents: p.totalCents,
-  currency: p.currency, paymentMethod: p.paymentMethod, financialState: p.financialState });
+  currency: p.currency, currencySource: p.currencySource, paymentMethod: p.paymentMethod,
+  financialState: p.financialState });
 
 async function replacePurchaseAccrual(tx: Prisma.TransactionClient, purchase: PurchaseSnapshot & { id: string; userId: string; category: string | null; purchasedAt: Date }) {
   await removeCapAccrual(tx, `purchase:${purchase.id}`);
@@ -62,6 +67,7 @@ export async function correctPurchaseDetails(formData: FormData) {
   const amount = amountRaw === "" ? null : Number(amountRaw);
   if (!id.success || !merchant.success || !currency.success || (amount != null && (!Number.isFinite(amount) || amount < 0))) return { ok: false as const, error: "invalid details" };
   const paymentMethod = String(formData.get("paymentMethod") ?? "").trim() || null;
+  const rememberMerchantCurrency = formData.get("rememberMerchantCurrency") === "on";
   const corrected = await prisma.$transaction(async (tx) => {
     const purchase = await tx.purchase.findFirst({ where: { id: id.data, userId } });
     if (!purchase) return "missing" as const;
@@ -71,11 +77,21 @@ export async function correctPurchaseDetails(formData: FormData) {
     const before = snapshot(purchase);
     const updated = await tx.purchase.update({ where: { id: purchase.id }, data: { merchant: merchant.data,
       totalCents: amount == null ? null : Math.round(amount * 100), currency: currency.data,
+      // The owner's answer is the top tier of src/lib/domain/receipts/resolveCurrency.ts:
+      // marking it is what stops the next Gmail reprocess from restating the unit.
+      currencySource: "userOverride",
       paymentMethod, financialState: "ADJUSTED" } });
     await tx.walletEvent.updateMany({ where: { purchaseId: purchase.id }, data: { financialState: "ADJUSTED" } });
     await replacePurchaseAccrual(tx, updated);
     await tx.purchaseCorrection.create({ data: { userId, purchaseId: purchase.id, kind: "details",
       beforeState: before, afterState: snapshot(updated) } });
+    if (rememberMerchantCurrency) {
+      await applyMerchantCurrencyConfirmation(tx, {
+        userId,
+        merchantCanonicalId: merchant.data,
+        currency: currency.data,
+      });
+    }
     return "changed" as const;
   });
   if (corrected !== "changed") return { ok: false as const,

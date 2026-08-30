@@ -28,7 +28,7 @@ model User {
   creditCards                 CreditCard[]
   dataDeletionJobs            DataDeletionJob[]
   detectedItems               DetectedItem[]
-  emailConnection             EmailConnection?
+  emailConnections            EmailConnection[]
   emailTransactions           EmailTransaction[]
   financialAccounts           FinancialAccount[]
   fxRates                     FxRate[]
@@ -43,6 +43,9 @@ model User {
   purchaseCorrections         PurchaseCorrection[]
   receiptDocuments            ReceiptDocument[]
   receiptUploads              ReceiptUpload[]
+  merchantCurrencyConfirmations MerchantCurrencyConfirmation[]
+  recurringObligations        RecurringObligation[]
+  recurringSweepJob           RecurringSweepJob?
   refundCases                 RefundCase[]
   returnItems                 ReturnItem[]
   sessions                    Session[]
@@ -529,6 +532,10 @@ model Purchase {
   merchant                  String
   totalCents                Int?
   currency                  String?
+  /// Which resolver tier decided `currency` (src/lib/domain/receipts/resolveCurrency.ts).
+  /// Null means the row predates provenance tracking; "none" means the tiers
+  /// ran and found no evidence, which is a read fact and not the same thing.
+  currencySource            String?
   purchasedAt               DateTime
   orderNumber               String?
   paymentMethod             String?
@@ -560,6 +567,99 @@ model Purchase {
   @@index([purchasedAt])
   @@index([userId, merchant])
   @@index([userId, category, purchasedAt])
+}
+
+model RecurringObligation {
+  id                  String                        @id @default(cuid())
+  userId              String
+  /// Nullable in the domain, but normalized to "" at persistence so Postgres
+  /// can enforce the common no-discriminator identity as truly unique.
+  discriminator       String                        @default("")
+  kind                String?
+  merchantCanonicalId String
+  /// An entirely unpriced series has no knowable currency; persist null rather
+  /// than inventing a unit for its identity.
+  currency            String?
+  cadence             Json
+  schedule            Json
+  amountPattern       AmountPatternKind
+  status              ObligationLifecycleStatus?
+  nextExpectedDate    DateTime?
+  confidence          Float
+  confidenceReasons   Json
+  lastObservedAt      DateTime
+  algorithmVersion    Int                           @default(1)
+  origin              ObligationOrigin              @default(DETECTED)
+  needsReview         Boolean                       @default(true)
+  dismissedAt         DateTime?
+  confirmedAt         DateTime?
+  dismissReason       String?
+  decidedConfidence   Float?
+  decidedReasons      Json?
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+  user                User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  evidence            RecurringObligationEvidence[]
+
+  // The migration supplies partial unique indexes for non-null and null
+  // currencies. Prisma cannot express those indexes, and a normal PostgreSQL
+  // unique index would permit duplicate null identities.
+  @@index([userId, status, nextExpectedDate])
+  @@index([algorithmVersion])
+}
+
+/// An owner's durable answer about a merchant's billing currency. It is
+/// intentionally per-owner: a merchant's USD bill for one owner is not
+/// evidence about another owner's CAD bill.
+model MerchantCurrencyConfirmation {
+  id                  String   @id @default(cuid())
+  userId              String
+  merchantCanonicalId String
+  currency            String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, merchantCanonicalId])
+  @@index([userId])
+}
+
+/// Evidence is stored as auditable links rather than an aggregate count.
+model RecurringObligationEvidence {
+  id                 String              @id @default(cuid())
+  obligationId       String
+  purchaseId         String?
+  emailTransactionId String?
+  role               EvidenceRole
+  excludedByUser     Boolean             @default(false)
+  occurredAt         DateTime
+  obligation         RecurringObligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+
+  @@unique([obligationId, purchaseId])
+  @@index([obligationId, occurredAt])
+  @@index([purchaseId])
+}
+
+/// Durable, recurring work item for one owner's obligation sweep.
+///
+/// Keeping a row even when a sweep finds no obligations prevents owners with
+/// zero detections from remaining permanently "never swept" at the front of a
+/// bounded batch. Claims use a lease so concurrent cron deliveries do not run
+/// the same owner, and stale leases are recoverable after an interrupted run.
+model RecurringSweepJob {
+  userId      String                  @id
+  status      RecurringSweepJobStatus @default(PENDING)
+  runAt       DateTime                @default(now())
+  attempts    Int                     @default(0)
+  lastError   String?
+  lockedAt    DateTime?
+  lockId      String?
+  lastSweptAt DateTime?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, runAt])
 }
 
 model PurchaseCorrection {
@@ -620,19 +720,39 @@ model PurchaseAttachment {
 }
 
 model EmailConnection {
-  id           String        @id @default(cuid())
-  userId       String        @unique
-  provider     EmailProvider @default(GMAIL)
-  emailAddress String?
-  accessToken  String?
-  refreshToken String?
-  expiry       DateTime?
-  scope        String?
-  lastScanAt   DateTime?
-  scanMode     ScanMode      @default(ALL)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String             @id @default(cuid())
+  userId              String
+  provider            EmailProvider      @default(GMAIL)
+  emailAddress        String
+  accessToken         String?
+  refreshToken        String?
+  expiry              DateTime?
+  scope               String?
+  lastScanAt          DateTime?
+  scanMode            ScanMode           @default(ALL)
+  /// When the owner asked for a historical backfill. Null means never asked,
+  /// and the job must not run — the ratified ruling is owner-initiated, never
+  /// automatic, because this reads two years of somebody's mail.
+  backfillRequestedAt DateTime?
+  /// ISO date (YYYY-MM-DD): the oldest point already covered. The job walks
+  /// backwards from here. Null with a request pending means "start at today".
+  backfillCursor      String?
+  backfillCompletedAt DateTime?
+  /// Recoverable cron lease. An expired lease may be reclaimed; lockId keeps
+  /// an older worker from releasing a newer worker's claim.
+  backfillLockedAt    DateTime?
+  backfillLockId      String?
+  // Why the scan last failed. 6eb2ada narrowed lastScanAt so it records a
+  // COMPLETED scan, which already distinguishes broken from quiet; this
+  // records *how* it broke, so a support answer does not require server logs.
+  lastScanError       String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailTransactions   EmailTransaction[]
+
+  @@unique([userId, provider, emailAddress])
+  @@index([userId])
 }
 
 model DataDeletionJob {
@@ -713,11 +833,15 @@ model EmailTransaction {
   createdAt        DateTime          @default(now())
   purchaseId       String?
   purchase         Purchase?         @relation(fields: [purchaseId], references: [id])
+  connectionId     String?
+  rfc822MessageId  String?
+  connection       EmailConnection?  @relation(fields: [connectionId], references: [id], onDelete: SetNull)
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   receiptDocuments ReceiptDocument[]
 
   @@unique([userId, provider, messageId])
   @@index([purchaseId])
+  @@index([userId, rfc822MessageId])
   @@index([userId, merchant])
   @@index([userId, purchasedAt])
 }
@@ -1189,4 +1313,38 @@ enum PurchaseFinancialState {
   ADJUSTED
   DECLINED
   REVERSED
+}
+
+enum AmountPatternKind {
+  FIXED
+  VARIABLE
+  USAGE_BASED
+  UNKNOWN
+}
+
+enum ObligationLifecycleStatus {
+  TRIALING
+  ACTIVE
+  CANCELLING
+  CANCELLED
+  LAPSED
+}
+
+enum ObligationOrigin {
+  DETECTED
+  USER
+  MIGRATED
+}
+
+enum EvidenceRole {
+  OCCURRENCE
+  CADENCE_FACT
+  CANCELLATION
+  TRIAL
+  PRICE_CHANGE
+}
+
+enum RecurringSweepJobStatus {
+  PENDING
+  RUNNING
 }

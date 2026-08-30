@@ -1,6 +1,15 @@
-import { it, expect } from "vitest";
+import { it, expect, vi } from "vitest";
 
 import { extractOrderNumber, extractTotalFromText, htmlToText, parsePurchaseFromRawGmailMessage } from "./gmailPurchaseParser";
+
+vi.mock("pdf-parse", () => ({
+  PDFParse: class {
+    async getText() {
+      return { text: "Vercel invoice\nTotal due USD 22.60" };
+    }
+    async destroy() {}
+  },
+}));
 
 it("reads an explicit order total", () => {
   expect(extractTotalFromText("Order total: CAD $42.99")).toEqual({ totalCents: 4299, currency: "CAD" });
@@ -102,6 +111,44 @@ it("exposes the decoded text body so callers stop scanning raw MIME", async () =
   expect(parsed.textBody).not.toContain("Content-Type");
 });
 
+it("resolves a bare-$ total against a currency stated in the footer", async () => {
+  // The shape that left Purchase.currency null on 56 of 60 real receipts: the
+  // total line says "$", and only the footer names the unit.
+  const parsed = await parsePurchaseFromRawGmailMessage({
+    messageId: "anthropic-1",
+    raw: rawMessage(
+      "Your receipt",
+      "billing@anthropic.com",
+      ["Claude Pro subscription", "Total $120.00", "All amounts are in USD."].join("\n"),
+    ),
+  });
+
+  expect(parsed.totalCents).toBe(12000);
+  expect(parsed.currency).toBe("USD");
+  expect(parsed.currencySource).toBe("explicitCode");
+});
+
+it("leaves a receipt with no currency evidence unresolved rather than assuming CAD", async () => {
+  const parsed = await parsePurchaseFromRawGmailMessage({
+    messageId: "simons-1",
+    raw: rawMessage("Your receipt", "orders@simons.ca", "Order total: $84.19\nThank you!"),
+  });
+
+  expect(parsed.totalCents).toBe(8419);
+  expect(parsed.currency).toBeUndefined();
+  expect(parsed.currencySource).toBe("none");
+});
+
+it("labels a currency the line-level extractor read for itself", async () => {
+  const parsed = await parsePurchaseFromRawGmailMessage({
+    messageId: "ca-1",
+    raw: rawMessage("Your receipt", "orders@store.ca", "Order total: CA$84.19"),
+  });
+
+  expect(parsed.currency).toBe("CAD");
+  expect(parsed.currencySource).toBe("explicitCode");
+});
+
 it("keeps line structure when converting HTML, instead of one long blob", () => {
   // cheerio's .text() concatenates block elements, which produced a single
   // 2057-character line for a real receipt and defeated line-based extraction.
@@ -164,4 +211,38 @@ it("finds the amount in the HTML part when the plain-text part omits it", async 
 
   expect(parsed.totalCents).toBe(500);
   expect(parsed.orderId).toBe("60501399");
+});
+
+it("extracts an attached PDF through the pdf-parse v2 class API", async () => {
+  const boundary = "pdf-boundary";
+  const mime = [
+    "From: Vercel <invoice@vercel.com>",
+    "Subject: Your invoice",
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    "Content-Type: text/plain; charset=utf-8",
+    "",
+    "Your invoice is attached.",
+    `--${boundary}`,
+    "Content-Type: application/pdf",
+    "Content-Disposition: attachment; filename=invoice.pdf",
+    "Content-Transfer-Encoding: base64",
+    "",
+    Buffer.from("mock pdf").toString("base64"),
+    `--${boundary}--`,
+  ].join("\r\n");
+
+  const parsed = await parsePurchaseFromRawGmailMessage({
+    messageId: "vercel-pdf",
+    raw: Buffer.from(mime).toString("base64url"),
+  });
+
+  expect(parsed).toMatchObject({
+    merchant: "vercel.com",
+    rawSource: "pdf",
+    totalCents: 2260,
+    currency: "USD",
+    currencySource: "explicitCode",
+  });
 });

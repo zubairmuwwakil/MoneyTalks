@@ -2,6 +2,7 @@
 
 import { requireUserId } from "@/lib/require-user";
 import InboxReview from "@/app/automation/ui/InboxReview";
+import RecurringObligationReview from "@/app/automation/ui/RecurringObligationReview";
 
 export default async function SettingsInboxReviewPage() {
   await requireUserId();
@@ -16,10 +17,11 @@ export default async function SettingsInboxReviewPage() {
         <div className="relative">
           <p className="text-[11px] uppercase tracking-[0.28em] text-cyan-100">Settings</p>
           <h1 className="font-display text-4xl text-white">Inbox Review</h1>
-          <p className="text-sm text-slate-200/80">Confirm automation suggestions and keep the queue clean.</p>
+          <p className="text-sm text-slate-200/80">Review detected obligations and automation suggestions before they change your records.</p>
         </div>
       </div>
 
+      <RecurringObligationReview />
       <InboxReview />
     </main>
   );

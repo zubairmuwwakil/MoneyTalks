@@ -10,7 +10,7 @@ export default async function WriteOffsPage() {
   const userId = await requireUserId();
   const currentYear = new Date().getFullYear().toString();
 
-  const [profile, purchases, bills, transactions] = await Promise.all([
+  const [profile, purchases, bills] = await Promise.all([
     getOrCreateProfile(userId),
     prisma.purchase.findMany({
       where: { userId },
@@ -24,11 +24,6 @@ export default async function WriteOffsPage() {
     prisma.bill.findMany({
       where: { userId },
       include: { payments: true },
-    }),
-    prisma.transaction.findMany({
-      where: { account: { userId } },
-      orderBy: { date: "desc" },
-      take: 150,
     }),
   ]);
 

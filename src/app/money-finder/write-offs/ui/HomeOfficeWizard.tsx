@@ -3,30 +3,20 @@
 import { useMemo, useState } from "react";
 import {
   Building2,
-  Calculator,
   Check,
   ChevronDown,
   ChevronUp,
-  FileCheck,
   Home,
-  Info,
-  Maximize2,
-  Percent,
-  RotateCcw,
-  Sparkles,
-  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 interface HomeOfficeWizardProps {
-  currentWorkspacePct: number;
   onApplyRatio: (ratioPct: number, rationale: string) => void;
   className?: string;
 }
 
 export function HomeOfficeWizard({
-  currentWorkspacePct,
   onApplyRatio,
   className = "",
 }: HomeOfficeWizardProps) {

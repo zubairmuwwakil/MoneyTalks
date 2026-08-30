@@ -70,3 +70,35 @@ describe("inferAmountPattern fixtures", () => {
     expect(inferAmountPattern([...ordered].reverse())).toEqual(inferAmountPattern(ordered));
   });
 });
+
+describe("unpriced series", () => {
+  // Cloudflare's "Your invoice is available" puts the figure behind a link, so
+  // the observation arrives dated but unpriced. The cadence is still real.
+  const monthly = (day: string) => new Date(`2026-0${day}-11T00:00:00.000Z`);
+
+  it("classifies an entirely unpriced series as UNKNOWN with no schedule", () => {
+    const result = inferAmountPattern([
+      { date: monthly("1"), amountMinor: null, currency: null },
+      { date: monthly("2"), amountMinor: null, currency: null },
+      { date: monthly("3"), amountMinor: null, currency: null },
+    ]);
+    expect(result.pattern).toBe("UNKNOWN");
+    expect(result.schedule).toEqual([]);
+  });
+
+  it("uses the priced observations when only some carry an amount", () => {
+    // Partial information is still information — a biller that started
+    // stating amounts should not be treated as if it never had.
+    const result = inferAmountPattern([
+      { date: monthly("1"), amountMinor: null, currency: "CAD" },
+      { date: monthly("2"), amountMinor: 2099, currency: "CAD" },
+      { date: monthly("3"), amountMinor: 2099, currency: "CAD" },
+    ]);
+    expect(result.pattern).toBe("FIXED");
+    expect(result.schedule[0].amountMinor).toBe(2099);
+  });
+
+  it("still rejects an empty series", () => {
+    expect(() => inferAmountPattern([])).toThrow(RangeError);
+  });
+});

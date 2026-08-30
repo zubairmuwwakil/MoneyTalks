@@ -1,6 +1,10 @@
 import { it, expect } from "vitest";
 
-import { classifyReceiptEmail, hasPurchaseEvidence } from "./receiptEvidence";
+import {
+  classifyReceiptEmail,
+  hasProspectiveChargeEvidence,
+  hasPurchaseEvidence,
+} from "./receiptEvidence";
 
 // Subjects below are verbatim from the 100 messages the first real scan
 // ingested — every one of them became a Purchase and a RETURN suggestion.
@@ -31,6 +35,50 @@ it("accepts an amount, an order id, or structured JSON-LD as evidence", () => {
 it("rejects a zero total as evidence", () => {
   // A $0.00 line is almost always a promo or a shipping-free notice.
   expect(hasPurchaseEvidence({ rawSource: "text", totalCents: 0 })).toBe(false);
+});
+
+it("keeps a future auto-renewal amount out of completed purchases", () => {
+  const notice = {
+    rawSource: "text" as const,
+    subject: "Shaheed, here's your auto-renewal notice",
+    totalCents: 1868,
+    textBody: "We'll attempt to charge your total balance of $18.68 on the day of renewal.",
+  };
+
+  expect(hasProspectiveChargeEvidence(notice)).toBe(true);
+  expect(hasPurchaseEvidence(notice)).toBe(false);
+});
+
+it("does not demote a completed order that also discusses renewals", () => {
+  const receipt = {
+    rawSource: "text" as const,
+    subject: "Namecheap Order Summary (Order# 181889957)",
+    totalCents: 1148,
+    textBody: "Initial Charge: $11.48. We encourage auto-renewal for your domains.",
+  };
+
+  expect(hasProspectiveChargeEvidence(receipt)).toBe(false);
+  expect(hasPurchaseEvidence(receipt)).toBe(true);
+});
+
+it("keeps an invoice awaiting an automatic card charge out of completed purchases", () => {
+  const invoice = {
+    rawSource: "text" as const,
+    subject: "[billing] Heroku Invoice for July 2026 (Invoice #113242336)",
+    totalCents: 101,
+    orderId: "113242336",
+    textBody: [
+      "Your Heroku invoice for July 2026 is now available.",
+      "We will charge your credit card $1.01 within the next two business days.",
+      "TOTAL CHARGE: $1.01",
+    ].join("\n"),
+  };
+
+  // An invoice number and payable total identify the obligation, not a
+  // completed transfer. The explicit future-tense charge controls.
+  expect(hasProspectiveChargeEvidence(invoice)).toBe(true);
+  expect(hasPurchaseEvidence(invoice)).toBe(false);
+  expect(classifyReceiptEmail(invoice.subject, invoice.textBody)).toBe("BILL");
 });
 
 it("refuses to classify marketing email that carries no purchase signal", () => {

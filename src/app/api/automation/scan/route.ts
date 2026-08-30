@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
-import { classifyReceiptEmail, hasPurchaseEvidence } from "@/lib/domain/receipts/receiptEvidence";
+import {
+  classifyReceiptEmail,
+  hasProspectiveChargeEvidence,
+  hasPurchaseEvidence,
+} from "@/lib/domain/receipts/receiptEvidence";
 import { processRawGmailMessage } from "@/lib/domain/receipts/gmailReceiptProcessing";
-import { getAuthedGmail } from "@/lib/services/gmailClient";
+import { getAuthedGmail, listUserConnections } from "@/lib/services/gmailClient";
 import { hasGmailReadScope, listRecentRawGmailMessages } from "@/lib/services/gmailScanSource";
+import { sendServiceFailureAlert } from "@/lib/services/alerting";
 import type { Prisma } from "@prisma/client";
 import crypto from "crypto";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
@@ -72,31 +77,43 @@ export async function POST(req: NextRequest) {
   const days = Number(body?.days ?? 90);
   const max = Number(body?.max ?? 200);
 
-  const authed = await getAuthedGmail(userId);
-  if (!authed) {
+  const connections = await listUserConnections(userId);
+  if (connections.length === 0) {
     return NextResponse.json({ error: "Gmail not connected. Connect it in Settings → Automation." }, { status: 400 });
   }
-  if (!hasGmailReadScope(authed.conn.scope)) {
-    return NextResponse.json(
-      { error: "Google didn't grant Gmail access. Reconnect and tick the Gmail checkbox on the consent screen." },
-      { status: 400 }
-    );
-  }
-  const { gmail, flushTokens } = authed;
-  const scanMode = authed.conn.scanMode ?? "ALL";
-
-  let already = 0;
-  let parsed = 0;
-  let transactionsUpserted = 0;
-  let suggestionsCreated = 0;
-  let fetched = 0;
 
   const since = new Date();
   since.setUTCDate(since.getUTCDate() - (Number.isFinite(days) ? days : 90));
 
-  let scanError: string | null = null;
+  type ConnectionResult = {
+    connectionId: string;
+    emailAddress: string;
+    fetched: number;
+    imported: number;
+    skipped: number;
+    suggestionsCreated: number;
+    parsed: number;
+    error?: string;
+  };
+  const perConnection: ConnectionResult[] = [];
 
-  try {
+  for (const connection of connections) {
+    let already = 0;
+    let parsed = 0;
+    let transactionsUpserted = 0;
+    let suggestionsCreated = 0;
+    let fetched = 0;
+    let scanError: string | null = null;
+    let flushTokens: (() => Promise<void>) | null = null;
+
+    try {
+      const authed = await getAuthedGmail(connection.id);
+      if (!authed) throw new Error("not_connected");
+      if (!hasGmailReadScope(authed.conn.scope)) throw new Error("gmail_scope_missing");
+      flushTokens = authed.flushTokens;
+      const { gmail } = authed;
+      const scanMode = connection.scanMode ?? "ALL";
+
     const messages = await listRecentRawGmailMessages(gmail, {
       since,
       max: Math.min(Number.isFinite(max) ? max : 200, 500),
@@ -109,6 +126,7 @@ export async function POST(req: NextRequest) {
         userId,
         message: msg,
         mode: "scan",
+        connectionId: connection.id,
       });
       const { parsedPurchase, parserError } = processedMessage;
       const tx = processedMessage.transaction;
@@ -133,9 +151,13 @@ export async function POST(req: NextRequest) {
       // Null means "no purchase signal at all" — the honest answer for
       // marketing mail, which previously fell through to RETURN.
       const suggestionType = tx ? classifyReceiptEmail(tx.subject, body) : null;
-      // A suggestion needs something concrete behind it: money, an order id,
-      // or a tracking number.
-      const actionable = hasPurchaseEvidence(parsedPurchase) || trackingHits.length > 0;
+      // A suggestion needs something concrete behind it: completed purchase
+      // evidence, a stated future charge, or a tracking number. Future-charge
+      // evidence stays useful here even though the purchase spine correctly
+      // refuses to treat it as money that already moved.
+      const actionable = hasPurchaseEvidence(parsedPurchase)
+        || hasProspectiveChargeEvidence(parsedPurchase)
+        || trackingHits.length > 0;
 
       const existingSuggestion = await prisma.automationSuggestion.findUnique({
         where: { userId_primaryMessageId: { userId, primaryMessageId: msg.messageId } },
@@ -249,30 +271,65 @@ export async function POST(req: NextRequest) {
         }
       }
     }
-  } catch (error) {
-    // Surface the real upstream failure (e.g. "Gmail API ... is disabled")
-    // instead of an opaque 500 that reads as an empty scan.
-    scanError = error instanceof Error ? error.message : String(error);
-    console.error(`[scan] failed for ${userId}:`, scanError);
-  } finally {
-    await prisma.emailConnection.updateMany({
-      where: { userId },
-      data: { lastScanAt: new Date() },
+      // lastScanAt records that THIS mailbox completed. A successful sibling
+      // must not make a revoked connection look healthy.
+      await prisma.emailConnection.updateMany({
+        where: { id: connection.id, userId },
+        data: { lastScanAt: new Date(), lastScanError: null },
+      });
+    } catch (error) {
+      // One revoked grant must not cost the owner their other mailboxes.
+      scanError = error instanceof Error ? error.message : String(error);
+      console.error(`[scan] failed for connection ${connection.id}:`, scanError);
+      await prisma.emailConnection.updateMany({
+        where: { id: connection.id, userId },
+        data: { lastScanError: scanError },
+      });
+      // A completed scan that finds nothing is normal for a quiet mailbox. A
+      // thrown scan is actionable, and these details identify the connection
+      // without exporting mailbox content to Sentry or alert email.
+      await sendServiceFailureAlert({
+        serviceName: "automation/scan",
+        summary: "Unhandled error during Gmail scan",
+        error: scanError,
+        details: {
+          connectionId: connection.id,
+          days: Number.isFinite(days) ? days : 90,
+          fetched,
+        },
+      });
+    } finally {
+      // Refreshed tokens must be durably stored before the function returns,
+      // even if this mailbox failed after a refresh.
+      if (flushTokens) await flushTokens();
+    }
+
+    perConnection.push({
+      connectionId: connection.id,
+      emailAddress: connection.emailAddress,
+      fetched,
+      imported: transactionsUpserted,
+      skipped: already,
+      suggestionsCreated,
+      parsed,
+      ...(scanError ? { error: scanError } : {}),
     });
-    // Refreshed tokens must be durably stored before the function returns.
-    await flushTokens();
   }
 
-  if (scanError) {
-    return NextResponse.json({ error: `Scan failed: ${scanError}` }, { status: 502 });
-  }
+  const totals = perConnection.reduce(
+    (sum, connection) => ({
+      importedEmails: sum.importedEmails + connection.imported,
+      skipped: sum.skipped + connection.skipped,
+      suggestionsCreated: sum.suggestionsCreated + connection.suggestionsCreated,
+      parsed: sum.parsed + connection.parsed,
+      fetched: sum.fetched + connection.fetched,
+    }),
+    { importedEmails: 0, skipped: 0, suggestionsCreated: 0, parsed: 0, fetched: 0 },
+  );
 
   return NextResponse.json({
     ok: true,
-    importedEmails: transactionsUpserted,
-    skipped: already,
-    suggestionsCreated,
-    parsed,
-    fetched,
+    ...totals,
+    perConnection,
   });
 }
