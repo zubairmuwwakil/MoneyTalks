@@ -21,6 +21,7 @@ vi.mock("@/lib/prisma", () => ({
     snoozedEvent: { findMany: vi.fn() },
     valueEvent: { findMany: vi.fn() },
     bill: { findMany: vi.fn() },
+    emailObligationFact: { findMany: vi.fn() },
   },
 }));
 
@@ -41,6 +42,7 @@ describe("GET /api/data/export", () => {
       prisma.snoozedEvent,
       prisma.valueEvent,
       prisma.bill,
+      prisma.emailObligationFact,
     ]) {
       vi.mocked(model.findMany).mockResolvedValue([] as never);
     }
@@ -62,4 +64,19 @@ describe("GET /api/data/export", () => {
       select: expect.not.objectContaining({ accessToken: true, refreshToken: true }),
     }));
   });
+
+  it("exports the lifecycle facts derived from the owner's mail", async () => {
+    vi.mocked(prisma.emailObligationFact.findMany).mockResolvedValue([
+      { id: "fact-1", type: "CANCELLATION", evidenceSnippet: "your subscription has been cancelled" },
+    ] as never);
+
+    const body = await (await GET()).json();
+
+    expect(body.emailObligationFacts).toHaveLength(1);
+    expect(body.emailObligationFacts[0].evidenceSnippet).toContain("has been cancelled");
+    expect(prisma.emailObligationFact.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "user-1" } }),
+    );
+  });
+
 });

@@ -23,6 +23,7 @@ export async function GET() {
     snoozedEvents,
     valueEvents,
     bills,
+    emailObligationFacts,
   ] = await Promise.all([
     prisma.emailConnection.findMany({
       where: { userId },
@@ -68,6 +69,10 @@ export async function GET() {
       omit: { accountNumber: true, accountNumberEncrypted: true },
       orderBy: { name: "asc" },
     }),
+    // The facts derived from the owner's mail, snippets included: the quoted
+    // text is their own message, and an export that withheld the reasoning
+    // would hand back conclusions with no way to check them.
+    prisma.emailObligationFact.findMany({ where: { userId }, orderBy: { occurredAt: "desc" } }),
   ]);
 
   const payload = {
@@ -86,6 +91,7 @@ export async function GET() {
     snoozedEvents,
     valueEvents,
     bills,
+    emailObligationFacts,
   };
 
   const json = JSON.stringify(payload, null, 2);

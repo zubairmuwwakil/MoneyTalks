@@ -54,14 +54,14 @@ const CADENCE_BY_WORD: Readonly<Record<string, Cadence["type"]>> = Object.freeze
   annually: "ANNUAL",
 });
 
-const CADENCE_WORD = /\b(weekly|biweekly|fortnightly|monthly|quarterly|semi-?annual|yearly|annually)\b/i;
+export const CADENCE_WORD = /\b(weekly|biweekly|fortnightly|monthly|quarterly|semi-?annual|yearly|annually)\b/i;
 const OBLIGATION_CONTEXT = /\b(subscription|membership|plan|renew(?:al|s|ing)?|billing|bill(?:ed|ing)?|payment|invoice|statement|trial)\b/i;
-const RECURRING_LANGUAGE = /\b(auto-?renew(?:al|s|ing)?|recurring|renews? automatically)\b/i;
-const CANCELLATION_LANGUAGE = /\b(cancel(?:led|ed)|cancellation (?:is )?(?:confirmed|complete)|subscription (?:has |will )?end(?:ed|s)?)\b/i;
-const TRIAL_STARTED_LANGUAGE = /\btrial (?:has )?(?:started|begun|begins|starts)\b/i;
-const TRIAL_ENDED_LANGUAGE = /\btrial (?:has )?(?:ended|expires?|is ending)\b/i;
-const PRICE_CHANGE_LANGUAGE = /\b(?:price|rate) (?:has |will )?(?:increase|increased|change|changed)|\b(?:new|updated) (?:price|rate)\b/i;
-const NEXT_BILLING_LANGUAGE = /\b(?:next (?:billing date|bill|payment|charge|renewal)|will be (?:billed|charged)|next (?:payment|charge) (?:is )?due)\b/i;
+export const RECURRING_LANGUAGE = /\b(auto-?renew(?:al|s|ing)?|recurring|renews? automatically)\b/i;
+export const CANCELLATION_LANGUAGE = /\b(cancel(?:led|ed)|cancellation (?:is )?(?:confirmed|complete)|subscription (?:has |will )?end(?:ed|s)?)\b/i;
+export const TRIAL_STARTED_LANGUAGE = /\btrial (?:has )?(?:started|begun|begins|starts)\b/i;
+export const TRIAL_ENDED_LANGUAGE = /\btrial (?:has )?(?:ended|expires?|is ending)\b/i;
+export const PRICE_CHANGE_LANGUAGE = /\b(?:price|rate) (?:has |will )?(?:increase|increased|change|changed)|\b(?:new|updated) (?:price|rate)\b/i;
+export const NEXT_BILLING_LANGUAGE = /\b(?:next (?:billing date|bill|payment|charge|renewal)|will be (?:billed|charged)|next (?:payment|charge) (?:is )?due)\b/i;
 const DATE_PATTERN = /\b(\d{4})-(\d{2})-(\d{2})\b|\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2})(?:,?\s+(\d{4}))?\b/i;
 const MONEY_PATTERN = /(?:CAD|USD|EUR|GBP|CA\$|Can\$|\$)\s*([0-9][0-9,]*(?:\.\d{2})?)/i;
 

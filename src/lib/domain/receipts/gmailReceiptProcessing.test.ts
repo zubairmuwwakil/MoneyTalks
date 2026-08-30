@@ -125,6 +125,7 @@ function setupDb() {
     // The real TransactionClient has this; promotePurchase reads it to find
     // any curated category before falling back to the merchant pack.
     merchantAlias: { findUnique: vi.fn() },
+    emailObligationFact: { upsert: vi.fn() },
   };
   const db = {
     merchantAlias: { findUnique: vi.fn(), create: vi.fn() },
@@ -1609,7 +1610,60 @@ describe("processRawGmailMessage", () => {
     expect(tx.purchaseItem.deleteMany).not.toHaveBeenCalled();
   });
 
+  it("persists a stated cancellation as a fact carrying its evidence snippet", async () => {
+    const { db, tx } = setupDb();
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue({
+      messageId: message.messageId,
+      merchant: "Example Service",
+      rawSource: "text",
+      subject: "Your subscription has been cancelled",
+      textBody: "Your subscription has been cancelled and ends on 2026-09-15.",
+      purchasedAt: message.internalDate,
+      orderId: undefined,
+      totalCents: undefined,
+    });
+    tx.emailTransaction.findUnique.mockResolvedValue(null);
+    tx.emailTransaction.upsert.mockResolvedValue({ ...existingTransaction, id: "email-tx-new" });
+
+    await processRawGmailMessage(db as never, {
+      userId: "user-1",
+      message,
+      mode: "scan",
+    });
+
+    const calls = tx.emailObligationFact.upsert.mock.calls.map(([args]) => args);
+    const cancellation = calls.find((args) => args.create.type === "CANCELLATION");
+    expect(cancellation).toBeDefined();
+    expect(cancellation.create.emailTransactionId).toBe("email-tx-new");
+    expect(cancellation.create.userId).toBe("user-1");
+    expect(cancellation.create.evidenceSnippet).toContain("has been cancelled");
+    expect(cancellation.create.effectiveAt).toEqual(new Date("2026-09-15T12:00:00.000Z"));
+  });
 
 
+  it("gives a stated price change the currency the message resolved to", async () => {
+    const { db, tx } = setupDb();
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue({
+      messageId: message.messageId,
+      merchant: "Example Service",
+      rawSource: "text",
+      subject: "Your plan price is changing",
+      textBody: "Your monthly subscription price will increase to CAD 29.99 on 2026-10-01.",
+      purchasedAt: message.internalDate,
+      currency: "CAD",
+      orderId: undefined,
+      totalCents: undefined,
+    });
+    tx.emailTransaction.findUnique.mockResolvedValue(null);
+    tx.emailTransaction.upsert.mockResolvedValue({ ...existingTransaction, id: "email-tx-new" });
+
+    await processRawGmailMessage(db as never, { userId: "user-1", message, mode: "scan" });
+
+    const calls = tx.emailObligationFact.upsert.mock.calls.map(([args]) => args);
+    const priceChange = calls.find((args) => args.create.type === "PRICE_CHANGE");
+    expect(priceChange).toBeDefined();
+    expect(priceChange.create.amountMinor).toBe(2999);
+    expect(priceChange.create.currency).toBe("CAD");
+  });
 
 });

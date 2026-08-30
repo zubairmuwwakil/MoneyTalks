@@ -14,6 +14,7 @@ import {
   type Purchase as ParsedPurchase,
 } from "./gmailPurchaseParser";
 import { GMAIL_RECEIPT_PARSER_VERSION } from "./parserVersions";
+import { extractEmailObligationFacts } from "./emailObligationFacts";
 import { hasPurchaseEvidence } from "./receiptEvidence";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
 import { resolveCategory, shouldAutoApply } from "@/lib/domain/merchants/resolveCategory";
@@ -135,6 +136,67 @@ function usableOrderNumber(value: string | null): string | null {
   return meaningfulCharacters >= 3 ? trimmed : null;
 }
 
+
+/**
+ * Persist what this message STATED, separately from whether money moved.
+ *
+ * This runs wherever the decoded body is in hand — which is here and nowhere
+ * later. The recurring sweep reads `EmailTransaction`, which retains no body,
+ * so a fact not captured now is not recoverable without re-fetching the message
+ * from Gmail. Upserts are idempotent, so an ordinary re-scan of an already
+ * ingested message backfills facts onto rows that predate this table.
+ */
+async function persistObligationFacts(
+  db: ReceiptTransaction,
+  params: {
+    userId: string;
+    emailTransactionId: string;
+    parsed: ParsedPurchase;
+    fallbackOccurredAt: Date;
+  },
+): Promise<void> {
+  const facts = extractEmailObligationFacts({
+    subject: params.parsed.subject,
+    textBody: params.parsed.textBody,
+    occurredAt: params.parsed.purchasedAt ?? params.fallbackOccurredAt,
+  });
+
+  for (const fact of facts) {
+    const payload = {
+      type: fact.type,
+      extractorVersion: fact.extractorVersion,
+      occurredAt: fact.occurredAt,
+      effectiveAt: fact.effectiveAt ?? null,
+      billingAt: fact.billingAt ?? null,
+      amountMinor: fact.amountMinor ?? null,
+      // A minor-unit amount with no unit is the trap RecurringObligation.currency
+      // exists to avoid. The message's own resolved currency is the best
+      // evidence available here; it is the message's answer, not an independent
+      // reading of the quoted price, and it is only recorded alongside an amount.
+      currency: fact.amountMinor === undefined ? null : (params.parsed.currency ?? null),
+      cadence: fact.cadence ?? null,
+      evidenceSnippet: fact.evidenceSnippet,
+    };
+    await db.emailObligationFact.upsert({
+      where: {
+        emailTransactionId_extractorId_type_factKey: {
+          emailTransactionId: params.emailTransactionId,
+          extractorId: fact.extractorId,
+          type: fact.type,
+          factKey: fact.factKey,
+        },
+      },
+      create: {
+        userId: params.userId,
+        emailTransactionId: params.emailTransactionId,
+        extractorId: fact.extractorId,
+        factKey: fact.factKey,
+        ...payload,
+      },
+      update: payload,
+    });
+  }
+}
 
 async function promotePurchase(
   db: ReceiptTransaction,
@@ -704,6 +766,12 @@ export async function processRawGmailMessage(
     }
 
     if (existing && params.mode === "scan") {
+      await persistObligationFacts(transactionDb, {
+        userId: params.userId,
+        emailTransactionId: existing.id,
+        parsed: parsedPurchase,
+        fallbackOccurredAt: params.message.internalDate ?? new Date(),
+      });
       return {
         transaction: existing,
         parsedPurchase,
@@ -757,6 +825,13 @@ export async function processRawGmailMessage(
         ...(data.connectionId ? { connectionId: data.connectionId } : {}),
         ...(params.mode === "reprocess" && !qualifies ? { purchaseId: null } : {}),
       },
+    });
+
+    await persistObligationFacts(transactionDb, {
+      userId: params.userId,
+      emailTransactionId: transaction.id,
+      parsed: parsedPurchase,
+      fallbackOccurredAt: params.message.internalDate ?? new Date(),
     });
 
     if (qualifies) {

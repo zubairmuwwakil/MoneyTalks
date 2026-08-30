@@ -30,6 +30,7 @@ model User {
   detectedItems                 DetectedItem[]
   emailConnections              EmailConnection[]
   emailTransactions             EmailTransaction[]
+  emailObligationFacts          EmailObligationFact[]
   financialAccounts             FinancialAccount[]
   fxRates                       FxRate[]
   notifications                 Notification[]
@@ -845,12 +846,57 @@ model EmailTransaction {
   connection       EmailConnection?      @relation(fields: [connectionId], references: [id], onDelete: SetNull)
   user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   receiptDocuments ReceiptDocument[]
+  obligationFacts  EmailObligationFact[]
 
   @@unique([userId, provider, messageId])
   @@index([purchaseId])
   @@index([userId, rfc822MessageId])
   @@index([userId, merchant])
   @@index([userId, purchasedAt])
+}
+
+/// One financial fact an email STATED, captured where the decoded body was in
+/// hand. It is not a claim that money moved — the purchase spine owns that
+/// question — and it is not derived state: `RecurringObligation.status` is
+/// still folded from evidence at sweep time.
+///
+/// Facts exist independently of any obligation, which is the point: a trial
+/// notice that arrives before any charge has formed a cluster has somewhere to
+/// live until one does.
+///
+/// See docs/decisions/2026-08-30-email-fact-lane.md.
+model EmailObligationFact {
+  id                 String           @id @default(cuid())
+  userId             String
+  emailTransactionId String
+  type               EmailFactType
+  /// Which extractor spoke. Stable across versions of that extractor.
+  extractorId        String
+  /// Versioned per extractor, never globally, so one extractor can be re-run
+  /// and measured without re-extracting the whole mailbox.
+  extractorVersion   Int              @default(1)
+  /// Distinguishes two facts of one type on one message — an Apple or Google
+  /// Play receipt lists several subscriptions with separate renewal dates.
+  /// Empty for the ordinary single-fact message, the same escape hatch
+  /// RecurringObligation.seriesKey uses.
+  factKey            String           @default("")
+  occurredAt         DateTime
+  effectiveAt        DateTime?
+  billingAt          DateTime?
+  amountMinor        Int?
+  currency           String?
+  cadence            String?
+  /// The merchant's own words that produced this fact. Bounded and
+  /// URL-stripped; never the body.
+  evidenceSnippet    String
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  emailTransaction   EmailTransaction @relation(fields: [emailTransactionId], references: [id], onDelete: Cascade)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([emailTransactionId, extractorId, type, factKey])
+  @@index([userId, type, effectiveAt])
+  @@index([userId, occurredAt])
 }
 
 model ReceiptDocument {
@@ -1356,3 +1402,12 @@ enum RecurringSweepJobStatus {
   RUNNING
 }
 
+enum EmailFactType {
+  EXPLICIT_CADENCE
+  EXPLICIT_RECURRING
+  CANCELLATION
+  TRIAL_STARTED
+  TRIAL_ENDED
+  PRICE_CHANGE
+  NEXT_BILLING_DATE
+}
