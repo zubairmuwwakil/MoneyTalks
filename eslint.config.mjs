@@ -11,7 +11,15 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      "e2e/**",
     ],
+  },
+  {
+    settings: {
+      react: {
+        version: "19.0.0",
+      },
+    },
     rules: {
       // These components load remote data after mount; the rule cannot see
       // that their setters run after an awaited fetch rather than synchronously.
