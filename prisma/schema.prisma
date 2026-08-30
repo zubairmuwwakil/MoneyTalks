@@ -44,6 +44,7 @@ model User {
   receiptDocuments            ReceiptDocument[]
   receiptUploads              ReceiptUpload[]
   recurringObligations        RecurringObligation[]
+  recurringSweepJob           RecurringSweepJob?
   refundCases                 RefundCase[]
   returnItems                 ReturnItem[]
   sessions                    Session[]
@@ -616,6 +617,28 @@ model RecurringObligationEvidence {
   @@unique([obligationId, purchaseId])
   @@index([obligationId, occurredAt])
   @@index([purchaseId])
+}
+
+/// Durable, recurring work item for one owner's obligation sweep.
+///
+/// Keeping a row even when a sweep finds no obligations prevents owners with
+/// zero detections from remaining permanently "never swept" at the front of a
+/// bounded batch. Claims use a lease so concurrent cron deliveries do not run
+/// the same owner, and stale leases are recoverable after an interrupted run.
+model RecurringSweepJob {
+  userId      String                  @id
+  status      RecurringSweepJobStatus @default(PENDING)
+  runAt       DateTime                @default(now())
+  attempts    Int                     @default(0)
+  lastError   String?
+  lockedAt    DateTime?
+  lockId      String?
+  lastSweptAt DateTime?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, runAt])
 }
 
 model PurchaseCorrection {
@@ -1288,4 +1311,9 @@ enum EvidenceRole {
   CANCELLATION
   TRIAL
   PRICE_CHANGE
+}
+
+enum RecurringSweepJobStatus {
+  PENDING
+  RUNNING
 }

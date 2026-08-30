@@ -53,6 +53,7 @@ export const schedules = [
   { name: "digest",         scheduleId: "moneytalks-digest",         path: "/api/cron/digest",         cronEnv: "QSTASH_DIGEST_CRON",         cronDefault: "*/15 * * * *" },
   { name: "notify",         scheduleId: "moneytalks-notify",         path: "/api/cron/notify",         cronEnv: "QSTASH_NOTIFY_CRON",         cronDefault: "0 * * * *" },
   { name: "purchase-merge", scheduleId: "moneytalks-purchase-merge", path: "/api/cron/purchase-merge", cronEnv: "QSTASH_PURCHASE_MERGE_CRON", cronDefault: "30 3 * * *" },
+  { name: "recurring-sweep", scheduleId: "moneytalks-recurring-sweep", path: "/api/cron/recurring-sweep", cronEnv: "QSTASH_RECURRING_SWEEP_CRON", cronDefault: "45 3 * * *" },
   { name: "fx",             scheduleId: "moneytalks-fx",             path: "/api/cron/fx",             cronEnv: "QSTASH_FX_CRON",             cronDefault: "0 11 * * *" },
   { name: "prices-warmup",  scheduleId: "moneytalks-prices-warmup",  path: "/api/cron/prices-warmup",  cronEnv: "QSTASH_PRICES_WARMUP_CRON",  cronDefault: "45 1 * * *", timeout: COLD_START_TIMEOUT },
   { name: "prices",         scheduleId: "moneytalks-prices",         path: "/api/cron/prices",         cronEnv: "QSTASH_PRICES_CRON",         cronDefault: "0 2 * * *",  timeout: COLD_START_TIMEOUT },

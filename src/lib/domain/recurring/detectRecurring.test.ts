@@ -342,6 +342,33 @@ describe("sweepRecurringObligations", () => {
     expect(db.obligations[0].algorithmVersion).toBe(2);
   });
 
+  it("never rewrites the score snapshot after an owner decides", async () => {
+    const db = new MemoryRecurringDb();
+    seedPurchases(db, "netflix.com", ["2026-05-11", "2026-06-11", "2026-07-11"], 2_099);
+    await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
+    const obligation = db.obligations[0];
+    obligation.needsReview = false;
+    obligation.confirmedAt = at("2026-08-01");
+    obligation.decidedConfidence = obligation.confidence;
+    obligation.decidedReasons = obligation.confidenceReasons;
+    const decidedConfidence = obligation.decidedConfidence;
+    const decidedReasons = obligation.decidedReasons;
+    db.purchases.push(...["2026-02-11", "2026-03-11", "2026-04-11"].map((date, index) => ({
+      id: `netflix-extra-${index}`,
+      userId: "user-1",
+      merchant: "netflix.com",
+      totalCents: 2_099,
+      currency: "CAD",
+      purchasedAt: at(date),
+    })));
+
+    await sweepRecurringObligations(db as unknown as PrismaClient, { ...sweepArgs, algorithmVersion: 2 });
+
+    expect(obligation.confidence).toBeGreaterThan(decidedConfidence!);
+    expect(obligation.decidedConfidence).toBe(decidedConfidence);
+    expect(obligation.decidedReasons).toEqual(decidedReasons);
+  });
+
   it("skips currencyless purchases instead of inventing an identity", async () => {
     const db = new MemoryRecurringDb();
     seedPurchases(db, "cloudflare.com", ["2026-05-11", "2026-06-11", "2026-07-11"], 2_099, null);
