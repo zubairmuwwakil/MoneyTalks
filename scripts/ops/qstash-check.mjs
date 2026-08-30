@@ -9,7 +9,7 @@
 //   npx dotenv -e .env.local -- npm run qstash:check
 
 import { Client } from "@upstash/qstash";
-import { expected, resolveBaseUrl } from "./qstash-schedules.config.mjs";
+import { expected, resolveBaseUrl, timeoutMilliseconds } from "./qstash-schedules.config.mjs";
 
 if (!process.env.QSTASH_TOKEN?.trim()) {
   console.error("Missing QSTASH_TOKEN.");
@@ -46,7 +46,7 @@ for (const w of want) {
   if (got.cron !== w.cron) issues.push(`cron is "${got.cron}", expected "${w.cron}"`);
   // A timeout shorter than the job needs kills it mid-flight and retries it from
   // scratch. Silent, and indistinguishable from the job simply not working.
-  if (w.timeout && got.timeout && String(got.timeout) !== String(w.timeout)) {
+  if (w.timeout && got.timeout && timeoutMilliseconds(got.timeout) !== timeoutMilliseconds(w.timeout)) {
     issues.push(`timeout is "${got.timeout}", expected "${w.timeout}"`);
   }
   if (got.isPaused) issues.push("schedule is PAUSED");
