@@ -102,8 +102,7 @@ export async function runBackfillChunk(
   }
 
   const candidateFrom = new Date(cursor.getTime() - opts.windowDays * DAY_MS);
-  const windowFrom = candidateFrom < cutoff ? cutoff : candidateFrom;
-  const done = windowFrom.getTime() === cutoff.getTime();
+  let windowFrom = candidateFrom < cutoff ? cutoff : candidateFrom;
 
   const authed = await getAuthedGmail(connection.id);
   if (!authed) throw new Error(`Gmail connection ${connection.id} is not connected`);
@@ -114,11 +113,29 @@ export async function runBackfillChunk(
   let processed = 0;
   let imported = 0;
   try {
-    const messages = await listRawGmailMessagesInWindow(authed.gmail, {
-      after: windowFrom,
-      before: windowTo,
-      max: opts.maxMessages,
-    });
+    let messages;
+    while (true) {
+      // One extra result is an overflow sentinel. Advancing a date cursor after
+      // a capped result would silently skip the rest of a crowded month.
+      messages = await listRawGmailMessagesInWindow(authed.gmail, {
+        after: windowFrom,
+        before: windowTo,
+        max: opts.maxMessages + 1,
+      });
+      if (messages.length <= opts.maxMessages) break;
+
+      const spanDays = Math.round((windowTo.getTime() - windowFrom.getTime()) / DAY_MS);
+      if (spanDays <= 1) {
+        throw new Error(
+          `Gmail backfill has more than ${opts.maxMessages} messages in one day; cursor was not advanced`,
+        );
+      }
+      // Keep the newer half. The next invocation resumes from its start and
+      // naturally covers the older half, preserving the backwards walk.
+      windowFrom = new Date(windowTo.getTime() - Math.ceil(spanDays / 2) * DAY_MS);
+    }
+
+    const done = windowFrom.getTime() === cutoff.getTime();
 
     for (const message of messages) {
       const result = await processRawGmailMessage(db, {
@@ -149,6 +166,6 @@ export async function runBackfillChunk(
     imported,
     windowFrom: isoDate(windowFrom),
     windowTo: isoDate(windowTo),
-    done,
+    done: windowFrom.getTime() === cutoff.getTime(),
   };
 }

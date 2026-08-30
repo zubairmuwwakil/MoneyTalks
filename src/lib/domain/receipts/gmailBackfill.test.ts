@@ -202,6 +202,56 @@ describe("runBackfillChunk", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
+  it("subdivides a crowded window instead of advancing past capped messages", async () => {
+    const { db, state } = setup();
+    const overflow = Array.from({ length: 501 }, (_, index) => ({
+      ...message,
+      messageId: `gmail-${index + 1}`,
+    }));
+    vi.mocked(listRawGmailMessagesInWindow)
+      .mockResolvedValueOnce(overflow)
+      .mockResolvedValueOnce([message]);
+
+    const result = await runBackfillChunk(db as never, {
+      connectionId: "conn-a",
+      windowDays: 30,
+      maxMessages: 500,
+      now,
+    });
+
+    expect(result).toMatchObject({ processed: 1, windowFrom: "2026-08-15", windowTo: "2026-08-30" });
+    expect(state.backfillCursor).toBe("2026-08-15");
+    expect(listRawGmailMessagesInWindow).toHaveBeenNthCalledWith(1, gmail, {
+      after: new Date("2026-07-31T00:00:00.000Z"),
+      before: new Date("2026-08-30T00:00:00.000Z"),
+      max: 501,
+    });
+    expect(listRawGmailMessagesInWindow).toHaveBeenNthCalledWith(2, gmail, {
+      after: new Date("2026-08-15T00:00:00.000Z"),
+      before: new Date("2026-08-30T00:00:00.000Z"),
+      max: 501,
+    });
+  });
+
+  it("fails closed when a single day exceeds the message cap", async () => {
+    const { db, state, update } = setup({ backfillCursor: "2026-08-30" });
+    vi.mocked(listRawGmailMessagesInWindow).mockResolvedValue(
+      Array.from({ length: 501 }, (_, index) => ({ ...message, messageId: `gmail-${index + 1}` })),
+    );
+
+    await expect(runBackfillChunk(db as never, {
+      connectionId: "conn-a",
+      windowDays: 1,
+      maxMessages: 500,
+      now,
+    })).rejects.toThrow(/more than 500 messages in one day/i);
+
+    expect(state.backfillCursor).toBe("2026-08-30");
+    expect(update).not.toHaveBeenCalled();
+    expect(processRawGmailMessage).not.toHaveBeenCalled();
+    expect(flushTokens).toHaveBeenCalledOnce();
+  });
+
   it("processes in scan mode without stamping lastScanAt", async () => {
     const { db, state, update } = setup();
 
