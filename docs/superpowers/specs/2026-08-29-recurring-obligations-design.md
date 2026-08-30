@@ -556,9 +556,14 @@ Required:
 - **Chunk across invocations** via the existing claim pattern, with a stored
   cursor per connection. Bounded concurrency on `messages.get` (Gmail allows
   ~250 quota units/user/second; `messages.get` costs 5).
-- **Two passes.** `format: "metadata"` first to build the recurrence skeleton
-  cheaply — sender, subject, date are enough to cluster and infer cadence —
-  then `raw` only for messages that classify as interesting.
+- ~~**Two passes.** `format: "metadata"` first, then `raw` only for
+  interesting messages.~~ **Superseded 2026-08-30.** `messages.get` costs 5
+  quota units whatever the format, so metadata saves bandwidth but not quota —
+  and quota was never the binding constraint. Round trips × latency is, and a
+  second pass *adds* one per interesting message. Use **bounded concurrency**
+  instead: ~250 units/user/second is ~50 `get`s/second, which about ten
+  concurrent requests reaches, taking 5,000 messages from ~17 minutes to under
+  two. See `docs/superpowers/plans/2026-08-30-gmail-24-month-backfill.md`.
 - **No attachment persistence during backfill.** It exists to find cadence,
   not to archive receipts; writing `ReceiptDocument` for two years of history
   is object-storage cost with no bearing on detection.
