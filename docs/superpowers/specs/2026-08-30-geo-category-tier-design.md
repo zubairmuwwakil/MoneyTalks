@@ -23,7 +23,7 @@ descriptor no table recognizes.
 | Lookup timing | **In the outbox drain, before upload.** The receipt path and its 2s location budget are untouched. |
 | Failure record | **A `WalletPlaceOutcome` per event**, mirroring `WalletLocationOutcome`. |
 | Coordinate retention | **Unchanged.** The privacy policy's *justification* is corrected; the retention ruling stays its own decision. |
-| Contract changes | **Re-runnable** over history via `scripts/ops/reresolveGeoCategories.ts`, wired into the `contract-sync` skill. |
+| Contract changes | **Re-runnable** over history via `scripts/ops/reresolveCategories.ts --source=geoConfirmed`, wired into the `contract-sync` skill. |
 
 ## 2. Why this signal, and why it was left alone until now
 
@@ -294,7 +294,7 @@ PickMe CI, and vendored through `sync-contracts.sh`'s `FILES` array — mirrorin
 **the refused option**: LOG 2026-08-19, 08-24, and 08-26 each record that
 duplication happening once already.
 
-`scripts/ops/reresolveGeoCategories.ts` re-derives `Purchase.category` for rows
+`scripts/ops/reresolveCategories.ts --source=geoConfirmed` re-derives `Purchase.category` for rows
 where `categorySource = 'geoConfirmed'`, skipping any the owner has since
 overridden. The `contract-sync` skill gains a step directing the next agent to
 run it after vendoring a new POI contract, so the capability is a remembered
