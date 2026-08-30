@@ -103,8 +103,15 @@ async function main() {
   // this table unable to answer the question it exists to answer. A null
   // accuracy fails both gates and is counted with the failures, because the
   // rule treats "not told" as "not good enough".
+  // Scoped to schemaVersion 2 ON PURPOSE. POI candidates are attached by
+  // PickMe's outbox drain, which only native App Intent captures pass through;
+  // a schema-1 Shortcut capture can never carry them however accurate its fix.
+  // Measuring both together is actively misleading: on 2026-08-30 every one of
+  // the 21 located schema-1 events reported NO accuracy while all 10 native
+  // ones reported it, so the combined table read "68% unusable" for a
+  // population the feature does not draw from.
   const events = await prisma.walletEvent.findMany({
-    where: { ...scope, latitude: { not: null } },
+    where: { ...scope, latitude: { not: null }, schemaVersion: 2 },
     select: { locationAccuracyMeters: true },
   });
   const acc = (lo: number, hi: number) =>
@@ -117,9 +124,13 @@ async function main() {
     ["> 100 m  (neither tier)", events.filter((e) => e.locationAccuracyMeters != null && e.locationAccuracyMeters > 100).length],
     ["unreported (neither tier)", events.filter((e) => e.locationAccuracyMeters == null).length],
   ];
-  console.log(`\n  Fix accuracy across ${events.length} located wallet events:`);
+  const legacyLocated = await prisma.walletEvent.count({
+    where: { ...scope, latitude: { not: null }, schemaVersion: { not: 2 } },
+  });
+  console.log(`\n  Fix accuracy across ${events.length} located NATIVE captures:`);
   table(buckets, events.length);
   console.log("    (a near-empty first row means geoNearby ships dead — drop it rather than build it)");
+  console.log(`\n  Located legacy Shortcut captures, unreachable by this feature: ${legacyLocated}`);
 
   // What is already working, so the new tier is judged against a baseline
   // rather than against zero.
