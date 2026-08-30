@@ -84,29 +84,43 @@ const programValuation = z.discriminatedUnion("model", [
 
 const programsDictionary = z.record(z.string().min(1), programValuation);
 
-const requiredProgramModels = {
-  amexMembershipRewards: "points",
-  marriottBonvoy: "points",
-  mbnaRewards: "points",
-  ctMoney: "ctMoney",
-  cro: "cro",
-  cashback: "cashback",
-} as const;
-
-const modernValuations = z.object({ programs: programsDictionary }).strict().superRefine((value, ctx) => {
-  for (const [programId, model] of Object.entries(requiredProgramModels)) {
-    if (value.programs[programId]?.model !== model) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["programs", programId],
-        message: `required ${model} valuation is missing`,
-      });
-    }
-  }
-});
+const modernValuations = z.object({ programs: programsDictionary }).strict();
 
 type LegacyValuations = z.infer<typeof legacyValuations>;
 type ProgramsDictionary = z.infer<typeof programsDictionary>;
+
+const DEFAULT_LEGACY_VALUATIONS: LegacyValuations = {
+  amexMembershipRewards: {
+    centsPerPoint: 1,
+    floorCentsPerPoint: 1,
+    aspirationalCentsPerPoint: 2.2,
+    basis: "default cash floor",
+  },
+  marriottBonvoy: {
+    centsPerPoint: 0.8,
+    low: 0.6,
+    high: 1,
+    basis: "default",
+  },
+  mbnaRewards: {
+    centsPerPoint: 1,
+    floorCentsPerPoint: 0.833333,
+    basis: "default cash floor",
+  },
+  ctMoney: {
+    cadPerUnit: 1,
+    optionalUsabilityFactor: 0.95,
+    usabilityFactorApplied: true,
+  },
+  cro: {
+    model: "reward-currency",
+    faceValueFactorIfAutoSold: 1,
+    defaultHeldRiskFactor: 0.8,
+  },
+  cashBack: {
+    cadPerDollar: 1,
+  },
+};
 
 function programsFromLegacy(legacy: LegacyValuations): ProgramsDictionary {
   return {
@@ -127,49 +141,60 @@ function programsFromLegacy(legacy: LegacyValuations): ProgramsDictionary {
 
 function legacyFromPrograms(programs: ProgramsDictionary): LegacyValuations {
   const points = (programId: "amexMembershipRewards" | "marriottBonvoy" | "mbnaRewards") => {
-    const program = programs[programId] as z.infer<typeof pointValuation> & { model: "points" };
-    return {
-      centsPerPoint: program.centsPerPoint,
-      ...(program.floorCentsPerPoint === undefined ? {} : { floorCentsPerPoint: program.floorCentsPerPoint }),
-      ...(program.aspirationalCentsPerPoint === undefined
-        ? {}
-        : { aspirationalCentsPerPoint: program.aspirationalCentsPerPoint }),
-      ...(program.low === undefined ? {} : { low: program.low }),
-      ...(program.high === undefined ? {} : { high: program.high }),
-      ...(program.basis === undefined ? {} : { basis: program.basis }),
-    };
+    const program = programs[programId];
+    if (program && program.model === "points") {
+      return {
+        centsPerPoint: program.centsPerPoint,
+        ...(program.floorCentsPerPoint === undefined ? {} : { floorCentsPerPoint: program.floorCentsPerPoint }),
+        ...(program.aspirationalCentsPerPoint === undefined
+          ? {}
+          : { aspirationalCentsPerPoint: program.aspirationalCentsPerPoint }),
+        ...(program.low === undefined ? {} : { low: program.low }),
+        ...(program.high === undefined ? {} : { high: program.high }),
+        ...(program.basis === undefined ? {} : { basis: program.basis }),
+      };
+    }
+    return DEFAULT_LEGACY_VALUATIONS[programId];
   };
-  const ctProgram = programs.ctMoney as z.infer<typeof ctMoneyValuation> & { model: "ctMoney" };
-  const croProgram = programs.cro as {
-    model: "cro";
-    redemptionModel: string;
-    faceValueFactorIfAutoSold: number;
-    defaultHeldRiskFactor: number;
-    basis?: string;
-  };
-  const cashProgram = programs.cashback as z.infer<typeof cashBackValuation> & {
-    model: "cashback";
-  };
+
+  const ct = programs.ctMoney;
+  const ctValuation =
+    ct && ct.model === "ctMoney"
+      ? {
+          cadPerUnit: ct.cadPerUnit,
+          optionalUsabilityFactor: ct.optionalUsabilityFactor,
+          usabilityFactorApplied: ct.usabilityFactorApplied,
+          ...(ct.basis === undefined ? {} : { basis: ct.basis }),
+        }
+      : DEFAULT_LEGACY_VALUATIONS.ctMoney;
+
+  const cro = programs.cro;
+  const croValuation =
+    cro && cro.model === "cro"
+      ? {
+          model: cro.redemptionModel,
+          faceValueFactorIfAutoSold: cro.faceValueFactorIfAutoSold,
+          defaultHeldRiskFactor: cro.defaultHeldRiskFactor,
+          ...(cro.basis === undefined ? {} : { basis: cro.basis }),
+        }
+      : DEFAULT_LEGACY_VALUATIONS.cro;
+
+  const cash = programs.cashback;
+  const cashValuation =
+    cash && cash.model === "cashback"
+      ? {
+          cadPerDollar: cash.cadPerDollar,
+          ...(cash.basis === undefined ? {} : { basis: cash.basis }),
+        }
+      : DEFAULT_LEGACY_VALUATIONS.cashBack;
+
   return {
     amexMembershipRewards: points("amexMembershipRewards"),
     marriottBonvoy: points("marriottBonvoy"),
     mbnaRewards: points("mbnaRewards"),
-    ctMoney: {
-      cadPerUnit: ctProgram.cadPerUnit,
-      optionalUsabilityFactor: ctProgram.optionalUsabilityFactor,
-      usabilityFactorApplied: ctProgram.usabilityFactorApplied,
-      ...(ctProgram.basis === undefined ? {} : { basis: ctProgram.basis }),
-    },
-    cro: {
-      model: croProgram.redemptionModel,
-      faceValueFactorIfAutoSold: croProgram.faceValueFactorIfAutoSold,
-      defaultHeldRiskFactor: croProgram.defaultHeldRiskFactor,
-      ...(croProgram.basis === undefined ? {} : { basis: croProgram.basis }),
-    },
-    cashBack: {
-      cadPerDollar: cashProgram.cadPerDollar,
-      ...(cashProgram.basis === undefined ? {} : { basis: cashProgram.basis }),
-    },
+    ctMoney: ctValuation,
+    cro: croValuation,
+    cashBack: cashValuation,
   };
 }
 
@@ -195,17 +220,17 @@ export function ownerStateForWire(state: unknown): unknown {
 }
 
 const cardState = z.object({
-  capProgress: z.record(z.string().min(1), finiteNonNegative).optional(),
-  scotiaAccountYearAnchorMonth: z.number().int().min(1).max(12).optional(),
-  selectedCategories: z.array(z.string().min(1)).optional(),
-  treatAsAllSelected: z.boolean().optional(),
-  thirdCategoryUnlocked: z.boolean().optional(),
-  nextChangeEffectiveDate: z.string().optional(),
-  rogersEligibleServiceLinked: z.boolean().optional(),
-  rogersAccountAnniversaryMonth: z.number().int().min(1).max(12).optional(),
-  feeWaiverActive: z.boolean().optional(),
-  cryptoLevelUpProActive: z.boolean().optional(),
-  croHandling: z.enum(["autoSell", "hold"]).optional(),
+  capProgress: z.record(z.string().min(1), finiteNonNegative).nullable().optional(),
+  scotiaAccountYearAnchorMonth: z.number().int().min(1).max(12).nullable().optional(),
+  selectedCategories: z.array(z.string().min(1)).nullable().optional(),
+  treatAsAllSelected: z.boolean().nullable().optional(),
+  thirdCategoryUnlocked: z.boolean().nullable().optional(),
+  nextChangeEffectiveDate: z.string().nullable().optional(),
+  rogersEligibleServiceLinked: z.boolean().nullable().optional(),
+  rogersAccountAnniversaryMonth: z.number().int().min(1).max(12).nullable().optional(),
+  feeWaiverActive: z.boolean().nullable().optional(),
+  cryptoLevelUpProActive: z.boolean().nullable().optional(),
+  croHandling: z.enum(["autoSell", "hold"]).nullable().optional(),
   /// Owner-condition answers keyed by the catalogue's `ownerConditions` id — card-contracts@2.8's
   /// replacement for the two named booleans above, which PickMe still mirrors out of this
   /// dictionary for one release. Both representations are accepted; the mirror is what keeps the
@@ -218,7 +243,7 @@ const cardState = z.object({
   /// `contracts/owner-conditions.json`. A condition PickMe ships before this repo re-vendors the
   /// contract must still persist: rejecting it would reproduce the exact outage this field was
   /// added to fix, one release later and with a slower feedback loop.
-  flags: z.record(z.string().min(1), z.boolean()).optional(),
+  flags: z.record(z.string().min(1), z.boolean()).nullable().optional(),
 }).strict();
 
 export const ownerStateInput = z.object({
@@ -237,7 +262,7 @@ export const ownerStateInput = z.object({
   /// why this gates only the empty-wallet acquisition/browse default, never ownedCardIds or
   /// checkout scoring. Absent means "unresolved", not "Canadian" — the engine applies that
   /// default itself (resolvedMarket), so it is never baked into the stored record.
-  market: z.enum(["CA", "US"]).optional(),
+  market: z.enum(["CA", "US"]).nullable().optional(),
 }).strict().superRefine((state, ctx) => {
   if (!state.ownedCardIds.includes(state.defaultCardId)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["defaultCardId"], message: "default card must be owned" });

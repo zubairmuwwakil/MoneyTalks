@@ -166,6 +166,46 @@ describe("PUT /api/spine/owner-state", () => {
     expect(written.cashBack.cadPerDollar).toBe(1);
   });
 
+  it("accepts a first-run wallet with empty programs and null fields", async () => {
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.ownerStateRecord.create).mockResolvedValue(stored(modernState));
+
+    const firstRunPayload = {
+      ownerStateVersion: "wallet-setup-1",
+      ownedCardIds: ["cibc-dividend-visa-infinite"],
+      defaultCardId: "cibc-dividend-visa-infinite",
+      switchThreshold: { minAdvantagePercentagePoints: 0.5, minAdvantageCad: 0.25, semantics: "both" },
+      carry: { drawerCards: [] },
+      cardStates: {
+        "cibc-dividend-visa-infinite": {
+          croHandling: null,
+          scotiaAccountYearAnchorMonth: null,
+          selectedCategories: null,
+          flags: null,
+        },
+      },
+      market: null,
+      valuationsCad: {
+        programs: {},
+      },
+    };
+
+    expect((await put(firstRunPayload)).status).toBe(200);
+
+    const createdCall = vi.mocked(prisma.ownerStateRecord.create).mock.calls.at(-1)![0].data as {
+      stateData: {
+        ownedCardIds: string[];
+        cardStates: Record<string, unknown>;
+        valuationsCad: {
+          programs: Record<string, unknown>;
+          amexMembershipRewards: { centsPerPoint: number };
+        };
+      };
+    };
+    expect(createdCall.stateData.valuationsCad.programs).toEqual({});
+    expect(createdCall.stateData.valuationsCad.amexMembershipRewards.centsPerPoint).toBe(1);
+  });
+
   // The regression this endpoint's merge exists for: PickMe saving its wallet
   // used to replace stateData wholesale, silently un-owning every card the
   // phone did not happen to have and discarding web-authored answers.

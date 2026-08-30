@@ -43,7 +43,10 @@ export async function PUT(req: NextRequest) {
 
   const body = await req.json().catch(() => null);
   const parsed = ownerStateInput.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "invalid owner state" }, { status: 400 });
+  if (!parsed.success) {
+    console.error("PUT /api/spine/owner-state validation error:", JSON.stringify(parsed.error.issues, null, 2));
+    return NextResponse.json({ error: "invalid owner state", issues: parsed.error.issues }, { status: 400 });
+  }
 
   for (let attempt = 0; attempt < MAX_MERGE_ATTEMPTS; attempt++) {
     const existing = await prisma.ownerStateRecord.findUnique({ where: { userId } });
