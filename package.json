@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
-    "@clerk/nextjs": "^7.7.6",
+    "@clerk/nextjs": "^7.8.2",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.10.0",
     "@sentry/nextjs": "^10.70.0",
