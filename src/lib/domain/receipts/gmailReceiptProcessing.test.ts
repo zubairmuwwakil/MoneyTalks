@@ -1251,6 +1251,90 @@ describe("processRawGmailMessage", () => {
     expect(removeCapAccrual).toHaveBeenCalledWith(tx, `purchase:${legacyPurchase.id}`);
   });
 
+  it("reprocessing keeps a stored order number the re-parse no longer finds", async () => {
+    // Unlike a guessed currency, an order number was extracted rather than
+    // defaulted, so failing to re-extract it is a parser miss and not evidence
+    // the stored value was wrong. A production dry run would have erased 15 of
+    // them across Vercel and Anthropic.
+    const { db, tx } = setupDb();
+    const linkedTransaction = { ...existingTransaction, purchaseId: "purchase-legacy" };
+    const legacyPurchase = {
+      id: "purchase-legacy",
+      userId: "user-1",
+      merchant: "Example Store",
+      totalCents: 4242,
+      currency: "USD",
+      purchasedAt: message.internalDate,
+      orderNumber: "2784-3212-9847",
+      paymentMethod: null,
+      category: null,
+      source: "GMAIL",
+      sourceEmailId: message.messageId,
+    };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue({
+      messageId: message.messageId,
+      merchant: "Example Store",
+      purchasedAt: message.internalDate,
+      totalCents: 4242,
+      orderId: undefined,
+      currency: "USD",
+      rawSource: "text",
+      textBody: "Order total: $42.42",
+    });
+    tx.emailTransaction.findUnique.mockResolvedValue(linkedTransaction);
+    tx.emailTransaction.upsert.mockResolvedValue({ ...linkedTransaction, orderId: null });
+    tx.purchase.findUnique.mockResolvedValue(legacyPurchase);
+    tx.walletEvent.findFirst.mockResolvedValue(null);
+    tx.purchase.update.mockResolvedValue(legacyPurchase);
+
+    await processRawGmailMessage(db as never, { userId: "user-1", message, mode: "reprocess" });
+
+    expect(tx.purchase.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ orderNumber: "2784-3212-9847" }),
+    }));
+  });
+
+  it("reprocessing still adopts an order number the re-parse does find", async () => {
+    const { db, tx } = setupDb();
+    const linkedTransaction = { ...existingTransaction, purchaseId: "purchase-legacy" };
+    const legacyPurchase = {
+      id: "purchase-legacy",
+      userId: "user-1",
+      merchant: "Example Store",
+      totalCents: 4242,
+      currency: "USD",
+      purchasedAt: message.internalDate,
+      orderNumber: null,
+      paymentMethod: null,
+      category: null,
+      source: "GMAIL",
+      sourceEmailId: message.messageId,
+    };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue({
+      messageId: message.messageId,
+      merchant: "Example Store",
+      purchasedAt: message.internalDate,
+      totalCents: 4242,
+      orderId: "ORD-99321",
+      currency: "USD",
+      rawSource: "text",
+      textBody: "Order total: $42.42",
+    });
+    tx.emailTransaction.findUnique.mockResolvedValue(linkedTransaction);
+    tx.emailTransaction.upsert.mockResolvedValue({ ...linkedTransaction, orderId: "ORD-99321" });
+    tx.purchase.findUnique.mockResolvedValue(legacyPurchase);
+    tx.walletEvent.findFirst.mockResolvedValue(null);
+    tx.purchase.update.mockResolvedValue(legacyPurchase);
+
+    await processRawGmailMessage(db as never, { userId: "user-1", message, mode: "reprocess" });
+
+    expect(tx.purchase.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ orderNumber: "ORD-99321" }),
+    }));
+  });
+
   it("reprocessing consolidates an already-promoted lifecycle duplicate into the earliest order purchase", async () => {
     const { db, tx } = setupDb();
     const linkedTransaction = {
