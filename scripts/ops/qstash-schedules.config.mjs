@@ -33,6 +33,18 @@ const DEFAULT_TIMEOUT = "2m";
  */
 const COLD_START_TIMEOUT = "5m";
 
+/** Normalize QStash's millisecond response and our human duration config. */
+export function timeoutMilliseconds(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const raw = value.trim().toLowerCase();
+  if (/^\d+$/.test(raw)) return Number(raw);
+  const match = raw.match(/^(\d+)(ms|s|m|h)$/);
+  if (!match) return null;
+  const multipliers = { ms: 1, s: 1_000, m: 60_000, h: 3_600_000 };
+  return Number(match[1]) * multipliers[match[2]];
+}
+
 // ORDERING NOTE — prices-warmup MUST fire before prices, with real margin.
 //
 // MarketLens answers from a cache and only fans out to its upstream provider

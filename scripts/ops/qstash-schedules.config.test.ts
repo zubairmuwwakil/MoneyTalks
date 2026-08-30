@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { expected, schedules } from "./qstash-schedules.config.mjs";
+import { expected, schedules, timeoutMilliseconds } from "./qstash-schedules.config.mjs";
 
 type Schedule = {
   name: string;
@@ -26,6 +26,13 @@ const minutesUtc = (cron: string) => {
  * only in a comment somebody will eventually contradict.
  */
 describe("QStash schedule contract", () => {
+  it("compares QStash millisecond timeouts with human-readable config durations", () => {
+    expect(timeoutMilliseconds("120000")).toBe(timeoutMilliseconds("2m"));
+    expect(timeoutMilliseconds(300_000)).toBe(timeoutMilliseconds("5m"));
+    expect(timeoutMilliseconds("90s")).toBe(90_000);
+    expect(timeoutMilliseconds("not-a-duration")).toBeNull();
+  });
+
   it("warms MarketLens strictly before the price cron reads it", () => {
     // The warm sweep is what makes the read cheap and correct. Scheduled after
     // the read, it warms a cache nobody is going to look at until tomorrow.
