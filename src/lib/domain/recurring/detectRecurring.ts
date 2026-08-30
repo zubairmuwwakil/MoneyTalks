@@ -25,7 +25,7 @@ type SweepOutcome = Exclude<keyof RecurringSweepResult, "skipped"> | "skipped";
 type PersistedIdentity = {
   userId: string;
   merchantCanonicalId: string;
-  currency: string;
+  currency: string | null;
   discriminator: string;
 };
 
@@ -178,17 +178,19 @@ export async function sweepRecurringObligations(
   let skipped = 0;
   const purchases: ClusteringPurchase[] = [];
   for (const purchase of purchaseRows) {
-    // Currency is part of identity. Guessing it from residency would silently
-    // merge obligations billed in different units, so unresolved rows wait for
-    // ingestion to supply the fact.
-    if (!purchase.merchant.trim() || !purchase.currency?.trim()) {
+    // Currency is part of identity. A priced receipt without one remains
+    // unclusterable: guessing it would merge obligations billed in different
+    // units. An entirely unpriced receipt is different — no amount means no
+    // currency is honestly knowable, so its null is a valid identity.
+    const currency = purchase.currency?.trim() || null;
+    if (!purchase.merchant.trim() || (purchase.totalCents !== null && !currency)) {
       skipped += 1;
       continue;
     }
     const key = identityKey({
       userId: purchase.userId,
       merchantCanonicalId: purchase.merchant,
-      currency: purchase.currency,
+      currency,
       discriminator: "",
     });
     const excluded = exclusionsByIdentity.get(key) ?? [];
@@ -201,7 +203,7 @@ export async function sweepRecurringObligations(
       userId: purchase.userId,
       canonicalMerchantId: purchase.merchant,
       discriminator: null,
-      currency: purchase.currency,
+      currency,
       amountMinor: purchase.totalCents,
       date: purchase.purchasedAt,
     });
@@ -264,8 +266,8 @@ export async function sweepRecurringObligations(
     ];
 
     const persist = async (): Promise<SweepOutcome> => db.$transaction(async (tx) => {
-      const existing = await tx.recurringObligation.findUnique({
-        where: { userId_merchantCanonicalId_currency_discriminator: identity },
+      const existing = await tx.recurringObligation.findFirst({
+        where: identity,
       });
       if (existing?.origin === "USER") return "skipped";
 

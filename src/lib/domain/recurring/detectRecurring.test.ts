@@ -63,6 +63,7 @@ type ObligationCreateData = Partial<ObligationRow>
 
 type MemoryObligationDelegate = {
   findMany(args?: { where?: { userId?: string } }): Promise<Array<ObligationRow & { evidence: EvidenceRow[] }>>;
+  findFirst(args: { where: { userId: string; merchantCanonicalId: string; currency: string | null; discriminator: string } }): Promise<ObligationRow | null>;
   findUnique(args: { where: Record<string, Record<string, string>> }): Promise<ObligationRow | null>;
   count(): Promise<number>;
   create(args: { data: ObligationCreateData }): Promise<ObligationRow>;
@@ -116,6 +117,12 @@ class MemoryRecurringDb {
         && row.currency === identity.currency
         && row.discriminator === identity.discriminator) ?? null;
     };
+    const findFirst: MemoryObligationDelegate["findFirst"] = async ({ where }) =>
+      this.obligations.find((row) =>
+        row.userId === where.userId
+        && row.merchantCanonicalId === where.merchantCanonicalId
+        && row.currency === where.currency
+        && row.discriminator === where.discriminator) ?? null;
     const create: MemoryObligationDelegate["create"] = async ({ data }) => {
       const now = new Date();
       const row = {
@@ -160,6 +167,7 @@ class MemoryRecurringDb {
     };
     this.recurringObligation = {
       findMany,
+      findFirst,
       findUnique,
       count: async () => this.obligations.length,
       create,
@@ -210,10 +218,12 @@ function seedPurchases(
   db: MemoryRecurringDb,
   merchant: string,
   dates: readonly string[],
-  amounts: number | readonly number[],
+  amounts: number | null | readonly (number | null)[],
   currency: string | null = "CAD",
 ): PurchaseRow[] {
-  const values = typeof amounts === "number" ? dates.map(() => amounts) : amounts;
+  const values: readonly (number | null)[] = Array.isArray(amounts)
+    ? amounts
+    : dates.map(() => amounts);
   const rows = dates.map((date, index) => ({
     id: `${merchant}-purchase-${index}`,
     userId: "user-1",
@@ -377,6 +387,18 @@ describe("sweepRecurringObligations", () => {
 
     expect(result.skipped).toBe(3);
     expect(db.obligations).toHaveLength(0);
+  });
+
+  it("uses null as the unique identity for an entirely unpriced series", async () => {
+    const db = new MemoryRecurringDb();
+    seedPurchases(db, "cloudflare.com", ["2026-05-11", "2026-06-11", "2026-07-11"], [null, null, null], null);
+
+    await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
+    const second = await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
+
+    expect(db.obligations).toHaveLength(1);
+    expect(db.obligations[0]).toMatchObject({ merchantCanonicalId: "cloudflare.com", currency: null, amountPattern: "UNKNOWN" });
+    expect(second).toMatchObject({ unchanged: 1 });
   });
 
   it("persists the lifecycle grace band as an honest null status", async () => {

@@ -121,6 +121,7 @@ function setupDb() {
     capAccrual: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
     capUsageLedger: { upsert: vi.fn(), update: vi.fn() },
     walletEvent: { findFirst: vi.fn() },
+    merchantCurrencyConfirmation: { findUnique: vi.fn() },
     // The real TransactionClient has this; promotePurchase reads it to find
     // any curated category before falling back to the merchant pack.
     merchantAlias: { findUnique: vi.fn() },
@@ -136,6 +137,7 @@ function setupDb() {
   tx.purchaseCorrection.findFirst.mockResolvedValue(null);
   tx.purchaseItem.findFirst.mockResolvedValue(null);
   tx.merchantAlias.findUnique.mockResolvedValue(null);
+  tx.merchantCurrencyConfirmation.findUnique.mockResolvedValue(null);
   vi.mocked(resolveEmailMerchant).mockImplementation(async (_db, merchant) => merchant);
   vi.mocked(findMatchingPurchase).mockResolvedValue(null);
 
@@ -440,6 +442,40 @@ describe("processRawGmailMessage", () => {
 
     expect(tx.purchase.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ currency: "USD", currencySource: "explicitCode" }),
+    });
+  });
+
+  it("looks up a learned merchant currency by the current owner and still lets an explicit receipt code win", async () => {
+    const { db, tx } = setupDb();
+    const reparsed = {
+      messageId: message.messageId, merchant: "heroku.com", fromEmail: "billing@heroku.com",
+      subject: "Your receipt", purchasedAt: new Date("2026-08-03T10:00:00.000Z"), orderId: undefined,
+      totalCents: 101, currency: "CAD", currencySource: "explicitCode" as const, items: undefined,
+      rawSource: "text" as const, textBody: "Total CAD 1.01",
+    };
+    const refreshed = { ...existingTransaction, merchant: reparsed.merchant, fromEmail: reparsed.fromEmail,
+      totalCents: 101, currency: "CAD", purchasedAt: reparsed.purchasedAt, items: null };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue(reparsed);
+    tx.merchantCurrencyConfirmation.findUnique.mockResolvedValue({ currency: "USD" });
+    tx.emailTransaction.findUnique.mockResolvedValue(null);
+    tx.emailTransaction.upsert.mockResolvedValue(refreshed);
+    tx.emailTransaction.update.mockResolvedValue({ ...refreshed, purchaseId: "purchase-learned" });
+    tx.purchase.findUnique.mockResolvedValue(null);
+    tx.purchase.create.mockResolvedValue({ id: "purchase-learned", userId: "user-1", merchant: reparsed.merchant,
+      totalCents: 101, currency: "CAD", currencySource: "explicitCode", purchasedAt: reparsed.purchasedAt,
+      orderNumber: null, paymentMethod: null, category: null, categorySource: null, source: "GMAIL",
+      sourceEmailId: message.messageId, sourceEventId: null, possibleDuplicateOfId: null,
+      createdAt: new Date(), updatedAt: new Date() });
+
+    await processRawGmailMessage(db as never, { userId: "user-1", message, mode: "reprocess" });
+
+    expect(tx.merchantCurrencyConfirmation.findUnique).toHaveBeenCalledWith({
+      where: { userId_merchantCanonicalId: { userId: "user-1", merchantCanonicalId: "heroku.com" } },
+      select: { currency: true },
+    });
+    expect(tx.purchase.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ currency: "CAD", currencySource: "explicitCode" }),
     });
   });
 

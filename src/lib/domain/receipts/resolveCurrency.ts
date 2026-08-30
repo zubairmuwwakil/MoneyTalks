@@ -49,6 +49,8 @@ export type CurrencySource =
   | "structuredMarkup"
   /** A Wallet capture linked to the same purchase carried an explicit code. */
   | "walletObservation"
+  /** The owner confirmed this merchant's billing currency for their account. */
+  | "ownerConfirmedForMerchant"
   | "none";
 
 export type CurrencyConfidence = "certain" | "high" | "none";
@@ -69,6 +71,8 @@ export interface CurrencyObservation {
   messageText?: string | null;
   /** JSON-LD `priceCurrency`, when the sender shipped markup. */
   markupCurrency?: string | null;
+  /** A currency this owner previously confirmed for this canonical merchant. */
+  ownerConfirmedMerchantCurrency?: string | null;
 }
 
 /**
@@ -167,7 +171,19 @@ export function resolveCurrency(observation: CurrencyObservation): CurrencyResol
     };
   }
 
-  // 4. Nothing. An honest null the UI renders as "(currency unknown)", rather
+  // 4. The owner told us this merchant's billing currency before. That is useful
+  //    for a bare "$", but a fact about this message always outranks it.
+  const merchantConfirmation = asCurrencyCode(observation.ownerConfirmedMerchantCurrency);
+  if (merchantConfirmation) {
+    return {
+      currency: merchantConfirmation,
+      confidence: "high",
+      source: "ownerConfirmedForMerchant",
+      rationale: `You previously confirmed ${merchantConfirmation} for this merchant.`,
+    };
+  }
+
+  // 5. Nothing. An honest null the UI renders as "(currency unknown)", rather
   //    than a default that would misstate the amount by a third in silence.
   return unresolved;
 }
@@ -194,10 +210,18 @@ export function reconcileCurrency(inputs: {
   if (owner) return { currency: owner, source: "userOverride" };
 
   const receipt = asCurrencyCode(inputs.receipt.currency);
-  if (receipt) return { currency: receipt, source: inputs.receipt.source };
+  // A receipt's own reading is direct evidence. The merchant-level answer is
+  // deliberately held until after a linked Wallet observation below.
+  if (receipt && inputs.receipt.source !== "ownerConfirmedForMerchant") {
+    return { currency: receipt, source: inputs.receipt.source };
+  }
 
   const wallet = asCurrencyCode(inputs.walletCurrency);
   if (wallet) return { currency: wallet, source: "walletObservation" };
+
+  if (receipt && inputs.receipt.source === "ownerConfirmedForMerchant") {
+    return { currency: receipt, source: "ownerConfirmedForMerchant" };
+  }
 
   return { currency: null, source: "none" };
 }

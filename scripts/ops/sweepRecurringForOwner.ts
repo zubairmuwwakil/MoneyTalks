@@ -35,7 +35,7 @@ const DEFAULT_TIME_ZONE = "America/Toronto";
 type Identity = {
   userId: string;
   merchantCanonicalId: string;
-  currency: string;
+  currency: string | null;
   discriminator: string;
 };
 
@@ -132,13 +132,15 @@ async function candidatesForOwner(
   }
 
   const clusteringPurchases: ClusteringPurchase[] = purchases.flatMap((purchase) => {
-    // Keep this guard aligned with sweepRecurringObligations: undefined
-    // currency is a data-quality fact, never an invitation to guess.
-    if (!purchase.merchant.trim() || !purchase.currency?.trim()) return [];
+    // Keep this guard aligned with sweepRecurringObligations. A priced row
+    // without currency remains a gap; an entirely unpriced receipt has null as
+    // its honest identity, never a guessed unit.
+    const currency = purchase.currency?.trim() || null;
+    if (!purchase.merchant.trim() || (purchase.totalCents !== null && !currency)) return [];
     const identity: Identity = {
       userId: purchase.userId,
       merchantCanonicalId: purchase.merchant,
-      currency: purchase.currency,
+      currency,
       discriminator: "",
     };
     if (exclusionsByIdentity.get(identityKey(identity))?.has(purchase.id)) return [];
@@ -147,7 +149,7 @@ async function candidatesForOwner(
       userId: purchase.userId,
       canonicalMerchantId: purchase.merchant,
       discriminator: null,
-      currency: purchase.currency,
+      currency,
       amountMinor: purchase.totalCents,
       date: purchase.purchasedAt,
     }];

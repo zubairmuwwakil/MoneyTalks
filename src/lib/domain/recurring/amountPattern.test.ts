@@ -78,9 +78,9 @@ describe("unpriced series", () => {
 
   it("classifies an entirely unpriced series as UNKNOWN with no schedule", () => {
     const result = inferAmountPattern([
-      { date: monthly("1"), amountMinor: null, currency: "CAD" },
-      { date: monthly("2"), amountMinor: null, currency: "CAD" },
-      { date: monthly("3"), amountMinor: null, currency: "CAD" },
+      { date: monthly("1"), amountMinor: null, currency: null },
+      { date: monthly("2"), amountMinor: null, currency: null },
+      { date: monthly("3"), amountMinor: null, currency: null },
     ]);
     expect(result.pattern).toBe("UNKNOWN");
     expect(result.schedule).toEqual([]);

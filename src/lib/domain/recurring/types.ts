@@ -9,7 +9,7 @@ import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
  * unpriced. They are still evidence — a confident monthly cadence with an
  * unknown amount beats no obligation at all, and beats an invented one.
  */
-export interface Observation<Currency extends string = string> {
+export interface Observation<Currency extends string | null = string | null> {
   date: Date;
   amountMinor: number | null;
   currency: Currency;

@@ -27,6 +27,22 @@ describe("the ladder resolves in strict order", () => {
     expect(result.currency).toBe("USD");
     expect(result.source).toBe("structuredMarkup");
   });
+
+  it("keeps an explicit code above the owner's learned merchant currency", () => {
+    const result = resolveCurrency({
+      messageText: "Total CAD 1.01",
+      ownerConfirmedMerchantCurrency: "USD",
+    });
+    expect(result).toMatchObject({ currency: "CAD", source: "explicitCode" });
+  });
+
+  it("uses a learned merchant currency only after message-local evidence is exhausted", () => {
+    const result = resolveCurrency({
+      messageText: "Total $1.01",
+      ownerConfirmedMerchantCurrency: "usd",
+    });
+    expect(result).toMatchObject({ currency: "USD", source: "ownerConfirmedForMerchant" });
+  });
 });
 
 describe("explicit codes in the message body", () => {
@@ -152,6 +168,14 @@ describe("reconciling a receipt reading with the purchase's other observations",
     const result = reconcileCurrency({ receipt: readNothing, walletCurrency: "cad" });
     expect(result.currency).toBe("CAD");
     expect(result.source).toBe("walletObservation");
+  });
+
+  it("lets a linked wallet observation outrank a learned merchant currency", () => {
+    const result = reconcileCurrency({
+      receipt: { currency: "USD", source: "ownerConfirmedForMerchant" },
+      walletCurrency: "CAD",
+    });
+    expect(result).toEqual({ currency: "CAD", source: "walletObservation" });
   });
 
   it("stays unresolved when neither the receipt nor a wallet capture states a currency", () => {

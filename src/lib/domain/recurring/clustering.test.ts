@@ -193,7 +193,7 @@ describe("unpriced observations", () => {
       canonicalMerchantId: "cloudflare.com",
       date: new Date(Date.UTC(2026, 2 + n, 11)),
       amountMinor: null,
-      currency: "CAD",
+      currency: null,
     }));
 
     const clusters = clusterRecurringPurchases(monthly, "UTC");

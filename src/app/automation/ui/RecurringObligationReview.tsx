@@ -15,7 +15,7 @@ type ScheduleEntry = { from: string; to?: string; amountMinor: number };
 type RecurringObligation = {
   id: string;
   merchantCanonicalId: string;
-  currency: string;
+  currency: string | null;
   cadence: Record<string, unknown>;
   schedule: ScheduleEntry[];
   amountPattern: string;
@@ -26,6 +26,11 @@ type RecurringObligation = {
 };
 
 type Dismissal = { reason: string; detail: string };
+type CurrencyNeed = {
+  merchantCanonicalId: string;
+  cadence: Record<string, unknown>;
+  evidence: Array<{ id: string; occurredAt: string }>;
+};
 
 const selectStyle = "rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800";
 const secondaryButton = "rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60";
@@ -69,7 +74,9 @@ function dismissalReason(value: Dismissal | undefined): string | null {
 
 export default function RecurringObligationReview() {
   const [obligations, setObligations] = useState<RecurringObligation[]>([]);
+  const [currencyNeeds, setCurrencyNeeds] = useState<CurrencyNeed[]>([]);
   const [dismissals, setDismissals] = useState<Record<string, Dismissal>>({});
+  const [currencies, setCurrencies] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +89,7 @@ export default function RecurringObligationReview() {
       if (!response.ok) throw new Error("Could not load recurring obligations");
       const data = await response.json();
       setObligations(data.obligations ?? []);
+      setCurrencyNeeds(data.currencyNeeds ?? []);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not load recurring obligations");
     } finally {
@@ -114,6 +122,28 @@ export default function RecurringObligationReview() {
     }
   }
 
+  async function teachCurrencyNeed(merchantCanonicalId: string, currency: string) {
+    const busyKey = `currency-needed:${merchantCanonicalId}`;
+    setBusyId(busyKey);
+    setError(null);
+    try {
+      const response = await fetch("/api/recurring/currency", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ merchantCanonicalId, currency }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error ?? "Could not save that currency");
+      }
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not save that currency");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   if (loading) {
     return <div className="rounded-2xl border bg-white/80 p-6 text-sm text-slate-600">Loading recurring obligations…</div>;
   }
@@ -127,10 +157,57 @@ export default function RecurringObligationReview() {
 
       {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div> : null}
 
-      {obligations.length === 0 ? (
+      {currencyNeeds.length > 0 ? (
+        <section className="space-y-4" aria-labelledby="currency-needed-heading">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
+            <h3 id="currency-needed-heading" className="text-base font-semibold text-amber-950">Currency needed to check recurrence</h3>
+            <p className="mt-1 text-sm text-amber-900">These purchases recur on a schedule, but their receipts did not state a currency. Tell us the unit only if you know it.</p>
+          </div>
+          {currencyNeeds.map((need) => {
+            const currency = currencies[need.merchantCanonicalId] ?? "";
+            const busyKey = `currency-needed:${need.merchantCanonicalId}`;
+            const disabled = busyId === busyKey;
+            return (
+              <article key={need.merchantCanonicalId} className="space-y-3 rounded-2xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+                <div>
+                  <h4 className="text-base font-semibold text-slate-900">{need.merchantCanonicalId}</h4>
+                  <p className="mt-1 text-sm text-slate-600">{cadenceInWords(need.cadence)} pattern in {need.evidence.length} purchases.</p>
+                  <p className="mt-1 text-xs text-slate-500">{need.evidence.map(({ occurredAt }) => dateInWords(occurredAt)).join(" · ")}</p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <label className="text-sm font-medium text-slate-700" htmlFor={`currency-needed-${need.merchantCanonicalId}`}>Billing currency</label>
+                  <input
+                    id={`currency-needed-${need.merchantCanonicalId}`}
+                    className="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm uppercase text-slate-800"
+                    aria-label={`Billing currency for ${need.merchantCanonicalId}`}
+                    autoCapitalize="characters"
+                    maxLength={3}
+                    placeholder="USD"
+                    value={currency}
+                    onChange={(event) => setCurrencies((current) => ({
+                      ...current,
+                      [need.merchantCanonicalId]: event.target.value.toUpperCase(),
+                    }))}
+                  />
+                  <button
+                    className={secondaryButton}
+                    onClick={() => teachCurrencyNeed(need.merchantCanonicalId, currency)}
+                    disabled={disabled || !/^[A-Z]{3}$/.test(currency)}
+                  >
+                    Check this recurrence
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      ) : null}
+
+      {obligations.length === 0 && currencyNeeds.length === 0 ? (
         <div className="rounded-2xl border bg-white/80 p-4 text-sm text-slate-600">No recurring obligations need review.</div>
       ) : obligations.map((obligation) => {
         const dismissal = dismissals[obligation.id] ?? { reason: "", detail: "" };
+        const currency = currencies[obligation.id] ?? "";
         const reason = dismissalReason(dismissal);
         const disabled = busyId === obligation.id;
         const explanation = obligation.reasons.map((item) => item.detail).join(" ");
@@ -162,6 +239,31 @@ export default function RecurringObligationReview() {
             ) : (
               <p className="text-sm text-slate-500">No explanation was stored for this suggestion.</p>
             )}
+
+            <div className="flex flex-col gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
+              <label className="text-sm font-medium text-slate-700" htmlFor={`currency-${obligation.id}`}>Billing currency</label>
+              <input
+                id={`currency-${obligation.id}`}
+                className="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm uppercase text-slate-800"
+                aria-label={`Billing currency for ${obligation.merchantCanonicalId}`}
+                autoCapitalize="characters"
+                maxLength={3}
+                placeholder="USD"
+                value={currency}
+                onChange={(event) => setCurrencies((current) => ({
+                  ...current,
+                  [obligation.id]: event.target.value.toUpperCase(),
+                }))}
+              />
+              <button
+                className={secondaryButton}
+                onClick={() => patch(obligation.id, { action: "set-currency", currency })}
+                disabled={disabled || !/^[A-Z]{3}$/.test(currency)}
+              >
+                Teach this merchant
+              </button>
+              <p className="text-xs text-slate-500">Applies only to your purchases from this merchant; message-specific currency evidence still wins.</p>
+            </div>
 
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Evidence dates</h4>

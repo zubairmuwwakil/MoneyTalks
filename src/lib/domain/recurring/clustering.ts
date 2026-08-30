@@ -38,7 +38,7 @@ export interface ClusteringPurchase extends Observation {
 export interface CandidateCluster<Purchase extends ClusteringPurchase = ClusteringPurchase> {
   userId: string;
   canonicalMerchantId: string;
-  currency: string;
+  currency: string | null;
   discriminator: string | null;
   /** Exactly the evidence selected for this series, in chronological order. */
   purchases: Purchase[];
@@ -76,7 +76,7 @@ function validatePurchases(purchases: readonly ClusteringPurchase[], timeZone: s
 
   const ids = new Set<string>();
   for (const purchase of purchases) {
-    if (!purchase.id || !purchase.userId || !purchase.canonicalMerchantId || !purchase.currency) {
+    if (!purchase.id || !purchase.userId || !purchase.canonicalMerchantId) {
       throw new RangeError("clustering identity fields must be non-empty strings");
     }
     if (ids.has(purchase.id)) throw new RangeError(`duplicate clustering purchase id: ${purchase.id}`);
@@ -90,6 +90,9 @@ function validatePurchases(purchases: readonly ClusteringPurchase[], timeZone: s
     // safe integer in minor units.
     if (purchase.amountMinor !== null && !Number.isSafeInteger(purchase.amountMinor)) {
       throw new RangeError("clustering amounts must be safe integers in minor units, or null");
+    }
+    if (purchase.amountMinor !== null && !purchase.currency) {
+      throw new RangeError("priced clustering observations require a currency");
     }
   }
 }

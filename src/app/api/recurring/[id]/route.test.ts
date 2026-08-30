@@ -1,15 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PATCH } from "./route";
+import { sweepRecurringObligations } from "@/lib/domain/recurring/detectRecurring";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
 
 vi.mock("@/lib/require-user", () => ({ getSessionUserId: vi.fn() }));
+vi.mock("@/lib/domain/recurring/detectRecurring", () => ({ sweepRecurringObligations: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $queryRaw: vi.fn(),
-    recurringObligation: { findFirst: vi.fn() },
+    $transaction: vi.fn(),
+    recurringObligation: { findFirst: vi.fn(), deleteMany: vi.fn() },
     recurringObligationEvidence: { updateMany: vi.fn() },
+    merchantCurrencyConfirmation: { upsert: vi.fn() },
+    purchase: { findMany: vi.fn(), updateMany: vi.fn() },
+    notificationPreference: { findUnique: vi.fn() },
   },
 }));
 
@@ -29,6 +35,13 @@ describe("PATCH /api/recurring/[id]", () => {
     vi.mocked(prisma.$queryRaw).mockResolvedValue([{ id: "obligation-1" }]);
     vi.mocked(prisma.recurringObligation.findFirst).mockResolvedValue({ id: "obligation-1" } as never);
     vi.mocked(prisma.recurringObligationEvidence.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.$transaction).mockImplementation(async (operation) => operation(prisma));
+    vi.mocked(prisma.merchantCurrencyConfirmation.upsert).mockResolvedValue({} as never);
+    vi.mocked(prisma.purchase.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.purchase.updateMany).mockResolvedValue({ count: 0 });
+    vi.mocked(prisma.recurringObligation.deleteMany).mockResolvedValue({ count: 0 });
+    vi.mocked(prisma.notificationPreference.findUnique).mockResolvedValue({ timezone: "America/Toronto" } as never);
+    vi.mocked(sweepRecurringObligations).mockResolvedValue({ created: 0, updated: 0, unchanged: 0, skipped: 0 });
   });
 
   it("rejects dismissal without a reason instead of storing a null label", async () => {
@@ -81,5 +94,34 @@ describe("PATCH /api/recurring/[id]", () => {
     const response = await PATCH(request({ action: "confirm" }) as never, context);
     expect(response.status).toBe(404);
     expect(prisma.$queryRaw).toHaveBeenCalledOnce();
+  });
+
+  it("teaches currency only for this owner and re-resolves only unresolved merchant purchases", async () => {
+    vi.mocked(prisma.recurringObligation.findFirst).mockResolvedValue({ merchantCanonicalId: "heroku.com" } as never);
+    vi.mocked(prisma.purchase.findMany).mockResolvedValue([{ id: "purchase-1" }, { id: "purchase-2" }] as never);
+
+    const response = await PATCH(request({ action: "set-currency", currency: "usd" }) as never, context);
+
+    await expect(response.json()).resolves.toEqual({ ok: true, affectedPurchases: 2 });
+    expect(prisma.merchantCurrencyConfirmation.upsert).toHaveBeenCalledWith({
+      where: { userId_merchantCanonicalId: { userId: "user-1", merchantCanonicalId: "heroku.com" } },
+      create: { userId: "user-1", merchantCanonicalId: "heroku.com", currency: "USD" },
+      update: { currency: "USD" },
+    });
+    expect(prisma.purchase.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user-1",
+        merchant: "heroku.com",
+        OR: [{ currency: null }, { currencySource: "ownerConfirmedForMerchant" }],
+      },
+      select: { id: true },
+    });
+    expect(prisma.purchase.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ["purchase-1", "purchase-2"] }, userId: "user-1" },
+      data: { currency: "USD", currencySource: "ownerConfirmedForMerchant" },
+    });
+    expect(sweepRecurringObligations).toHaveBeenCalledWith(prisma, {
+      userId: "user-1", timeZone: "America/Toronto", algorithmVersion: 1,
+    });
   });
 });

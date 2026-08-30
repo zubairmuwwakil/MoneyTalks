@@ -16,7 +16,12 @@ import {
 import { hasPurchaseEvidence } from "./receiptEvidence";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
 import { resolveCategory, shouldAutoApply } from "@/lib/domain/merchants/resolveCategory";
-import { reconcileCurrency, type CurrencySource } from "./resolveCurrency";
+import {
+  reconcileCurrency,
+  resolveCurrency,
+  shouldAutoApply as shouldApplyCurrency,
+  type CurrencySource,
+} from "./resolveCurrency";
 
 export type GmailMessageProcessingMode = "scan" | "reprocess";
 export type GmailTransactionAction = "created" | "updated" | "skipped";
@@ -76,6 +81,32 @@ function emailTransactionData(
     items,
     rawSource: parsed.rawSource,
     parserError,
+  };
+}
+
+/**
+ * The parser resolves only message-local evidence. The orchestration boundary
+ * supplies the owner's merchant-scoped answer after canonical merchant
+ * identity is known; the resolver itself stays pure and synchronous.
+ */
+function withOwnerConfirmedMerchantCurrency(
+  parsed: ParsedPurchase,
+  ownerConfirmedMerchantCurrency: string | null | undefined,
+): ParsedPurchase {
+  if (!ownerConfirmedMerchantCurrency) return parsed;
+
+  const resolution = resolveCurrency({
+    messageText: parsed.textBody,
+    // The parser already screened JSON-LD through the same resolver. When a
+    // learned value is present, replaying the message evidence preserves the
+    // strict direct-evidence-over-learned order without a database call here.
+    markupCurrency: parsed.rawSource === "jsonld" ? parsed.currency : undefined,
+    ownerConfirmedMerchantCurrency,
+  });
+  return {
+    ...parsed,
+    currency: shouldApplyCurrency(resolution) ? resolution.currency ?? undefined : undefined,
+    currencySource: resolution.source,
   };
 }
 
@@ -622,6 +653,17 @@ export async function processRawGmailMessage(
     : await resolveEmailMerchant(db, parsedPurchase.merchant, parsedPurchase.fromEmail);
 
   return db.$transaction(async (transactionDb) => {
+    const merchantCurrency = await transactionDb.merchantCurrencyConfirmation.findUnique({
+      where: {
+        userId_merchantCanonicalId: {
+          userId: params.userId,
+          merchantCanonicalId: merchant,
+        },
+      },
+      select: { currency: true },
+    });
+    parsedPurchase = withOwnerConfirmedMerchantCurrency(parsedPurchase, merchantCurrency?.currency);
+
     const existing = await transactionDb.emailTransaction.findUnique({
       where: {
         userId_provider_messageId: {

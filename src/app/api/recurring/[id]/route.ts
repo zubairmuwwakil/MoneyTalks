@@ -1,22 +1,32 @@
 import { Prisma } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 
+import { confirmMerchantCurrency } from "@/lib/domain/recurring/confirmMerchantCurrency";
+import { sweepRecurringObligations } from "@/lib/domain/recurring/detectRecurring";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
 
 export const runtime = "nodejs";
 
-type RecurringAction = "confirm" | "dismiss" | "exclude-evidence";
+type RecurringAction = "confirm" | "dismiss" | "exclude-evidence" | "set-currency";
 type ActionBody = {
   action?: RecurringAction;
   dismissReason?: unknown;
   evidenceId?: unknown;
+  currency?: unknown;
 };
+
+const DEFAULT_TIME_ZONE = "America/Toronto";
 
 function nonEmptyString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim();
   return normalized ? normalized : null;
+}
+
+function currencyCode(value: unknown): string | null {
+  const normalized = nonEmptyString(value)?.toUpperCase();
+  return normalized && /^[A-Z]{3}$/.test(normalized) ? normalized : null;
 }
 
 export async function PATCH(
@@ -28,11 +38,40 @@ export async function PATCH(
 
   const body = await req.json().catch(() => null) as ActionBody | null;
   if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  if (!body.action || !["confirm", "dismiss", "exclude-evidence"].includes(body.action)) {
+  if (!body.action || !["confirm", "dismiss", "exclude-evidence", "set-currency"].includes(body.action)) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
   const { id } = await params;
+
+  if (body.action === "set-currency") {
+    const currency = currencyCode(body.currency);
+    if (!currency) return NextResponse.json({ error: "Currency must be a three-letter code" }, { status: 400 });
+
+    const obligation = await prisma.recurringObligation.findFirst({
+      where: { id, userId, origin: "DETECTED", needsReview: true },
+      select: { merchantCanonicalId: true },
+    });
+    if (!obligation) return new NextResponse("Not found", { status: 404 });
+
+    const { affectedPurchases } = await confirmMerchantCurrency(prisma, {
+      userId,
+      merchantCanonicalId: obligation.merchantCanonicalId,
+      currency,
+    });
+
+    const preference = await prisma.notificationPreference.findUnique({
+      where: { userId },
+      select: { timezone: true },
+    });
+    await sweepRecurringObligations(prisma, {
+      userId,
+      timeZone: preference?.timezone || DEFAULT_TIME_ZONE,
+      algorithmVersion: 1,
+    });
+    return NextResponse.json({ ok: true, affectedPurchases });
+  }
+
   if (body.action === "exclude-evidence") {
     const evidenceId = nonEmptyString(body.evidenceId);
     if (!evidenceId) return NextResponse.json({ error: "evidenceId is required" }, { status: 400 });

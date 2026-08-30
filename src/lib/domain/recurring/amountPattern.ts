@@ -92,7 +92,7 @@ function patternFor(cv: number): AmountPattern {
 }
 
 /** Classify one already cadence-matched, single-currency observation series. */
-export function inferAmountPattern<Currency extends string>(
+export function inferAmountPattern<Currency extends string | null>(
   observations: readonly Observation<Currency>[],
 ): AmountPatternResult {
   if (observations.length === 0) throw new RangeError("amount pattern requires at least one observation");
@@ -110,9 +110,10 @@ export function inferAmountPattern<Currency extends string>(
 
   const ordered = [...priced].sort((a, b) => {
     const byDate = a.date.getTime() - b.date.getTime();
-    return byDate || a.amountMinor - b.amountMinor || a.currency.localeCompare(b.currency);
+    return byDate || a.amountMinor - b.amountMinor || String(a.currency).localeCompare(String(b.currency));
   });
   const currency = ordered[0].currency;
+  if (currency === null) throw new RangeError("priced amount observations require a currency");
   for (const observation of ordered) {
     if (observation.currency !== currency) throw new RangeError("amount pattern observations must share one currency");
     if (!Number.isSafeInteger(observation.amountMinor)) {

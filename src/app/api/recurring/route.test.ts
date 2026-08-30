@@ -6,7 +6,11 @@ import { getSessionUserId } from "@/lib/require-user";
 
 vi.mock("@/lib/require-user", () => ({ getSessionUserId: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
-  prisma: { recurringObligation: { findMany: vi.fn() } },
+  prisma: {
+    recurringObligation: { findMany: vi.fn() },
+    purchase: { findMany: vi.fn() },
+    notificationPreference: { findUnique: vi.fn() },
+  },
 }));
 
 describe("GET /api/recurring", () => {
@@ -26,6 +30,8 @@ describe("GET /api/recurring", () => {
         { id: "evidence-3", occurredAt: new Date("2026-07-11T12:00:00.000Z") },
       ],
     }] as never);
+    vi.mocked(prisma.purchase.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.notificationPreference.findUnique).mockResolvedValue({ timezone: "America/Toronto" } as never);
   });
 
   it("lists detected obligations with readable reasons and evidence", async () => {
@@ -58,5 +64,27 @@ describe("GET /api/recurring", () => {
     const response = await GET();
     expect(response.status).toBe(401);
     expect(prisma.recurringObligation.findMany).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a regular priced series whose currency is missing", async () => {
+    vi.mocked(prisma.recurringObligation.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.purchase.findMany).mockResolvedValue([
+      { id: "heroku-1", merchant: "heroku.com", totalCents: 101, purchasedAt: new Date("2026-06-01T12:00:00.000Z") },
+      { id: "heroku-2", merchant: "heroku.com", totalCents: 101, purchasedAt: new Date("2026-07-01T12:00:00.000Z") },
+      { id: "heroku-3", merchant: "heroku.com", totalCents: 101, purchasedAt: new Date("2026-08-01T12:00:00.000Z") },
+    ] as never);
+
+    const response = await GET();
+    const body = await response.json();
+
+    expect(body.currencyNeeds).toEqual([expect.objectContaining({
+      merchantCanonicalId: "heroku.com",
+      cadence: expect.objectContaining({ type: "MONTHLY" }),
+      evidence: expect.arrayContaining([
+        expect.objectContaining({ id: "heroku-1" }),
+        expect.objectContaining({ id: "heroku-2" }),
+        expect.objectContaining({ id: "heroku-3" }),
+      ]),
+    })]);
   });
 });

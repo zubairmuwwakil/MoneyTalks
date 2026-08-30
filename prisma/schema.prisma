@@ -43,6 +43,7 @@ model User {
   purchaseCorrections         PurchaseCorrection[]
   receiptDocuments            ReceiptDocument[]
   receiptUploads              ReceiptUpload[]
+  merchantCurrencyConfirmations MerchantCurrencyConfirmation[]
   recurringObligations        RecurringObligation[]
   recurringSweepJob           RecurringSweepJob?
   refundCases                 RefundCase[]
@@ -576,7 +577,9 @@ model RecurringObligation {
   discriminator       String                        @default("")
   kind                String?
   merchantCanonicalId String
-  currency            String
+  /// An entirely unpriced series has no knowable currency; persist null rather
+  /// than inventing a unit for its identity.
+  currency            String?
   cadence             Json
   schedule            Json
   amountPattern       AmountPatternKind
@@ -598,9 +601,27 @@ model RecurringObligation {
   user                User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
   evidence            RecurringObligationEvidence[]
 
-  @@unique([userId, merchantCanonicalId, currency, discriminator])
+  // The migration supplies partial unique indexes for non-null and null
+  // currencies. Prisma cannot express those indexes, and a normal PostgreSQL
+  // unique index would permit duplicate null identities.
   @@index([userId, status, nextExpectedDate])
   @@index([algorithmVersion])
+}
+
+/// An owner's durable answer about a merchant's billing currency. It is
+/// intentionally per-owner: a merchant's USD bill for one owner is not
+/// evidence about another owner's CAD bill.
+model MerchantCurrencyConfirmation {
+  id                  String   @id @default(cuid())
+  userId              String
+  merchantCanonicalId String
+  currency            String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, merchantCanonicalId])
+  @@index([userId])
 }
 
 /// Evidence is stored as auditable links rather than an aggregate count.
