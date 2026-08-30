@@ -13,6 +13,7 @@ import { sendServiceFailureAlert } from "@/lib/services/alerting";
 import type { Prisma } from "@prisma/client";
 import crypto from "crypto";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
+import { deriveSubscriptionDetectedItemType } from "@/lib/domain/receipts/emailObligationFacts";
 
 type TrackingHit = { trackingNumber: string; carrier?: string };
 
@@ -54,17 +55,6 @@ function detectTrackingNumbers(text: string): TrackingHit[] {
 
 function hashSnippet(input: string) {
   return crypto.createHash("sha256").update(input).digest("hex");
-}
-
-export function detectSubscriptionItem(subject: string | null, decoded: string) {
-  const s = (subject ?? "").toLowerCase();
-  const body = decoded.toLowerCase();
-  const trialHints = /trial|free trial|trial ends|trial period/.test(s + " " + body);
-  const renewalHints = /renew|renews|upcoming charge|subscription|recurring|will be charged/.test(s + " " + body);
-
-  if (trialHints) return "TRIAL" as const;
-  if (renewalHints) return "RENEWAL" as const;
-  return null;
 }
 
 export const runtime = "nodejs";
@@ -236,7 +226,11 @@ export async function POST(req: NextRequest) {
 
         let detectedType: "TRIAL" | "RENEWAL" | "BILL" | null = null;
         if (suggestionType === "SUBSCRIPTION") {
-          detectedType = detectSubscriptionItem(tx.subject, body);
+          const facts = await prisma.emailObligationFact.findMany({
+            where: { emailTransactionId: tx.id },
+            select: { type: true },
+          });
+          detectedType = deriveSubscriptionDetectedItemType(facts);
         } else if (suggestionType === "BILL") {
           detectedType = "BILL";
         }
