@@ -1,9 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   buildReceiptQuery,
+  buildReceiptQueryForWindow,
   extractRfc822MessageId,
   hasGmailReadScope,
+  listRawGmailMessagesInWindow,
   listRecentRawGmailMessages,
 } from "./gmailScanSource";
 
@@ -135,6 +137,109 @@ it("narrows the Gmail query to receipt-shaped mail", () => {
   // ...and explicitly excluding the bulk marketing that polluted the first scan.
   expect(q).toContain("-category:promotions");
   expect(q).toContain("-category:social");
+});
+
+describe("listRawGmailMessagesInWindow", () => {
+  const after = new Date("2026-01-01T00:00:00.000Z");
+  const before = new Date("2026-02-01T00:00:00.000Z");
+
+  function windowGmail(ids = ["m1", "m2", "m3"]) {
+    const rawById = new Map(
+      ids.map((id) => [
+        id,
+        Buffer.from(mimeMessage(`Receipt ${id}`, `${id}@shop.example`, `${id}@sender.example`)).toString(
+          "base64url",
+        ),
+      ]),
+    );
+    const list = vi.fn(async (params: ListCall) => {
+      void params;
+      return { data: { messages: ids.map((id) => ({ id })) } };
+    });
+    const get = vi.fn(async ({ id }: { id: string }) => ({
+      data: { raw: rawById.get(id), internalDate: "1767225600000" },
+    }));
+
+    return { gmail: { users: { messages: { list, get } } }, list, get, rawById };
+  }
+
+  it("fetches within a window rather than from a single date", async () => {
+    const { gmail, list } = windowGmail();
+
+    const messages = await listRawGmailMessagesInWindow(gmail, { after, before, max: 500 });
+
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({ q: buildReceiptQueryForWindow(after, before) }),
+    );
+    expect(list.mock.calls[0]?.[0].q).toContain(`after:${Math.floor(after.getTime() / 1000)}`);
+    expect(list.mock.calls[0]?.[0].q).toContain(`before:${Math.floor(before.getTime() / 1000)}`);
+    expect(messages).toHaveLength(3);
+  });
+
+  it("uses parallel workers without exceeding the concurrency limit", async () => {
+    const { gmail, get } = windowGmail(Array.from({ length: 12 }, (_, index) => `m${index + 1}`));
+    let inFlight = 0;
+    let peak = 0;
+    const originalGet = get.getMockImplementation();
+    get.mockImplementation(async (params) => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      const result = await originalGet!(params);
+      inFlight -= 1;
+      return result;
+    });
+
+    await listRawGmailMessagesInWindow(gmail, { after, before, max: 50, concurrency: 4 });
+
+    expect(peak).toBe(4);
+  });
+
+  it("defaults to eight concurrent fetches", async () => {
+    const { gmail, get } = windowGmail(Array.from({ length: 12 }, (_, index) => `m${index + 1}`));
+    let inFlight = 0;
+    let peak = 0;
+    const originalGet = get.getMockImplementation();
+    get.mockImplementation(async (params) => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      const result = await originalGet!(params);
+      inFlight -= 1;
+      return result;
+    });
+
+    await listRawGmailMessagesInWindow(gmail, { after, before, max: 50 });
+
+    expect(peak).toBe(8);
+  });
+
+  it("returns messages in id order regardless of completion order", async () => {
+    const { gmail, get, rawById } = windowGmail();
+    get.mockImplementation(async ({ id }) => {
+      await new Promise((resolve) => setTimeout(resolve, id === "m1" ? 20 : 1));
+      return { data: { raw: rawById.get(id), internalDate: "1767225600000" } };
+    });
+
+    const messages = await listRawGmailMessagesInWindow(gmail, { after, before, max: 10, concurrency: 3 });
+
+    expect(messages.map((message) => message.messageId)).toEqual(["m1", "m2", "m3"]);
+  });
+
+  it("skips a failed message without losing the rest of the batch", async () => {
+    const { gmail, get, rawById } = windowGmail();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    get.mockImplementation(async ({ id }) => {
+      if (id === "m2") throw new Error("404");
+      return { data: { raw: rawById.get(id), internalDate: "1767225600000" } };
+    });
+
+    const messages = await listRawGmailMessagesInWindow(gmail, { after, before, max: 10 });
+
+    expect(messages.map((message) => message.messageId)).toEqual(["m1", "m3"]);
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
+  });
 });
 
 describe("extractRfc822MessageId", () => {

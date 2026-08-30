@@ -39,6 +39,14 @@ export function buildReceiptQuery(since: Date): string {
   return `${after} -category:promotions -category:social (category:purchases OR ${subjectTerms})`;
 }
 
+/** The receipt query bounded at both ends, for walking history backwards. */
+export function buildReceiptQueryForWindow(after: Date, before: Date): string {
+  const afterTerm = `after:${Math.floor(after.getTime() / 1000)}`;
+  const beforeTerm = `before:${Math.floor(before.getTime() / 1000)}`;
+  const subjectTerms = `subject:(${RECEIPT_TERMS.join(" OR ")})`;
+  return `${afterTerm} ${beforeTerm} -category:promotions -category:social (category:purchases OR ${subjectTerms})`;
+}
+
 export type RawGmailMessage = {
   messageId: string;
   raw: Buffer;
@@ -64,6 +72,11 @@ type GmailLike = {
       }): Promise<{ data: { raw?: string | null; internalDate?: string | null } }>;
     };
   };
+};
+
+type RawGmailResponse = {
+  raw?: string | null;
+  internalDate?: string | null;
 };
 
 function headerValue(headerBlock: string, name: string): string | null {
@@ -98,6 +111,77 @@ function addressFrom(headerText: string | null): string | null {
   return (angled ? angled[1] : headerText).trim() || null;
 }
 
+function parseRawGmailMessage(id: string, data: RawGmailResponse): RawGmailMessage | null {
+  if (!data.raw) return null;
+
+  const raw = Buffer.from(data.raw, "base64url");
+  const text = raw.toString("utf8");
+  const headerBlock = text.split(/\r?\n\r?\n/, 1)[0] ?? "";
+
+  return {
+    messageId: id,
+    raw,
+    subject: headerValue(headerBlock, "Subject"),
+    from: addressFrom(headerValue(headerBlock, "From")),
+    internalDate: data.internalDate ? new Date(Number(data.internalDate)) : null,
+    rfc822MessageId: extractRfc822MessageId(text),
+  };
+}
+
+async function getRawGmailMessage(gmail: GmailLike, id: string): Promise<RawGmailMessage | null> {
+  const res = await gmail.users.messages.get({ userId: "me", id, format: "raw" });
+  return parseRawGmailMessage(id, res.data);
+}
+
+async function listGmailMessageIds(gmail: GmailLike, q: string, max: number): Promise<string[]> {
+  const ids: string[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const res = await gmail.users.messages.list({
+      userId: "me",
+      q,
+      maxResults: Math.min(max - ids.length, 100),
+      pageToken,
+    });
+    for (const message of res.data.messages ?? []) {
+      if (message.id) ids.push(message.id);
+      if (ids.length >= max) break;
+    }
+    pageToken = res.data.nextPageToken ?? undefined;
+  } while (pageToken && ids.length < max);
+
+  return ids;
+}
+
+async function getRawGmailMessagesConcurrently(
+  gmail: GmailLike,
+  ids: readonly string[],
+  concurrency: number,
+): Promise<RawGmailMessage[]> {
+  const messages: (RawGmailMessage | undefined)[] = new Array(ids.length);
+  const workerCount = Math.min(ids.length, Math.max(1, Math.floor(concurrency)));
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (nextIndex < ids.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const id = ids[index];
+
+      try {
+        const message = await getRawGmailMessage(gmail, id);
+        if (message) messages[index] = message;
+      } catch (error) {
+        console.warn(`[gmail] failed to fetch message ${id}; skipping`, error);
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return messages.filter((message): message is RawGmailMessage => message !== undefined);
+}
+
 export async function listRecentRawGmailMessages(
   gmail: GmailLike,
   opts: { since: Date; max: number } | { messageIds: readonly string[] }
@@ -110,43 +194,22 @@ export async function listRecentRawGmailMessages(
     // older, broader scan ingested — precisely the rows reprocessing repairs.
     ids = [...new Set(opts.messageIds)];
   } else {
-    ids = [];
-    const q = buildReceiptQuery(opts.since);
-
-    let pageToken: string | undefined;
-    do {
-      const res = await gmail.users.messages.list({
-        userId: "me",
-        q,
-        maxResults: Math.min(opts.max - ids.length, 100),
-        pageToken,
-      });
-      for (const m of res.data.messages ?? []) {
-        if (m.id) ids.push(m.id);
-        if (ids.length >= opts.max) break;
-      }
-      pageToken = res.data.nextPageToken ?? undefined;
-    } while (pageToken && ids.length < opts.max);
+    ids = await listGmailMessageIds(gmail, buildReceiptQuery(opts.since), opts.max);
   }
 
   const messages: RawGmailMessage[] = [];
   for (const id of ids) {
-    const res = await gmail.users.messages.get({ userId: "me", id, format: "raw" });
-    if (!res.data.raw) continue;
-
-    const raw = Buffer.from(res.data.raw, "base64url");
-    const text = raw.toString("utf8");
-    const headerBlock = text.split(/\r?\n\r?\n/, 1)[0] ?? "";
-
-    messages.push({
-      messageId: id,
-      raw,
-      subject: headerValue(headerBlock, "Subject"),
-      from: addressFrom(headerValue(headerBlock, "From")),
-      internalDate: res.data.internalDate ? new Date(Number(res.data.internalDate)) : null,
-      rfc822MessageId: extractRfc822MessageId(text),
-    });
+    const message = await getRawGmailMessage(gmail, id);
+    if (message) messages.push(message);
   }
 
   return messages;
+}
+
+export async function listRawGmailMessagesInWindow(
+  gmail: GmailLike,
+  opts: { after: Date; before: Date; max: number; concurrency?: number },
+): Promise<RawGmailMessage[]> {
+  const ids = await listGmailMessageIds(gmail, buildReceiptQueryForWindow(opts.after, opts.before), opts.max);
+  return getRawGmailMessagesConcurrently(gmail, ids, opts.concurrency ?? 8);
 }

@@ -730,8 +730,18 @@ model EmailConnection {
   scope               String?
   lastScanAt          DateTime?
   scanMode            ScanMode           @default(ALL)
+  /// When the owner asked for a historical backfill. Null means never asked,
+  /// and the job must not run — the ratified ruling is owner-initiated, never
+  /// automatic, because this reads two years of somebody's mail.
+  backfillRequestedAt DateTime?
+  /// ISO date (YYYY-MM-DD): the oldest point already covered. The job walks
+  /// backwards from here. Null with a request pending means "start at today".
   backfillCursor      String?
   backfillCompletedAt DateTime?
+  /// Recoverable cron lease. An expired lease may be reclaimed; lockId keeps
+  /// an older worker from releasing a newer worker's claim.
+  backfillLockedAt    DateTime?
+  backfillLockId      String?
   // Why the scan last failed. 6eb2ada narrowed lastScanAt so it records a
   // COMPLETED scan, which already distinguishes broken from quiet; this
   // records *how* it broke, so a support answer does not require server logs.

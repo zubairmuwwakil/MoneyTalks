@@ -14,23 +14,82 @@ type GmailConnectionStatus = {
   scanMode: ScanMode;
   lastScanAt: string | null;
   lastScanError: string | null;
+  backfillRequestedAt: string | null;
+  backfillCompletedAt: string | null;
+  monthsCovered: number;
+  monthsTarget: number;
+  backfillComplete: boolean;
+};
+
+type BackfillProgress = {
+  connectionId: string;
+  requestedAt: string | null;
+  completedAt: string | null;
+  monthsCovered: number;
+  monthsTarget: number;
+  complete: boolean;
 };
 
 export default function AutomationHome() {
   const [connections, setConnections] = useState<GmailConnectionStatus[]>([]);
   const [scanning, setScanning] = useState(false);
+  const [requestingBackfill, setRequestingBackfill] = useState<string | null>(null);
+  const [backfillError, setBackfillError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const connected = connections.some((connection) => connection.connected);
 
   async function loadStatus() {
-    const res = await fetch("/api/gmail/status", { cache: "no-store" });
-    const data = await res.json();
-    setConnections(Array.isArray(data.connections) ? data.connections : []);
+    const [statusResponse, backfillResponse] = await Promise.all([
+      fetch("/api/gmail/status", { cache: "no-store" }),
+      fetch("/api/gmail/backfill", { cache: "no-store" }),
+    ]);
+    const [status, backfill] = await Promise.all([statusResponse.json(), backfillResponse.json()]);
+    const progressByConnection = new Map<string, BackfillProgress>(
+      (Array.isArray(backfill.connections) ? backfill.connections : [])
+        .map((progress: BackfillProgress) => [progress.connectionId, progress]),
+    );
+    const statuses = Array.isArray(status.connections) ? status.connections : [];
+    setConnections(statuses.map((connection: Omit<GmailConnectionStatus,
+      "backfillRequestedAt" | "backfillCompletedAt" | "monthsCovered" | "monthsTarget" | "backfillComplete"
+    >) => {
+      const progress = progressByConnection.get(connection.id);
+      return {
+        ...connection,
+        backfillRequestedAt: progress?.requestedAt ?? null,
+        backfillCompletedAt: progress?.completedAt ?? null,
+        monthsCovered: progress?.monthsCovered ?? 0,
+        monthsTarget: progress?.monthsTarget ?? 24,
+        backfillComplete: progress?.complete ?? false,
+      };
+    }));
   }
 
   useEffect(() => {
     loadStatus();
+    const timer = window.setInterval(loadStatus, 10_000);
+    return () => window.clearInterval(timer);
   }, []);
+
+  async function requestBackfill(connectionId: string) {
+    setRequestingBackfill(connectionId);
+    setBackfillError(null);
+    try {
+      const response = await fetch("/api/gmail/backfill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ connectionId }),
+      });
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || "Could not start the historical scan");
+      }
+      await loadStatus();
+    } catch (error) {
+      setBackfillError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setRequestingBackfill(null);
+    }
+  }
 
   async function disconnect(connectionId: string) {
     await fetch("/api/gmail/disconnect", {
@@ -142,8 +201,52 @@ export default function AutomationHome() {
                   <option value="SUBSCRIPTIONS_ONLY">Subscriptions only</option>
                 </select>
               </label>
+
+              <div className="mt-4 border-t pt-4">
+                <div className="text-sm font-semibold">Find my subscriptions</div>
+                <p className="mt-1 max-w-2xl text-xs leading-relaxed opacity-70">
+                  We&apos;ll scan up to two years of receipt-shaped emails from this mailbox to spot recurring
+                  charges, including annual renewals that a recent scan cannot find.
+                </p>
+
+                {connection.backfillComplete ? (
+                  <div className="mt-3 text-xs font-medium text-emerald-700">
+                    Historical scan complete · {connection.monthsTarget} months covered
+                  </div>
+                ) : connection.backfillRequestedAt ? (
+                  <div className="mt-3 max-w-sm" aria-live="polite">
+                    <div className="flex items-center justify-between text-xs">
+                      <span>Scanning history…</span>
+                      <span>{connection.monthsCovered} / {connection.monthsTarget} months</span>
+                    </div>
+                    <div
+                      className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-200"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={connection.monthsTarget}
+                      aria-valuenow={connection.monthsCovered}
+                    >
+                      <div
+                        className="h-full rounded-full bg-cyan-600 transition-[width]"
+                        style={{
+                          width: `${Math.min(100, (connection.monthsCovered / connection.monthsTarget) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    className="mt-3 rounded-lg border border-cyan-700/30 bg-cyan-700 px-3 py-2 text-xs font-medium text-white hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => requestBackfill(connection.id)}
+                    disabled={connection.needsReauth || requestingBackfill === connection.id}
+                  >
+                    {requestingBackfill === connection.id ? "Starting…" : "Scan two years of receipts"}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
+          {backfillError ? <div className="text-xs text-red-700">Historical scan: {backfillError}</div> : null}
         </div>
 
         <div className="mt-3 flex gap-2">
