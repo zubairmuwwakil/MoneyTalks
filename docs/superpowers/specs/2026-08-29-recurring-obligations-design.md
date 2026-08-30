@@ -20,7 +20,7 @@ them as a contract PickMe consumes.
 | Multi-account | **In scope.** Drop `EmailConnection.userId @unique`. |
 | `Subscription.cadence = CUSTOM` rows | Migrate to `MONTHLY` at `renewalDate`'s day, flagged for re-detection. |
 | Backfill consent | **User-initiated, strongly prompted.** Never silent on connect. |
-| Data retention | **Deferred** — see §15, D1. |
+| Data retention | **Deferred** — see §16, D1. |
 | LLM | **No.** See §12. |
 
 ### Why not `return-saas`
@@ -67,7 +67,15 @@ declared frozen.
 All three are the same class of bug: a nullable domain fact meeting a
 non-nullable column, where the type system is satisfied by an invented value.
 
-4. `src/lib/domain/receipts/gmailPurchaseParser.ts:38-50` — **merchant identity
+4. `src/app/api/automation/scan/route.ts:257-262` — **`lastScanAt` is stamped
+   in a `finally` block**, so a scan that threw records exactly the same state
+   as a scan that ran and found nothing. This is how a failed scan on
+   2026-08-17 came to look like an empty inbox for twelve days, and it is why
+   the corpus appeared to be zero. Stamp on success only, and persist
+   `lastScanError`. A monitoring signal that cannot distinguish "broken" from
+   "quiet" is worse than none, because it is trusted.
+
+5. `src/lib/domain/receipts/gmailPurchaseParser.ts:38-50` — **merchant identity
    is a two-label suffix slice.** `parts.slice(-2).join(".")` maps
    `notifications@shopify.co.uk` to `"co.uk"`, collapsing every UK merchant
    into one; likewise `.com.au`, `.co.nz`, `.gov.uk`. It also never consults
@@ -237,6 +245,80 @@ Otherwise classify by coefficient of variation over the matched subsequence:
 | `< 0.02` | `FIXED` | Netflix 20.99 × n |
 | `< 0.35` | `VARIABLE` | utility 82 / 105 / 94 |
 | `≥ 0.35` | `USAGE_BASED` | Vercel 4 / 20 / 12 |
+| n/a | `UNKNOWN` | Cloudflare "Your invoice is available" |
+
+### Unpriced obligations
+
+A whole class of biller never states a price in the mail. Cloudflare's
+monthly "Your invoice is available" puts the figure behind a link; a probe of
+a real inbox on 2026-08-29 found two such messages among the first five
+matches, against one that carried a parseable total.
+
+Those emails produce an `EmailTransaction` but never a `Purchase`, because
+`hasPurchaseEvidence` correctly refuses to assert that money moved. The
+consequence is that clustering — which reads the spine — cannot see them at
+all, and Cloudflare goes undetected despite being a textbook monthly
+obligation.
+
+The fix is not to loosen the purchase gate, which is right as it stands. It is
+to recognise that **dates alone are a valid recurrence signal**:
+`Observation.amountMinor` is nullable, an all-unpriced series classifies as
+`UNKNOWN` with an empty schedule, and cadence inference is unaffected because
+it only ever read dates. A confident monthly cadence with an unknown amount is
+far more useful than no obligation, and it is honest in a way an imputed
+figure would not be. `UNKNOWN` also earns no `FIXED_AMOUNT` confidence term,
+so an unpriced series is not flattered by its own missing data.
+
+Partial information is used: when only some observations carry an amount, the
+priced subset is classified normally. A biller that started stating amounts
+should not be treated as though it never had.
+
+### Currency, and how an obligation acquires one
+
+**Ratified 2026-08-29.** Currency is part of cluster identity, so a purchase
+without one cannot be clustered at all — `detectRecurring.ts` skips it rather
+than guessing, and `resolveCurrency.ts` deliberately has no profile-default
+fallback because "stamping CAD on an unresolved receipt would close the null
+count and silently corrupt the number".
+
+That principle is right and it has a measured cost: on 2026-08-29, **15 of one
+owner's 47 purchases were unclusterable for want of a currency**, including
+Heroku — a genuine monthly obligation whose receipts state `$1.01` with no
+code. Two distinct shapes:
+
+- **Priced, uncoded** (Heroku, HonkMobile, Namecheap): an amount, a bare `$`.
+- **Unpriced** (the Cloudflare "your invoice is available" class): no amount,
+  therefore no currency either.
+
+The resolution is one mechanism for both:
+
+1. **Identity admits a null currency** for an `UNKNOWN` amount pattern. No
+   amount means no currency, so null is the honest key. A merchant with both a
+   priced USD series and an unpriced one becomes two obligations, which is
+   correct — they are two different things.
+2. **The owner supplies it at review**, alongside confirm/dismiss.
+3. **Ingestion learns it**, per `(userId, merchantCanonicalId)`, and the
+   resolver consults it for later receipts from that merchant. Per-user, not
+   global: Netflix bills CAD in Canada and USD in the US, so one owner's answer
+   is not a fact about the merchant.
+
+New `CurrencySource` tier `ownerConfirmedForMerchant`, ranked **below** direct
+evidence about the message in hand and above nothing:
+
+`userOverride` > `explicitCode` > `structuredMarkup` > `walletObservation` >
+`ownerConfirmedForMerchant` > `none`
+
+**Explicitly rejected, and why:**
+
+- *A profile default.* Reverses the resolver's stated principle, and would
+  stamp CAD on a Canadian owner's USD SaaS — wrong in exactly the case that
+  matters most.
+- *`billingCurrency` in `contracts/merchant-pack.json`.* Considered and
+  dropped on inspection: the pack is a **Canadian retail spend-category index**
+  (127 merchants; gasStation, grocery, dining) and contains none of the
+  affected billers, so it would have fixed nothing. It is also the wrong
+  owner — `ECOSYSTEM.md` gives PickMe card-decision semantics, and a billing
+  currency is a purchase fact, which is the hub's.
 
 ## 5. Confidence
 
@@ -474,9 +556,14 @@ Required:
 - **Chunk across invocations** via the existing claim pattern, with a stored
   cursor per connection. Bounded concurrency on `messages.get` (Gmail allows
   ~250 quota units/user/second; `messages.get` costs 5).
-- **Two passes.** `format: "metadata"` first to build the recurrence skeleton
-  cheaply — sender, subject, date are enough to cluster and infer cadence —
-  then `raw` only for messages that classify as interesting.
+- ~~**Two passes.** `format: "metadata"` first, then `raw` only for
+  interesting messages.~~ **Superseded 2026-08-30.** `messages.get` costs 5
+  quota units whatever the format, so metadata saves bandwidth but not quota —
+  and quota was never the binding constraint. Round trips × latency is, and a
+  second pass *adds* one per interesting message. Use **bounded concurrency**
+  instead: ~250 units/user/second is ~50 `get`s/second, which about ten
+  concurrent requests reaches, taking 5,000 messages from ~17 minutes to under
+  two. See `docs/superpowers/plans/2026-08-30-gmail-24-month-backfill.md`.
 - **No attachment persistence during backfill.** It exists to find cadence,
   not to archive receipts; writing `ReceiptDocument` for two years of history
   is object-storage cost with no bearing on detection.
@@ -595,8 +682,47 @@ Then two parallel tracks, meeting at P6:
   `/settings/automation/review`. Migration steps 3–4.
 - **P7 — PickMe contract.** Emit observed obligations so `RecurringPlan` stops
   being hand-typed.
+- **P8 — Measurement.** Turn §5's weights from judgement into numbers. See
+  below; depends on P6 generating suggestions.
 
-## 15. Deferred decisions
+## 15. Measurement
+
+The confidence weights in §5 were chosen by judgement and have never been
+tested against anything but fixtures and one inbox. As of 2026-08-29 the
+engine has been validated on **60 messages from a single mailbox, yielding two
+detections**. That is a demonstration, not a precision figure, and nothing in
+phases P0–P7 changes it — which is why this is its own phase rather than a
+line in someone else's.
+
+Routing everything through review (§1) generates the labels for free: a
+confirm is a true positive, a dismiss a false positive, each already stamped
+with the `confidence` and `confidenceReasons` that produced it. No separate
+annotation exercise is needed.
+
+What P8 builds:
+
+- **Capture the dismissal reason.** Check whether `AutomationSuggestion`
+  records one; if not, it must, or a false positive cannot be told from a
+  duplicate or a merchant the owner simply does not care about.
+- **Precision by score bucket.** A reporting script over confirmed/dismissed
+  suggestions, grouped into confidence deciles. The shape to look for is
+  monotonic: if precision does not rise with score, the weights are not
+  ordering anything and the additive model itself is suspect.
+- **Per-signal contribution.** Which `Reason` codes appear in confirmations
+  versus dismissals. A term that appears equally in both is carrying no
+  information and should be dropped rather than retuned.
+- **A stated target.** Precision matters far more than recall here: a missed
+  obligation costs a detection, a false one costs trust in every other row.
+  Set the bar for what may reach the review inbox at all, and record it.
+
+Recall is harder and needs a held-out judgement — a manual pass over one
+inbox's real obligations, comparing what the engine found against what a
+person can see is there. Do it once, honestly, rather than pretending the
+number is continuously measurable.
+
+
+
+## 16. Deferred decisions
 
 Open questions deliberately not settled here. **Agents: these are open, not
 omitted — do not resolve them silently in an implementation.** Raise them with
@@ -622,7 +748,7 @@ Deferred because the answer depends on facts not yet in evidence: real corpus
 size per user, and whether re-derivation actually earns its keep in practice.
 Revisit once the backfill has run against real inboxes.
 
-## 16. Non-goals
+## 17. Non-goals
 
 - No changes to `return-saas` (B1).
 - No card-rule semantics. PickMe owns those, frozen (B6). We emit observations;
@@ -630,4 +756,4 @@ Revisit once the backfill has run against real inboxes.
 - No bank aggregation. Detection reads what we already observe.
 - No auto-creation of obligations. Everything routes through review.
 - No LLM (§12).
-- No retention policy — deliberately deferred (§15, D1).
+- No retention policy — deliberately deferred (§16, D1).

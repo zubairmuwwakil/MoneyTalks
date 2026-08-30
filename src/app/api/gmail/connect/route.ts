@@ -29,7 +29,10 @@ export async function GET() {
 
   const url = oauth2.generateAuthUrl({
     access_type: "offline",
-    prompt: "consent",
+    // "select_account" as well as "consent": without the chooser Google reuses
+    // whichever account the browser is already signed into, so an owner could
+    // never actually reach a SECOND mailbox from this button.
+    prompt: "consent select_account",
     scope: [
       "openid",
       "email",

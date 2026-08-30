@@ -11,6 +11,7 @@ export default function PurchaseCorrections(props: {
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [merchant, setMerchant] = useState(props.merchant);
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const isTerminal = props.financialState === "DECLINED" || props.financialState === "REVERSED";
@@ -39,10 +40,14 @@ export default function PurchaseCorrections(props: {
       {editing ? (
         <form action={(form) => run(() => correctPurchaseDetails(form))} className="grid gap-2 sm:grid-cols-2">
           <input type="hidden" name="purchaseId" value={props.purchaseId} />
-          <label className="text-xs">Merchant<input name="merchant" defaultValue={props.merchant} className="mt-1 w-full rounded-md border bg-background px-3 py-2" required /></label>
+          <label className="text-xs">Merchant<input name="merchant" value={merchant} onChange={(event) => setMerchant(event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2" required /></label>
           <label className="text-xs">Amount<input name="amount" type="number" min="0" step="0.01" defaultValue={props.totalCents == null ? "" : (props.totalCents / 100).toFixed(2)} className="mt-1 w-full rounded-md border bg-background px-3 py-2" /></label>
           <label className="text-xs">Currency<input name="currency" defaultValue={props.currency ?? "CAD"} maxLength={3} className="mt-1 w-full rounded-md border bg-background px-3 py-2 uppercase" /></label>
           <label className="text-xs">Card ID<input name="paymentMethod" defaultValue={props.paymentMethod ?? ""} className="mt-1 w-full rounded-md border bg-background px-3 py-2" /></label>
+          <label className="flex items-center gap-2 text-xs sm:col-span-2">
+            <input name="rememberMerchantCurrency" type="checkbox" className="size-4" />
+            Remember this currency for <span className="font-medium">{merchant.trim() || props.merchant}</span>
+          </label>
           <Button type="submit" size="sm" disabled={pending}>Save corrected details</Button>
         </form>
       ) : null}

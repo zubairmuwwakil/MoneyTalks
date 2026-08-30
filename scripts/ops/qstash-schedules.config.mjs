@@ -33,6 +33,18 @@ const DEFAULT_TIMEOUT = "2m";
  */
 const COLD_START_TIMEOUT = "5m";
 
+/** Normalize QStash's millisecond response and our human duration config. */
+export function timeoutMilliseconds(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const raw = value.trim().toLowerCase();
+  if (/^\d+$/.test(raw)) return Number(raw);
+  const match = raw.match(/^(\d+)(ms|s|m|h)$/);
+  if (!match) return null;
+  const multipliers = { ms: 1, s: 1_000, m: 60_000, h: 3_600_000 };
+  return Number(match[1]) * multipliers[match[2]];
+}
+
 // ORDERING NOTE — prices-warmup MUST fire before prices, with real margin.
 //
 // MarketLens answers from a cache and only fans out to its upstream provider
@@ -53,6 +65,8 @@ export const schedules = [
   { name: "digest",         scheduleId: "moneytalks-digest",         path: "/api/cron/digest",         cronEnv: "QSTASH_DIGEST_CRON",         cronDefault: "*/15 * * * *" },
   { name: "notify",         scheduleId: "moneytalks-notify",         path: "/api/cron/notify",         cronEnv: "QSTASH_NOTIFY_CRON",         cronDefault: "0 * * * *" },
   { name: "purchase-merge", scheduleId: "moneytalks-purchase-merge", path: "/api/cron/purchase-merge", cronEnv: "QSTASH_PURCHASE_MERGE_CRON", cronDefault: "30 3 * * *" },
+  { name: "recurring-sweep", scheduleId: "moneytalks-recurring-sweep", path: "/api/cron/recurring-sweep", cronEnv: "QSTASH_RECURRING_SWEEP_CRON", cronDefault: "45 3 * * *" },
+  { name: "gmail-backfill", scheduleId: "moneytalks-gmail-backfill", path: "/api/cron/gmail-backfill", cronEnv: "QSTASH_GMAIL_BACKFILL_CRON", cronDefault: "*/5 * * * *" },
   { name: "fx",             scheduleId: "moneytalks-fx",             path: "/api/cron/fx",             cronEnv: "QSTASH_FX_CRON",             cronDefault: "0 11 * * *" },
   { name: "prices-warmup",  scheduleId: "moneytalks-prices-warmup",  path: "/api/cron/prices-warmup",  cronEnv: "QSTASH_PRICES_WARMUP_CRON",  cronDefault: "45 1 * * *", timeout: COLD_START_TIMEOUT },
   { name: "prices",         scheduleId: "moneytalks-prices",         path: "/api/cron/prices",         cronEnv: "QSTASH_PRICES_CRON",         cronDefault: "0 2 * * *",  timeout: COLD_START_TIMEOUT },

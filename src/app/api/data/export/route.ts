@@ -9,7 +9,7 @@ export async function GET() {
   if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
   const [
-    emailConnection,
+    emailConnections,
     emailTransactions,
     receiptUploads,
     purchases,
@@ -24,7 +24,7 @@ export async function GET() {
     valueEvents,
     bills,
   ] = await Promise.all([
-    prisma.emailConnection.findUnique({
+    prisma.emailConnection.findMany({
       where: { userId },
       // Credential ciphertext is intentionally excluded from a browser download.
       select: {
@@ -38,6 +38,7 @@ export async function GET() {
         createdAt: true,
         updatedAt: true,
       },
+      orderBy: { createdAt: "asc" },
     }),
     prisma.emailTransaction.findMany({ where: { userId }, include: { receiptDocuments: true }, orderBy: { purchasedAt: "desc" } }),
     prisma.receiptUpload.findMany({ where: { userId }, orderBy: { createdAt: "desc" } }),
@@ -71,7 +72,7 @@ export async function GET() {
 
   const payload = {
     exportedAt: new Date().toISOString(),
-    emailConnection,
+    emailConnections,
     emailTransactions,
     receiptUploads,
     purchases,

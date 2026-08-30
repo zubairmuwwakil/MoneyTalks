@@ -319,7 +319,7 @@ export function BillFormFields({
   const [category, setCategory] = useState("utilities:electricity_hydro");
   const [currency, setCurrency] = useState("CAD");
   const [amount, setAmount] = useState("");
-  const [from, setFrom] = useState(todayIso);
+  const from = todayIso;
 
   // Cadence State
   const [type, setType] = useState<string>("MONTHLY");
@@ -341,7 +341,6 @@ export function BillFormFields({
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [credentialLocation, setCredentialLocation] = useState("");
   const [serviceUrl, setServiceUrl] = useState("");
-  const [loginUrl, setLoginUrl] = useState("");
   const [billingUrl, setBillingUrl] = useState("");
   const [cancellationUrl, setCancellationUrl] = useState("");
 
@@ -617,7 +616,6 @@ export function BillFormFields({
     if (loginIdentifier) formData.set("loginIdentifier", loginIdentifier);
     if (credentialLocation) formData.set("credentialLocation", credentialLocation);
     if (serviceUrl) formData.set("serviceUrl", serviceUrl);
-    if (loginUrl) formData.set("loginUrl", loginUrl);
     if (billingUrl) formData.set("billingUrl", billingUrl);
     if (cancellationUrl) formData.set("cancellationUrl", cancellationUrl);
     if (notes) formData.set("notes", notes);
@@ -1524,4 +1522,3 @@ export function BillFormFields({
     </form>
   );
 }
-

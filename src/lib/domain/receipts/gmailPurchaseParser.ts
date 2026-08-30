@@ -3,8 +3,15 @@
 import "server-only";
 import { simpleParser } from "mailparser";
 import * as cheerio from "cheerio";
-import { getDomain } from "tldts";
 import { z } from "zod";
+import {
+  normalizeMerchantFromSender as normalizeMerchant,
+} from "@/lib/domain/merchants/emailDomain";
+import {
+  resolveCurrency,
+  shouldAutoApply as shouldApplyCurrency,
+  type CurrencySource,
+} from "./resolveCurrency";
 
 export type PurchaseItem = { name?: string; quantity?: number; price?: number };
 export type Purchase = {
@@ -16,6 +23,8 @@ export type Purchase = {
   orderId?: string;
   totalCents?: number;
   currency?: string;
+  /** Which resolver tier decided `currency` (./resolveCurrency.ts). */
+  currencySource?: CurrencySource;
   items?: PurchaseItem[];
   rawSource: "jsonld" | "pdf" | "text";
   /** Decoded text body, so callers never re-parse raw MIME themselves. */
@@ -30,23 +39,7 @@ function base64UrlToBuffer(b64url: string): Buffer {
   return Buffer.from(b64, "base64");
 }
 
-function domainFromEmail(addr?: string) {
-  if (!addr) return undefined;
-  const m = addr.match(/@([^>\s]+)/);
-  return m?.[1]?.toLowerCase();
-}
 
-function normalizeMerchant(fromEmail?: string, subject?: string) {
-  const domain = domainFromEmail(fromEmail);
-  if (!domain) return subject?.split(" ")[0]?.toLowerCase() ?? "unknown";
-
-  // tldts is larger than psl, but this path only runs in Node routes where
-  // client bundle size is irrelevant. It embeds a current PSL snapshot (no
-  // runtime fetch) and is actively maintained. Private suffixes are enabled
-  // because collapsing two tenants of a hosted domain is the same false-merge
-  // class as collapsing two .co.uk merchants.
-  return getDomain(domain, { allowPrivateDomains: true }) ?? domain;
-}
 
 function extractFromJsonLd(html: string): Partial<Purchase> | null {
   const $ = cheerio.load(html);
@@ -253,12 +246,22 @@ async function extractFromPdfAttachments(attachments: { contentType?: string; fi
 
     try {
       const mod = await import("pdf-parse").catch(() => null);
-      const pdfParse = (mod as Record<string, unknown>)?.default ?? (mod as Record<string, unknown>)?.PDFParse ?? mod;
-      if (typeof pdfParse !== "function") continue;
-
-      const parsed = await pdfParse(a.content);
-      const hit = extractTotalFromText((parsed as { text?: string })?.text ?? "");
-      if (hit.totalCents) return { rawSource: "pdf" as const, ...hit };
+      const PDFParse = (mod as Record<string, unknown> | null)?.PDFParse;
+      if (typeof PDFParse !== "function") continue;
+      const parser = new (PDFParse as new (options: { data: Buffer }) => {
+        getText(): Promise<{ text?: string }>;
+        destroy(): Promise<void>;
+      })({ data: a.content });
+      let pdfText = "";
+      try {
+        pdfText = (await parser.getText()).text ?? "";
+      } finally {
+        await parser.destroy();
+      }
+      const hit = extractTotalFromText(pdfText);
+      // The PDF's own text is currency evidence the message body does not
+      // carry, so hand it back rather than resolving against the body alone.
+      if (hit.totalCents) return { rawSource: "pdf" as const, ...hit, sourceText: pdfText };
     } catch (err) {
       console.error("pdf-parse failed, skipping attachment", err);
       continue;
@@ -295,7 +298,9 @@ export async function parsePurchaseFromRawGmailMessage(params: {
   };
 
   const jsonLdHit = html ? extractFromJsonLd(html) : null;
-  if (jsonLdHit) return { ...base, ...jsonLdHit, rawSource: "jsonld" as const };
+  if (jsonLdHit) {
+    return withResolvedCurrency({ ...base, ...jsonLdHit, rawSource: "jsonld" as const }, text);
+  }
 
   const pdfHit = await extractFromPdfAttachments(
     (parsed.attachments ?? []).map((a: { contentType?: string; filename?: string; content: Buffer }) => ({
@@ -304,9 +309,39 @@ export async function parsePurchaseFromRawGmailMessage(params: {
       content: a.content,
     }))
   );
-  if (pdfHit) return { ...base, ...pdfHit };
+  if (pdfHit) {
+    const { sourceText, ...hit } = pdfHit;
+    return withResolvedCurrency({ ...base, ...hit }, [text, sourceText].join("\n"));
+  }
 
   const txtHit = extractTotalFromText(text);
   const orderId = extractOrderNumber(subject, text);
-  return { ...base, ...txtHit, orderId, rawSource: "text" as const };
+  return withResolvedCurrency({ ...base, ...txtHit, orderId, rawSource: "text" as const }, text);
+}
+
+/**
+ * Decide the receipt's currency and record which tier decided it.
+ *
+ * `extractTotalFromText` refuses to read a currency out of a bare "$" — a
+ * refusal that is correct at line level and is why `Purchase.currency` was
+ * null on 56 of 60 real receipts. The resolver gets what that extractor never
+ * had: the whole message, footers included, where "All amounts in USD" lives.
+ *
+ * A currency the extractor DID read is not carried through unchanged. It is
+ * re-derived from the same text, so a total line reading "USD" while the
+ * footer reads "CAD" resolves to null instead of to whichever the extractor
+ * happened to see first. The only value passed in as its own tier is JSON-LD's
+ * `priceCurrency`, which is markup rather than something stated in the body.
+ */
+function withResolvedCurrency(purchase: Purchase, evidenceText: string): Purchase {
+  const resolution = resolveCurrency({
+    messageText: evidenceText,
+    markupCurrency: purchase.rawSource === "jsonld" ? purchase.currency : undefined,
+  });
+
+  return {
+    ...purchase,
+    currency: shouldApplyCurrency(resolution) ? resolution.currency ?? undefined : undefined,
+    currencySource: resolution.source,
+  };
 }

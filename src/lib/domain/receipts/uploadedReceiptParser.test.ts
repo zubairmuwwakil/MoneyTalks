@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { parseReceiptUpload } from "./uploadedReceiptParser";
 
 vi.mock("pdf-parse", () => ({
-  default: async () => ({ text: "Example Store\n2026-08-17\nOrder total: $42.99" }),
+  PDFParse: class {
+    async getText() {
+      return { text: "Example Store\n2026-08-17\nOrder total: $42.99" };
+    }
+    async destroy() {}
+  },
 }));
 
 describe("parseReceiptUpload", () => {

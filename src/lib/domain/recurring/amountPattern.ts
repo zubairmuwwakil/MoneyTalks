@@ -92,16 +92,28 @@ function patternFor(cv: number): AmountPattern {
 }
 
 /** Classify one already cadence-matched, single-currency observation series. */
-export function inferAmountPattern<Currency extends string>(
+export function inferAmountPattern<Currency extends string | null>(
   observations: readonly Observation<Currency>[],
 ): AmountPatternResult {
   if (observations.length === 0) throw new RangeError("amount pattern requires at least one observation");
 
-  const ordered = [...observations].sort((a, b) => {
+  // A series can be entirely unpriced — see Observation.amountMinor. Cadence
+  // is inferred from dates alone, so such a series is still a real
+  // obligation; it just has nothing to classify. An empty schedule is the
+  // honest representation, and UNKNOWN keeps it out of the FIXED_AMOUNT
+  // confidence term rather than flattering it.
+  const priced = observations.filter(
+    (observation): observation is Observation<Currency> & { amountMinor: number } =>
+      observation.amountMinor !== null,
+  );
+  if (priced.length === 0) return { pattern: "UNKNOWN", schedule: [] };
+
+  const ordered = [...priced].sort((a, b) => {
     const byDate = a.date.getTime() - b.date.getTime();
-    return byDate || a.amountMinor - b.amountMinor || a.currency.localeCompare(b.currency);
+    return byDate || a.amountMinor - b.amountMinor || String(a.currency).localeCompare(String(b.currency));
   });
   const currency = ordered[0].currency;
+  if (currency === null) throw new RangeError("priced amount observations require a currency");
   for (const observation of ordered) {
     if (observation.currency !== currency) throw new RangeError("amount pattern observations must share one currency");
     if (!Number.isSafeInteger(observation.amountMinor)) {

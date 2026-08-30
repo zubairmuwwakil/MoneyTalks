@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { expected, schedules } from "./qstash-schedules.config.mjs";
+import { expected, schedules, timeoutMilliseconds } from "./qstash-schedules.config.mjs";
 
 type Schedule = {
   name: string;
@@ -26,6 +26,13 @@ const minutesUtc = (cron: string) => {
  * only in a comment somebody will eventually contradict.
  */
 describe("QStash schedule contract", () => {
+  it("compares QStash millisecond timeouts with human-readable config durations", () => {
+    expect(timeoutMilliseconds("120000")).toBe(timeoutMilliseconds("2m"));
+    expect(timeoutMilliseconds(300_000)).toBe(timeoutMilliseconds("5m"));
+    expect(timeoutMilliseconds("90s")).toBe(90_000);
+    expect(timeoutMilliseconds("not-a-duration")).toBeNull();
+  });
+
   it("warms MarketLens strictly before the price cron reads it", () => {
     // The warm sweep is what makes the read cheap and correct. Scheduled after
     // the read, it warms a cache nobody is going to look at until tomorrow.
@@ -56,11 +63,33 @@ describe("QStash schedule contract", () => {
     }
   });
 
+  it("sweeps recurring obligations after purchase duplicate identities settle", () => {
+    expect(minutesUtc(bySlug("recurring-sweep").cron)).toBeGreaterThan(
+      minutesUtc(bySlug("purchase-merge").cron),
+    );
+  });
+
+  it("runs requested Gmail backfills in resumable five-minute increments", () => {
+    const backfill = bySlug("gmail-backfill");
+
+    expect(backfill.path).toBe("/api/cron/gmail-backfill");
+    expect(backfill.cron).toBe("*/5 * * * *");
+    expect(backfill.timeout).toBe("2m");
+  });
+
   it("keeps scheduleIds frozen, because renaming one orphans the old schedule", () => {
     // QStash keys on scheduleId. A rename does not rename anything: it creates a
     // second schedule and leaves the first firing forever.
-    expect((schedules as unknown as Schedule[]).map((s) => s.scheduleId)).toEqual(
-      expect.arrayContaining(["moneytalks-prices", "moneytalks-prices-warmup"]),
-    );
+    expect(Object.fromEntries((schedules as unknown as Schedule[]).map((s) => [s.name, s.scheduleId]))).toEqual({
+      digest: "moneytalks-digest",
+      notify: "moneytalks-notify",
+      "purchase-merge": "moneytalks-purchase-merge",
+      "recurring-sweep": "moneytalks-recurring-sweep",
+      "gmail-backfill": "moneytalks-gmail-backfill",
+      fx: "moneytalks-fx",
+      "prices-warmup": "moneytalks-prices-warmup",
+      prices: "moneytalks-prices",
+      "wallet-diagnostics": "moneytalks-wallet-diagnostics",
+    });
   });
 });
