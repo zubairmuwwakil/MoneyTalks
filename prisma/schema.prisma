@@ -575,6 +575,10 @@ model RecurringObligation {
   /// Nullable in the domain, but normalized to "" at persistence so Postgres
   /// can enforce the common no-discriminator identity as truly unique.
   discriminator       String                        @default("")
+  /// Opaque identity for one detected series inside the merchant bucket.
+  /// The sweep preserves it by reconciling overlapping evidence; it is not a
+  /// hash of the mutable member set. Owner-authored rows use the empty value.
+  seriesKey           String                        @default("")
   kind                String?
   merchantCanonicalId String
   /// An entirely unpriced series has no knowable currency; persist null rather

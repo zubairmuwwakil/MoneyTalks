@@ -176,7 +176,9 @@ email keywords demote from *the evidence* to *a prior*.
 
 ### Clustering
 
-Cluster key: `(userId, canonicalMerchantId, currency, discriminator?)`.
+Search bucket: `(userId, canonicalMerchantId, currency, discriminator?)`.
+Persisted identity adds an opaque `seriesKey`, because one search bucket can
+contain multiple non-overlapping recurring series.
 
 `canonicalMerchantId` resolves in strict priority order — `merchantPack`
 `emailDomains` / `matchKeys` first, then the user's `MerchantAlias`, then the
@@ -202,6 +204,15 @@ though its amounts are not, so it is found by the same search.
 `discriminator` is a new nullable field populated from email evidence only
 (account suffix, plan name) and never guessed. It separates two AWS accounts,
 iCloud from Apple One, two Netflix households. Null is the common case.
+
+`seriesKey` answers a different question: which detected time series inside
+that exact bucket is this? It is assigned when the series is first persisted
+and preserved by reconciling new clusters to their linked purchase evidence.
+A new series uses its earliest observed purchase as a deterministic seed, so
+concurrent first sweeps converge; after that, overlap preserves the key when a
+new charge arrives, older evidence is backfilled, or inferred cadence changes.
+It is deliberately not a hash of all member purchase IDs (unstable on append),
+cadence (two series can both be monthly), or amount shape.
 
 ### Cadence inference
 
@@ -398,6 +409,7 @@ model RecurringObligation {
   merchantCanonicalId String
   currency            String           // part of identity — see §4
   discriminator       String?          // account suffix / plan, from email only
+  seriesKey           String           // opaque detected-series identity
 
   cadence             Json             // extended Cadence
   schedule            Json             // ScheduleEntry[] — the price history
@@ -423,7 +435,7 @@ model RecurringObligation {
   // billerKind · paymentsCanadaCcin · billerVerified{At,Env} · autopay
   // paymentRail · railFeePct · selectedRoute{,Intermediary}Id · interestRatePct
 
-  @@unique([userId, merchantCanonicalId, currency, discriminator])
+  @@unique([userId, merchantCanonicalId, currency, discriminator, seriesKey])
   @@index([userId, status, nextExpectedDate])
   @@index([algorithmVersion])
 }
@@ -486,8 +498,9 @@ Three layers:
 1. **Message identity** — `EmailTransaction @@unique([userId, provider, messageId])`,
    already present.
 2. **Cross-mailbox identity** — NEW. See §9.
-3. **Obligation identity** — `@@unique([userId, merchantCanonicalId, currency, discriminator])`.
-   Stable, so re-running the sweep updates in place rather than duplicating.
+3. **Obligation identity** — `@@unique([userId, merchantCanonicalId, currency, discriminator, seriesKey])`.
+   The sweep preserves `seriesKey` by evidence overlap, so re-running updates
+   each series in place without collapsing siblings or duplicating on append.
 4. **Evidence identity** — `RecurringObligationEvidence @@unique([obligationId, purchaseId])`,
    so a re-sweep re-links rather than accumulating duplicate evidence rows.
 
