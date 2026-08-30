@@ -273,10 +273,52 @@ Partial information is used: when only some observations carry an amount, the
 priced subset is classified normally. A biller that started stating amounts
 should not be treated as though it never had.
 
-**Open detail for P6 orchestration:** `currency` is part of the cluster key
-(§4), and an entirely unpriced series has no currency to key on. The
-orchestration layer decides what to key those clusters on; nothing in the pure
-modules depends on the answer.
+### Currency, and how an obligation acquires one
+
+**Ratified 2026-08-29.** Currency is part of cluster identity, so a purchase
+without one cannot be clustered at all — `detectRecurring.ts` skips it rather
+than guessing, and `resolveCurrency.ts` deliberately has no profile-default
+fallback because "stamping CAD on an unresolved receipt would close the null
+count and silently corrupt the number".
+
+That principle is right and it has a measured cost: on 2026-08-29, **15 of one
+owner's 47 purchases were unclusterable for want of a currency**, including
+Heroku — a genuine monthly obligation whose receipts state `$1.01` with no
+code. Two distinct shapes:
+
+- **Priced, uncoded** (Heroku, HonkMobile, Namecheap): an amount, a bare `$`.
+- **Unpriced** (the Cloudflare "your invoice is available" class): no amount,
+  therefore no currency either.
+
+The resolution is one mechanism for both:
+
+1. **Identity admits a null currency** for an `UNKNOWN` amount pattern. No
+   amount means no currency, so null is the honest key. A merchant with both a
+   priced USD series and an unpriced one becomes two obligations, which is
+   correct — they are two different things.
+2. **The owner supplies it at review**, alongside confirm/dismiss.
+3. **Ingestion learns it**, per `(userId, merchantCanonicalId)`, and the
+   resolver consults it for later receipts from that merchant. Per-user, not
+   global: Netflix bills CAD in Canada and USD in the US, so one owner's answer
+   is not a fact about the merchant.
+
+New `CurrencySource` tier `ownerConfirmedForMerchant`, ranked **below** direct
+evidence about the message in hand and above nothing:
+
+`userOverride` > `explicitCode` > `structuredMarkup` > `walletObservation` >
+`ownerConfirmedForMerchant` > `none`
+
+**Explicitly rejected, and why:**
+
+- *A profile default.* Reverses the resolver's stated principle, and would
+  stamp CAD on a Canadian owner's USD SaaS — wrong in exactly the case that
+  matters most.
+- *`billingCurrency` in `contracts/merchant-pack.json`.* Considered and
+  dropped on inspection: the pack is a **Canadian retail spend-category index**
+  (127 merchants; gasStation, grocery, dining) and contains none of the
+  affected billers, so it would have fixed nothing. It is also the wrong
+  owner — `ECOSYSTEM.md` gives PickMe card-decision semantics, and a billing
+  currency is a purchase fact, which is the hub's.
 
 ## 5. Confidence
 
