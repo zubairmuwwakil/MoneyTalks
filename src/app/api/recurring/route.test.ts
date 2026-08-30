@@ -9,6 +9,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     recurringObligation: { findMany: vi.fn() },
     purchase: { findMany: vi.fn() },
+    merchantCurrencyConfirmation: { findMany: vi.fn() },
     notificationPreference: { findUnique: vi.fn() },
   },
 }));
@@ -31,6 +32,7 @@ describe("GET /api/recurring", () => {
       ],
     }] as never);
     vi.mocked(prisma.purchase.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.merchantCurrencyConfirmation.findMany).mockResolvedValue([]);
     vi.mocked(prisma.notificationPreference.findUnique).mockResolvedValue({ timezone: "America/Toronto" } as never);
   });
 

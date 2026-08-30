@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, Coins, Sparkles } from "lucide-react";
 
 import { formatCurrencyCodeAmount } from "@/lib/utils/currency";
 
@@ -159,9 +161,24 @@ export default function RecurringObligationReview() {
 
       {currencyNeeds.length > 0 ? (
         <section className="space-y-4" aria-labelledby="currency-needed-heading">
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
-            <h3 id="currency-needed-heading" className="text-base font-semibold text-amber-950">Currency needed to check recurrence</h3>
-            <p className="mt-1 text-sm text-amber-900">These purchases recur on a schedule, but their receipts did not state a currency. Tell us the unit only if you know it.</p>
+          <div className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 id="currency-needed-heading" className="text-base font-semibold text-amber-950 flex items-center gap-2">
+                <Sparkles className="size-4 text-amber-700" />
+                Currency needed to check recurrence
+              </h3>
+              <p className="mt-1 text-sm text-amber-900">
+                These purchases recur on a schedule, but their receipts did not state a currency.
+              </p>
+            </div>
+            <Link
+              href="/settings/merchants?tab=currencies"
+              className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-amber-950 transition hover:bg-amber-100/50 shadow-2xs whitespace-nowrap self-start sm:self-auto"
+            >
+              <Coins className="size-3.5" />
+              <span>Review all merchants</span>
+              <ArrowRight className="size-3.5" />
+            </Link>
           </div>
           {currencyNeeds.map((need) => {
             const currency = currencies[need.merchantCanonicalId] ?? "";

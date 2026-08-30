@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
+import { confirmMerchantCurrency } from "@/lib/domain/recurring/confirmMerchantCurrency";
 
 const updateMerchantAliasInput = z.object({
   id: z.string().min(1),
@@ -159,5 +160,60 @@ export async function setMerchantCategory(input: {
   revalidatePath("/cards/reconcile");
 
   return { ok: true as const, category: alias.category };
+}
+
+const confirmMerchantCurrencyInput = z.object({
+  merchantCanonicalId: z.string().trim().min(1, "Merchant name required"),
+  currency: z
+    .string()
+    .trim()
+    .length(3, "Currency must be a 3-letter code")
+    .transform((val) => val.toUpperCase()),
+});
+
+export async function confirmMerchantCurrencyAction(input: {
+  merchantCanonicalId: string;
+  currency: string;
+}) {
+  const userId = await requireUserId();
+  const parsed = confirmMerchantCurrencyInput.safeParse(input);
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0];
+    return { ok: false as const, error: firstIssue?.message ?? "Invalid input" };
+  }
+  const { merchantCanonicalId, currency } = parsed.data;
+
+  const { affectedPurchases } = await confirmMerchantCurrency(
+    prisma,
+    {
+      userId,
+      merchantCanonicalId,
+      currency,
+    },
+    { replaceLearnedPurchases: true },
+  );
+
+  const preference = await prisma.notificationPreference.findUnique({
+    where: { userId },
+    select: { timezone: true },
+  });
+
+  try {
+    const { sweepRecurringObligations } = await import("@/lib/domain/recurring/detectRecurring");
+    await sweepRecurringObligations(prisma, {
+      userId,
+      timeZone: preference?.timezone || "America/Toronto",
+      algorithmVersion: 1,
+    });
+  } catch (error) {
+    console.error("Error sweeping recurring obligations after currency confirmation", error);
+  }
+
+  revalidatePath("/settings/merchants");
+  revalidatePath("/settings/automation/review");
+  revalidatePath("/purchases");
+  revalidatePath("/cards/reconcile");
+
+  return { ok: true as const, affectedPurchases };
 }
 

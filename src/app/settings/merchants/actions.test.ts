@@ -11,11 +11,20 @@ vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
+vi.mock("@/lib/domain/recurring/confirmMerchantCurrency", () => ({
+  confirmMerchantCurrency: vi.fn(),
+}));
+
+vi.mock("@/lib/domain/recurring/detectRecurring", () => ({
+  sweepRecurringObligations: vi.fn(),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $transaction: vi.fn(),
     merchantAlias: { upsert: vi.fn() },
     purchase: { updateMany: vi.fn() },
+    notificationPreference: { findUnique: vi.fn() },
   },
 }));
 
@@ -247,3 +256,55 @@ describe("setMerchantCategory", () => {
     });
   });
 });
+
+describe("confirmMerchantCurrencyAction", () => {
+  it("validates inputs and executes confirmMerchantCurrency", async () => {
+    const { confirmMerchantCurrencyAction } = await import("./actions");
+    const { confirmMerchantCurrency } = await import("@/lib/domain/recurring/confirmMerchantCurrency");
+
+    vi.mocked(confirmMerchantCurrency).mockResolvedValue({ affectedPurchases: 4 });
+    vi.mocked(prisma.notificationPreference.findUnique).mockResolvedValue({ timezone: "America/Toronto" } as never);
+
+    const res = await confirmMerchantCurrencyAction({
+      merchantCanonicalId: "courtreserve.com",
+      currency: "usd",
+    });
+
+    expect(res).toEqual({ ok: true, affectedPurchases: 4 });
+    expect(confirmMerchantCurrency).toHaveBeenCalledWith(
+      prisma,
+      {
+        userId: "user-1",
+        merchantCanonicalId: "courtreserve.com",
+        currency: "USD",
+      },
+      { replaceLearnedPurchases: true },
+    );
+    expect(revalidatePath).toHaveBeenCalledWith("/settings/merchants");
+    expect(revalidatePath).toHaveBeenCalledWith("/settings/automation/review");
+    expect(revalidatePath).toHaveBeenCalledWith("/purchases");
+  });
+
+  it("rejects invalid currency code", async () => {
+    const { confirmMerchantCurrencyAction } = await import("./actions");
+
+    const res = await confirmMerchantCurrencyAction({
+      merchantCanonicalId: "courtreserve.com",
+      currency: "US",
+    });
+
+    expect(res).toEqual({ ok: false, error: "Currency must be a 3-letter code" });
+  });
+
+  it("rejects empty merchant canonical id", async () => {
+    const { confirmMerchantCurrencyAction } = await import("./actions");
+
+    const res = await confirmMerchantCurrencyAction({
+      merchantCanonicalId: "   ",
+      currency: "USD",
+    });
+
+    expect(res).toEqual({ ok: false, error: "Merchant name required" });
+  });
+});
+
