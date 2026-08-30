@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
-import { classifyReceiptEmail, hasPurchaseEvidence } from "@/lib/domain/receipts/receiptEvidence";
+import {
+  classifyReceiptEmail,
+  hasProspectiveChargeEvidence,
+  hasPurchaseEvidence,
+} from "@/lib/domain/receipts/receiptEvidence";
 import { processRawGmailMessage } from "@/lib/domain/receipts/gmailReceiptProcessing";
 import { getAuthedGmail, listUserConnections } from "@/lib/services/gmailClient";
 import { hasGmailReadScope, listRecentRawGmailMessages } from "@/lib/services/gmailScanSource";
@@ -147,9 +151,13 @@ export async function POST(req: NextRequest) {
       // Null means "no purchase signal at all" — the honest answer for
       // marketing mail, which previously fell through to RETURN.
       const suggestionType = tx ? classifyReceiptEmail(tx.subject, body) : null;
-      // A suggestion needs something concrete behind it: money, an order id,
-      // or a tracking number.
-      const actionable = hasPurchaseEvidence(parsedPurchase) || trackingHits.length > 0;
+      // A suggestion needs something concrete behind it: completed purchase
+      // evidence, a stated future charge, or a tracking number. Future-charge
+      // evidence stays useful here even though the purchase spine correctly
+      // refuses to treat it as money that already moved.
+      const actionable = hasPurchaseEvidence(parsedPurchase)
+        || hasProspectiveChargeEvidence(parsedPurchase)
+        || trackingHits.length > 0;
 
       const existingSuggestion = await prisma.automationSuggestion.findUnique({
         where: { userId_primaryMessageId: { userId, primaryMessageId: msg.messageId } },

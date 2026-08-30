@@ -9,12 +9,33 @@ export type ParsedEvidence = {
   rawSource: "jsonld" | "pdf" | "text";
   totalCents?: number | null;
   orderId?: string | null;
+  subject?: string | null;
+  textBody?: string | null;
 };
 
 export type ReceiptClass = "BILL" | "SUBSCRIPTION" | "RETURN";
 
+// A quoted renewal amount is useful evidence for an upcoming obligation, but
+// it is not evidence that money moved. Keep this deliberately narrow: the
+// completed-charge override prevents an ordinary receipt whose footer also
+// discusses its next renewal from being demoted.
+const PROSPECTIVE_RENEWAL_SUBJECT = /\b(auto-?renewal notice|renewal reminder|renews? soon|upcoming (?:auto-?)?renewal|upcoming charge)\b/i;
+const PROSPECTIVE_CHARGE_BODY = /\b(?:will|we(?:'ll| will)|scheduled to|set to|try to|attempt to)\b[^.\n]{0,100}\b(?:charge|bill|renew|take payment|process payment)\b/i;
+const COMPLETED_CHARGE = /\b(initial charge|total (?:paid|charged)|amount (?:paid|charged)|payment (?:received|processed|completed)|has been charged|was charged|order summary|thanks for (?:your )?(?:purchase|order))\b/i;
+
+/** Does this message describe a charge that may happen later, not one that happened? */
+export function hasProspectiveChargeEvidence(parsed: ParsedEvidence): boolean {
+  if (parsed.rawSource === "jsonld") return false;
+  const subject = parsed.subject ?? "";
+  const body = parsed.textBody ?? "";
+  const haystack = `${subject}\n${body}`;
+  if (COMPLETED_CHARGE.test(haystack)) return false;
+  return PROSPECTIVE_RENEWAL_SUBJECT.test(subject) || PROSPECTIVE_CHARGE_BODY.test(body);
+}
+
 /** Did the parser actually find something that proves money changed hands? */
 export function hasPurchaseEvidence(parsed: ParsedEvidence): boolean {
+  if (hasProspectiveChargeEvidence(parsed)) return false;
   // Structured commerce markup is self-declaring: the sender tagged it an Order.
   if (parsed.rawSource === "jsonld") return true;
   // A $0.00 "total" is a promo or a free-shipping notice, never a purchase.

@@ -589,6 +589,53 @@ describe("processRawGmailMessage", () => {
     expect(result.purchaseAction).toBe("deleted");
   });
 
+  it("keeps a renewal notice transaction but deletes its false completed purchase", async () => {
+    const { db, tx } = setupDb();
+    const linkedTransaction = { ...existingTransaction, purchaseId: "purchase-renewal" };
+    const refreshedTransaction = {
+      ...linkedTransaction,
+      subject: "Shaheed, here's your auto-renewal notice",
+      totalCents: 1868,
+      orderId: null,
+      items: null,
+      purchaseId: null,
+    };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue({
+      messageId: message.messageId,
+      merchant: "namecheap.com",
+      subject: "Shaheed, here's your auto-renewal notice",
+      rawSource: "text",
+      orderId: undefined,
+      totalCents: 1868,
+      textBody: "We'll attempt to charge your total balance of $18.68 on the day of renewal.",
+    });
+    tx.emailTransaction.findUnique.mockResolvedValue(linkedTransaction);
+    tx.emailTransaction.upsert.mockResolvedValue(refreshedTransaction);
+    tx.purchase.findUnique.mockResolvedValue({
+      id: "purchase-renewal",
+      userId: "user-1",
+      source: "GMAIL",
+      sourceEmailId: message.messageId,
+      emailTransactions: [],
+      walletEvents: [],
+      statementLines: [],
+    });
+
+    const result = await processRawGmailMessage(db as never, {
+      userId: "user-1",
+      message,
+      mode: "reprocess",
+    });
+
+    expect(tx.emailTransaction.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      update: expect.objectContaining({ purchaseId: null, totalCents: 1868 }),
+    }));
+    expect(tx.purchase.delete).toHaveBeenCalledWith({ where: { id: "purchase-renewal" } });
+    expect(result.transaction.totalCents).toBe(1868);
+    expect(result.purchaseAction).toBe("deleted");
+  });
+
   it("unlinks but preserves a purchase that still has wallet evidence", async () => {
     const { db, tx } = setupDb();
     const linkedTransaction = { ...existingTransaction, purchaseId: "purchase-wallet" };
