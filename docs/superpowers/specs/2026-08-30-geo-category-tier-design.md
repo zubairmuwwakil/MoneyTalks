@@ -61,16 +61,40 @@ Apple's editorial fact about a place we have positively identified.
 ## 3. Scope, stated honestly
 
 Only a purchase carrying wallet-captured coordinates is reachable. `GMAIL`,
-`UPLOAD`, and `MANUAL` rows have no location and never will, so the
-uncategorized backlog visible on `/purchases` will move by less than its size
-suggests. `scripts/ops/probeCategoryBacklog.ts` measures the real ceiling —
-uncategorized purchases holding a located wallet capture — and its output sets
-the expectations recorded here and the thresholds in §6.
+`UPLOAD`, and `MANUAL` rows have no location and never will.
 
-This is not an argument against the tier. Wallet taps are the highest-frequency,
-lowest-metadata purchases in the corpus: they arrive with no receipt, no sender
-domain, and no line items, so they are precisely the rows the existing ladder
-serves worst, and they compound as capture adoption grows.
+**Measured 2026-08-30** by `scripts/ops/probeCategoryBacklog.ts`:
+
+| | |
+|---|---|
+| Purchases (excl. declined/reversed) | 290 |
+| Uncategorized | **217 (74.8%)** |
+| …of which `GMAIL` | **203 (93.5%)** |
+| …of which `WALLET` | 14 (6.5%) |
+| **Ceiling for this tier** | **14 (6.5% of the backlog)** |
+| Native captures at ≤30 m | 7 of 10 (70%) — both tiers viable |
+| Located legacy Shortcut captures | 21, permanently unreachable |
+
+Three consequences, stated plainly so nobody reads "smart category suggestion"
+later and wonders why the count barely moved:
+
+1. **This tier addresses 6.5% of the uncategorized backlog.** The dominant
+   problem is Gmail-sourced purchases whose sender domain the pack does not know,
+   and no amount of location work touches them.
+2. **It fixes zero existing rows.** The lookup happens on the device at drain
+   time, so only captures made *after* it ships carry candidates. The 14 above is
+   an accumulation rate, not a backlog that will drain.
+3. **Legacy Shortcut captures never participate.** They do not pass through
+   PickMe's outbox drain. Both capture paths are still live (schema-1 events were
+   arriving as recently as 2026-08-30), so this is an ongoing exclusion, not a
+   historical one.
+
+This is not an argument against the tier — it is the argument for sizing it
+honestly. Wallet taps are the highest-frequency, lowest-metadata purchases in the
+corpus: no receipt, no sender domain, no line items, so they are precisely the
+rows the existing ladder serves worst, and their share grows with native capture
+adoption. But `emailDomain` alone already resolves 69.9% of everything currently
+categorized, and the 203 unresolved Gmail rows are where the volume is.
 
 ## 4. Architecture
 
