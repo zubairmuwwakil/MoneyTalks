@@ -56,11 +56,24 @@ describe("QStash schedule contract", () => {
     }
   });
 
+  it("sweeps recurring obligations after purchase duplicate identities settle", () => {
+    expect(minutesUtc(bySlug("recurring-sweep").cron)).toBeGreaterThan(
+      minutesUtc(bySlug("purchase-merge").cron),
+    );
+  });
+
   it("keeps scheduleIds frozen, because renaming one orphans the old schedule", () => {
     // QStash keys on scheduleId. A rename does not rename anything: it creates a
     // second schedule and leaves the first firing forever.
-    expect((schedules as unknown as Schedule[]).map((s) => s.scheduleId)).toEqual(
-      expect.arrayContaining(["moneytalks-prices", "moneytalks-prices-warmup"]),
-    );
+    expect(Object.fromEntries((schedules as unknown as Schedule[]).map((s) => [s.name, s.scheduleId]))).toEqual({
+      digest: "moneytalks-digest",
+      notify: "moneytalks-notify",
+      "purchase-merge": "moneytalks-purchase-merge",
+      "recurring-sweep": "moneytalks-recurring-sweep",
+      fx: "moneytalks-fx",
+      "prices-warmup": "moneytalks-prices-warmup",
+      prices: "moneytalks-prices",
+      "wallet-diagnostics": "moneytalks-wallet-diagnostics",
+    });
   });
 });
