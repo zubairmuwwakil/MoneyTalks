@@ -784,7 +784,7 @@ describe("processRawGmailMessage", () => {
 
     expect(tx.emailTransaction.update).toHaveBeenCalledWith({
       where: { id: existingTransaction.id },
-      data: { parserError: "malformed MIME" },
+      data: { parserError: "malformed MIME", parserVersion: 1 },
     });
     expect(tx.emailTransaction.upsert).not.toHaveBeenCalled();
     expect(tx.purchase.delete).not.toHaveBeenCalled();
@@ -1608,4 +1608,8 @@ describe("processRawGmailMessage", () => {
     expect(tx.purchase.delete).not.toHaveBeenCalled();
     expect(tx.purchaseItem.deleteMany).not.toHaveBeenCalled();
   });
+
+
+
+
 });

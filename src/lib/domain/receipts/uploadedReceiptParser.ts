@@ -1,6 +1,7 @@
 //for uploading receipts pdf format?
 
 import "server-only";
+export { RECEIPT_UPLOAD_EXTRACTOR_VERSION } from "./parserVersions";
 
 // pdf-parse pulls in pdfjs, which touches browser globals (DOMMatrix, Path2D) at
 // module scope. Requiring it eagerly crashes `next build` while it collects page

@@ -4,7 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
-import { parseReceiptUpload } from "@/lib/domain/receipts/uploadedReceiptParser";
+import {
+  parseReceiptUpload,
+  RECEIPT_UPLOAD_EXTRACTOR_VERSION,
+} from "@/lib/domain/receipts/uploadedReceiptParser";
 import { storeReceiptAttachment } from "@/lib/domain/receipts/receiptAttachmentStorage";
 import crypto from "crypto";
 
@@ -59,6 +62,7 @@ export async function POST(req: NextRequest) {
         sizeBytes: bytes.length,
         storagePath,
         status: "FAILED",
+        extractorVersion: RECEIPT_UPLOAD_EXTRACTOR_VERSION,
         error: e instanceof Error ? e.message : String(e),
       },
     });
@@ -75,6 +79,7 @@ export async function POST(req: NextRequest) {
       sizeBytes: bytes.length,
       storagePath,
       status: parsed.confidence === "LOW" ? "NEEDS_REVIEW" : "PARSED",
+      extractorVersion: RECEIPT_UPLOAD_EXTRACTOR_VERSION,
       extracted: parsed.extracted,
     },
   });

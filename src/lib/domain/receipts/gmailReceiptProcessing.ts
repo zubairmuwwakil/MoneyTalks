@@ -13,6 +13,7 @@ import {
   parsePurchaseFromRawGmailMessage,
   type Purchase as ParsedPurchase,
 } from "./gmailPurchaseParser";
+import { GMAIL_RECEIPT_PARSER_VERSION } from "./parserVersions";
 import { hasPurchaseEvidence } from "./receiptEvidence";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
 import { resolveCategory, shouldAutoApply } from "@/lib/domain/merchants/resolveCategory";
@@ -80,6 +81,7 @@ function emailTransactionData(
     currency: normalizeCurrencyCode(parsed.currency),
     items,
     rawSource: parsed.rawSource,
+    parserVersion: GMAIL_RECEIPT_PARSER_VERSION,
     parserError,
   };
 }
@@ -132,6 +134,7 @@ function usableOrderNumber(value: string | null): string | null {
   const meaningfulCharacters = trimmed.match(/[a-z0-9]/gi)?.length ?? 0;
   return meaningfulCharacters >= 3 ? trimmed : null;
 }
+
 
 async function promotePurchase(
   db: ReceiptTransaction,
@@ -689,7 +692,7 @@ export async function processRawGmailMessage(
     if (parserError && existing && params.mode === "reprocess") {
       const transaction = await transactionDb.emailTransaction.update({
         where: { id: existing.id },
-        data: { parserError },
+        data: { parserError, parserVersion: GMAIL_RECEIPT_PARSER_VERSION },
       });
       return {
         transaction,
@@ -744,6 +747,7 @@ export async function processRawGmailMessage(
         currency: data.currency,
         items: data.items,
         rawSource: data.rawSource,
+        parserVersion: data.parserVersion,
         parserError: data.parserError,
         // Backfills the id onto rows ingested before it was captured, which is
         // how an existing history becomes deduplicable at all.

@@ -12,6 +12,7 @@ import {
   shouldAutoApply as shouldApplyCurrency,
   type CurrencySource,
 } from "./resolveCurrency";
+export { GMAIL_RECEIPT_PARSER_VERSION } from "./parserVersions";
 
 export type PurchaseItem = { name?: string; quantity?: number; price?: number };
 export type Purchase = {

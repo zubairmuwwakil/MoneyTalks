@@ -7,57 +7,57 @@ datasource db {
 }
 
 model User {
-  id                          String                       @id @default(cuid())
-  name                        String?
-  email                       String?                      @unique
-  emailVerified               DateTime?
-  image                       String?
-  createdAt                   DateTime                     @default(now())
-  updatedAt                   DateTime                     @updatedAt
-  clerkId                     String?                      @unique
-  accounts                    Account[]
-  alerts                      Alert[]
-  authenticators              Authenticator[]
-  automationSuggestions       AutomationSuggestion[]
-  bills                       Bill[]
-  capAccruals                 CapAccrual[]
-  capUsageLedgers             CapUsageLedger[]
-  cardAliases                 CardAlias[]
-  cardRequests                CardRequest[]
-  coverageReports             CoverageReport[]
-  creditCards                 CreditCard[]
-  dataDeletionJobs            DataDeletionJob[]
-  detectedItems               DetectedItem[]
-  emailConnections            EmailConnection[]
-  emailTransactions           EmailTransaction[]
-  financialAccounts           FinancialAccount[]
-  fxRates                     FxRate[]
-  notifications               Notification[]
-  notificationJobs            NotificationJob[]
-  notificationPreference      NotificationPreference?
-  ownerStateRecord            OwnerStateRecord?
-  profile                     Profile?
-  providerCredentials         ProviderCredential[]
-  purchases                   Purchase[]
-  purchaseDuplicateDismissals PurchaseDuplicateDismissal[]
-  purchaseCorrections         PurchaseCorrection[]
-  receiptDocuments            ReceiptDocument[]
-  receiptUploads              ReceiptUpload[]
+  id                            String                         @id @default(cuid())
+  name                          String?
+  email                         String?                        @unique
+  emailVerified                 DateTime?
+  image                         String?
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
+  clerkId                       String?                        @unique
+  accounts                      Account[]
+  alerts                        Alert[]
+  authenticators                Authenticator[]
+  automationSuggestions         AutomationSuggestion[]
+  bills                         Bill[]
+  capAccruals                   CapAccrual[]
+  capUsageLedgers               CapUsageLedger[]
+  cardAliases                   CardAlias[]
+  cardRequests                  CardRequest[]
+  coverageReports               CoverageReport[]
+  creditCards                   CreditCard[]
+  dataDeletionJobs              DataDeletionJob[]
+  detectedItems                 DetectedItem[]
+  emailConnections              EmailConnection[]
+  emailTransactions             EmailTransaction[]
+  financialAccounts             FinancialAccount[]
+  fxRates                       FxRate[]
+  notifications                 Notification[]
+  notificationJobs              NotificationJob[]
+  notificationPreference        NotificationPreference?
+  ownerStateRecord              OwnerStateRecord?
+  profile                       Profile?
+  providerCredentials           ProviderCredential[]
+  purchases                     Purchase[]
+  purchaseDuplicateDismissals   PurchaseDuplicateDismissal[]
+  purchaseCorrections           PurchaseCorrection[]
+  receiptDocuments              ReceiptDocument[]
+  receiptUploads                ReceiptUpload[]
   merchantCurrencyConfirmations MerchantCurrencyConfirmation[]
-  recurringObligations        RecurringObligation[]
-  recurringSweepJob           RecurringSweepJob?
-  refundCases                 RefundCase[]
-  returnItems                 ReturnItem[]
-  sessions                    Session[]
-  shipmentEvents              ShipmentEvent[]
-  snoozedEvents               SnoozedEvent[]
-  statementLines              StatementLine[]
-  subscriptions               Subscription[]
-  subscriptionPayments        SubscriptionPayment[]
-  valueEvents                 ValueEvent[]
-  walletEvents                WalletEvent[]
-  walletInstallations         WalletInstallation[]
-  walletCaptureDiagnostics    WalletCaptureDiagnostic[]
+  recurringObligations          RecurringObligation[]
+  recurringSweepJob             RecurringSweepJob?
+  refundCases                   RefundCase[]
+  returnItems                   ReturnItem[]
+  sessions                      Session[]
+  shipmentEvents                ShipmentEvent[]
+  snoozedEvents                 SnoozedEvent[]
+  statementLines                StatementLine[]
+  subscriptions                 Subscription[]
+  subscriptionPayments          SubscriptionPayment[]
+  valueEvents                   ValueEvent[]
+  walletEvents                  WalletEvent[]
+  walletInstallations           WalletInstallation[]
+  walletCaptureDiagnostics      WalletCaptureDiagnostic[]
 }
 
 model Account {
@@ -510,18 +510,19 @@ model SnoozedEvent {
 }
 
 model ReceiptUpload {
-  id          String              @id @default(cuid())
-  userId      String
-  filename    String
-  contentType String
-  sizeBytes   Int
-  storagePath String
-  status      ReceiptUploadStatus @default(NEEDS_REVIEW)
-  extracted   Json?
-  error       String?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String              @id @default(cuid())
+  userId           String
+  filename         String
+  contentType      String
+  sizeBytes        Int
+  storagePath      String
+  status           ReceiptUploadStatus @default(NEEDS_REVIEW)
+  extracted        Json?
+  extractorVersion Int                 @default(1)
+  error            String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
 }
@@ -549,6 +550,7 @@ model Purchase {
   categorySource            String?
   possibleDuplicateOfId     String?
   sourceEventId             String?
+  normalizationVersion      Int                          @default(1)
   emailTransactions         EmailTransaction[]
   user                      User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
   attachments               PurchaseAttachment[]
@@ -820,9 +822,9 @@ model DetectedItem {
 }
 
 model EmailTransaction {
-  id               String            @id @default(cuid())
+  id               String                @id @default(cuid())
   userId           String
-  provider         EmailProvider     @default(GMAIL)
+  provider         EmailProvider         @default(GMAIL)
   messageId        String
   merchant         String
   fromEmail        String?
@@ -833,14 +835,15 @@ model EmailTransaction {
   currency         String?
   items            Json?
   rawSource        String
+  parserVersion    Int                   @default(1)
   parserError      String?
-  createdAt        DateTime          @default(now())
+  createdAt        DateTime              @default(now())
   purchaseId       String?
-  purchase         Purchase?         @relation(fields: [purchaseId], references: [id])
+  purchase         Purchase?             @relation(fields: [purchaseId], references: [id])
   connectionId     String?
   rfc822MessageId  String?
-  connection       EmailConnection?  @relation(fields: [connectionId], references: [id], onDelete: SetNull)
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connection       EmailConnection?      @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   receiptDocuments ReceiptDocument[]
 
   @@unique([userId, provider, messageId])
@@ -1352,3 +1355,4 @@ enum RecurringSweepJobStatus {
   PENDING
   RUNNING
 }
+
