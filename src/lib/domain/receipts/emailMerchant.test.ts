@@ -1,6 +1,6 @@
 import { it, expect } from "vitest";
 
-import { resolveEmailMerchant } from "./emailMerchant";
+import { resolveEmailMerchant, resolveEmailMerchantIdentity } from "./emailMerchant";
 
 function fakeDb(seed: { rawString: string; normalizedName: string }[] = []) {
   const rows = [...seed];
@@ -87,4 +87,78 @@ it("falls back to the raw string when the alias table is unusable", async () => 
 
   // A merchant name must never block ingestion.
   expect(await resolveEmailMerchant(db, "vercel.com")).toBe("vercel.com");
+});
+
+it("resolves a PayPal receipt from the named payee instead of the payment rail", async () => {
+  const db = fakeDb();
+
+  const resolution = await resolveEmailMerchantIdentity(
+    db,
+    "paypal.com",
+    "service@paypal.com",
+    {
+      subject: "Your receipt for your PayPal payment to Acme Hosting Inc.",
+      textBody: "You sent a payment of $9.03 CAD to Acme Hosting Inc.",
+    },
+  );
+
+  expect(resolution).toEqual({
+    merchant: "Acme Hosting Inc",
+    identity: "RESOLVED",
+    source: "CONDUIT_CONTENT",
+  });
+  expect(db.created).toContainEqual({
+    rawString: "Acme Hosting Inc",
+    normalizedName: "Acme Hosting Inc",
+  });
+  expect(db.created).not.toContainEqual(expect.objectContaining({ rawString: "paypal.com" }));
+});
+
+it("marks a conduit receipt unresolved when its payee is not recoverable", async () => {
+  const db = fakeDb();
+
+  await expect(resolveEmailMerchantIdentity(
+    db,
+    "paypal.com",
+    "service@paypal.com",
+    { subject: "Your PayPal receipt", textBody: "Payment completed." },
+  )).resolves.toEqual({
+    merchant: "Unresolved payee via PayPal",
+    identity: "UNRESOLVED_CONDUIT",
+    source: "CONDUIT_UNRESOLVED",
+  });
+  expect(db.created).toEqual([]);
+});
+
+it("does not promote a visibly truncated conduit payee to canonical identity", async () => {
+  const db = fakeDb();
+
+  await expect(resolveEmailMerchantIdentity(
+    db,
+    "paypal.com",
+    "service@paypal.com",
+    {
+      subject: "Receipt for Your Payment to AICA Merchant Servic...",
+      textBody: "You paid $27.77 CAD to AICA Merchant Servic...",
+    },
+  )).resolves.toMatchObject({
+    identity: "UNRESOLVED_CONDUIT",
+    source: "CONDUIT_UNRESOLVED",
+  });
+  expect(db.created).toEqual([]);
+});
+
+it("uses a Shopify Email sender's merchant display name, not the platform domain", async () => {
+  const db = fakeDb();
+
+  await expect(resolveEmailMerchantIdentity(
+    db,
+    "shopifyemail.com",
+    "North Star Coffee <store+123@shopifyemail.com>",
+    { subject: "Your order is on the way" },
+  )).resolves.toMatchObject({
+    merchant: "North Star Coffee",
+    identity: "RESOLVED",
+    source: "CONDUIT_CONTENT",
+  });
 });

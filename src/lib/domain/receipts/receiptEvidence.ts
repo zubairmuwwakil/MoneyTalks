@@ -22,6 +22,9 @@ export type ReceiptClass = "BILL" | "SUBSCRIPTION" | "RETURN";
 const PROSPECTIVE_RENEWAL_SUBJECT = /\b(auto-?renewal notice|renewal reminder|renews? soon|upcoming (?:auto-?)?renewal|upcoming charge)\b/i;
 const PROSPECTIVE_CHARGE_BODY = /\b(?:will|we(?:'ll| will)|scheduled to|set to|try to|attempt to)\b[^.\n]{0,100}\b(?:charge|bill|renew|take payment|process payment)\b/i;
 const COMPLETED_CHARGE = /\b(initial charge|total (?:paid|charged)|amount (?:paid|charged)|payment (?:received|processed|completed)|has been charged|was charged|order summary|thanks for (?:your )?(?:purchase|order))\b/i;
+const PAYMENT_AUTHORIZATION_SUBJECT = /\byou (?:have )?authorized a payment to\b/i;
+const PENDING_AUTHORIZATION_BODY = /\b(?:purchase|payment|transaction)\b[^.\n]{0,100}\bpending\b|\bpending\b[^.\n]{0,100}\b(?:purchase|payment|transaction)\b/i;
+const REFUND_MESSAGE = /\b(?:your )?refund(?: of [^.\n]{1,40})? from\b|\brefund total\b/i;
 
 /** Does this message describe a charge that may happen later, not one that happened? */
 export function hasProspectiveChargeEvidence(parsed: ParsedEvidence): boolean {
@@ -30,12 +33,17 @@ export function hasProspectiveChargeEvidence(parsed: ParsedEvidence): boolean {
   const body = parsed.textBody ?? "";
   const haystack = `${subject}\n${body}`;
   if (COMPLETED_CHARGE.test(haystack)) return false;
+  if (PAYMENT_AUTHORIZATION_SUBJECT.test(subject) && PENDING_AUTHORIZATION_BODY.test(body)) return true;
   return PROSPECTIVE_RENEWAL_SUBJECT.test(subject) || PROSPECTIVE_CHARGE_BODY.test(body);
 }
 
 /** Did the parser actually find something that proves money changed hands? */
 export function hasPurchaseEvidence(parsed: ParsedEvidence): boolean {
   if (hasProspectiveChargeEvidence(parsed)) return false;
+  // A refund message often repeats the original paid amount and merchant. It
+  // is useful evidence, but asserting it as a new positive Purchase reverses
+  // the financial event and can fabricate recurrence.
+  if (REFUND_MESSAGE.test(`${parsed.subject ?? ""}\n${parsed.textBody ?? ""}`)) return false;
   // Structured commerce markup is self-declaring: the sender tagged it an Order.
   if (parsed.rawSource === "jsonld") return true;
   // A $0.00 "total" is a promo or a free-shipping notice, never a purchase.

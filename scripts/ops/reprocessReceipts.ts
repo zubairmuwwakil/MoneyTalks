@@ -14,6 +14,7 @@
  *
  *   npx tsx --conditions=react-server scripts/ops/reprocessReceipts.ts
  *   npx tsx --conditions=react-server scripts/ops/reprocessReceipts.ts --merchant vercel.com
+ *   npx tsx --conditions=react-server scripts/ops/reprocessReceipts.ts --conduit paypal.com
  *   npx tsx --conditions=react-server scripts/ops/reprocessReceipts.ts --limit 25 --after <transactionId>
  *   npx tsx --conditions=react-server scripts/ops/reprocessReceipts.ts --user <userId> --apply
  */
@@ -26,6 +27,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
 import type { GmailPurchaseAction } from "../../src/lib/domain/receipts/gmailReceiptProcessing";
+import { conduitForSender } from "../../src/lib/domain/receipts/emailMerchant";
+import { clusterRecurringPurchases } from "../../src/lib/domain/recurring/clustering";
 
 const MAX_BATCH_SIZE = 100;
 const DEFAULT_BATCH_SIZE = 100;
@@ -83,6 +86,11 @@ type PurchaseRelink = {
   toPurchaseId: string | null;
 };
 
+type RecurringCandidatePreview = {
+  key: string;
+  label: string;
+};
+
 export type MerchantReprocessReport = {
   merchant: string;
   beforeCount: number;
@@ -98,6 +106,52 @@ export type ReprocessReport = {
   afterTotal: number;
   merchants: MerchantReprocessReport[];
 };
+
+function recurringCandidatePreviews(
+  snapshot: ReprocessSnapshot,
+  timeZones: ReadonlyMap<string, string>,
+): RecurringCandidatePreview[] {
+  const eligible = snapshot.purchases.flatMap((purchase) => {
+    const currency = purchase.currency?.trim() || null;
+    if (!purchase.merchant.trim() || (purchase.totalCents !== null && !currency)) return [];
+    return [{
+      id: purchase.id,
+      userId: purchase.userId,
+      canonicalMerchantId: purchase.merchant,
+      discriminator: null,
+      currency,
+      amountMinor: purchase.totalCents,
+      date: purchase.purchasedAt,
+    }];
+  });
+
+  const byOwner = new Map<string, typeof eligible>();
+  for (const purchase of eligible) {
+    byOwner.set(purchase.userId, [...(byOwner.get(purchase.userId) ?? []), purchase]);
+  }
+
+  return [...byOwner.entries()].flatMap(([userId, purchases]) =>
+    clusterRecurringPurchases(purchases, timeZones.get(userId) ?? "America/Toronto").map((cluster) => {
+      const amounts = [...new Set(cluster.purchases.map(({ amountMinor }) => amountMinor))];
+      const amount = amounts.length === 1 && amounts[0] !== null
+        ? `${(amounts[0] / 100).toFixed(2)} ${cluster.currency ?? "currency unknown"}`
+        : cluster.amountPattern.pattern;
+      const purchaseIds = cluster.purchases.map(({ id }) => id);
+      return {
+        key: JSON.stringify([
+          cluster.userId,
+          cluster.canonicalMerchantId,
+          cluster.currency,
+          cluster.cadence.cadence.type,
+          purchaseIds,
+        ]),
+        label: `${cluster.canonicalMerchantId} [${cluster.currency}] — ` +
+          `${cluster.cadence.cadence.type}, ${amount}, ${purchaseIds.length} charge(s), ` +
+          `coverage ${cluster.cadence.coverage.toFixed(2)}`,
+      };
+    }),
+  );
+}
 
 const purchaseFields = [
   "merchant",
@@ -333,12 +387,20 @@ async function main() {
       apply: { type: "boolean", default: false },
       user: { type: "string" },
       merchant: { type: "string" },
+      conduit: { type: "string" },
       limit: { type: "string", default: String(DEFAULT_BATCH_SIZE) },
       after: { type: "string" },
     },
   });
   const apply = values.apply === true;
   const limit = positiveBoundedInteger(values.limit!, "--limit");
+  if (values.merchant && values.conduit) {
+    throw new Error("Choose either --merchant or --conduit, not both.");
+  }
+  const conduit = values.conduit?.trim().toLowerCase();
+  if (conduit && conduitForSender(`operator@${conduit}`)?.domain !== conduit) {
+    throw new Error(`Unknown conduit domain: ${values.conduit}`);
+  }
   const envPath = fs.existsSync(".env.local") ? ".env.local" : ".env";
   dotenv.config({ path: envPath, quiet: true });
   const connectionString = process.env.DATABASE_URL;
@@ -355,6 +417,9 @@ async function main() {
       ...(values.user ? { userId: values.user } : {}),
       ...(values.merchant
         ? { merchant: { equals: values.merchant, mode: "insensitive" } }
+        : {}),
+      ...(conduit
+        ? { fromEmail: { contains: conduit, mode: "insensitive" } }
         : {}),
     };
     if (values.after) {
@@ -393,6 +458,7 @@ async function main() {
     console.log(
       `Batch: ${transactions.length}/${totalTransactions} transaction(s)` +
       `${values.merchant ? ` for merchant ${values.merchant}` : ""}` +
+      `${conduit ? ` from conduit ${conduit}` : ""}` +
       `${values.user ? ` for user ${values.user}` : ""}.`,
     );
 
@@ -402,6 +468,11 @@ async function main() {
     }
 
     const userIds = [...new Set(transactions.map((row) => row.userId))];
+    const preferences = await prisma.notificationPreference.findMany({
+      where: { userId: { in: userIds } },
+      select: { userId: true, timezone: true },
+    });
+    const timeZones = new Map(preferences.map(({ userId, timezone }) => [userId, timezone]));
     const connections = await prisma.emailConnection.findMany({
       where: { userId: { in: userIds }, provider: "GMAIL" },
       orderBy: [{ userId: "asc" }, { createdAt: "asc" }],
@@ -480,10 +551,12 @@ async function main() {
     };
     const parserErrors: Array<{ messageId: string; error: string }> = [];
     let report: ReprocessReport | undefined;
+    let addedRecurringCandidates: RecurringCandidatePreview[] = [];
 
     try {
       await prisma.$transaction(async (transactionDb) => {
         const before = await snapshot(transactionDb, userIds);
+        const beforeRecurring = new Set(recurringCandidatePreviews(before, timeZones).map(({ key }) => key));
         const replayDb = transactionFacade(transactionDb);
         const { processRawGmailMessage } =
           await import("../../src/lib/domain/receipts/gmailReceiptProcessing");
@@ -503,6 +576,8 @@ async function main() {
 
         const after = await snapshot(transactionDb, userIds);
         report = buildReprocessReport(before, after);
+        addedRecurringCandidates = recurringCandidatePreviews(after, timeZones)
+          .filter(({ key }) => !beforeRecurring.has(key));
         if (!apply) throw new DryRunRollback("rollback dry-run preview");
       }, {
         isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
@@ -515,6 +590,12 @@ async function main() {
 
     if (!report) throw new Error("Reprocess completed without producing a report");
     console.log("\n" + formatReprocessReport(report));
+    if (addedRecurringCandidates.length > 0) {
+      console.log("\nNew recurring candidate(s) in the replayed Purchase graph:");
+      for (const candidate of addedRecurringCandidates) console.log(`  ${candidate.label}`);
+    } else {
+      console.log("\nNo new recurring candidate surfaces in the replayed Purchase graph.");
+    }
     console.log(
       "\nProcessor actions: " +
       Object.entries(purchaseActions).map(([action, count]) => `${action}=${count}`).join(", ") + ".",

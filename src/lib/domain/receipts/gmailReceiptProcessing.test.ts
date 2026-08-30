@@ -3,13 +3,13 @@ import { Prisma } from "@prisma/client";
 
 import { processRawGmailMessage } from "./gmailReceiptProcessing";
 import { parsePurchaseFromRawGmailMessage } from "./gmailPurchaseParser";
-import { resolveEmailMerchant } from "./emailMerchant";
+import { resolveEmailMerchantIdentity } from "./emailMerchant";
 import { findMatchingPurchase } from "@/lib/domain/spine/purchaseMerge";
 import { removeCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
 import type { RawGmailMessage } from "@/lib/services/gmailScanSource";
 
 vi.mock("./gmailPurchaseParser", () => ({ parsePurchaseFromRawGmailMessage: vi.fn() }));
-vi.mock("./emailMerchant", () => ({ resolveEmailMerchant: vi.fn() }));
+vi.mock("./emailMerchant", () => ({ resolveEmailMerchantIdentity: vi.fn() }));
 vi.mock("@/lib/domain/spine/purchaseMerge", () => ({ findMatchingPurchase: vi.fn() }));
 vi.mock("@/lib/domain/ownerState", () => ({ ensureOwnerStateRecord: vi.fn() }));
 vi.mock("@/lib/spine/cap-usage", () => ({ applyCapAccrual: vi.fn(), removeCapAccrual: vi.fn(), reverseCapAccrual: vi.fn() }));
@@ -138,7 +138,11 @@ function setupDb() {
   tx.purchaseItem.findFirst.mockResolvedValue(null);
   tx.merchantAlias.findUnique.mockResolvedValue(null);
   tx.merchantCurrencyConfirmation.findUnique.mockResolvedValue(null);
-  vi.mocked(resolveEmailMerchant).mockImplementation(async (_db, merchant) => merchant);
+  vi.mocked(resolveEmailMerchantIdentity).mockImplementation(async (_db, merchant) => ({
+    merchant,
+    identity: "RESOLVED",
+    source: "SENDER",
+  }));
   vi.mocked(findMatchingPurchase).mockResolvedValue(null);
 
   return { db, tx };
@@ -296,7 +300,11 @@ describe("processRawGmailMessage", () => {
     };
 
     vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue(parsed);
-    vi.mocked(resolveEmailMerchant).mockResolvedValue("shopify.co.uk");
+    vi.mocked(resolveEmailMerchantIdentity).mockResolvedValue({
+      merchant: "shopify.co.uk",
+      identity: "RESOLVED",
+      source: "SENDER",
+    });
     tx.emailTransaction.findUnique.mockResolvedValue(linkedTransaction);
     tx.emailTransaction.upsert.mockResolvedValue(refreshedTransaction);
     tx.purchase.findUnique.mockResolvedValue(legacyPurchase);
@@ -309,10 +317,11 @@ describe("processRawGmailMessage", () => {
       mode: "reprocess",
     });
 
-    expect(resolveEmailMerchant).toHaveBeenCalledWith(
+    expect(resolveEmailMerchantIdentity).toHaveBeenCalledWith(
       db,
       "shopify.co.uk",
       "notifications@shopify.co.uk",
+      { subject: parsed.subject, textBody: parsed.textBody },
     );
     expect(tx.emailTransaction.upsert).toHaveBeenCalledWith(expect.objectContaining({
       update: expect.objectContaining({ merchant: "shopify.co.uk" }),
@@ -587,6 +596,51 @@ describe("processRawGmailMessage", () => {
     expect(reverseCapAccrual).toHaveBeenCalledWith(tx, "purchase:purchase-1");
     expect(tx.purchase.delete).toHaveBeenCalledWith({ where: { id: "purchase-1" } });
     expect(result.purchaseAction).toBe("deleted");
+  });
+
+  it("keeps unresolved conduit evidence out of the Purchase spine", async () => {
+    const { db, tx } = setupDb();
+    const parsed = {
+      messageId: message.messageId,
+      merchant: "paypal.com",
+      fromEmail: "service@paypal.com",
+      subject: "Your PayPal receipt",
+      purchasedAt: message.internalDate,
+      totalCents: 903,
+      currency: "CAD",
+      rawSource: "text" as const,
+      textBody: "Payment completed.",
+    };
+    const transaction = {
+      ...existingTransaction,
+      merchant: "Unresolved payee via PayPal",
+      fromEmail: parsed.fromEmail,
+      subject: parsed.subject,
+      totalCents: parsed.totalCents,
+      currency: parsed.currency,
+      purchaseId: null,
+    };
+
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue(parsed);
+    vi.mocked(resolveEmailMerchantIdentity).mockResolvedValue({
+      merchant: transaction.merchant,
+      identity: "UNRESOLVED_CONDUIT",
+      source: "CONDUIT_UNRESOLVED",
+    });
+    tx.emailTransaction.findUnique.mockResolvedValue(null);
+    tx.emailTransaction.upsert.mockResolvedValue(transaction);
+
+    const result = await processRawGmailMessage(db as never, {
+      userId: "user-1",
+      message,
+      mode: "scan",
+    });
+
+    expect(tx.emailTransaction.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({ merchant: "Unresolved payee via PayPal", totalCents: 903 }),
+    }));
+    expect(tx.purchase.create).not.toHaveBeenCalled();
+    expect(result.purchaseAction).toBe("none");
   });
 
   it("keeps a renewal notice transaction but deletes its false completed purchase", async () => {

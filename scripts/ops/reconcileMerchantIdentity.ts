@@ -14,10 +14,10 @@
  * See docs/superpowers/specs/2026-08-29-recurring-obligations-design.md §2.
  *
  * Resolution is REPLAYED through the same modules production uses
- * (`emailDomain` + `merchantPack`), never reimplemented — a reporter that
- * reimplemented the identity function could disagree with production, which
- * is the failure it exists to detect. It reads `EmailTransaction.fromEmail`,
- * which preserves the original sender, so no Gmail round-trip is needed.
+ * (`emailDomain` + `merchantPack`), never reimplemented. Conduit senders need
+ * decoded message content, which EmailTransaction does not retain; those rows
+ * are reported here and replayed through the production parser by the sibling
+ * `reprocessReceipts.ts --conduit <domain>` rollback reporter.
  *
  * DRY RUN BY DEFAULT. Nothing is written without --apply.
  *
@@ -51,6 +51,7 @@ import {
   findPackMerchantByEmail,
   foldMerchantText,
 } from "../../src/lib/domain/merchants/merchantPack";
+import { conduitForSender } from "../../src/lib/domain/receipts/emailMerchant";
 
 const { values } = parseArgs({
   options: {
@@ -98,7 +99,13 @@ async function main() {
 
   type Drift = { id: string; purchaseId: string | null; from: string; to: string; sender: string };
   const drift: Drift[] = [];
+  const conduitRows = new Map<string, number>();
   for (const tx of transactions) {
+    const conduit = conduitForSender(tx.fromEmail);
+    if (conduit) {
+      conduitRows.set(conduit.domain, (conduitRows.get(conduit.domain) ?? 0) + 1);
+      continue;
+    }
     const expected = expectedMerchant(tx.fromEmail!, aliases);
     if (expected !== tx.merchant) {
       drift.push({
@@ -124,6 +131,17 @@ async function main() {
     `${transactions.length} carry a sender address; ${totalPurchases} Gmail-sourced ` +
     `purchase(s); ${totalAliases} merchant alias(es).`);
   console.log(`${drift.length} transaction(s) resolve differently under the current identity function.\n`);
+
+  if (conduitRows.size > 0) {
+    console.log("Conduit rows require message-content replay and are not counted as sender drift:");
+    for (const [domain, count] of [...conduitRows.entries()].sort()) {
+      console.log(`  ${String(count).padStart(5)}  ${domain}`);
+      console.log(
+        `         npx tsx --conditions=react-server scripts/ops/reprocessReceipts.ts --conduit ${domain}`,
+      );
+    }
+    console.log();
+  }
 
   const grouped = new Map<string, Drift[]>();
   for (const d of drift) {
