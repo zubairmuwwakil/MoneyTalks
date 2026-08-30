@@ -37,17 +37,39 @@ type MessageEvidence = {
 type Conduit = {
   domain: string;
   name: string;
+  matchesSender?(fromEmail: string): boolean;
   extractPayee(evidence: MessageEvidence & { fromEmail?: string | null }): string | undefined;
 };
 
 const GENERIC_PAYEES = new Set([
+  "app store",
+  "apple",
+  "apple inc",
+  "apple services",
+  "google",
+  "google inc",
+  "google llc",
+  "google payments",
+  "google play",
+  "google play store",
+  "itunes",
+  "itunes store",
   "merchant",
+  "microsoft",
+  "microsoft billing",
+  "microsoft corp",
+  "microsoft corporation",
+  "microsoft inc",
+  "microsoft store",
   "paypal",
   "paypal inc",
   "seller",
   "shopify",
   "shopify email",
   "store",
+  "stripe",
+  "stripe inc",
+  "stripe payments",
   "the merchant",
   "the seller",
 ]);
@@ -59,8 +81,11 @@ function cleanPayee(value: string | undefined): string | undefined {
   if (!value || /(?:\.\.\.|…)/u.test(value)) return undefined;
   const candidate = value
     ?.replace(/\([^\n()]*@[^\n()]*\)\s*$/u, "")
+    .replace(/\s*\([^\n()]*#[^\n()]*\)\s*$/u, "")
+    .replace(/\s*\[[^\n[\]]*#[^\n[\]]*\]\s*$/u, "")
     .replace(/\s+(?:transaction|receipt|invoice|order)\s+(?:id|number|no\.?|#).*$/iu, "")
     .replace(/\s+transaction date\b.*$/iu, "")
+    .replace(/\s+(?:via|through)\s+(?:stripe|paypal|shopify|apple|google(?:\s+play)?|microsoft)\b.*$/iu, "")
     .replace(/[\s.,:;!|\-–—]+$/u, "")
     .replace(/^[\s"']+|[\s"']+$/g, "")
     .replace(/\s+/g, " ")
@@ -118,6 +143,75 @@ const SHOPIFY_PAYEE_PATTERNS = [
   /\b(?:merchant|seller|store)\s*:\s*([^\n]{2,100})/iu,
 ] as const;
 
+const STRIPE_SENDER_PATTERN = /receipts\+acct_[a-z0-9]+@stripe\.com/i;
+
+const STRIPE_PAYEE_PATTERNS = [
+  /\b(?:your )?receipt from\s+([^\n]{2,100})/iu,
+  /\b(?:your )?invoice from\s+([^\n]{2,100})/iu,
+  /\b(?:receipt|invoice) (?:for|#\s*[a-z0-9-_]+) from\s+([^\n]{2,100})/iu,
+  /\b(?:you were|you've been|you have been) charged (?:[^\n]{1,40}? )?by\s+([^\n]{2,100})/iu,
+  /\b(?:you paid|payment(?: of [^\n]{1,40}?)? to)\s+([^\n]{2,100})/iu,
+  /\b(?:billed|charged) by\s+([^\n]{2,100})/iu,
+  /\b(?:thanks for (?:your )?(?:purchase|order) from)\s+([^\n]{2,100})/iu,
+  /^(?:merchant|payee|seller|billed by)\s*:?[ \t]+([^\n]{2,100})/imu,
+] as const;
+
+function extractStripePayee({ fromEmail, subject, textBody }: MessageEvidence & { fromEmail?: string | null }): string | undefined {
+  const fromSubject = firstPatternMatch([subject ?? ""], STRIPE_PAYEE_PATTERNS);
+  if (fromSubject) return fromSubject;
+  const fromBody = firstPatternMatch([textBody ?? ""], STRIPE_PAYEE_PATTERNS);
+  if (fromBody) return fromBody;
+  return displayNameFromAddress(fromEmail);
+}
+
+const APPLE_SENDER_PATTERN = /no_reply@email\.apple\.com/i;
+
+const APPLE_PAYEE_PATTERNS = [
+  /\byour subscription to\s+([^\n]{2,100}?)(?:\s+(?:will renew|has renewed|was renewed|renewed|is confirmed|renews|\$|\())/iu,
+  /\byou(?:'ve| have)? subscribed to\s+([^\n]{2,100}?)(?:\s+(?:on|for|\$|\())/iu,
+  /\b(?:seller|developer|publisher|provider|provided by)\s*:\s*([^\n]{2,100})/iu,
+  /\b(?:item|subscription|app|product)\s*:\s*([^\n]{2,100})/iu,
+  /\bApp Store\s*\n\s*([^\n]{2,100})/iu,
+  /^([^\n]{2,100})\s*\n\s*(?:Renews|Subscription renewal|Report a Problem)\b/imu,
+  /\b(?:receipt|invoice) for (?:your subscription to )?([^\n]{2,100}?)(?:\s+from Apple|\s*\n|$)/iu,
+] as const;
+
+function extractApplePayee({ subject, textBody }: MessageEvidence): string | undefined {
+  return firstPatternMatch([textBody ?? "", subject ?? ""], APPLE_PAYEE_PATTERNS);
+}
+
+const GOOGLE_PLAY_SENDER_PATTERN = /(?:googleplay-noreply|payments-noreply)@google\.com/i;
+
+const GOOGLE_PLAY_PAYEE_PATTERNS = [
+  /\b(?:sold by|seller|developer|provider|provided by|merchant)\s*:\s*([^\n]{2,100})/iu,
+  /\b(?:item|subscription|service|product|order from)\s*:\s*([^\n]{2,100})/iu,
+  /\byour subscription to\s+([^\n]{2,100}?)(?:\s+(?:will renew|has renewed|was renewed|renewed|is confirmed|renews|\$|\())/iu,
+  /\byou(?:'ve| have)? subscribed to\s+([^\n]{2,100}?)(?:\s+(?:on|for|\$|\())/iu,
+  /\bthanks for (?:subscribing to|purchasing|your order with)\s+([^\n]{2,100}?)(?:\s+(?:on|for|\$|\.|\n))/iu,
+  /\bItem\s+(?:Price|Cost)\s*\n\s*([^\n]{2,100})/iu,
+  /\b(?:receipt|invoice) for\s+([^\n]{2,100}?)(?:\s+from Google Play|\s+from Google Payments|\s*\n|$)/iu,
+] as const;
+
+function extractGooglePlayPayee({ subject, textBody }: MessageEvidence): string | undefined {
+  return firstPatternMatch([textBody ?? "", subject ?? ""], GOOGLE_PLAY_PAYEE_PATTERNS);
+}
+
+const MICROSOFT_BILLING_SENDER_PATTERN = /msbill@microsoft\.com/i;
+
+const MICROSOFT_PAYEE_PATTERNS = [
+  /\b(?:publisher|seller|sold by|merchant)\s*:\s*([^\n]{2,100})/iu,
+  /\b(?:product|service|description|item|subscription)\s*:\s*([^\n]{2,100})/iu,
+  /\byour subscription to\s+([^\n]{2,100}?)\s+(?:has renewed|was renewed|will renew|renewed|is confirmed|renews|\$|\()/iu,
+  /\b(?:you were|you've been|you have been) billed for\s+([^\n]{2,100})/iu,
+  /\bthanks for (?:subscribing to|purchasing|your order with)\s+([^\n]{2,100}?)(?:\s+(?:on|for|\$|\.|\n))/iu,
+  /\b(?:Description|Product name)\s+(?:Price|Amount)\s*\n\s*([^\n]{2,100})/iu,
+  /\b(?:receipt|invoice) for\s+([^\n]{2,100}?)(?:\s+from Microsoft|\s*\n|$)/iu,
+] as const;
+
+function extractMicrosoftPayee({ subject, textBody }: MessageEvidence): string | undefined {
+  return firstPatternMatch([textBody ?? "", subject ?? ""], MICROSOFT_PAYEE_PATTERNS);
+}
+
 // These are ingestion facts owned by the hub. They deliberately do not live
 // in contracts/merchant-pack.json: that contract is PickMe's retail/category
 // decision input, while this list describes how receipt transport works.
@@ -134,14 +228,58 @@ const CONDUITS: readonly Conduit[] = [
       firstPatternMatch([subject ?? "", textBody ?? ""], SHOPIFY_PAYEE_PATTERNS)
       ?? displayNameFromAddress(fromEmail),
   },
+  {
+    domain: "stripe.com",
+    name: "Stripe",
+    matchesSender: (fromEmail) => STRIPE_SENDER_PATTERN.test(fromEmail),
+    extractPayee: extractStripePayee,
+  },
+  {
+    domain: "apple.com",
+    name: "Apple",
+    matchesSender: (fromEmail) => APPLE_SENDER_PATTERN.test(fromEmail),
+    extractPayee: extractApplePayee,
+  },
+  {
+    domain: "google.com",
+    name: "Google Play",
+    matchesSender: (fromEmail) => GOOGLE_PLAY_SENDER_PATTERN.test(fromEmail),
+    extractPayee: extractGooglePlayPayee,
+  },
+  {
+    domain: "microsoft.com",
+    name: "Microsoft",
+    matchesSender: (fromEmail) => MICROSOFT_BILLING_SENDER_PATTERN.test(fromEmail),
+    extractPayee: extractMicrosoftPayee,
+  },
 ] as const;
 
+function findConduitForSender(fromEmail: string): Conduit | undefined {
+  const registrableDomain = normalizeMerchantFromSender(fromEmail);
+  return CONDUITS.find((c) => {
+    if (c.matchesSender) return c.matchesSender(fromEmail);
+    return c.domain === registrableDomain;
+  });
+}
+
 export function conduitForSender(fromEmail?: string | null): { domain: string; name: string } | undefined {
+  if (!fromEmail) return undefined;
   const senderDomain = domainFromEmail(fromEmail);
   if (!senderDomain) return undefined;
   const registrableDomain = normalizeMerchantFromSender(fromEmail);
-  const conduit = CONDUITS.find(({ domain }) => domain === registrableDomain);
-  return conduit ? { domain: conduit.domain, name: conduit.name } : undefined;
+
+  const conduit = CONDUITS.find((c) => {
+    if (c.matchesSender) return c.matchesSender(fromEmail);
+    return c.domain === registrableDomain;
+  });
+  if (conduit) return { domain: conduit.domain, name: conduit.name };
+
+  if (fromEmail.startsWith("operator@")) {
+    const byDomain = CONDUITS.find(({ domain }) => domain === registrableDomain || domain === senderDomain);
+    if (byDomain) return { domain: byDomain.domain, name: byDomain.name };
+  }
+
+  return undefined;
 }
 
 async function resolveRawMerchant(
@@ -187,8 +325,7 @@ export async function resolveEmailMerchantIdentity(
   fromEmail?: string,
   evidence: MessageEvidence = {},
 ): Promise<EmailMerchantResolution> {
-  const registrableDomain = fromEmail ? normalizeMerchantFromSender(fromEmail) : undefined;
-  const conduit = CONDUITS.find(({ domain }) => domain === registrableDomain);
+  const conduit = fromEmail ? findConduitForSender(fromEmail) : undefined;
 
   if (conduit) {
     const payee = conduit.extractPayee({ ...evidence, fromEmail });
