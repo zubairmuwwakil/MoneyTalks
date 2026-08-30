@@ -126,9 +126,11 @@ describe("purchase financial corrections", () => {
     paymentMethod: "card-1", financialState: "NORMALIZED", category: "grocery", purchasedAt: new Date(),
   };
   const tx = {
-    purchase: { findFirst: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    purchase: { findFirst: vi.fn(), update: vi.fn(), updateManyAndReturn: vi.fn(), delete: vi.fn() },
     walletEvent: { updateMany: vi.fn(), deleteMany: vi.fn() },
     purchaseCorrection: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+    merchantCurrencyConfirmation: { upsert: vi.fn() },
+    recurringObligation: { deleteMany: vi.fn() },
   };
   beforeEach(() => {
     vi.clearAllMocks();
@@ -171,6 +173,61 @@ describe("purchase financial corrections", () => {
     expect(tx.purchase.update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ currency: "USD", currencySource: "userOverride" }),
     }));
+    expect(tx.merchantCurrencyConfirmation.upsert).not.toHaveBeenCalled();
+    expect(tx.purchase.updateManyAndReturn).not.toHaveBeenCalled();
+  });
+
+  it("learns currency through the owner-facing correction without crossing provenance or owner boundaries", async () => {
+    tx.purchase.findFirst.mockResolvedValue({
+      ...purchase,
+      merchant: "heroku.com",
+      currency: null,
+      currencySource: "none",
+    });
+    tx.purchase.updateManyAndReturn.mockResolvedValue([
+      { id: "heroku-none" },
+      { id: "heroku-legacy-null-source" },
+    ]);
+    const formData = new FormData();
+    formData.set("purchaseId", "purchase-1");
+    formData.set("merchant", "heroku.com");
+    formData.set("currency", "usd");
+    formData.set("amount", "1.01");
+    formData.set("rememberMerchantCurrency", "on");
+
+    expect(await correctPurchaseDetails(formData)).toEqual({ ok: true });
+
+    expect(tx.merchantCurrencyConfirmation.upsert).toHaveBeenCalledWith({
+      where: {
+        userId_merchantCanonicalId: {
+          userId: "user-1",
+          merchantCanonicalId: "heroku.com",
+        },
+      },
+      create: { userId: "user-1", merchantCanonicalId: "heroku.com", currency: "USD" },
+      update: { currency: "USD" },
+    });
+    expect(tx.purchase.updateManyAndReturn).toHaveBeenCalledWith({
+      where: {
+        userId: "user-1",
+        merchant: "heroku.com",
+        OR: [{ currencySource: null }, { currencySource: "none" }],
+      },
+      data: { currency: "USD", currencySource: "ownerConfirmedForMerchant" },
+      select: { id: true },
+    });
+    // The selected receipt remains a per-purchase top-tier assertion. The
+    // merchant-wide pass excludes explicitCode and every other owner by query.
+    expect(tx.purchase.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ currency: "USD", currencySource: "userOverride" }),
+    }));
+    expect(tx.purchaseCorrection.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: "user-1",
+        purchaseId: "purchase-1",
+        kind: "details",
+      }),
+    });
   });
 
   it("carries the currency's provenance into the undo snapshot", async () => {
