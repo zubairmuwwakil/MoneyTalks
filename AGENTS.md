@@ -34,7 +34,7 @@ the checklist.** There is no other checklist. Also: `npm run dev`, `npm run e2e`
 
 Anything not named here and not caught by `npm run check` is yours to decide.
 Prefer acting and letting the check fail over asking.
-Work on a branch and open a PR; it auto-merges when `verify` is green.
+Work directly on `main`; do not open branches or PRs (`LOG.md` 2026-08-30).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

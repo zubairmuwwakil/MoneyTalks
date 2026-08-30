@@ -202,11 +202,21 @@ Remaining repos' ledgers are produced in their own milestones.
 
   Honest only once §3 and §5 are done.
 
-### §5 — Enforcement: PR flow, tiers, exceptions
+### §5 — Enforcement: direct to main, tiers, exceptions
 
-**PR flow.** Agents work in a branch or worktree, open a PR, and GitHub
-**auto-merges when the required tier is green**. No self-approval step. This
-converts branch protection from decorative to real.
+**Direct to `main`. No branches, no PRs.** *Reversed 2026-08-30 — this section
+originally specified a PR flow with auto-merge; see `docs/decisions/LOG.md`.* The
+owner runs several agents concurrently on one machine, where branch-per-task
+produces checkout collisions, worktree sprawl and constant rebasing for no gain a
+solo developer collects. Agents commit to `main` and push. Branch protection keeps
+only force-push and deletion blocked; no required status checks, because on GitHub
+those block a direct push as surely as they block a merge.
+
+**What this costs, stated plainly:** CI still runs `npm run check` on every push
+and still turns red, but nothing *prevents* red from landing. The gate is gone;
+only the signal remains. That trade is deliberate and the friction it removes is
+real and daily, while the failure it re-admits (G17) had a different root cause —
+unpushed work, which direct-to-main makes less likely, not more.
 
 **Two tiers.** A gate that cries wolf gets discounted, and every signal it
 carries is lost with it (the mechanism behind G4 and G8):
@@ -416,7 +426,7 @@ remain above target pending separate router work; M6 does not rewrite routers.
 | MoneyTalks always-loaded | 2,285 tok | ≤600 | **598 achieved** |
 | marketdata always-loaded | 2,385 tok | ≤600 | **493 achieved** |
 | PSM always-loaded | 3,024 tok | ≤800 | *unchanged — M3 outstanding* |
-| Repos with required status checks | 0 | 6 |
+| Repos with required status checks | 0 | *withdrawn 2026-08-30 — see §5* |
 | Repos with checked-in `settings.json` | 0 | 6 |
 | Repos green on main | 4 of 6 | 6 of 6 |
 | Undocumented env vars (MoneyTalks) | 6 | 0 |
@@ -436,8 +446,8 @@ remain above target pending separate router work; M6 does not rewrite routers.
 
 - **Deleting a load-bearing rule** — mitigated by P2; nothing is deleted, only
   compiled or demoted, each demotion keeping a router pointer.
-- **PR flow slowing a solo developer** — mitigated by auto-merge on green and a
-  ~4s required tier.
+- **No gate on `main`** — accepted 2026-08-30 in exchange for removing
+  concurrent-agent branch friction. CI still reports; nothing blocks.
 - **Checks becoming their own burden** — mitigated by the retire-prose rule,
   native-idiom checks, and every check having a test.
 - **Re-bloat** — mitigated by expiry registries.
