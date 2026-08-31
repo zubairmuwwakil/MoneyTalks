@@ -99,6 +99,140 @@ export async function correctPurchaseDetails(formData: FormData) {
   revalidatePath(`/purchases/${id.data}`); revalidatePath("/purchases"); return { ok: true as const };
 }
 
+export async function setPurchaseCurrency(input: {
+  purchaseId: string;
+  currency: string;
+  rememberForMerchant?: boolean;
+}) {
+  const userId = await requireUserId();
+  const setCurrencyInput = z.object({
+    purchaseId: z.string().min(1),
+    currency: z.string().trim().length(3).transform((v) => v.toUpperCase()),
+    rememberForMerchant: z.boolean().optional(),
+  });
+  const parsed = setCurrencyInput.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Invalid currency (must be 3-letter ISO code)" };
+  const { purchaseId, currency, rememberForMerchant } = parsed.data;
+
+  const result = await prisma.$transaction(async (tx) => {
+    const purchase = await tx.purchase.findFirst({ where: { id: purchaseId, userId } });
+    if (!purchase) return { status: "missing" as const };
+    if (purchase.financialState === "DECLINED" || purchase.financialState === "REVERSED") {
+      return { status: "invalidTransition" as const };
+    }
+    const before = snapshot(purchase);
+    const updated = await tx.purchase.update({
+      where: { id: purchase.id },
+      data: {
+        currency,
+        currencySource: "userOverride",
+        financialState: "ADJUSTED",
+      },
+    });
+    await tx.walletEvent.updateMany({ where: { purchaseId: purchase.id }, data: { financialState: "ADJUSTED" } });
+    await replacePurchaseAccrual(tx, updated);
+    await tx.purchaseCorrection.create({
+      data: {
+        userId,
+        purchaseId: purchase.id,
+        kind: "currency",
+        beforeState: before,
+        afterState: snapshot(updated),
+      },
+    });
+
+    let affectedPurchases = 1;
+    if (rememberForMerchant) {
+      const res = await applyMerchantCurrencyConfirmation(tx, {
+        userId,
+        merchantCanonicalId: purchase.merchant,
+        currency,
+      });
+      affectedPurchases += res.affectedPurchases;
+    }
+    return { status: "success" as const, affectedPurchases, merchant: purchase.merchant };
+  });
+
+  if (result.status !== "success") {
+    return {
+      ok: false as const,
+      error: result.status === "missing" ? "Purchase not found" : "Cannot edit declined/reversed purchase",
+    };
+  }
+
+  revalidatePath(`/purchases/${purchaseId}`);
+  revalidatePath("/purchases");
+  return { ok: true as const, currency, affectedPurchases: result.affectedPurchases, merchant: result.merchant };
+}
+
+export async function setPurchaseCard(input: {
+  purchaseId: string;
+  cardIdOrNickname: string | null;
+  rememberAliasForRawString?: string | null;
+}) {
+  const userId = await requireUserId();
+  const setCardInput = z.object({
+    purchaseId: z.string().min(1),
+    cardIdOrNickname: z.string().trim().nullable(),
+    rememberAliasForRawString: z.string().trim().optional(),
+  });
+  const parsed = setCardInput.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Invalid card input" };
+  const { purchaseId, cardIdOrNickname, rememberAliasForRawString } = parsed.data;
+
+  const result = await prisma.$transaction(async (tx) => {
+    const purchase = await tx.purchase.findFirst({ where: { id: purchaseId, userId } });
+    if (!purchase) return { status: "missing" as const };
+    if (purchase.financialState === "DECLINED" || purchase.financialState === "REVERSED") {
+      return { status: "invalidTransition" as const };
+    }
+    const before = snapshot(purchase);
+    const updated = await tx.purchase.update({
+      where: { id: purchase.id },
+      data: {
+        paymentMethod: cardIdOrNickname,
+        financialState: "ADJUSTED",
+      },
+    });
+    if (cardIdOrNickname) {
+      await tx.walletEvent.updateMany({
+        where: { purchaseId: purchase.id },
+        data: { resolvedCardId: cardIdOrNickname, financialState: "ADJUSTED" },
+      });
+    }
+    await replacePurchaseAccrual(tx, updated);
+    await tx.purchaseCorrection.create({
+      data: {
+        userId,
+        purchaseId: purchase.id,
+        kind: "paymentMethod",
+        beforeState: before,
+        afterState: snapshot(updated),
+      },
+    });
+
+    if (cardIdOrNickname && rememberAliasForRawString) {
+      await tx.cardAlias.upsert({
+        where: { userId_rawString: { userId, rawString: rememberAliasForRawString } },
+        create: { userId, rawString: rememberAliasForRawString, cardId: cardIdOrNickname },
+        update: { cardId: cardIdOrNickname },
+      });
+    }
+    return { status: "success" as const };
+  });
+
+  if (result.status !== "success") {
+    return {
+      ok: false as const,
+      error: result.status === "missing" ? "Purchase not found" : "Cannot edit declined/reversed purchase",
+    };
+  }
+
+  revalidatePath(`/purchases/${purchaseId}`);
+  revalidatePath("/purchases");
+  return { ok: true as const };
+}
+
 export async function undoLatestPurchaseCorrection(purchaseIdRaw: unknown) {
   const userId = await requireUserId(); const parsed = idInput.safeParse(purchaseIdRaw);
   if (!parsed.success) return { ok: false as const, error: "invalid input" };

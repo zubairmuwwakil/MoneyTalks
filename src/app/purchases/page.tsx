@@ -3,13 +3,11 @@ import {
   UploadCloud,
   Search,
   Receipt,
-  CreditCard,
   AlertTriangle,
   ChevronRight,
   Smartphone,
   Sparkles,
   X,
-  Plus,
   Calendar,
 } from "lucide-react";
 import type { FxRateInput } from "@/engine/fx";
@@ -24,8 +22,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SortSelect } from "./ui/SortSelect";
 import { CategoryFilter } from "./ui/CategoryFilter";
 import { InlineCategoryPicker } from "./ui/InlineCategoryPicker";
-import { NeedsReviewQueue, type ReviewRow } from "./ui/NeedsReviewQueue";
-import { UnmappedCardPicker } from "./ui/UnmappedCardPicker";
+import { InlineCurrencyPicker } from "./ui/InlineCurrencyPicker";
+import { InlineCardPicker, type CardItem } from "./ui/InlineCardPicker";
+import { PurchasesTriageCenter, type TriageRow, type TriageIssueType } from "./ui/PurchasesTriageCenter";
+import { QuickReceiptUploader } from "./ui/QuickReceiptUploader";
 import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { categoryQueryTokens } from "@/lib/categories";
 import { isSuggestion, resolveCategory } from "@/lib/domain/merchants/resolveCategory";
@@ -223,7 +223,7 @@ export default async function PurchasesInboxPage({
     }),
     prisma.creditCard.findMany({
       where: { userId, contractCardId: { not: null } },
-      select: { nickname: true, contractCardId: true },
+      select: { nickname: true, contractCardId: true, network: true, issuer: true },
     }),
     prisma.fxRate.findMany({
       where: { userId, asOf: { lte: new Date(nowMs) } },
@@ -237,6 +237,8 @@ export default async function PurchasesInboxPage({
         category: true,
         totalCents: true,
         currency: true,
+        currencySource: true,
+        paymentMethod: true,
         source: true,
         purchasedAt: true,
         possibleDuplicateOfId: true,
@@ -253,7 +255,13 @@ export default async function PurchasesInboxPage({
           },
         },
         walletEvents: {
-          select: { capturedAt: true, capturedTimezone: true },
+          select: {
+            capturedAt: true,
+            capturedTimezone: true,
+            cardRaw: true,
+            resolvedCardId: true,
+            merchantRaw: true,
+          },
           orderBy: { capturedAt: "asc" },
           take: 1,
         },
@@ -288,34 +296,6 @@ export default async function PurchasesInboxPage({
     }),
   ]);
 
-  // The uncategorized backlog. Scoped to the user's own rows and independent
-  // of the page's active filters on purpose: this is a standing worklist, and
-  // hiding it because a category filter is on would be hiding the thing the
-  // filter exists to eliminate.
-  const [uncategorizedCount, uncategorizedRows] = await Promise.all([
-    prisma.purchase.count({
-      where: { userId, category: null, financialState: { notIn: ["DECLINED", "REVERSED"] } },
-    }),
-    prisma.purchase.findMany({
-      where: { userId, category: null, financialState: { notIn: ["DECLINED", "REVERSED"] } },
-      select: {
-        id: true,
-        merchant: true,
-        category: true,
-        totalCents: true,
-        currency: true,
-        purchasedAt: true,
-        walletEvents: {
-          select: { merchantRaw: true, capturedAt: true, capturedTimezone: true },
-          orderBy: { capturedAt: "asc" },
-          take: 1,
-        },
-      },
-      orderBy: { purchasedAt: "desc" },
-      take: 12,
-    }),
-  ]);
-
   // Query missed rewards summary from wallet event warnings
   const missedRewardEvents = await prisma.walletEvent.findMany({
     where: { userId, feedbackWarning: { not: null } },
@@ -337,46 +317,60 @@ export default async function PurchasesInboxPage({
   const hasNextPage = purchasesWithNextPage.length > PAGE_SIZE;
   const purchases = purchasesWithNextPage.slice(0, PAGE_SIZE);
 
-  const reviewRows: ReviewRow[] = uncategorizedRows
-    .map((row): ReviewRow => {
-      const event = row.walletEvents[0] ?? null;
-      const local = purchaseLocalDateTime(
-        event?.capturedAt ?? row.purchasedAt,
-        event?.capturedTimezone,
-        homeZone,
-      );
-      return {
-        id: row.id,
-        merchant: row.merchant,
-        rawString: event?.merchantRaw ?? row.merchant,
-        // A capture can genuinely lack an amount (see WalletEvent's
-        // amountDecodeStatus); the queue says so rather than printing $0.00.
-        amountLabel: row.totalCents == null ? "—" : formatMoney(row.totalCents, row.currency),
-        dateLabel: local.toFormat("MMM d"),
-        suggestion: suggestionFor(row),
-      };
-    })
-    // A row the pack can already read is one tap from done, so it goes first.
-    // Ordering by recency instead would bury the cheap wins under whatever
-    // happened to arrive last.
-    .sort((a, b) => Number(b.suggestion !== null) - Number(a.suggestion !== null))
-    .slice(0, 6);
-
   // Card lookup map
   const cardNameMap = new Map<string, string>();
   userCards.forEach((c) => {
     if (c.contractCardId) cardNameMap.set(c.contractCardId, c.nickname);
   });
 
-  // Enriched card list for the UnmappedCardPicker — includes the catalogue
-  // official name so fuzzy matching can compare "American Express Cobalt"
-  // (cardRaw) against "American Express Cobalt Card" (officialName).
-  const pickerCards = userCards
-    .filter((c): c is { nickname: string; contractCardId: string } => !!c.contractCardId)
+  // Enriched card list for InlineCardPicker
+  const pickerCards: CardItem[] = userCards
+    .filter((c): c is typeof c & { contractCardId: string } => Boolean(c.contractCardId))
     .map((c) => ({
-      ...c,
+      nickname: c.nickname,
+      contractCardId: c.contractCardId,
+      network: c.network,
+      issuer: c.issuer,
       officialName: cardCatalogue.cards.find((cat) => cat.cardId === c.contractCardId)?.officialName,
     }));
+
+  // Build unified triage queue rows across all issues
+  const triageRows: TriageRow[] = allPurchasesSummary
+    .map((row) => {
+      const event = row.walletEvents[0] ?? null;
+      const local = purchaseLocalDateTime(
+        event?.capturedAt ?? row.purchasedAt,
+        event?.capturedTimezone,
+        homeZone,
+      );
+      const issues: TriageIssueType[] = [];
+      if (!row.currency) issues.push("currency");
+      if (!row.category) issues.push("category");
+      if (event?.cardRaw && !event.resolvedCardId) issues.push("card");
+      if (row.possibleDuplicateOfId) issues.push("duplicate");
+
+      return {
+        id: row.id,
+        merchant: row.merchant,
+        rawString: event?.merchantRaw ?? row.merchant,
+        totalCents: row.totalCents,
+        currency: row.currency,
+        dateLabel: local.toFormat("MMM d"),
+        category: row.category,
+        categorySuggestion: suggestionFor(row),
+        cardRaw: event?.cardRaw ?? null,
+        resolvedCardId: event?.resolvedCardId ?? null,
+        paymentMethod: row.paymentMethod,
+        possibleDuplicateOfId: row.possibleDuplicateOfId,
+        issues,
+      };
+    })
+    .filter((row) => row.issues.length > 0)
+    .sort((a, b) => {
+      const aScore = (a.categorySuggestion ? 2 : 0) + (a.issues.includes("currency") ? 1 : 0);
+      const bScore = (b.categorySuggestion ? 2 : 0) + (b.issues.includes("currency") ? 1 : 0);
+      return bScore - aScore;
+    });
 
   const fxRates: FxRateInput[] = fxRatesRaw.map((rate) => ({
     base: rate.base as Currency,
@@ -519,7 +513,7 @@ export default async function PurchasesInboxPage({
         </div>
       ) : null}
 
-      <NeedsReviewQueue rows={reviewRows} totalCount={uncategorizedCount} />
+      <PurchasesTriageCenter rows={triageRows} userCards={pickerCards} />
 
       <PurchaseImpactWorkspace view={purchaseImpact} />
 
@@ -704,7 +698,6 @@ export default async function PurchasesInboxPage({
                       ? local.toFormat("MMM d · h:mm a")
                       : local.toFormat("MMM d, yyyy");
 
-                    const isUnmappedCard = !!(wallet?.cardRaw && !wallet.resolvedCardId);
                     const cardDisplay = wallet
                       ? (wallet.resolvedCardId ? cardNameMap.get(wallet.resolvedCardId) : null) ??
                         wallet.cardRaw ??
@@ -805,14 +798,14 @@ export default async function PurchasesInboxPage({
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                               <span className="font-medium text-foreground/80">{when}</span>
                               <span>·</span>
-                              {isUnmappedCard ? (
-                                <UnmappedCardPicker cardRaw={wallet!.cardRaw!} cards={pickerCards} />
-                              ) : (
-                                <span className="inline-flex items-center gap-1">
-                                  <CreditCard className="size-3 text-muted-foreground/80" />
-                                  <span>{cardDisplay}</span>
-                                </span>
-                              )}
+                              <InlineCardPicker
+                                purchaseId={p.id}
+                                currentCardId={wallet?.resolvedCardId ?? (p.paymentMethod && cardNameMap.has(p.paymentMethod) ? p.paymentMethod : null)}
+                                currentCardLabel={cardDisplay}
+                                cardRaw={wallet?.cardRaw}
+                                userCards={pickerCards}
+                                variant="inline"
+                              />
                               {p.items.length > 0 ? (
                                 <>
                                   <span>·</span>
@@ -855,27 +848,21 @@ export default async function PurchasesInboxPage({
                         {/* Right block: Amount + Actions */}
                         <div className="flex items-center justify-between sm:justify-end gap-3.5 border-t border-border/40 pt-2.5 sm:border-t-0 sm:pt-0 shrink-0">
                           {!hasReceipt ? (
-                            <Button
-                              asChild
-                              variant="outline"
-                              size="xs"
-                              className="rounded-lg text-[11px] font-medium border-dashed hover:border-primary hover:text-primary transition"
-                            >
-                              <Link href="/receipts/upload">
-                                <Plus className="size-3" /> Add Receipt
-                              </Link>
-                            </Button>
+                            <QuickReceiptUploader
+                              purchaseId={p.id}
+                              merchant={p.merchant}
+                              variant="button"
+                            />
                           ) : null}
 
-                          <div className="text-right">
-                            {typeof p.totalCents === "number" ? (
-                              <div className="text-base font-bold text-foreground sm:text-lg">
-                                {formatMoney(p.totalCents, p.currency)}
-                              </div>
-                            ) : (
-                              <div className="text-xs font-medium text-muted-foreground">Pending</div>
-                            )}
-                          </div>
+                          <InlineCurrencyPicker
+                            purchaseId={p.id}
+                            merchant={p.merchant}
+                            currentCurrency={p.currency}
+                            currencySource={p.currencySource}
+                            totalCents={p.totalCents}
+                            variant="amount-row"
+                          />
 
                           <Link
                             href={`/purchases/${p.id}`}

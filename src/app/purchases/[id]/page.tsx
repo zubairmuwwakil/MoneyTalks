@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import {
   ArrowLeft,
   Calendar,
-  CreditCard,
   ExternalLink,
   FileText,
   MapPin,
@@ -16,6 +15,9 @@ import {
   Mail,
 } from "lucide-react";
 import { InlineCategoryPicker } from "../ui/InlineCategoryPicker";
+import { InlineCurrencyPicker } from "../ui/InlineCurrencyPicker";
+import { InlineCardPicker, type CardItem } from "../ui/InlineCardPicker";
+import { cardCatalogue } from "@/lib/contracts/cardCatalogue";
 import { getCategoryMeta } from "@/lib/categories";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/utils/calendarEvents";
@@ -133,14 +135,28 @@ export default async function PurchaseDetailPage({
 
   const cards = await prisma.creditCard.findMany({
     where: { userId, contractCardId: { not: null } },
-    select: { nickname: true, contractCardId: true },
+    select: { nickname: true, contractCardId: true, network: true, issuer: true },
+  });
+  const cardNameMap = new Map<string, string>();
+  cards.forEach((c) => {
+    if (c.contractCardId) cardNameMap.set(c.contractCardId, c.nickname);
   });
   const cardName = (contractCardId: string | null) =>
     cards.find((c) => c.contractCardId === contractCardId)?.nickname ?? null;
 
+  const pickerCards: CardItem[] = cards
+    .filter((c): c is typeof c & { contractCardId: string } => Boolean(c.contractCardId))
+    .map((c) => ({
+      nickname: c.nickname,
+      contractCardId: c.contractCardId,
+      network: c.network,
+      issuer: c.issuer,
+      officialName: cardCatalogue.cards.find((cat) => cat.cardId === c.contractCardId)?.officialName,
+    }));
+
   const resolvedCardDisplay = wallet
     ? (cardName(wallet.resolvedCardId) ?? wallet.cardRaw ?? "Unknown card")
-    : (purchase.paymentMethod ?? "Unknown payment method");
+    : (purchase.paymentMethod && cardNameMap.has(purchase.paymentMethod) ? cardNameMap.get(purchase.paymentMethod) : purchase.paymentMethod ?? "Unknown payment method");
 
   const sourceMeta = formatSource(purchase.source);
 
@@ -210,18 +226,23 @@ export default async function PurchaseDetailPage({
             </div>
           </div>
 
-          <div className="flex flex-col items-start sm:items-end justify-between border-t border-border/40 pt-3 sm:border-t-0 sm:pt-0">
-            {typeof purchase.totalCents === "number" ? (
-              <div className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                {formatMoney(purchase.totalCents, purchase.currency)}
-              </div>
-            ) : (
-              <div className="text-sm font-medium text-muted-foreground">Amount pending</div>
-            )}
-            <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <CreditCard className="size-3.5 text-primary/70" />
-              <span>{resolvedCardDisplay}</span>
-            </div>
+          <div className="flex flex-col items-start sm:items-end justify-between border-t border-border/40 pt-3 sm:border-t-0 sm:pt-0 gap-2">
+            <InlineCurrencyPicker
+              purchaseId={purchase.id}
+              merchant={purchase.merchant}
+              currentCurrency={purchase.currency}
+              currencySource={purchase.currencySource}
+              totalCents={purchase.totalCents}
+              variant="amount-row"
+            />
+            <InlineCardPicker
+              purchaseId={purchase.id}
+              currentCardId={wallet?.resolvedCardId ?? (purchase.paymentMethod && cardNameMap.has(purchase.paymentMethod) ? purchase.paymentMethod : null)}
+              currentCardLabel={resolvedCardDisplay}
+              cardRaw={wallet?.cardRaw}
+              userCards={pickerCards}
+              variant="inline"
+            />
           </div>
         </div>
 
@@ -275,13 +296,17 @@ export default async function PurchaseDetailPage({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="rounded-xl border border-border/60 bg-muted/30 p-3.5">
-                  <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground pb-1">
                     Payment Method
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-sm font-medium text-foreground">
-                    <CreditCard className="size-4 text-primary" />
-                    <span>{resolvedCardDisplay}</span>
-                  </div>
+                  <InlineCardPicker
+                    purchaseId={purchase.id}
+                    currentCardId={wallet?.resolvedCardId ?? (purchase.paymentMethod && cardNameMap.has(purchase.paymentMethod) ? purchase.paymentMethod : null)}
+                    currentCardLabel={resolvedCardDisplay}
+                    cardRaw={wallet?.cardRaw}
+                    userCards={pickerCards}
+                    variant="inline"
+                  />
                 </div>
 
                 <div className="rounded-xl border border-border/60 bg-muted/30 p-3.5">

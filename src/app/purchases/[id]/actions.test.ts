@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { removeCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
 import { correctPurchaseDetails, createReturnForPurchase, keepSeparatePurchase, mergeDuplicatePurchase,
-  markPurchaseDeclined, markPurchaseReversed, undoLatestPurchaseCorrection, permanentlyDeletePurchase } from "./actions";
+  markPurchaseDeclined, markPurchaseReversed, undoLatestPurchaseCorrection, permanentlyDeletePurchase,
+  setPurchaseCurrency, setPurchaseCard } from "./actions";
 
 vi.mock("@/lib/require-user", () => ({ requireUserId: vi.fn(async () => "user-1") }));
 vi.mock("@/lib/spine/cap-usage", () => ({ reverseCapAccrual: vi.fn(), removeCapAccrual: vi.fn(), applyCapAccrual: vi.fn() }));
@@ -328,3 +329,116 @@ describe("createReturnForPurchase", () => {
     await expect(createReturnForPurchase(formData)).rejects.toThrow("REDIRECT:/returns");
   });
 });
+
+describe("setPurchaseCurrency", () => {
+  const tx = {
+    purchase: { findFirst: vi.fn(), update: vi.fn(), updateManyAndReturn: vi.fn() },
+    walletEvent: { updateMany: vi.fn() },
+    purchaseCorrection: { create: vi.fn() },
+    merchantCurrencyConfirmation: { upsert: vi.fn() },
+    recurringObligation: { deleteMany: vi.fn() },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.$transaction).mockImplementation(((fn: (transaction: typeof tx) => Promise<unknown>) => fn(tx)) as never);
+  });
+
+  it("updates purchase currency and records provenance", async () => {
+    tx.purchase.findFirst.mockResolvedValue({
+      id: "pur-1",
+      userId: "user-1",
+      merchant: "Costco Wholesale",
+      totalCents: 3899,
+      currency: null,
+      currencySource: null,
+      paymentMethod: null,
+      financialState: "NORMALIZED",
+    });
+    tx.purchase.update.mockResolvedValue({
+      id: "pur-1",
+      userId: "user-1",
+      merchant: "Costco Wholesale",
+      totalCents: 3899,
+      currency: "CAD",
+      currencySource: "userOverride",
+      paymentMethod: null,
+      financialState: "ADJUSTED",
+    });
+
+    const res = await setPurchaseCurrency({
+      purchaseId: "pur-1",
+      currency: "CAD",
+    });
+
+    expect(res).toEqual({ ok: true, currency: "CAD", affectedPurchases: 1, merchant: "Costco Wholesale" });
+    expect(tx.purchase.update).toHaveBeenCalledWith({
+      where: { id: "pur-1" },
+      data: {
+        currency: "CAD",
+        currencySource: "userOverride",
+        financialState: "ADJUSTED",
+      },
+    });
+  });
+
+  it("rejects invalid currency codes", async () => {
+    const res = await setPurchaseCurrency({
+      purchaseId: "pur-1",
+      currency: "INVALID",
+    });
+    expect(res).toEqual({ ok: false, error: "Invalid currency (must be 3-letter ISO code)" });
+  });
+});
+
+describe("setPurchaseCard", () => {
+  const tx = {
+    purchase: { findFirst: vi.fn(), update: vi.fn() },
+    walletEvent: { updateMany: vi.fn() },
+    purchaseCorrection: { create: vi.fn() },
+    cardAlias: { upsert: vi.fn() },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(prisma.$transaction).mockImplementation(((fn: (transaction: typeof tx) => Promise<unknown>) => fn(tx)) as never);
+  });
+
+  it("updates purchase payment method and links card", async () => {
+    tx.purchase.findFirst.mockResolvedValue({
+      id: "pur-1",
+      userId: "user-1",
+      merchant: "Costco Wholesale",
+      totalCents: 3899,
+      currency: "CAD",
+      currencySource: "userOverride",
+      paymentMethod: null,
+      financialState: "NORMALIZED",
+    });
+    tx.purchase.update.mockResolvedValue({
+      id: "pur-1",
+      userId: "user-1",
+      merchant: "Costco Wholesale",
+      totalCents: 3899,
+      currency: "CAD",
+      currencySource: "userOverride",
+      paymentMethod: "cibc-costco-mastercard",
+      financialState: "ADJUSTED",
+    });
+
+    const res = await setPurchaseCard({
+      purchaseId: "pur-1",
+      cardIdOrNickname: "cibc-costco-mastercard",
+    });
+
+    expect(res).toEqual({ ok: true });
+    expect(tx.purchase.update).toHaveBeenCalledWith({
+      where: { id: "pur-1" },
+      data: {
+        paymentMethod: "cibc-costco-mastercard",
+        financialState: "ADJUSTED",
+      },
+    });
+  });
+});
+
