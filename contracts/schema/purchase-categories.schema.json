@@ -38,6 +38,16 @@
           "type": "string",
           "minLength": 1
         },
+        "parentID": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9]*$",
+          "description": "Optional broader purchase category for reporting and fallback presentation. It does not broaden card-rule matching implicitly."
+        },
+        "merchantGroupID": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9]*$",
+          "description": "Merchant-specific dimension carried by legacy category ids during migration toward separate purchaseCategory and merchantGroup fields."
+        },
         "aliases": {
           "type": "array",
           "uniqueItems": true,

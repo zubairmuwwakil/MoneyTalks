@@ -252,7 +252,13 @@ describe("setMerchantCategory", () => {
           { walletEvents: { some: { merchantRaw: "SQ *CAFE" } } },
         ],
       },
-      data: { category: "dining", categorySource: "userOverride" },
+      data: {
+        category: "dining",
+        categorySource: "userOverride",
+        rawCategory: "SQ *CAFE",
+        categoryTaxonomyVersion: "1.1",
+        categoryConfidenceScore: 0.95,
+      },
     });
   });
 

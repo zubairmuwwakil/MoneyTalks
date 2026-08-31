@@ -5,6 +5,7 @@ import { ensureOwnerStateRecord } from "@/lib/domain/ownerState";
 import { findMatchingPurchase } from "@/lib/domain/spine/purchaseMerge";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
 import { resolveCategory, shouldAutoApply } from "@/lib/domain/merchants/resolveCategory";
+import { PURCHASE_CATEGORY_TAXONOMY_VERSION } from "@/lib/categories";
 
 type WalletEventForNormalization = Awaited<ReturnType<typeof prisma.walletEvent.findFirst>>;
 const STALE_PROCESSING_MS = 5 * 60 * 1000;
@@ -137,6 +138,11 @@ async function processClaimedWalletEvent(event: NonNullable<WalletEventForNormal
             paymentMethod: match.purchase.paymentMethod ?? resolvedCardId ?? undefined,
             category: match.purchase.category ?? resolvedCategory ?? undefined,
             categorySource: match.purchase.category ? undefined : resolvedCategorySource ?? undefined,
+            rawCategory: match.purchase.rawCategory ?? merchantKey,
+            categoryTaxonomyVersion: match.purchase.categoryTaxonomyVersion
+              ?? (resolvedCategory ? PURCHASE_CATEGORY_TAXONOMY_VERSION : undefined),
+            categoryConfidenceScore: match.purchase.categoryConfidenceScore
+              ?? (resolvedCategory ? (resolution.confidence === "certain" ? 0.95 : 0.90) : undefined),
             currency: match.purchase.currency ?? eventCurrency,
           },
         });
@@ -153,6 +159,11 @@ async function processClaimedWalletEvent(event: NonNullable<WalletEventForNormal
             paymentMethod: resolvedCardId ?? undefined,
             category: resolvedCategory,
             categorySource: resolvedCategorySource,
+            rawCategory: merchantKey,
+            categoryTaxonomyVersion: resolvedCategory ? PURCHASE_CATEGORY_TAXONOMY_VERSION : undefined,
+            categoryConfidenceScore: resolvedCategory
+              ? (resolution.confidence === "certain" ? 0.95 : 0.90)
+              : undefined,
             possibleDuplicateOfId: match?.purchase.id ?? null,
           }
         });

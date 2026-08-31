@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { PURCHASE_CATEGORY_TAXONOMY_VERSION } from "@/lib/categories";
 import { requireUserId } from "@/lib/require-user";
 import { confirmMerchantCurrency } from "@/lib/domain/recurring/confirmMerchantCurrency";
 import { normalizePurchaseCategoryId } from "@/lib/categories";
@@ -157,6 +158,9 @@ export async function setMerchantCategory(input: {
     data: {
       category,
       categorySource: category ? "userOverride" : null,
+      rawCategory: category ? rawString : null,
+      categoryTaxonomyVersion: category ? PURCHASE_CATEGORY_TAXONOMY_VERSION : null,
+      categoryConfidenceScore: category ? 0.95 : null,
     },
   });
 

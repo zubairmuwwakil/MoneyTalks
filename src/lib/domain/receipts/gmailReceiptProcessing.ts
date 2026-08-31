@@ -20,6 +20,7 @@ import { conduitForSender } from "./emailMerchant";
 import { recordObligationFactEvaluation, withSpan } from "@/lib/observability";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
 import { resolveCategory, shouldAutoApply } from "@/lib/domain/merchants/resolveCategory";
+import { PURCHASE_CATEGORY_TAXONOMY_VERSION } from "@/lib/categories";
 import {
   reconcileCurrency,
   resolveCurrency,
@@ -403,6 +404,11 @@ async function promotePurchase(
         // decision, and this resolution is only ever as good as its tier.
         category: purchase.category ?? emailCategory,
         categorySource: purchase.category ? undefined : emailCategorySource,
+        rawCategory: purchase.rawCategory ?? emailTransaction.merchant,
+        categoryTaxonomyVersion: purchase.categoryTaxonomyVersion
+          ?? (emailCategory ? PURCHASE_CATEGORY_TAXONOMY_VERSION : undefined),
+        categoryConfidenceScore: purchase.categoryConfidenceScore
+          ?? (emailCategory ? 0.90 : undefined),
       },
     });
     action = "updated";
@@ -523,6 +529,11 @@ async function promotePurchase(
           // cross-source merge earning its keep.
           category: match.purchase.category ?? emailCategory ?? undefined,
           categorySource: match.purchase.category ? undefined : emailCategorySource ?? undefined,
+          rawCategory: match.purchase.rawCategory ?? emailTransaction.merchant,
+          categoryTaxonomyVersion: match.purchase.categoryTaxonomyVersion
+            ?? (emailCategory ? PURCHASE_CATEGORY_TAXONOMY_VERSION : undefined),
+          categoryConfidenceScore: match.purchase.categoryConfidenceScore
+            ?? (emailCategory ? 0.90 : undefined),
         },
       });
       action = "linked";
@@ -543,6 +554,9 @@ async function promotePurchase(
           sourceEmailId: message.messageId,
           category: emailCategory,
           categorySource: emailCategorySource,
+          rawCategory: emailTransaction.merchant,
+          categoryTaxonomyVersion: emailCategory ? PURCHASE_CATEGORY_TAXONOMY_VERSION : undefined,
+          categoryConfidenceScore: emailCategory ? 0.90 : undefined,
           possibleDuplicateOfId: match?.purchase.id ?? null,
         },
       });

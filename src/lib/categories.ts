@@ -85,6 +85,7 @@ const CATEGORY_PRESENTATION = {
 export type PurchaseCategoryId = keyof typeof CATEGORY_PRESENTATION;
 
 const purchaseCategoryContract = purchaseCategoryContractJSON as PurchaseCategoryContract;
+export const PURCHASE_CATEGORY_TAXONOMY_VERSION = purchaseCategoryContract.taxonomyVersion;
 const contractCategoryIDs = new Set(purchaseCategoryContract.categories.map(({ id }) => id));
 const presentationCategoryIDs = Object.keys(CATEGORY_PRESENTATION);
 

@@ -551,6 +551,12 @@ model Purchase {
   /// Which resolver tier decided `category` (src/lib/domain/merchants/resolveCategory.ts).
   /// Null means the row predates provenance tracking, never "unknown tier".
   categorySource            String?
+  /// Original classifier input, retained so an `other` result can be audited or recovered.
+  rawCategory               String?
+  categoryTaxonomyVersion   String?
+  categoryConfidenceScore   Float?
+  merchantCategoryCode      Int?
+  merchantGroupID           String?
   possibleDuplicateOfId     String?
   sourceEventId             String?
   normalizationVersion      Int                          @default(1)
@@ -572,6 +578,7 @@ model Purchase {
   @@index([purchasedAt])
   @@index([userId, merchant])
   @@index([userId, category, purchasedAt])
+  @@index([userId, rawCategory])
 }
 
 model RecurringObligation {
