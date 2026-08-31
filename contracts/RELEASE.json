@@ -1,17 +1,17 @@
 {
-  "release": "card-contracts@2.13",
-  "catalogueVersion": "2.13",
-  "digest": "sha256:21e14b00b957073a50ebb10b3c7b1b4ad3813eb8fb7e861e09d3e2979369a19f",
+  "release": "card-contracts@2.14",
+  "catalogueVersion": "2.14",
+  "digest": "sha256:8424720e0e847085b1114c87fe7821e1d66a43d7f4d4e214e36c0cb2325d1d54",
   "files": {
-    "card-catalogue.json": "b092840128a75a69b3061e7f133638851eb080ce6d072ea9eb8256a431215e02",
+    "card-catalogue.json": "cfaee7183317af9f68d224510245323f3cd113acbb58f82d90f024f1fc609c24",
     "benefits-catalogue.json": "ec48dd12692a46ca7f386de88e6bfd2fcecff826704400b05386e10a65fe59bf",
-    "engine-fixtures.json": "7856b3e6d631adb2acbc65ff2f180b52a4962dc95e3445599a2edf0a492005c0",
+    "engine-fixtures.json": "69cf27de9f81e1d422444ca5a8941b5487b6ae6262ff12fd4fb8c30cf8e797d2",
     "owner-state.json": "b3338b458d2cb6178a655809b629eb167ad4645726acbb612213ed414c428794",
     "programs.json": "cd1cb18a10ed6088c449fc593e8bf95c92b32071eead96ec35cce689bdf5f263",
     "candidate-catalogue.json": "9b8fde9661cf00bfc59e20443dc0a415042b910487865670c87c16cf9b5e9a43",
     "schema/card-catalogue.schema.json": "3a10d31642b8855a59db4d9b54e6a64ca6bf1664adfcb6bfa750855249d5558c",
     "schema/benefits-catalogue.schema.json": "9c1e2386adcf170c850e00fd49f8414ed015cecf52e2e93fa160b365c9db62fc",
-    "schema/engine-fixtures.schema.json": "a6930bf7b0b945307008b26edd8e19ccbba33ce58b6e25ebb0ee74d65f0af5fd",
+    "schema/engine-fixtures.schema.json": "9ce48afc7df52e40bc60a059b6731f7b7f7ac0dd3f386dd1058b6ece8d0a6eef",
     "schema/programs.schema.json": "1d4a93bccaf5c4060c3bdd656ab294fae7c1a4c823bc894bc0c21c588d406714",
     "owner-conditions.json": "70eb2058444ea5ae219603b111dc9826139c653c318ccbb96afa0fbabf44ee15",
     "schema/owner-conditions.schema.json": "857c0376ca8745dc45b19f43e6cd8cbdbab8b46f884b99a4528ca84921341d22"

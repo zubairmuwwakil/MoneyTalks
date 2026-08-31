@@ -1,4 +1,14 @@
-import { inferValuationModel, PointValuation, CardProduct, PurchaseContext, OwnerState, CardState, Earn, Valuations } from './models';
+import {
+  inferValuationModel,
+  PointValuation,
+  CardProduct,
+  PurchaseContext,
+  OwnerState,
+  CardState,
+  Earn,
+  Valuations,
+  effectiveCapIds,
+} from './models';
 import { RuleMatcher } from './RuleMatcher';
 import { CapMath } from './CapMath';
 import { toReporting } from './reportingCurrency';
@@ -109,27 +119,36 @@ export const Scorer = {
 
     let inCapAmount = nativeAmount;
     let overCapAmount = 0.0;
+    const effectiveCaps = effectiveCapIds(rule).flatMap(id => {
+      const cap = card.caps.find(candidate => candidate.capId === id);
+      return cap ? [cap] : [];
+    });
 
-    if (rule.capId) {
-      const cap = card.caps.find(c => c.capId === rule.capId);
-      if (cap) {
+    if (effectiveCaps.length > 0) {
+      const splitInputs: Array<{ limit: number; usage: number }> = [];
+      let baseMeasureAmount = nativeAmount;
+
+      for (const cap of effectiveCaps) {
         const usage = state.capProgress?.[cap.capId] ?? 0;
         const measureAmount = cap.measure === 'spendUsdEquivalent'
           ? (purchase.usdEquivalent ?? purchase.amountCad * Scorer.fallbackCadToUsd)
           : nativeAmount;
-        const split = CapMath.split(measureAmount, cap.limit, usage);
-        const inFraction = measureAmount > 0 ? split.inCap / measureAmount : 1;
-        inCapAmount = nativeAmount * inFraction;
-        overCapAmount = nativeAmount - inCapAmount;
-        if (usage >= cap.limit * 0.9) {
+        baseMeasureAmount = Math.max(baseMeasureAmount, measureAmount);
+        splitInputs.push({ limit: cap.limit, usage });
+        if (usage >= cap.limit * 0.9 && !warnings.includes('capNearlyExhausted')) {
           warnings.push('capNearlyExhausted');
         }
       }
+
+      const split = CapMath.splitMulti(baseMeasureAmount, splitInputs);
+      const inFraction = baseMeasureAmount > 0 ? split.inCap / baseMeasureAmount : 1;
+      inCapAmount = nativeAmount * inFraction;
+      overCapAmount = nativeAmount - inCapAmount;
     }
 
-    const postCapEarn = rule.capId
-      ? card.caps.find(c => c.capId === rule.capId)?.postCapEarn
-      : undefined;
+    // Use the first specified cap's postCapEarn as the fallback. For grouped caps like CIBC,
+    // the postCapEarn is identical across all caps in the group (e.g. drops to 1% base).
+    const postCapEarn = effectiveCaps[0]?.postCapEarn;
 
     // Cashback earns real money in the card's own billing currency — unlike points, which are a
     // currency-agnostic token whose count does not depend on what currency was spent, a cashback

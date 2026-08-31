@@ -83,6 +83,32 @@ const usdCashbackCard: CardProduct = {
   lastVerifiedAt: '2026-08-26',
 };
 
+const multiCapUsdCashbackCard: CardProduct = {
+  ...usdCashbackCard,
+  earnRules: [
+    {
+      ...usdCashbackCard.earnRules[0],
+      ruleId: 'grocery-5x-multi-cap',
+      capId: null,
+      capIds: ['grocery-cap', 'global-cap'],
+    },
+    usdCashbackCard.earnRules[1],
+  ],
+  caps: [
+    ...usdCashbackCard.caps,
+    {
+      capId: 'global-cap',
+      measure: 'spendNative',
+      limit: 1500,
+      period: 'calendarQuarter',
+      resetTimeZone: 'UTC',
+      // Deliberately differs from the first cap; the first cap's 1% fallback binds.
+      postCapEarn: { type: 'cashback', rate: 0.005 },
+      proration: true,
+    },
+  ],
+};
+
 describe('multi-market: USD-billing card scoring', () => {
   it('earns on the USD-equivalent amount, not the CAD amount, for a USD-billing card', () => {
     const purchase: PurchaseContext = {
@@ -156,6 +182,26 @@ describe('multi-market: USD-billing card scoring', () => {
     const score = Scorer.score(usdCashbackCard, purchase, state, '2026-08-26');
     // $100 in-cap at 5%, $100 over-cap at the post-cap 1% — both in USD, converted to CAD.
     expect(score.rewardUnits).toBeCloseTo((100 * 0.05 + 100 * 0.01) * PINNED_USD_TO_CAD, 6);
+  });
+
+  it('uses the tightest room across multiple caps and the first cap\'s post-cap earn', () => {
+    const purchase: PurchaseContext = {
+      amountCad: 274,
+      currency: 'CAD',
+      usdEquivalent: 200,
+      category: 'grocery',
+      acceptedNetworks: ['visa'],
+    };
+    const state = ownerState({
+      cardStates: {
+        'usd-cashback-test': {
+          capProgress: { 'grocery-cap': 1400, 'global-cap': 1490 },
+        },
+      },
+    });
+    const score = Scorer.score(multiCapUsdCashbackCard, purchase, state, '2026-08-26');
+    expect(score.rewardUnits).toBeCloseTo((10 * 0.05 + 190 * 0.01) * PINNED_USD_TO_CAD, 6);
+    expect(score.warnings.filter(warning => warning === 'capNearlyExhausted')).toHaveLength(1);
   });
 });
 

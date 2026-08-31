@@ -323,6 +323,45 @@
           },
           "description": "Warnings that must NOT appear on the winner. The only way to pin behaviour whose entire signal is a warning — e.g. Crypto's two FX records are both rate 0, so ignoring the announced one before its effectiveFrom is dollar-identical and observable only through fxAllowanceAssumed."
         },
+        "cardScores": {
+          "type": "array",
+          "description": "Optional assertions against named entries in Recommendation.allCandidates. This covers card-local semantics that cannot truthfully be forced into the overall winner (for example a plural-only capped base rule below the wallet's default rate).",
+          "items": {
+            "type": "object",
+            "required": [
+              "cardId",
+              "valueCad"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "cardId": {
+                "type": "string"
+              },
+              "valueCad": {
+                "type": "number",
+                "description": "CandidateScore.netValueCad, asserted with accuracy 0.005."
+              },
+              "rule": {
+                "type": "string",
+                "description": "CandidateScore.appliedRuleId."
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Warnings that must appear on the named candidate."
+              },
+              "warningsAbsent": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Warnings that must not appear on the named candidate."
+              }
+            }
+          }
+        },
         "valuationSensitive": {
           "type": "boolean",
           "description": "Recommendation.valuationSensitive — whether the advice turns on the declared point valuation."

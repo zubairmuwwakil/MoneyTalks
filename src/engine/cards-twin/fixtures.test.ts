@@ -26,6 +26,13 @@ interface FixtureCase {
     suppressedValueCad?: number;
     warnings?: string[];
     warningsAbsent?: string[];
+    cardScores?: Array<{
+      cardId: string;
+      valueCad: number;
+      rule?: string;
+      warnings?: string[];
+      warningsAbsent?: string[];
+    }>;
     valuationSensitive?: boolean;
     valuationDirection?: string;
     alternateWinner?: string;
@@ -126,6 +133,18 @@ describe('Engine Fixtures', () => {
       }
       for (const w of e.warningsAbsent ?? []) {
         expect(actualWarnings).not.toContain(w);
+      }
+      for (const expectedScore of e.cardScores ?? []) {
+        const candidate = r.allCandidates.find(score => score.cardId === expectedScore.cardId);
+        expect(candidate, `missing named candidate ${expectedScore.cardId}`).toBeDefined();
+        expect(candidate!.netValueCad).toBeCloseTo(expectedScore.valueCad, 2);
+        if (expectedScore.rule !== undefined) expect(candidate!.appliedRuleId).toBe(expectedScore.rule);
+        for (const warning of expectedScore.warnings ?? []) {
+          expect(candidate!.warnings).toContain(warning);
+        }
+        for (const warning of expectedScore.warningsAbsent ?? []) {
+          expect(candidate!.warnings).not.toContain(warning);
+        }
       }
 
       if (e.valuationSensitive !== undefined) expect(r.valuationSensitive).toBe(e.valuationSensitive);

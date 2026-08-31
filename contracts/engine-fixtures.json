@@ -1,5 +1,5 @@
 {
-  "fixturesVersion": "1.6",
+  "fixturesVersion": "1.7",
   "_note": "Executable spec for RecommendationEngine. Amounts CAD unless stated. Expected values are exact engine outputs (unrounded beyond 4dp); UI rounds to cents at display. Valuations: MR pinned to 1.8¢ by pinnedValuations below (owner-state.json now ranks at the 1.0¢ floor), MBNA 1.0¢, Bonvoy 0.8¢, cash 1:1, CT ×0.95, CRO ×1.0 auto-sold / ×0.8 held. Default card wealthsimple-vip; threshold both(0.5pp, $0.25). Base owner state per owner-state.json: rogersEligibleServiceLinked=false, cryptoLevelUpProActive=false, Tangerine treatAsAllSelected (2% hypothetical everywhere — can only tie WS, never clears threshold), Scotia 4% cap progress $12,500. Ties rank the default card first. Every case is evaluated at asOf 2026-08-20 unless it declares its own \"asOf\" — effective-dating is the one rule family that cannot be exercised at a single fixed date.",
   "pinnedValuations": {
     "amexMembershipRewards": 1.8,
@@ -384,6 +384,40 @@
         "runnerUp": "amex-cobalt", "runnerUpValueCad": 1.80,
         "switchFromDefault": false, "valuationSensitive": false,
         "notes": "No amazonEligiblePrimeLinked key means the conditional amazon-ca-prime-2_5x rule fails closed. The Amazon card falls to amazon-ca-nonprime-1_5x: 100 x 1.5 = 150 points x 1.0c = $1.50. That card-level rule is pinned directly in the Swift and Kotlin RuleMatcher tests because an end-to-end fixture can assert only winnerRule, and truthful Amazon.ca acceptance leaves Amazon below the top two. Whole-wallet field: default Wealthsimple 2% = $2.00; Cobalt and Platinum base 1x = $1.80 each, with Cobalt taking runner-up by cardId; Bonvoy base 2x = $1.60; Amazon, Rogers and WestJet are $1.50 each, with Amazon first inside that tie by cardId; MBNA and Scotia are $1.00; Triangle is $0.95; Tangerine is $0.50; Crypto is excluded. If unanswered state incorrectly enabled 2.5x, Amazon would jump from $1.50 to $2.50 and flip the asserted winner, so this whole-wallet golden decisively pins fail-closed behavior without inventing a Mastercard-only Amazon acceptance constraint."
+      }
+    },
+    {
+      "caseId": "cibc-plural-cap-partial-straddle-100",
+      "description": "CIBC Dividend Visa Infinite base rule uses capIds only; $100 straddles its remaining $50 of global room",
+      "purchase": { "amountCad": 100, "currency": "CAD", "category": "other", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["visa"] },
+      "ownerStateOverrides": { "cardStates": { "cibc-dividend-visa-infinite": { "capProgress": { "cibc-dividend-vi-global-50k": 49950 } } } },
+      "expected": {
+        "winner": "wealthsimple-vip", "winnerValueCad": 2.00, "winnerRule": "wealthsimple-2pct",
+        "switchFromDefault": false, "valuationSensitive": false,
+        "cardScores": [
+          {
+            "cardId": "cibc-dividend-visa-infinite", "valueCad": 1.00,
+            "rule": "cibc-dividend-base-1pct", "warnings": ["capNearlyExhausted"]
+          }
+        ],
+        "notes": "The CIBC base rule deliberately has capId: null and capIds: [cibc-dividend-vi-global-50k]. Before the purchase, $49,950 of the $50,000 global cap is used, leaving $50: CapMath splits $50 in-cap and $50 over-cap. Both portions earn 1%, because this base rule's postCapEarn is also 1%, so the value remains $1.00; capNearlyExhausted is the decisive representation assertion. A consumer that ignores capIds scores the same dollar value but omits the warning, so this case fails. Wealthsimple remains the Visa-only wallet winner at 2% = $2.00. The accelerated CIBC rules stay gated by cap.globalGroup and cap.statementYear; this fixture does not activate either capability."
+      }
+    },
+    {
+      "caseId": "cibc-plural-cap-exhausted-100",
+      "description": "CIBC Dividend Visa Infinite base rule uses capIds only; its global cap is fully consumed",
+      "purchase": { "amountCad": 100, "currency": "CAD", "category": "other", "mcc": null, "merchantBrand": null, "recurringIndicator": false, "acceptedNetworks": ["visa"] },
+      "ownerStateOverrides": { "cardStates": { "cibc-dividend-visa-infinite": { "capProgress": { "cibc-dividend-vi-global-50k": 50000 } } } },
+      "expected": {
+        "winner": "wealthsimple-vip", "winnerValueCad": 2.00, "winnerRule": "wealthsimple-2pct",
+        "switchFromDefault": false, "valuationSensitive": false,
+        "cardScores": [
+          {
+            "cardId": "cibc-dividend-visa-infinite", "valueCad": 1.00,
+            "rule": "cibc-dividend-base-1pct", "warnings": ["capNearlyExhausted"]
+          }
+        ],
+        "notes": "The same plural-only rule with usage exactly at its $50,000 limit: all $100 is over-cap and earns the cap's 1% fallback, for $1.00. capNearlyExhausted must still appear on the named CIBC candidate. Ignoring capIds omits that warning and fails the fixture. Wealthsimple remains the Visa-only winner at $2.00. Paired with cibc-plural-cap-partial-straddle-100 so the shared contract covers both a partial split and zero remaining room without enabling the still-unsupported accelerated-rule capabilities."
       }
     }
   ]

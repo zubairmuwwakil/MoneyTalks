@@ -61,7 +61,10 @@ export interface EarnRule {
   sourceType: SourceType;
   earn: Earn;
   predicate: Predicate;
-  capId?: string;
+  /** Legacy singular representation; retained for released rules that still use it. */
+  capId?: string | null;
+  /** Preferred representation. A non-null array is authoritative, including an empty one. */
+  capIds?: string[] | null;
   ownerConditions?: string[];
   scoredInV1?: boolean;
   /// Engine capabilities this rule needs ("not yet"). Mirrors Swift's `[String]` — an
@@ -69,6 +72,11 @@ export interface EarnRule {
   requires?: string[];
   /// Set when the rule will never be scored ("never"). Mutually exclusive with `requires`.
   outOfScope?: { reason: string };
+}
+
+/** Mirrors Swift/Kotlin EarnRule.effectiveCapIds exactly. */
+export function effectiveCapIds(rule: EarnRule): string[] {
+  return rule.capIds ?? (rule.capId ? [rule.capId] : []);
 }
 
 /// Mirrors Swift's EngineCapability.supported. The rest are namable by rules so they can turn
@@ -94,7 +102,12 @@ export const KNOWN_ENGINE_CAPABILITIES: ReadonlySet<string> = new Set([
 export type CapMeasure = 'spendNative' | 'spendUsdEquivalent';
 /// `calendarQuarter` added for US rotating-category cards — a shape this catalogue could not
 /// previously express at all.
-export type CapPeriod = 'calendarMonth' | 'calendarQuarter' | 'calendarYear' | 'accountYear';
+export type CapPeriod =
+  | 'calendarMonth'
+  | 'calendarQuarter'
+  | 'calendarYear'
+  | 'accountYear'
+  | 'statementYear';
 
 export interface Cap {
   capId: string;
