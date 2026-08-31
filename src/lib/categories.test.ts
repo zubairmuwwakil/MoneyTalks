@@ -5,7 +5,9 @@ import {
   LEGACY_CATEGORY_ALIASES,
   RULE_SIDE_CATEGORY_TOKENS,
   categoryQueryTokens,
+  categoryParentIDs,
   getCategoryMeta,
+  merchantGroupID,
   normalizeCategoryId,
   normalizePurchaseCategoryId,
 } from "./categories";
@@ -108,6 +110,11 @@ describe("normalizeCategoryId", () => {
 });
 
 describe("normalizePurchaseCategoryId", () => {
+  it("exposes contract hierarchy as metadata without changing leaf ids", () => {
+    expect(categoryParentIDs("marriottDirect")).toEqual(["lodging", "travel"]);
+    expect(merchantGroupID("marriottDirect")).toBe("marriottDirect");
+  });
+
   it("accepts canonical categories and legacy aliases", () => {
     expect(normalizePurchaseCategoryId("grocery")).toBe("grocery");
     expect(normalizePurchaseCategoryId("groceries")).toBe("grocery");
