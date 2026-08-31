@@ -12,7 +12,11 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SPEND_CATEGORIES, CATEGORY_LABELS } from "@/lib/cards/types";
+import {
+  CATEGORIES,
+  getCategoryMeta,
+  normalizePurchaseCategoryId,
+} from "@/lib/categories";
 import { updateMerchantAlias } from "./actions";
 
 export interface MerchantAliasItem {
@@ -26,7 +30,6 @@ export interface MerchantAliasItem {
 interface AliasRowState {
   normalizedName: string;
   category: string;
-  isCustomCategory: boolean;
   savedSuccess?: boolean;
   error?: string | null;
 }
@@ -40,11 +43,9 @@ export default function MerchantAliasesClient({
   const [rowStates, setRowStates] = useState<Record<string, AliasRowState>>(() => {
     const initial: Record<string, AliasRowState> = {};
     for (const a of initialAliases) {
-      const isKnownCategory = (SPEND_CATEGORIES as readonly string[]).includes(a.category ?? "");
       initial[a.id] = {
         normalizedName: a.normalizedName,
-        category: a.category ?? "",
-        isCustomCategory: Boolean(a.category && !isKnownCategory),
+        category: normalizePurchaseCategoryId(a.category) ?? a.category ?? "",
       };
     }
     return initial;
@@ -62,7 +63,6 @@ export default function MerchantAliasesClient({
         ...(prev[id] || {
           normalizedName: "",
           category: "",
-          isCustomCategory: false,
         }),
         ...updates,
         savedSuccess: false,
@@ -110,10 +110,6 @@ export default function MerchantAliasesClient({
               ...prev[id],
               normalizedName: result.alias.normalizedName,
               category: result.alias.category ?? "",
-              isCustomCategory: Boolean(
-                result.alias.category &&
-                  !(SPEND_CATEGORIES as readonly string[]).includes(result.alias.category),
-              ),
               savedSuccess: true,
               error: null,
             },
@@ -137,15 +133,11 @@ export default function MerchantAliasesClient({
   };
 
   const handleReset = (id: string, original: MerchantAliasItem) => {
-    const isKnownCategory = (SPEND_CATEGORIES as readonly string[]).includes(
-      original.category ?? "",
-    );
     setRowStates((prev) => ({
       ...prev,
       [id]: {
         normalizedName: original.normalizedName,
-        category: original.category ?? "",
-        isCustomCategory: Boolean(original.category && !isKnownCategory),
+        category: normalizePurchaseCategoryId(original.category) ?? original.category ?? "",
         savedSuccess: false,
         error: null,
       },
@@ -277,7 +269,6 @@ export default function MerchantAliasesClient({
             const state = rowStates[item.id] || {
               normalizedName: item.normalizedName,
               category: item.category ?? "",
-              isCustomCategory: false,
             };
             const isPending = pendingIds.has(item.id);
             const isDirty =
@@ -334,49 +325,28 @@ export default function MerchantAliasesClient({
 
                     {/* Category Selector */}
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[11px] font-medium text-muted-foreground">
-                          Spend category
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleFieldChange(item.id, {
-                              isCustomCategory: !state.isCustomCategory,
-                            })
-                          }
-                          className="text-[10px] text-cyan-600 hover:underline cursor-pointer"
-                        >
-                          {state.isCustomCategory ? "Pick standard" : "Custom text"}
-                        </button>
-                      </div>
-
-                      {state.isCustomCategory ? (
-                        <input
-                          type="text"
-                          value={state.category}
-                          onChange={(e) =>
-                            handleFieldChange(item.id, { category: e.target.value })
-                          }
-                          placeholder="e.g. coffee_shops"
-                          className="h-9 w-full rounded-lg border border-input bg-background px-3 py-1.5 text-xs shadow-2xs transition-colors placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        />
-                      ) : (
-                        <select
-                          value={state.category}
-                          onChange={(e) =>
-                            handleFieldChange(item.id, { category: e.target.value })
-                          }
-                          className="h-9 w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs shadow-2xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-                        >
-                          <option value="">(Uncategorized / None)</option>
-                          {SPEND_CATEGORIES.map((cat) => (
-                            <option key={cat} value={cat}>
-                              {CATEGORY_LABELS[cat]}
-                            </option>
-                          ))}
-                        </select>
-                      )}
+                      <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+                        Purchase category
+                      </label>
+                      <select
+                        value={state.category}
+                        onChange={(e) =>
+                          handleFieldChange(item.id, { category: e.target.value })
+                        }
+                        className="h-9 w-full rounded-lg border border-input bg-background px-2.5 py-1.5 text-xs shadow-2xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+                      >
+                        <option value="">(Uncategorized / None)</option>
+                        {state.category && !normalizePurchaseCategoryId(state.category) ? (
+                          <option value={state.category} disabled>
+                            Unrecognized: {getCategoryMeta(state.category).label}
+                          </option>
+                        ) : null}
+                        {CATEGORIES.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.icon} {category.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 

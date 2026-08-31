@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pickme.local/schema/purchase-categories.schema.json",
+  "title": "Purchase category taxonomy",
+  "description": "Canonical purchase-category ids and aliases shared by PickMe and its persistence consumers. ruleSideCategories are valid card predicates but invalid persisted merchant classifications.",
+  "type": "object",
+  "required": ["taxonomyVersion", "categories", "ruleSideCategories"],
+  "additionalProperties": false,
+  "properties": {
+    "taxonomyVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "_provenance": { "type": "string" },
+    "_normalization": { "type": "string" },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/category" }
+    },
+    "ruleSideCategories": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/category" }
+    }
+  },
+  "$defs": {
+    "category": {
+      "type": "object",
+      "required": ["id", "displayName", "aliases"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aliases": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

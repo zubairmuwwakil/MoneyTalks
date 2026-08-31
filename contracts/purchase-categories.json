@@ -1,0 +1,38 @@
+{
+  "taxonomyVersion": "1.0",
+  "_provenance": "PickMe owns purchase-category semantics across checkout scoring and its persistence consumers. A category describes what was purchased; ruleSideCategories are predicate dimensions understood by the card catalogue but forbidden in purchase and merchant category columns.",
+  "_normalization": "Consumers trim input, fold case and diacritics, remove non-alphanumeric characters, then compare each category id and alias. Unknown engine inputs remain forward-compatible, but persistence boundaries accept only ids declared under categories.",
+  "categories": [
+    { "id": "carRental", "displayName": "Car rental", "aliases": ["rental car", "car_rental", "carrental"] },
+    { "id": "ctFamily", "displayName": "Canadian Tire family", "aliases": ["ct_family", "ctfamily"] },
+    { "id": "digitalMedia", "displayName": "Digital media & software", "aliases": ["digital_media", "digitalmedia"] },
+    { "id": "dining", "displayName": "Dining", "aliases": ["restaurant", "restaurants"] },
+    { "id": "drugStore", "displayName": "Drugstore & health", "aliases": ["drugstores", "pharmacy"] },
+    { "id": "eGames", "displayName": "E-games", "aliases": ["gaming"] },
+    { "id": "entertainment", "displayName": "Entertainment", "aliases": [] },
+    { "id": "evCharging", "displayName": "EV charging", "aliases": ["ev", "ev_charging", "EV charger", "EV chargers"] },
+    { "id": "fitness", "displayName": "Fitness & gym", "aliases": ["gym"] },
+    { "id": "foodDelivery", "displayName": "Food delivery", "aliases": ["delivery", "food_delivery", "fooddelivery"] },
+    { "id": "furniture", "displayName": "Furniture", "aliases": [] },
+    { "id": "gasStation", "displayName": "Gas", "aliases": ["gas", "gas_station", "gasstation", "fuel", "fuel station"] },
+    { "id": "grocery", "displayName": "Groceries", "aliases": ["groceries"] },
+    { "id": "homeImprovement", "displayName": "Home improvement", "aliases": ["home_improvement"] },
+    { "id": "householdUtilities", "displayName": "Utilities & telecom", "aliases": ["householdutilities", "utility", "utilities", "bills", "recurring bill", "recurring bills", "recurringbill", "recurringbills", "recurring_bill", "recurring_bills"] },
+    { "id": "insurance", "displayName": "Insurance", "aliases": [] },
+    { "id": "lodging", "displayName": "Hotels & stays", "aliases": ["hotel", "hotels", "hotel/motel"] },
+    { "id": "marriottDirect", "displayName": "Marriott (direct)", "aliases": ["marriott", "marriottdirect"] },
+    { "id": "memberships", "displayName": "Memberships", "aliases": ["membership"] },
+    { "id": "other", "displayName": "General merchandise", "aliases": ["general", "general merchandise", "online foreign", "online_foreign", "everything else", "everything_else", "everythingelse", "unknown"] },
+    { "id": "retailShopping", "displayName": "Retail & shopping", "aliases": ["retail", "shopping", "general retail", "general_retail"] },
+    { "id": "streaming", "displayName": "Streaming", "aliases": [] },
+    { "id": "transit", "displayName": "Transit & rideshare", "aliases": ["public transport"] },
+    { "id": "travel", "displayName": "Travel & flights", "aliases": ["flight", "flights", "airline", "airlines"] },
+    { "id": "wholesaleClub", "displayName": "Warehouse clubs", "aliases": ["warehouse", "wholesale", "wholesaleclub"] }
+  ],
+  "ruleSideCategories": [
+    { "id": "foreignCurrency", "displayName": "Foreign currency", "aliases": [] },
+    { "id": "ownerSelectedCategory", "displayName": "Owner-selected category", "aliases": [] },
+    { "id": "ownerSelectedTangerineCategory", "displayName": "Owner-selected Tangerine category", "aliases": [] },
+    { "id": "recurring", "displayName": "Recurring payment", "aliases": [] }
+  ]
+}

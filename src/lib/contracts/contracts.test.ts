@@ -50,6 +50,9 @@ const EXPECTED_FILES = [
   // Part of card-contracts@2.8 onward.
   "owner-conditions.json",
   "schema/owner-conditions.schema.json",
+  // Part of card-contracts@2.15 onward: canonical persisted purchase categories and aliases.
+  "purchase-categories.json",
+  "schema/purchase-categories.schema.json",
   "schema/merchant-pack.schema.json",
 ];
 

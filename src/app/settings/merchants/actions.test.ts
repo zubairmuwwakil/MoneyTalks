@@ -252,8 +252,41 @@ describe("setMerchantCategory", () => {
           { walletEvents: { some: { merchantRaw: "SQ *CAFE" } } },
         ],
       },
-      data: { category: "dining" },
+      data: { category: "dining", categorySource: "userOverride" },
     });
+  });
+
+  it("normalizes a legacy category before writing it", async () => {
+    const { setMerchantCategory } = await import("./actions");
+    vi.mocked(prisma.merchantAlias.upsert).mockResolvedValue({
+      id: "alias-2",
+      rawString: "METRO",
+      normalizedName: "Metro",
+      category: "grocery",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(prisma.purchase.updateMany).mockResolvedValue({ count: 1 });
+
+    const res = await setMerchantCategory({ rawString: "METRO", category: "groceries" });
+
+    expect(res).toEqual({ ok: true, category: "grocery" });
+    expect(prisma.merchantAlias.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ category: "grocery" }),
+        update: { category: "grocery" },
+      }),
+    );
+  });
+
+  it("rejects an unknown category before touching the database", async () => {
+    const { setMerchantCategory } = await import("./actions");
+    vi.mocked(prisma.merchantAlias.upsert).mockClear();
+
+    const res = await setMerchantCategory({ rawString: "SQ *CAFE", category: "coffee_shops" });
+
+    expect(res).toEqual({ ok: false, error: "Invalid input" });
+    expect(prisma.merchantAlias.upsert).not.toHaveBeenCalled();
   });
 });
 
@@ -307,4 +340,3 @@ describe("confirmMerchantCurrencyAction", () => {
     expect(res).toEqual({ ok: false, error: "Merchant name required" });
   });
 });
-

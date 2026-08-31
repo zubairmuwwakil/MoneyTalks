@@ -1,17 +1,17 @@
 {
   "_upstream": {
     "repo": "https://github.com/zubairmuwwakil/PickMe",
-    "ref": "f30fc45",
-    "release": "card-contracts@2.14",
-    "commit": "f30fc45088bb6a2ddbd6a80adf94473d787b0b75",
+    "ref": "main",
+    "release": "card-contracts@2.15",
+    "commit": "f4c538e18d093d2b678bea309fd2225f57f6fef3",
     "files": {
-      "card-catalogue.json": "cfaee7183317af9f68d224510245323f3cd113acbb58f82d90f024f1fc609c24",
+      "card-catalogue.json": "f9b42407f8720450cc9ec45f26f9f4ec93011ad165bce9b12f5a9156008491d7",
       "benefits-catalogue.json": "ec48dd12692a46ca7f386de88e6bfd2fcecff826704400b05386e10a65fe59bf",
       "engine-fixtures.json": "69cf27de9f81e1d422444ca5a8941b5487b6ae6262ff12fd4fb8c30cf8e797d2",
       "owner-state.json": "b3338b458d2cb6178a655809b629eb167ad4645726acbb612213ed414c428794",
       "programs.json": "cd1cb18a10ed6088c449fc593e8bf95c92b32071eead96ec35cce689bdf5f263",
       "candidate-catalogue.json": "9b8fde9661cf00bfc59e20443dc0a415042b910487865670c87c16cf9b5e9a43",
-      "RELEASE.json": "2844e4836366dc8be59c8ef80173b6b57b42938610681177f201940510cea584",
+      "RELEASE.json": "29a68ada5c69c21b2d2acbc16ab68c7acf2022ff0c9b9ce42bd8e0389b623e63",
       "merchant-pack.json": "62aa02ee6f197b4a089afdd286cad8c002cc75711009f8a50132007e6b759908",
       "schema/card-catalogue.schema.json": "3a10d31642b8855a59db4d9b54e6a64ca6bf1664adfcb6bfa750855249d5558c",
       "schema/benefits-catalogue.schema.json": "9c1e2386adcf170c850e00fd49f8414ed015cecf52e2e93fa160b365c9db62fc",
@@ -19,16 +19,18 @@
       "schema/programs.schema.json": "1d4a93bccaf5c4060c3bdd656ab294fae7c1a4c823bc894bc0c21c588d406714",
       "owner-conditions.json": "70eb2058444ea5ae219603b111dc9826139c653c318ccbb96afa0fbabf44ee15",
       "schema/owner-conditions.schema.json": "857c0376ca8745dc45b19f43e6cd8cbdbab8b46f884b99a4528ca84921341d22",
+      "purchase-categories.json": "e31466d7096610144393da10a56516f586892f50f00f653a74fe401192359cb4",
+      "schema/purchase-categories.schema.json": "756df033408df117e0085341aef60c954283bb21ae5a2ca5919b546a63a6b87b",
       "schema/merchant-pack.schema.json": "21e3743c92418db7108a99e7f36cf2aef41264947f87911b2b26c7cd3dc8ef9a"
     }
   },
-  "card-catalogue.json": "cfaee7183317af9f68d224510245323f3cd113acbb58f82d90f024f1fc609c24",
+  "card-catalogue.json": "f9b42407f8720450cc9ec45f26f9f4ec93011ad165bce9b12f5a9156008491d7",
   "benefits-catalogue.json": "ec48dd12692a46ca7f386de88e6bfd2fcecff826704400b05386e10a65fe59bf",
   "engine-fixtures.json": "69cf27de9f81e1d422444ca5a8941b5487b6ae6262ff12fd4fb8c30cf8e797d2",
   "owner-state.json": "b3338b458d2cb6178a655809b629eb167ad4645726acbb612213ed414c428794",
   "programs.json": "cd1cb18a10ed6088c449fc593e8bf95c92b32071eead96ec35cce689bdf5f263",
   "candidate-catalogue.json": "9b8fde9661cf00bfc59e20443dc0a415042b910487865670c87c16cf9b5e9a43",
-  "RELEASE.json": "2844e4836366dc8be59c8ef80173b6b57b42938610681177f201940510cea584",
+  "RELEASE.json": "29a68ada5c69c21b2d2acbc16ab68c7acf2022ff0c9b9ce42bd8e0389b623e63",
   "merchant-pack.json": "62aa02ee6f197b4a089afdd286cad8c002cc75711009f8a50132007e6b759908",
   "schema/card-catalogue.schema.json": "3a10d31642b8855a59db4d9b54e6a64ca6bf1664adfcb6bfa750855249d5558c",
   "schema/benefits-catalogue.schema.json": "9c1e2386adcf170c850e00fd49f8414ed015cecf52e2e93fa160b365c9db62fc",
@@ -36,5 +38,7 @@
   "schema/programs.schema.json": "1d4a93bccaf5c4060c3bdd656ab294fae7c1a4c823bc894bc0c21c588d406714",
   "owner-conditions.json": "70eb2058444ea5ae219603b111dc9826139c653c318ccbb96afa0fbabf44ee15",
   "schema/owner-conditions.schema.json": "857c0376ca8745dc45b19f43e6cd8cbdbab8b46f884b99a4528ca84921341d22",
+  "purchase-categories.json": "e31466d7096610144393da10a56516f586892f50f00f653a74fe401192359cb4",
+  "schema/purchase-categories.schema.json": "756df033408df117e0085341aef60c954283bb21ae5a2ca5919b546a63a6b87b",
   "schema/merchant-pack.schema.json": "21e3743c92418db7108a99e7f36cf2aef41264947f87911b2b26c7cd3dc8ef9a"
 }

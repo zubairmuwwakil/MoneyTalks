@@ -84,6 +84,8 @@ FILES=(
   "schema/programs.schema.json"
   "owner-conditions.json"
   "schema/owner-conditions.schema.json"
+  "purchase-categories.json"
+  "schema/purchase-categories.schema.json"
   "schema/merchant-pack.schema.json"
 )
 

@@ -5,15 +5,27 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
 import { confirmMerchantCurrency } from "@/lib/domain/recurring/confirmMerchantCurrency";
+import { normalizePurchaseCategoryId } from "@/lib/categories";
+
+const purchaseCategoryInput = z
+  .string()
+  .trim()
+  .nullish()
+  .transform((value, ctx) => {
+    if (!value) return null;
+    const canonical = normalizePurchaseCategoryId(value);
+    if (canonical) return canonical;
+    ctx.addIssue({
+      code: "custom",
+      message: "Choose a recognized purchase category",
+    });
+    return z.NEVER;
+  });
 
 const updateMerchantAliasInput = z.object({
   id: z.string().min(1),
   normalizedName: z.string().trim().min(1, "Merchant name cannot be empty"),
-  category: z
-    .string()
-    .trim()
-    .nullish()
-    .transform((val) => (val && val.length > 0 ? val : null)),
+  category: purchaseCategoryInput,
 });
 
 export type UpdateMerchantAliasResult =
@@ -107,7 +119,7 @@ export async function updateMerchantAlias(input: {
 
 const setCategoryInput = z.object({
   rawString: z.string().trim().min(1, "Merchant string required"),
-  category: z.string().trim().nullable(),
+  category: purchaseCategoryInput,
 });
 
 export async function setMerchantCategory(input: {
@@ -144,6 +156,7 @@ export async function setMerchantCategory(input: {
     },
     data: {
       category,
+      categorySource: category ? "userOverride" : null,
     },
   });
 
@@ -216,4 +229,3 @@ export async function confirmMerchantCurrencyAction(input: {
 
   return { ok: true as const, affectedPurchases };
 }
-

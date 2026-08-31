@@ -7,6 +7,7 @@ import {
   categoryQueryTokens,
   getCategoryMeta,
   normalizeCategoryId,
+  normalizePurchaseCategoryId,
 } from "./categories";
 
 /** Every category token any earn rule in the vendored catalogue names. */
@@ -22,7 +23,7 @@ function catalogueCategoryTokens(): Set<string> {
 
 describe("category vocabulary is the catalogue's", () => {
   it("offers every scorable catalogue category", () => {
-    const offered = new Set(CATEGORIES.map((c) => c.id));
+    const offered = new Set<string>(CATEGORIES.map((c) => c.id));
     const missing = [...catalogueCategoryTokens()]
       .filter((token) => !RULE_SIDE_CATEGORY_TOKENS.has(token))
       .filter((token) => !offered.has(token))
@@ -45,12 +46,21 @@ describe("category vocabulary is the catalogue's", () => {
     }
   });
 
+  it("gets every rule-side marker from the contract", () => {
+    expect([...RULE_SIDE_CATEGORY_TOKENS].sort()).toEqual([
+      "foreignCurrency",
+      "ownerSelectedCategory",
+      "ownerSelectedTangerineCategory",
+      "recurring",
+    ]);
+  });
+
   it("has no duplicate ids", () => {
     expect(new Set(CATEGORIES.map((c) => c.id)).size).toBe(CATEGORIES.length);
   });
 
   it("resolves every legacy alias to a real category", () => {
-    const known = new Set(CATEGORIES.map((c) => c.id));
+    const known = new Set<string>(CATEGORIES.map((c) => c.id));
     for (const [legacy, target] of Object.entries(LEGACY_CATEGORY_ALIASES)) {
       expect(known.has(target), `${legacy} -> ${target}`).toBe(true);
     }
@@ -67,9 +77,9 @@ describe("normalizeCategoryId", () => {
     expect(normalizeCategoryId("hotel")).toBe("lodging");
   });
 
-  it("collapses UI-only retail buckets that never had an engine meaning", () => {
-    expect(normalizeCategoryId("shopping")).toBe("other");
-    expect(normalizeCategoryId("home_improvement")).toBe("other");
+  it("maps legacy retail and home buckets to the current engine categories", () => {
+    expect(normalizeCategoryId("shopping")).toBe("retailShopping");
+    expect(normalizeCategoryId("home_improvement")).toBe("homeImprovement");
     expect(normalizeCategoryId("online_foreign")).toBe("other");
   });
 
@@ -94,6 +104,20 @@ describe("normalizeCategoryId", () => {
     expect(normalizeCategoryId("groserys")).toBeNull();
     expect(normalizeCategoryId("")).toBeNull();
     expect(normalizeCategoryId(null)).toBeNull();
+  });
+});
+
+describe("normalizePurchaseCategoryId", () => {
+  it("accepts canonical categories and legacy aliases", () => {
+    expect(normalizePurchaseCategoryId("grocery")).toBe("grocery");
+    expect(normalizePurchaseCategoryId("groceries")).toBe("grocery");
+  });
+
+  it("rejects rule-side tokens and unknown strings", () => {
+    expect(normalizePurchaseCategoryId("recurring")).toBeNull();
+    expect(normalizePurchaseCategoryId("foreignCurrency")).toBeNull();
+    expect(normalizePurchaseCategoryId("ownerSelectedTangerineCategory")).toBeNull();
+    expect(normalizePurchaseCategoryId("coffee_shops")).toBeNull();
   });
 });
 

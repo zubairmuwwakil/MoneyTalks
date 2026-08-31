@@ -1,9 +1,9 @@
 {
-  "release": "card-contracts@2.14",
-  "catalogueVersion": "2.14",
-  "digest": "sha256:8424720e0e847085b1114c87fe7821e1d66a43d7f4d4e214e36c0cb2325d1d54",
+  "release": "card-contracts@2.15",
+  "catalogueVersion": "2.15",
+  "digest": "sha256:1be0e6b7765f82b235d7112170fe26075e3e0c5fd76547949e4e77c5e2dddcb3",
   "files": {
-    "card-catalogue.json": "cfaee7183317af9f68d224510245323f3cd113acbb58f82d90f024f1fc609c24",
+    "card-catalogue.json": "f9b42407f8720450cc9ec45f26f9f4ec93011ad165bce9b12f5a9156008491d7",
     "benefits-catalogue.json": "ec48dd12692a46ca7f386de88e6bfd2fcecff826704400b05386e10a65fe59bf",
     "engine-fixtures.json": "69cf27de9f81e1d422444ca5a8941b5487b6ae6262ff12fd4fb8c30cf8e797d2",
     "owner-state.json": "b3338b458d2cb6178a655809b629eb167ad4645726acbb612213ed414c428794",
@@ -14,6 +14,8 @@
     "schema/engine-fixtures.schema.json": "9ce48afc7df52e40bc60a059b6731f7b7f7ac0dd3f386dd1058b6ece8d0a6eef",
     "schema/programs.schema.json": "1d4a93bccaf5c4060c3bdd656ab294fae7c1a4c823bc894bc0c21c588d406714",
     "owner-conditions.json": "70eb2058444ea5ae219603b111dc9826139c653c318ccbb96afa0fbabf44ee15",
-    "schema/owner-conditions.schema.json": "857c0376ca8745dc45b19f43e6cd8cbdbab8b46f884b99a4528ca84921341d22"
+    "schema/owner-conditions.schema.json": "857c0376ca8745dc45b19f43e6cd8cbdbab8b46f884b99a4528ca84921341d22",
+    "purchase-categories.json": "e31466d7096610144393da10a56516f586892f50f00f653a74fe401192359cb4",
+    "schema/purchase-categories.schema.json": "756df033408df117e0085341aef60c954283bb21ae5a2ca5919b546a63a6b87b"
   }
 }
