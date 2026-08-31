@@ -16,11 +16,6 @@ type DetectedItem = {
   status: "NEW" | "CONFIRMED" | "DISMISSED";
 };
 
-type Subscription = {
-  id: string;
-  name: string;
-};
-
 function money(cents?: number | null, currency?: string | null) {
   if (typeof cents !== "number") return null;
   return formatCurrencyCodeAmount(cents, currency);
@@ -28,21 +23,14 @@ function money(cents?: number | null, currency?: string | null) {
 
 export default function DetectedInbox() {
   const [items, setItems] = useState<DetectedItem[]>([]);
-  const [subs, setSubs] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [linkSub, setLinkSub] = useState<Record<string, string>>({});
 
   async function load() {
     setLoading(true);
-    const [detRes, subRes] = await Promise.all([
-      fetch("/api/automation/detected", { cache: "no-store" }),
-      fetch("/api/subscriptions", { cache: "no-store" }),
-    ]);
+    const detRes = await fetch("/api/automation/detected", { cache: "no-store" });
     const detData = await detRes.json();
-    const subData = await subRes.json();
     setItems(detData.items ?? []);
-    setSubs(subData.subscriptions ?? []);
     setLoading(false);
   }
 
@@ -61,7 +49,6 @@ export default function DetectedInbox() {
         body: JSON.stringify({
           id,
           action,
-          subscriptionId: linkSub[id] || undefined,
         }),
       });
       await load();
@@ -137,24 +124,6 @@ export default function DetectedInbox() {
               >
                 Switch annual
               </button>
-
-              {subs.length > 0 ? (
-                <div className="ml-auto flex items-center gap-2 text-sm">
-                  <span className="text-slate-500">Link to</span>
-                  <select
-                    className="rounded-lg border px-2 py-1 text-sm"
-                    value={linkSub[item.id] ?? ""}
-                    onChange={e => setLinkSub(prev => ({ ...prev, [item.id]: e.target.value }))}
-                  >
-                    <option value="">Select subscription</option>
-                    {subs.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
             </div>
           </div>
         ))

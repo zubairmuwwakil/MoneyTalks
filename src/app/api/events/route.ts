@@ -8,6 +8,7 @@ import { buildBillEvents, buildCardFeeEvents, type BillSource } from "@/lib/doma
 import type { CardDef } from "@/lib/cards/types";
 import type { FeeScheduleCard } from "@/lib/cards/feeSchedule";
 import type { Cadence, ScheduleEntry } from "@/engine/recurrence";
+import { currentAmountMinor, isRenewalRelevant, obligationName } from "@/lib/domain/recurring/readModel";
 
 export const runtime = "nodejs";
 
@@ -27,40 +28,36 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const [activeSubs, cancelledSubs, returnItems, snoozedEvents, bills, billPayments, cards] = await Promise.all([
-    prisma.subscription.findMany({
+  const [subscriptions, returnItems, snoozedEvents, bills, billPayments, cards] = await Promise.all([
+    prisma.recurringObligation.findMany({
       where: {
         userId,
+        kind: "SUBSCRIPTION",
         OR: [
-          { renewalDate: { gte: start, lt: end } },
-          { trialEndAt: { gte: start, lt: end } },
+          { nextExpectedDate: { gte: start, lt: end } },
+          {
+            ownerFacts: {
+              some: {
+                supersededBy: null,
+                type: { in: ["TRIAL_ENDED", "CANCELLATION"] },
+                OR: [
+                  { effectiveAt: { gte: start, lt: end } },
+                  { effectiveAt: null, occurredAt: { gte: start, lt: end } },
+                ],
+              },
+            },
+          },
         ],
-        status: "ACTIVE",
       },
       select: {
-        id: true,
-        name: true,
-        amountCents: true,
-        currency: true,
-        renewalDate: true,
-        trialEndAt: true,
+        id: true, displayName: true, merchantCanonicalId: true, schedule: true,
+        currency: true, nextExpectedDate: true, status: true,
+        ownerFacts: {
+          where: { supersededBy: null, type: { in: ["TRIAL_ENDED", "CANCELLATION"] } },
+          select: { id: true, type: true, occurredAt: true, effectiveAt: true },
+        },
       },
-      orderBy: { renewalDate: "asc" },
-    }),
-    prisma.subscription.findMany({
-      where: {
-        userId,
-        status: "CANCELLED",
-        updatedAt: { gte: start, lt: end },
-      },
-      select: {
-        id: true,
-        name: true,
-        amountCents: true,
-        currency: true,
-        updatedAt: true,
-      },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { nextExpectedDate: "asc" },
     }),
     prisma.returnItem.findMany({
       where: {
@@ -122,40 +119,35 @@ export async function GET(req: NextRequest) {
 
   const events: CalendarEvent[] = [];
 
-  for (const s of activeSubs) {
-    events.push({
-      id: `sub_${s.id}_${toISODateOnlyUTC(s.renewalDate)}`,
-      type: "RENEWAL",
-      date: toISODateOnlyUTC(s.renewalDate),
-      title: s.name,
-      amountCents: s.amountCents ?? undefined,
-      currency: s.currency,
-      source: { kind: "subscription", sourceId: s.id },
-    });
-
-    if (s.trialEndAt && s.trialEndAt >= start && s.trialEndAt < end) {
+  for (const subscription of subscriptions) {
+    const name = obligationName(subscription);
+    const amountCents = currentAmountMinor(subscription.schedule);
+    if (subscription.nextExpectedDate && isRenewalRelevant(subscription.status)
+      && subscription.nextExpectedDate >= start && subscription.nextExpectedDate < end) {
       events.push({
-        id: `trial_${s.id}_${toISODateOnlyUTC(s.trialEndAt)}`,
-        type: "TRIAL_END",
-        date: toISODateOnlyUTC(s.trialEndAt),
-        title: `${s.name} trial ends`,
-        amountCents: s.amountCents ?? undefined,
-        currency: s.currency,
-        source: { kind: "subscription", sourceId: s.id },
+        id: `obligation_${subscription.id}_${toISODateOnlyUTC(subscription.nextExpectedDate)}`,
+        type: "RENEWAL",
+        date: toISODateOnlyUTC(subscription.nextExpectedDate),
+        title: name,
+        amountCents: amountCents ?? undefined,
+        currency: subscription.currency,
+        source: { kind: "recurring-obligation", sourceId: subscription.id },
       });
     }
-  }
-
-  for (const c of cancelledSubs) {
-    events.push({
-      id: `subcancel_${c.id}_${toISODateOnlyUTC(c.updatedAt)}`,
-      type: "CANCELLED_SUBSCRIPTION",
-      date: toISODateOnlyUTC(c.updatedAt),
-      title: `${c.name} cancelled`,
-      amountCents: c.amountCents ?? undefined,
-      currency: c.currency,
-      source: { kind: "subscription", sourceId: c.id },
-    });
+    for (const fact of subscription.ownerFacts) {
+      const eventDate = fact.effectiveAt ?? fact.occurredAt;
+      if (eventDate < start || eventDate >= end) continue;
+      const trial = fact.type === "TRIAL_ENDED";
+      events.push({
+        id: `${trial ? "trial" : "obligation_cancel"}_${fact.id}_${toISODateOnlyUTC(eventDate)}`,
+        type: trial ? "TRIAL_END" : "CANCELLED_SUBSCRIPTION",
+        date: toISODateOnlyUTC(eventDate),
+        title: trial ? `${name} trial ends` : `${name} cancellation takes effect`,
+        amountCents: amountCents ?? undefined,
+        currency: subscription.currency,
+        source: { kind: "recurring-obligation", sourceId: subscription.id },
+      });
+    }
   }
 
   for (const r of returnItems) {

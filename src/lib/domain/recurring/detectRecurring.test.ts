@@ -73,6 +73,17 @@ type EvidenceRow = {
   occurredAt: Date;
 };
 
+type OwnerFactRow = {
+  obligationId: string;
+  type: "CHARGE" | "EXPLICIT_CADENCE" | "NEXT_BILLING_DATE" | "PRICE_CHANGE" | "TRIAL_STARTED" | "TRIAL_ENDED" | "ACTIVATION" | "CANCELLATION" | "RESUMPTION";
+  occurredAt: Date;
+  effectiveAt: Date | null;
+  billingAt: Date | null;
+  amountMinor: number | null;
+  currency: string | null;
+  cadence: string | null;
+};
+
 type ObligationCreateData = Partial<ObligationRow>
   & Pick<ObligationRow, "userId" | "merchantCanonicalId" | "currency">;
 
@@ -101,6 +112,7 @@ class MemoryRecurringDb {
   emailFacts: EmailFactRow[] = [];
   obligations: ObligationRow[] = [];
   evidence: EvidenceRow[] = [];
+  ownerFacts: OwnerFactRow[] = [];
   private sequence = 0;
 
   private id(prefix: string): string {
@@ -133,6 +145,7 @@ class MemoryRecurringDb {
         .map((row) => ({
           ...row,
           evidence: this.evidence.filter((candidate) => candidate.obligationId === row.id),
+          ownerFacts: this.ownerFacts.filter((candidate) => candidate.obligationId === row.id),
         }));
     const findFirst: MemoryObligationDelegate["findFirst"] = async ({ where }) =>
       this.obligations.find((row) =>
@@ -349,6 +362,53 @@ describe("sweepRecurringObligations", () => {
     expect(db.evidence.every(({ purchaseId, emailFactId }) => purchaseId === null && emailFactId !== null)).toBe(true);
   });
 
+  it("never prices a series from an amount whose currency is unknown", async () => {
+    const db = new MemoryRecurringDb();
+    db.emails.push({
+      id: "email-priced",
+      userId: "user-1",
+      merchant: "fictional-saas.example",
+      subject: "Your plan price is changing",
+      purchasedAt: null,
+      createdAt: at("2026-08-29"),
+    });
+    db.emailFacts.push(
+      {
+        id: "fact-cadence-2",
+        userId: "user-1",
+        emailTransactionId: "email-priced",
+        type: "EXPLICIT_CADENCE",
+        occurredAt: at("2026-08-29"),
+        effectiveAt: null,
+        billingAt: null,
+        amountMinor: null,
+        currency: null,
+        cadence: "MONTHLY",
+      },
+      {
+        // An amount the message stated without any resolvable unit. The
+        // purchase path skips exactly this shape rather than guessing.
+        id: "fact-price-2",
+        userId: "user-1",
+        emailTransactionId: "email-priced",
+        type: "PRICE_CHANGE",
+        occurredAt: at("2026-08-29"),
+        effectiveAt: null,
+        billingAt: null,
+        amountMinor: 2_999,
+        currency: null,
+        cadence: null,
+      },
+    );
+
+    const result = await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
+
+    // Cadence alone is not sufficient evidence, and an unpriceable amount must
+    // not supply the missing half.
+    expect(result).toMatchObject({ created: 0 });
+    expect(db.obligations).toEqual([]);
+  });
+
   it("is idempotent — a second sweep does not duplicate obligations or evidence", async () => {
     const db = new MemoryRecurringDb();
     seedPurchases(db, "netflix.com", ["2026-05-11", "2026-06-11", "2026-07-11"], 2_099);
@@ -406,13 +466,35 @@ describe("sweepRecurringObligations", () => {
   it("preserves owner configuration while refreshing lifecycle evidence", async () => {
     const db = new MemoryRecurringDb();
     const owner = await db.recurringObligation.create({ data: ownerObligation("netflix.com") });
+    db.ownerFacts.push(
+      { obligationId: owner.id, type: "EXPLICIT_CADENCE", occurredAt: at("2026-01-01"), effectiveAt: null, billingAt: null, amountMinor: null, currency: null, cadence: "ANNUAL" },
+      { obligationId: owner.id, type: "PRICE_CHANGE", occurredAt: at("2026-01-01"), effectiveAt: null, billingAt: null, amountMinor: 1, currency: "CAD", cadence: null },
+    );
     seedPurchases(db, "netflix.com", ["2026-05-11", "2026-06-11", "2026-07-11"], 999);
 
     const result = await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
 
     expect(result.updated).toBe(1);
     expect(db.obligations).toEqual([owner]);
-    expect(owner).toMatchObject({ origin: "USER", confidence: 1, cadence: { type: "ANNUAL" } });
+    expect(owner).toMatchObject({ origin: "USER", cadence: { type: "ANNUAL" } });
+    expect(owner.schedule).toEqual([{ amountMinor: 1, from: "2026-01-01" }]);
+  });
+
+  it("lets a later real charge supersede an owner cancellation", async () => {
+    const db = new MemoryRecurringDb();
+    const owner = await db.recurringObligation.create({ data: {
+      ...ownerObligation("netflix.com"),
+      cadence: { type: "MONTHLY", dayOfMonth: 11 },
+    } });
+    db.ownerFacts.push(
+      { obligationId: owner.id, type: "EXPLICIT_CADENCE", occurredAt: at("2026-01-01"), effectiveAt: null, billingAt: null, amountMinor: null, currency: null, cadence: "MONTHLY" },
+      { obligationId: owner.id, type: "CANCELLATION", occurredAt: at("2026-06-15"), effectiveAt: at("2026-06-30"), billingAt: null, amountMinor: null, currency: null, cadence: null },
+    );
+    seedPurchases(db, "netflix.com", ["2026-05-11", "2026-06-11", "2026-07-11"], 999);
+
+    await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
+
+    expect(owner.status).toBe("ACTIVE");
   });
 
   it("preserves excluded evidence and does not re-attach its purchase", async () => {

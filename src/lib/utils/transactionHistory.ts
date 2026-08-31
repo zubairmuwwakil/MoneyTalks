@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import type { SubscriptionPayment } from "@prisma/client";
 
 export interface TransactionRecord {
   id: string;
@@ -115,19 +114,30 @@ export async function getSubscriptionTransactionHistory(
   userId: string,
   subscriptionId: string
 ) {
-  const payments = await prisma.subscriptionPayment.findMany({
-    where: { userId, subscriptionId },
-    orderBy: { paidAt: "desc" },
+  const payments = await prisma.recurringObligationOwnerFact.findMany({
+    where: {
+      userId,
+      type: "CHARGE",
+      supersededBy: null,
+      obligation: {
+        kind: "SUBSCRIPTION",
+        OR: [
+          { id: subscriptionId },
+          { legacySubscription: { legacySubscriptionId: subscriptionId } },
+        ],
+      },
+    },
+    orderBy: { occurredAt: "desc" },
   });
 
-  return payments.map((p: SubscriptionPayment) => ({
+  return payments.map((p) => ({
     id: p.id,
-    date: p.paidAt,
+    date: p.occurredAt,
     title: "Payment",
-    amount: p.amountCents,
+    amount: p.amountMinor ?? 0,
     currency: p.currency,
     type: "payment" as const,
-    notes: p.notes,
+    notes: p.note,
     status: "PAID",
   }));
 }

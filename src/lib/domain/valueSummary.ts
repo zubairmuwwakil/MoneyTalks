@@ -3,6 +3,7 @@ import { addDays } from "date-fns";
 import { ValueEventType } from "@prisma/client";
 import { convertMinor, type FxRateInput } from "@/engine/fx";
 import { Currency } from "@/engine/money";
+import { currentAmountMinor, obligationName } from "@/lib/domain/recurring/readModel";
 
 export interface ValueSummary {
   saved: {
@@ -78,9 +79,16 @@ export async function computeValueSummary(
   const horizonDate = addDays(now, horizonDays);
 
   const [subscriptions, returns, valueEvents, fxRatesRaw] = await Promise.all([
-    prisma.subscription.findMany({
-      where: { userId, status: "ACTIVE" },
-      select: { id: true, name: true, amountCents: true, currency: true, renewalDate: true, status: true },
+    prisma.recurringObligation.findMany({
+      where: {
+        userId,
+        kind: "SUBSCRIPTION",
+        status: { in: ["ACTIVE", "TRIALING", "CANCELLING"] },
+      },
+      select: {
+        id: true, displayName: true, merchantCanonicalId: true, schedule: true,
+        currency: true, nextExpectedDate: true, status: true,
+      },
     }),
     prisma.returnItem.findMany({
       where: { userId },
@@ -182,13 +190,13 @@ export async function computeValueSummary(
   const recoveredEvents = Array.from(recoveredMap.values()).sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
 
   const renewalRisks: AtRiskItem[] = subscriptions
-    .filter(s => s.renewalDate >= now && s.renewalDate <= horizonDate)
+    .filter(s => s.nextExpectedDate && s.nextExpectedDate >= now && s.nextExpectedDate <= horizonDate)
     .map(s => ({
       id: s.id,
-      label: s.name,
+      label: obligationName(s),
       kind: "RENEWAL" as const,
-      dueDate: s.renewalDate.toISOString(),
-      amountCents: safeConvert(s.amountCents, s.currency),
+      dueDate: s.nextExpectedDate!.toISOString(),
+      amountCents: safeConvert(currentAmountMinor(s.schedule), s.currency),
       currency: displayCurrency,
       meta: { status: s.status },
     }));

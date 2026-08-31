@@ -68,53 +68,6 @@ async function dismissStaleBySource(args: {
 
 
 // ---------- public APIs you call from your routes ----------
-export async function scheduleSubscriptionRenewalSoon(args: {
-  userId: string;
-  subscriptionId: string;
-  name: string;
-  renewalDate: Date;
-  amountCents?: number | null;
-  currency?: string | null;
-}) {
-  const daysBefore = 3;
-  const pref = await prisma.notificationPreference.findUnique({
-    where: { userId: args.userId },
-    select: { subLeadDays: true },
-  });
-  const leadDays = pref?.subLeadDays ?? daysBefore;
-
-  const today = startOfDayUTC(new Date());
-  const eventDay = startOfDayUTC(args.renewalDate);
-  const scheduledFor = computeScheduledFor(today, eventDay, leadDays);
-
-  const eventISO = isoDateOnly(eventDay);
-  const amt = args.amountCents != null ? formatCurrencyCodeAmount(args.amountCents, args.currency) : "";
-
-  const title = args.name;
-  const body = `Renews on ${eventISO}${amt ? ` · ${amt}` : ""} · (${leadDays} days)`;
-
-  const eventKey = `sub:${args.subscriptionId}:${eventISO}:lead${leadDays}`;
-
-  await upsertNotification({
-    userId: args.userId,
-    type: "SUBSCRIPTION_RENEWAL_SOON",
-    title,
-    body,
-    eventDate: eventDay,
-    scheduledFor,
-    sourceKind: "subscription",
-    sourceId: args.subscriptionId,
-    eventKey,
-  });
-
-  await dismissStaleBySource({
-    userId: args.userId,
-    sourceKind: "subscription",
-    sourceId: args.subscriptionId,
-    keepEventKeys: [eventKey],
-  });
-}
-
 /** Canonical recurring-obligation scheduler. New subscription writes use this. */
 export async function scheduleRecurringObligationRenewalSoon(args: {
   userId: string;

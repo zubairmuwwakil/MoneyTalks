@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { findLegacySubscriptionWrites } from "./check-no-legacy-subscription-writes.mjs";
+import {
+  findLegacySubscriptionReads,
+  findLegacySubscriptionWrites,
+  findLossyProjectionConsumers,
+} from "./check-no-legacy-subscription-writes.mjs";
 
 const roots: string[] = [];
 afterEach(() => roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true })));
@@ -16,5 +20,14 @@ describe("legacy subscription write guard", () => {
     writeFileSync(join(root, "read.ts"), "await prisma.subscription.findMany();");
     writeFileSync(join(root, "write.test.ts"), "prisma.subscription.create({});");
     expect(findLegacySubscriptionWrites(root)).toEqual([join(root, "write.ts")]);
+  });
+
+  it("flags live legacy reads and internal use of the lossy projection", () => {
+    const root = mkdtempSync(join(tmpdir(), "subscription-read-guard-"));
+    roots.push(root);
+    writeFileSync(join(root, "read.ts"), "await prisma.subscription.findMany();");
+    writeFileSync(join(root, "lossy.ts"), "legacySubscriptionProjection(row);");
+    expect(findLegacySubscriptionReads(root)).toEqual([join(root, "read.ts")]);
+    expect(findLossyProjectionConsumers(root)).toEqual([join(root, "lossy.ts")]);
   });
 });

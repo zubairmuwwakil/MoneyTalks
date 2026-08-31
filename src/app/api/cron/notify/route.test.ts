@@ -16,7 +16,7 @@ vi.mock("@/lib/domain/shipping/tracking", () => ({
 }));
 
 vi.mock("@/lib/domain/notifications/eventNotificationScheduler", () => ({
-  scheduleSubscriptionRenewalSoon: vi.fn().mockResolvedValue(undefined),
+  scheduleRecurringObligationRenewalSoon: vi.fn().mockResolvedValue(undefined),
   scheduleReturnDeadlineSoon: vi.fn().mockResolvedValue(undefined),
   scheduleRefundChecks: vi.fn().mockResolvedValue(undefined),
   scheduleRefundOverdueOnce: vi.fn().mockResolvedValue(undefined),
@@ -32,7 +32,7 @@ vi.mock("@/lib/services/qstashContinuation", () => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     returnItem: { findMany: vi.fn() },
-    subscription: { findMany: vi.fn() },
+    recurringObligation: { findMany: vi.fn() },
     creditCard: { findMany: vi.fn() },
     notificationPreference: { findMany: vi.fn() },
     refundCase: { upsert: vi.fn() },
@@ -51,7 +51,7 @@ describe("notification cron pagination", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(prisma.returnItem.findMany).mockResolvedValue([] as never);
-    vi.mocked(prisma.subscription.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.recurringObligation.findMany).mockResolvedValue([] as never);
     vi.mocked(prisma.creditCard.findMany).mockResolvedValue([] as never);
     vi.mocked(prisma.notificationPreference.findMany).mockResolvedValue([] as never);
     vi.mocked(enqueueCronContinuation).mockResolvedValue({ queued: true, messageId: "msg-1" });
@@ -62,7 +62,7 @@ describe("notification cron pagination", () => {
 
     expect(response.status).toBe(200);
     expect(enqueueCronContinuation).not.toHaveBeenCalled();
-    expect(prisma.subscription.findMany).toHaveBeenCalledWith(expect.objectContaining({
+    expect(prisma.recurringObligation.findMany).toHaveBeenCalledWith(expect.objectContaining({
       orderBy: { id: "asc" },
       take: 50,
     }));

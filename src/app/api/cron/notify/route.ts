@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAuthorizedCronRequest } from "@/lib/security/cronAuth";
 import {
-  scheduleSubscriptionRenewalSoon,
+  scheduleRecurringObligationRenewalSoon,
   scheduleReturnDeadlineSoon,
   scheduleRefundChecks,
   scheduleRefundOverdueOnce,
   scheduleCardFeeDecisionSoon,
 } from "@/lib/domain/notifications/eventNotificationScheduler";
+import { currentAmountMinor, obligationName } from "@/lib/domain/recurring/readModel";
 import { startOfDayUTC, addDaysUTC } from "@/lib/utils/dates";
 import type { FeeScheduleCard } from "@/lib/cards/feeSchedule";
 import type { CardDef } from "@/lib/cards/types";
@@ -105,9 +106,16 @@ async function runNotifyCron(req: NextRequest) {
       () => Promise.all([
         payload.subscriptionCursor === null
           ? Promise.resolve([])
-          : prisma.subscription.findMany({
-              where: { status: "ACTIVE", renewalDate: { gte: today, lt: horizon } },
-              select: { id: true, userId: true, name: true, renewalDate: true, amountCents: true, currency: true },
+          : prisma.recurringObligation.findMany({
+              where: {
+                kind: "SUBSCRIPTION",
+                status: { in: ["ACTIVE", "TRIALING", "CANCELLING"] },
+                nextExpectedDate: { gte: today, lt: horizon },
+              },
+              select: {
+                id: true, userId: true, displayName: true, merchantCanonicalId: true,
+                nextExpectedDate: true, schedule: true, currency: true,
+              },
               orderBy: { id: "asc" },
               ...pageArgs(payload.subscriptionCursor),
               take: BATCH_SIZE,
@@ -174,13 +182,14 @@ async function runNotifyCron(req: NextRequest) {
     let overdueNotified = 0;
 
     for (const s of subs) {
+      if (!s.nextExpectedDate) continue;
       attempted++;
-      await scheduleSubscriptionRenewalSoon({
+      await scheduleRecurringObligationRenewalSoon({
         userId: s.userId,
-        subscriptionId: s.id,
-        name: s.name,
-        renewalDate: s.renewalDate,
-        amountCents: s.amountCents,
+        obligationId: s.id,
+        name: obligationName(s),
+        renewalDate: s.nextExpectedDate,
+        amountCents: currentAmountMinor(s.schedule),
         currency: s.currency,
       });
     }

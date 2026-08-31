@@ -109,7 +109,7 @@ export default function NotificationsClient() {
 
   function linkFor(n: Notification) {
     if (n.sourceKind === "bill") return "/bills/month";
-    if (n.sourceKind === "subscription") return "/subscriptions";
+    if (n.sourceKind === "subscription" || n.sourceKind === "recurring-obligation") return "/subscriptions";
     if (n.sourceKind === "return") return "/returns";
     return null;
   }

@@ -2,11 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PATCH } from "./route";
 import { sweepRecurringObligations } from "@/lib/domain/recurring/detectRecurring";
+import { rederiveOwnerProjectionInTransaction, updateOwnerObligation } from "@/lib/domain/recurring/ownerFacts";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
 
 vi.mock("@/lib/require-user", () => ({ getSessionUserId: vi.fn() }));
 vi.mock("@/lib/domain/recurring/detectRecurring", () => ({ sweepRecurringObligations: vi.fn() }));
+vi.mock("@/lib/domain/recurring/ownerFacts", () => ({
+  updateOwnerObligation: vi.fn(),
+  rederiveOwnerProjectionInTransaction: vi.fn(),
+}));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $queryRaw: vi.fn(),
@@ -41,6 +46,11 @@ describe("PATCH /api/recurring/[id]", () => {
     vi.mocked(prisma.recurringObligation.deleteMany).mockResolvedValue({ count: 0 });
     vi.mocked(prisma.notificationPreference.findUnique).mockResolvedValue({ timezone: "America/Toronto" } as never);
     vi.mocked(sweepRecurringObligations).mockResolvedValue({ created: 0, updated: 0, unchanged: 0, skipped: 0 });
+    vi.mocked(rederiveOwnerProjectionInTransaction).mockResolvedValue({ status: "ACTIVE" } as never);
+    vi.mocked(updateOwnerObligation).mockResolvedValue({
+      obligation: { id: "obligation-1", status: "CANCELLING" },
+      facts: [{ id: "fact-1", type: "CANCELLATION" }],
+    } as never);
   });
 
   it("rejects dismissal without a reason instead of storing a null label", async () => {
@@ -85,6 +95,37 @@ describe("PATCH /api/recurring/[id]", () => {
       },
       data: { excludedByUser: true },
     });
+    expect(rederiveOwnerProjectionInTransaction).toHaveBeenCalledWith(prisma, "user-1", "obligation-1");
+  });
+
+  it("appends a typed cancellation fact through the canonical writer", async () => {
+    const response = await PATCH(request({
+      action: "append-fact",
+      fact: { type: "CANCELLATION", occurredAt: "2026-08-30T12:00:00.000Z", sourceKey: "request-1" },
+    }) as never, context);
+
+    expect(response.status).toBe(200);
+    expect(updateOwnerObligation).toHaveBeenCalledWith(prisma, {
+      userId: "user-1",
+      obligationId: "obligation-1",
+      metadata: {},
+      facts: [expect.objectContaining({ type: "CANCELLATION", sourceKey: "request-1" })],
+    });
+  });
+
+  it("reassigns one evidence link and rederives both obligations atomically", async () => {
+    vi.mocked(prisma.recurringObligation.findFirst).mockResolvedValueOnce({ id: "obligation-2" } as never);
+    const response = await PATCH(request({
+      action: "reassign-evidence", evidenceId: "evidence-1", targetObligationId: "obligation-2",
+    }) as never, context);
+
+    expect(response.status).toBe(200);
+    expect(prisma.recurringObligationEvidence.updateMany).toHaveBeenCalledWith({
+      where: { id: "evidence-1", obligationId: "obligation-1", obligation: { userId: "user-1" } },
+      data: { obligationId: "obligation-2" },
+    });
+    expect(rederiveOwnerProjectionInTransaction).toHaveBeenNthCalledWith(1, prisma, "user-1", "obligation-1");
+    expect(rederiveOwnerProjectionInTransaction).toHaveBeenNthCalledWith(2, prisma, "user-1", "obligation-2");
   });
 
   it("returns not found when the owner-scoped lookup cannot see the obligation", async () => {

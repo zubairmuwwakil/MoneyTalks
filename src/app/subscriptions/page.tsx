@@ -1,17 +1,19 @@
 import Link from "next/link";
+import type { ObligationLifecycleStatus } from "@prisma/client";
 import { requireUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
+import { cadenceType, currentAmountMinor, isRenewalRelevant, obligationName, type CanonicalCadenceType } from "@/lib/domain/recurring/readModel";
 import { formatMoney } from "@/lib/utils/calendarEvents";
 import SubscriptionsBoard from "./ui/SubscriptionsBoard";
 
 type SubscriptionRow = {
   id: string;
   name: string;
-  amountCents: number;
-  currency: string;
-  renewalDate: Date;
-  cadence: "MONTHLY" | "YEARLY" | "CUSTOM";
-  status: "ACTIVE" | "CANCELLED";
+  amountCents: number | null;
+  currency: string | null;
+  renewalDate: Date | null;
+  cadence: CanonicalCadenceType | null;
+  lifecycleStatus: ObligationLifecycleStatus | null;
   notes: string | null;
 };
 
@@ -20,49 +22,41 @@ export default async function SubscriptionsPage() {
 
   const rows = await prisma.recurringObligation.findMany({
     where: { userId, kind: "SUBSCRIPTION" },
-    include: { legacySubscription: { select: { legacySubscriptionId: true } } },
     orderBy: { nextExpectedDate: "asc" },
   });
-  const subscriptions: SubscriptionRow[] = rows.map((row) => {
-    const cadenceType = typeof row.cadence === "object" && row.cadence !== null && "type" in row.cadence
-      ? (row.cadence as { type?: unknown }).type
-      : null;
-    const lastSchedule = Array.isArray(row.schedule) ? row.schedule.at(-1) : null;
-    const amountCents = typeof lastSchedule === "object" && lastSchedule !== null && typeof (lastSchedule as { amountMinor?: unknown }).amountMinor === "number"
-      ? (lastSchedule as { amountMinor: number }).amountMinor
-      : 0;
-    return {
-      id: row.legacySubscription?.legacySubscriptionId ?? row.id,
-      name: row.displayName ?? row.merchantCanonicalId ?? "Subscription",
-      amountCents,
-      currency: row.currency ?? "",
-      renewalDate: row.nextExpectedDate ?? row.lastObservedAt,
-      cadence: cadenceType === "MONTHLY" ? "MONTHLY" : cadenceType === "ANNUAL" ? "YEARLY" : "CUSTOM",
-      status: row.status === "CANCELLED" ? "CANCELLED" : "ACTIVE",
-      notes: row.notes,
-    };
-  });
+  const subscriptions: SubscriptionRow[] = rows.map((row) => ({
+    id: row.id,
+    name: obligationName(row),
+    amountCents: currentAmountMinor(row.schedule),
+    currency: row.currency,
+    renewalDate: row.nextExpectedDate,
+    cadence: cadenceType(row.cadence),
+    lifecycleStatus: row.status,
+    notes: row.notes,
+  }));
 
-  const active = subscriptions.filter(s => s.status === "ACTIVE");
-  const monthly = active.filter(s => s.cadence === "MONTHLY");
-  const annual = active.filter(s => s.cadence === "YEARLY");
+  const renewalRelevant = subscriptions.filter(s => isRenewalRelevant(s.lifecycleStatus));
+  const monthly = renewalRelevant.filter(s => s.cadence === "MONTHLY");
+  const annual = renewalRelevant.filter(s => s.cadence === "ANNUAL");
 
   const monthlySpend = monthly.reduce((sum, s) => sum + (s.amountCents || 0), 0);
   const annualSpend = annual.reduce((sum, s) => sum + (s.amountCents || 0), 0);
-  const nextRenewal = active[0];
+  const nextRenewal = renewalRelevant.find((subscription) => subscription.renewalDate !== null);
 
   const stats = {
-    activeCount: active.length,
-    cancelledCount: subscriptions.filter(s => s.status === "CANCELLED").length,
+    activeCount: subscriptions.filter(s => s.lifecycleStatus === "ACTIVE").length,
+    lapsedCount: subscriptions.filter(s => s.lifecycleStatus === "LAPSED").length,
+    cancellingCount: subscriptions.filter(s => s.lifecycleStatus === "CANCELLING").length,
+    cancelledCount: subscriptions.filter(s => s.lifecycleStatus === "CANCELLED").length,
     monthlySpend,
     annualSpend,
-    nextRenewal: nextRenewal ? nextRenewal.renewalDate.toISOString() : null,
+    nextRenewal: nextRenewal?.renewalDate?.toISOString() ?? null,
     nextName: nextRenewal?.name ?? null,
   };
 
   const serialized = subscriptions.map(sub => ({
     ...sub,
-    renewalDate: sub.renewalDate.toISOString(),
+    renewalDate: sub.renewalDate?.toISOString() ?? null,
   }));
 
   return (
@@ -90,7 +84,7 @@ export default async function SubscriptionsPage() {
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">Active</p>
             <p className="font-display text-2xl text-white">{stats.activeCount}</p>
-            <p className="text-xs text-slate-400">{stats.cancelledCount} cancelled</p>
+            <p className="text-xs text-slate-400">{stats.cancellingCount} cancelling · {stats.lapsedCount} lapsed · {stats.cancelledCount} cancelled</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-400/15 to-emerald-500/10 p-4">
             <p className="text-[11px] uppercase tracking-[0.24em] text-emerald-100">Monthly</p>

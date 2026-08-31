@@ -49,6 +49,7 @@ type OwnerFactRow = {
   effectiveAt: Date | null;
   billingAt: Date | null;
   amountMinor: number | null;
+  currency: string | null;
   cadence: string | null;
 };
 
@@ -98,23 +99,30 @@ function toObligationFact(row: SweepEmailFact): ObligationFact | null {
         type: row.type,
         occurredAt: row.occurredAt,
         cadence: row.cadence as Extract<ObligationFact, { type: "EXPLICIT_CADENCE" }>["cadence"],
+        source: "EMAIL",
       };
     case "EXPLICIT_RECURRING":
-      return { type: row.type, occurredAt: row.occurredAt };
+      return { type: row.type, occurredAt: row.occurredAt, source: "EMAIL" };
     case "CANCELLATION":
     case "TRIAL_STARTED":
     case "TRIAL_ENDED":
-      return { type: row.type, occurredAt: row.occurredAt, effectiveAt: row.effectiveAt ?? undefined };
+      return { type: row.type, occurredAt: row.occurredAt, effectiveAt: row.effectiveAt ?? undefined, source: "EMAIL" };
     case "PRICE_CHANGE":
       return {
         type: row.type,
         occurredAt: row.occurredAt,
         effectiveAt: row.effectiveAt ?? undefined,
-        amountMinor: row.amountMinor ?? undefined,
+        // An amount with no unit is not a price. clusterRecurringPurchases
+        // skips a priced observation whose currency is unknown for exactly
+        // this reason — guessing the unit would merge obligations billed in
+        // different currencies — and the email lane must not be laxer, since
+        // currency is part of a series' persisted identity.
+        amountMinor: row.currency?.trim() ? row.amountMinor ?? undefined : undefined,
+        source: "EMAIL",
       };
     case "NEXT_BILLING_DATE":
       return row.billingAt
-        ? { type: row.type, occurredAt: row.occurredAt, billingAt: row.billingAt }
+        ? { type: row.type, occurredAt: row.occurredAt, billingAt: row.billingAt, source: "EMAIL" }
         : null;
     default: {
       const exhaustive: never = row.type;
@@ -181,9 +189,7 @@ function resolveSeries(
     ownerByBucket.set(bucket, [...(ownerByBucket.get(bucket) ?? []), row]);
   }
   const clusterPurchaseIds = clusters.map((cluster) => new Set(cluster.purchases.map(({ id }) => id)));
-  const edges = persisted
-    .filter(({ origin }) => origin !== "USER")
-    .flatMap((row) => clusters.flatMap((cluster, clusterIndex) => {
+  const edges = persisted.flatMap((row) => clusters.flatMap((cluster, clusterIndex) => {
       if (bucketKey(row) !== clusterBuckets[clusterIndex]) return [];
       const overlap = row.evidence.reduce((count, evidence) => {
         if (evidence.purchaseId && clusterPurchaseIds[clusterIndex].has(evidence.purchaseId)) return count + 1;
@@ -208,9 +214,11 @@ function resolveSeries(
   // A single owner-authored row in a bucket is an exact identity match. Two
   // plans in the same bucket remain deliberately unresolved rather than being
   // merged by a display name or amount guess.
+  const clusterCounts = new Map<string, number>();
+  for (const bucket of clusterBuckets) clusterCounts.set(bucket, (clusterCounts.get(bucket) ?? 0) + 1);
   for (const [clusterIndex, bucket] of clusterBuckets.entries()) {
     const owners = ownerByBucket.get(bucket) ?? [];
-    if (!matchedByCluster.has(clusterIndex) && owners.length === 1 && !matchedRowIds.has(owners[0].id)) {
+    if (clusterCounts.get(bucket) === 1 && !matchedByCluster.has(clusterIndex) && owners.length === 1 && !matchedRowIds.has(owners[0].id)) {
       matchedByCluster.set(clusterIndex, owners[0]);
       matchedRowIds.add(owners[0].id);
     }
@@ -433,7 +441,7 @@ export async function sweepRecurringObligations(
         origin: true,
         ownerFacts: {
           where: { supersededBy: null },
-          select: { type: true, occurredAt: true, effectiveAt: true, billingAt: true, amountMinor: true, cadence: true },
+          select: { type: true, occurredAt: true, effectiveAt: true, billingAt: true, amountMinor: true, currency: true, cadence: true },
         },
         evidence: {
           select: { purchaseId: true, emailTransactionId: true, emailFactId: true, excludedByUser: true },
@@ -520,7 +528,7 @@ export async function sweepRecurringObligations(
         return fact ? [{ source, fact }] : [];
       });
     const facts: ObligationFact[] = [
-      ...cluster.purchases.map((purchase) => ({ type: "CHARGE" as const, occurredAt: purchase.date })),
+      ...cluster.purchases.map((purchase) => ({ type: "CHARGE" as const, occurredAt: purchase.date, source: "PURCHASE" as const })),
       ...emailFacts.map(({ fact }) => fact),
       ...((resolution.persisted?.ownerFacts ?? []).flatMap((fact) => {
         const converted = ownerFactToObligationFact(fact);
@@ -531,18 +539,39 @@ export async function sweepRecurringObligations(
       result.skipped += 1;
       continue;
     }
-    const confidence = scoreRecurringConfidence(cluster, facts);
-    const status = deriveObligationStatus(facts, cluster.cadence.cadence, asOf);
     const projectedDate = nextExpectedDate(cluster, asOf, args.timeZone);
+    const ownerFacts = resolution.persisted?.ownerFacts ?? [];
+    const ownerBilling = ownerFacts
+      .filter((fact) => fact.type === "NEXT_BILLING_DATE" && fact.billingAt)
+      .sort((left, right) => left.occurredAt.getTime() - right.occurredAt.getTime())
+      .at(-1);
+    const ownerCadence = ownerFacts
+      .filter((fact) => fact.type === "EXPLICIT_CADENCE" && fact.cadence && CADENCE_TYPES.has(fact.cadence))
+      .sort((left, right) => left.occurredAt.getTime() - right.occurredAt.getTime())
+      .at(-1);
+    const cadence = ownerCadence?.cadence
+      ? emailStatedCadence(ownerCadence.cadence as Cadence["type"], ownerBilling?.billingAt ?? projectedDate ?? ownerCadence.occurredAt)
+      : cluster.cadence.cadence;
+    const ownerPrice = ownerFacts
+      .filter((fact) => fact.type === "PRICE_CHANGE" && fact.amountMinor !== null)
+      .sort((left, right) => left.occurredAt.getTime() - right.occurredAt.getTime())
+      .at(-1);
+    let schedule = cluster.amountPattern.schedule;
+    if (ownerPrice?.amountMinor != null) {
+      const from = (ownerPrice.effectiveAt ?? ownerPrice.occurredAt).toISOString().slice(0, 10);
+      schedule = [...schedule.filter((entry) => entry.from < from), { from, amountMinor: ownerPrice.amountMinor }];
+    }
+    const confidence = scoreRecurringConfidence(cluster, facts);
+    const status = deriveObligationStatus(facts, cadence, asOf);
     const lastObservedAt = cluster.purchases.at(-1)?.date
       ?? emailFacts.at(-1)?.fact.occurredAt
       ?? asOf;
     const derived = {
-      cadence: cluster.cadence.cadence as Prisma.InputJsonValue,
-      schedule: cluster.amountPattern.schedule as unknown as Prisma.InputJsonValue,
+      cadence: cadence as Prisma.InputJsonValue,
+      schedule: schedule as unknown as Prisma.InputJsonValue,
       amountPattern: cluster.amountPattern.pattern,
       status,
-      nextExpectedDate: projectedDate,
+      nextExpectedDate: ownerBilling?.billingAt ?? projectedDate,
       confidence: confidence.score,
       confidenceReasons: confidence.reasons as unknown as Prisma.InputJsonValue,
       lastObservedAt,
@@ -590,18 +619,6 @@ export async function sweepRecurringObligations(
         outcome = "created";
       } else {
         obligationId = existing.id;
-        if (existing.origin === "USER") {
-          // Owner facts retain cadence, price, and next billing authority.
-          // The detector may only refresh the derived lifecycle cache and
-          // attach fresh evidence; a later charge can therefore supersede an
-          // earlier owner cancellation without mutating owner configuration.
-          const updated = await tx.recurringObligation.updateMany({
-            where: { id: existing.id },
-            data: { status, lastObservedAt, algorithmVersion: args.algorithmVersion },
-          });
-          if (updated.count === 0) return "skipped";
-          outcome = "updated";
-        } else {
         const unchanged = (
           jsonEqual(existing.cadence, derived.cadence)
           && jsonEqual(existing.schedule, derived.schedule)
@@ -617,12 +634,11 @@ export async function sweepRecurringObligations(
           outcome = "unchanged";
         } else {
           const updated = await tx.recurringObligation.updateMany({
-            where: { id: existing.id, origin: { not: "USER" } },
+            where: { id: existing.id },
             data: derived,
           });
           if (updated.count === 0) return "skipped";
           outcome = "updated";
-        }
         }
       }
 

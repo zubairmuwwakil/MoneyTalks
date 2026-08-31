@@ -59,6 +59,7 @@ const HREF_BY_KIND: Record<EventSourceKind, (sourceId: string) => string> = {
   return: (id) => `/returns/${id}`,
   // Subscriptions have no per-item detail page — the board itself is it.
   subscription: () => "/subscriptions",
+  "recurring-obligation": () => "/subscriptions",
 };
 
 export function eventHref(ev: CalendarEvent): string {

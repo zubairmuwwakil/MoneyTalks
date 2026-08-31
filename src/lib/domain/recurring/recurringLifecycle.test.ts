@@ -51,10 +51,20 @@ describe("P4c recurring lifecycle", () => {
   it("cancel-then-resubscribe: a later charge naturally wins and becomes ACTIVE", () => {
     const facts: ObligationFact[] = [
       { type: "CHARGE", occurredAt: date("2026-01-15") },
-      { type: "CANCELLATION", occurredAt: date("2026-01-20"), effectiveAt: date("2026-01-31") },
-      { type: "CHARGE", occurredAt: date("2026-02-15") },
+      { type: "CANCELLATION", occurredAt: date("2026-01-20"), effectiveAt: date("2026-01-31"), source: "OWNER" },
+      { type: "CHARGE", occurredAt: date("2026-02-15"), source: "PURCHASE" },
     ];
     expect(deriveObligationStatus(facts, monthlyCadence, date("2026-02-20"))).toBe("ACTIVE");
+  });
+
+  it("an owner resumption ages as evidence rather than overriding lifecycle forever", () => {
+    const facts: ObligationFact[] = [
+      { type: "CANCELLATION", occurredAt: date("2026-01-01"), source: "OWNER" },
+      { type: "RESUMPTION", occurredAt: date("2026-01-02"), source: "OWNER" },
+    ];
+
+    expect(deriveObligationStatus(facts, monthlyCadence, date("2026-01-10"))).toBe("ACTIVE");
+    expect(deriveObligationStatus(facts, monthlyCadence, date("2026-04-10"))).toBe("LAPSED");
   });
 
   it("uses owner, then email, then purchase precedence for equal-time facts", () => {

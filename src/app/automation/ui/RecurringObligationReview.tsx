@@ -87,7 +87,7 @@ export default function RecurringObligationReview() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/recurring", { cache: "no-store" });
+      const response = await fetch("/api/recurring?view=review", { cache: "no-store" });
       if (!response.ok) throw new Error("Could not load recurring obligations");
       const data = await response.json();
       setObligations(data.obligations ?? []);
@@ -154,7 +154,7 @@ export default function RecurringObligationReview() {
     <section className="space-y-4" aria-labelledby="recurring-review-heading">
       <div className="rounded-2xl border bg-white/80 p-6 shadow-sm">
         <h2 id="recurring-review-heading" className="text-xl font-semibold text-slate-900">Recurring obligations to review</h2>
-        <p className="mt-1 text-sm text-slate-600">Confirm or dismiss each detection. Existing bills and subscriptions stay unchanged.</p>
+        <p className="mt-1 text-sm text-slate-600">Confirm or dismiss each detection. Owner-created obligations remain canonical and unchanged.</p>
       </div>
 
       {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div> : null}

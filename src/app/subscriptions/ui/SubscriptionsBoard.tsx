@@ -2,32 +2,41 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import type { ObligationLifecycleStatus } from "@prisma/client";
+import type { CanonicalCadenceType } from "@/lib/domain/recurring/readModel";
 import { formatMoney } from "@/lib/utils/calendarEvents";
 
 type SubscriptionItem = {
   id: string;
   name: string;
-  amountCents: number;
-  currency: string;
-  renewalDate: string;
-  cadence: "MONTHLY" | "YEARLY" | "CUSTOM";
-  status: "ACTIVE" | "CANCELLED";
+  amountCents: number | null;
+  currency: string | null;
+  renewalDate: string | null;
+  cadence: CanonicalCadenceType | null;
+  lifecycleStatus: ObligationLifecycleStatus | null;
   notes: string | null;
 };
 
-const cadenceCopy: Record<SubscriptionItem["cadence"], string> = {
+const CADENCES: CanonicalCadenceType[] = ["WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY", "SEMIANNUAL", "ANNUAL"];
+const cadenceCopy: Record<CanonicalCadenceType | "UNKNOWN", string> = {
+  WEEKLY: "Weekly",
+  BIWEEKLY: "Every two weeks",
   MONTHLY: "Monthly",
-  YEARLY: "Annual",
-  CUSTOM: "Custom",
+  QUARTERLY: "Quarterly",
+  SEMIANNUAL: "Every six months",
+  ANNUAL: "Annual",
+  UNKNOWN: "Cadence unknown",
 };
 
+const STATUSES: ObligationLifecycleStatus[] = ["TRIALING", "ACTIVE", "CANCELLING", "CANCELLED", "LAPSED"];
+
 export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[] }) {
-  const [cadenceFilter, setCadenceFilter] = useState<SubscriptionItem["cadence"] | "ALL">("ALL");
-  const [statusFilter, setStatusFilter] = useState<SubscriptionItem["status"] | "ALL">("ALL");
+  const [cadenceFilter, setCadenceFilter] = useState<CanonicalCadenceType | "UNKNOWN" | "ALL">("ALL");
+  const [statusFilter, setStatusFilter] = useState<ObligationLifecycleStatus | "UNKNOWN" | "ALL">("ALL");
   const [query, setQuery] = useState("");
   const [data, setData] = useState(items);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<{ name: string; amount: string; renewalDate: string; cadence: SubscriptionItem["cadence"] }>({
+  const [draft, setDraft] = useState<{ name: string; amount: string; renewalDate: string; cadence: CanonicalCadenceType }>({
     name: "",
     amount: "",
     renewalDate: "",
@@ -38,8 +47,8 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
 
   const filtered = useMemo(() => {
     return data.filter(item => {
-      if (cadenceFilter !== "ALL" && item.cadence !== cadenceFilter) return false;
-      if (statusFilter !== "ALL" && item.status !== statusFilter) return false;
+      if (cadenceFilter !== "ALL" && (item.cadence ?? "UNKNOWN") !== cadenceFilter) return false;
+      if (statusFilter !== "ALL" && (item.lifecycleStatus ?? "UNKNOWN") !== statusFilter) return false;
       if (query.trim()) {
         const q = query.toLowerCase();
         if (!item.name.toLowerCase().includes(q)) return false;
@@ -49,9 +58,11 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
   }, [cadenceFilter, data, query, statusFilter]);
 
   const grouped = useMemo(() => {
-    const groups: Record<SubscriptionItem["cadence"], SubscriptionItem[]> = { MONTHLY: [], YEARLY: [], CUSTOM: [] };
+    const groups: Record<CanonicalCadenceType | "UNKNOWN", SubscriptionItem[]> = {
+      WEEKLY: [], BIWEEKLY: [], MONTHLY: [], QUARTERLY: [], SEMIANNUAL: [], ANNUAL: [], UNKNOWN: [],
+    };
     for (const item of filtered) {
-      groups[item.cadence].push(item);
+      groups[item.cadence ?? "UNKNOWN"].push(item);
     }
     return groups;
   }, [filtered]);
@@ -61,9 +72,9 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
     setEditError(null);
     setDraft({
       name: item.name,
-      amount: (item.amountCents / 100).toFixed(2),
-      renewalDate: item.renewalDate.slice(0, 10),
-      cadence: item.cadence,
+      amount: item.amountCents == null ? "" : (item.amountCents / 100).toFixed(2),
+      renewalDate: item.renewalDate?.slice(0, 10) ?? "",
+      cadence: item.cadence ?? "MONTHLY",
     });
   }
 
@@ -72,15 +83,20 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
     setSaving(true);
     setEditError(null);
     try {
-      const amountCents = Math.round(Number(draft.amount) * 100);
-      const res = await fetch(`/api/subscriptions/${editingId}`, {
+      const amountCents = draft.amount.trim() ? Math.round(Number(draft.amount) * 100) : Number.NaN;
+      const occurredAt = new Date().toISOString();
+      const facts = [
+        ...(Number.isFinite(amountCents) ? [{ type: "PRICE_CHANGE", occurredAt, amountMinor: amountCents, currency: data.find((item) => item.id === editingId)?.currency ?? "CAD" }] : []),
+        ...(draft.renewalDate ? [{ type: "NEXT_BILLING_DATE", occurredAt, billingAt: `${draft.renewalDate}T00:00:00.000Z` }] : []),
+        { type: "EXPLICIT_CADENCE", occurredAt, cadence: draft.cadence },
+      ];
+      const res = await fetch(`/api/recurring/${editingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: draft.name,
-          amountCents: Number.isFinite(amountCents) ? amountCents : undefined,
-          renewalDate: draft.renewalDate ? `${draft.renewalDate}T00:00:00.000Z` : undefined,
-          cadence: draft.cadence,
+          action: "update",
+          metadata: { displayName: draft.name },
+          facts,
         }),
       });
       if (!res.ok) {
@@ -91,7 +107,7 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
       setData(prev =>
         prev.map(item =>
           item.id === editingId
-            ? { ...item, name: draft.name, amountCents, renewalDate: `${draft.renewalDate}T00:00:00.000Z`, cadence: draft.cadence }
+            ? { ...item, name: draft.name, amountCents: Number.isFinite(amountCents) ? amountCents : item.amountCents, renewalDate: draft.renewalDate ? `${draft.renewalDate}T00:00:00.000Z` : item.renewalDate, cadence: draft.cadence }
             : item
         )
       );
@@ -112,7 +128,7 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
             <p className="text-sm text-slate-200">Group by cadence, inline edits, cancel view.</p>
           </div>
           <div className="flex items-center gap-2">
-            {(["ALL", "MONTHLY", "YEARLY", "CUSTOM"] as const).map(option => (
+            {(["ALL", ...CADENCES, "UNKNOWN"] as const).map(option => (
               <button
                 key={option}
                 onClick={() => setCadenceFilter(option === "ALL" ? "ALL" : option)}
@@ -122,16 +138,16 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
                     : "border-white/10 bg-white/5 text-slate-300 hover:border-white/20 hover:bg-white/10"
                 }`}
               >
-                {option === "ALL" ? "All" : cadenceCopy[option as SubscriptionItem["cadence"]]}
+                {option === "ALL" ? "All" : cadenceCopy[option]}
               </button>
             ))}
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          {(["ALL", "ACTIVE", "CANCELLED"] as const).map(option => (
+          {(["ALL", ...STATUSES, "UNKNOWN"] as const).map(option => (
             <button
               key={option}
-              onClick={() => setStatusFilter(option === "ALL" ? "ALL" : (option as SubscriptionItem["status"]))}
+              onClick={() => setStatusFilter(option)}
               className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                 statusFilter === option
                   ? "border-cyan-200/60 bg-cyan-500/20 text-cyan-50"
@@ -153,7 +169,7 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {(["MONTHLY", "YEARLY", "CUSTOM"] as SubscriptionItem["cadence"][]).map(cadence => {
+        {([...CADENCES, "UNKNOWN"] as const).map(cadence => {
           const list = grouped[cadence];
           return (
             <div key={cadence} className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-xl shadow-black/30">
@@ -186,10 +202,10 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
                             ) : (
                               <p className="text-sm font-semibold text-white">{item.name}</p>
                             )}
-                            <p className="text-xs text-slate-400">{cadenceCopy[item.cadence]}</p>
+                            <p className="text-xs text-slate-400">{cadenceCopy[item.cadence ?? "UNKNOWN"]}</p>
                           </div>
-                          <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${item.status === "ACTIVE" ? "bg-emerald-500/20 text-emerald-50" : "bg-slate-500/25 text-slate-100"}`}>
-                            {item.status.toLowerCase()}
+                          <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${item.lifecycleStatus === "ACTIVE" ? "bg-emerald-500/20 text-emerald-50" : item.lifecycleStatus === "CANCELLING" || item.lifecycleStatus === "TRIALING" ? "bg-amber-500/20 text-amber-50" : "bg-slate-500/25 text-slate-100"}`}>
+                            {(item.lifecycleStatus ?? "UNKNOWN").toLowerCase()}
                           </span>
                         </div>
 
@@ -201,7 +217,7 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
                               className="w-32 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm text-slate-100"
                             />
                           ) : (
-                            <span>{formatMoney(item.amountCents, item.currency)}</span>
+                            <span>{item.amountCents == null ? "Amount unknown" : formatMoney(item.amountCents, item.currency)}</span>
                           )}
                           {isEditing ? (
                             <input
@@ -212,7 +228,7 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
                             />
                           ) : (
                             <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-emerald-100">
-                              {new Date(item.renewalDate).toLocaleDateString("en-CA", { month: "short", day: "numeric" })}
+                              {item.renewalDate ? new Date(item.renewalDate).toLocaleDateString("en-CA", { month: "short", day: "numeric" }) : "Date unknown"}
                             </span>
                           )}
                         </div>
@@ -222,12 +238,10 @@ export default function SubscriptionsBoard({ items }: { items: SubscriptionItem[
                             <div className="mt-2 flex flex-wrap items-center gap-2">
                               <select
                                 value={draft.cadence}
-                                onChange={e => setDraft(d => ({ ...d, cadence: e.target.value as SubscriptionItem["cadence"] }))}
+                                onChange={e => setDraft(d => ({ ...d, cadence: e.target.value as CanonicalCadenceType }))}
                                 className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm text-slate-100"
                               >
-                                <option value="MONTHLY">Monthly</option>
-                                <option value="YEARLY">Annual</option>
-                                <option value="CUSTOM">Custom</option>
+                                {CADENCES.map((option) => <option key={option} value={option}>{cadenceCopy[option]}</option>)}
                               </select>
                               <button
                                 onClick={save}

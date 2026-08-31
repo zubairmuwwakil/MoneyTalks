@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { GET } from "./route";
+import { GET, POST } from "./route";
+import { scheduleRecurringObligationRenewalSoon } from "@/lib/domain/notifications/eventNotificationScheduler";
+import { createOwnerSubscription } from "@/lib/domain/recurring/ownerFacts";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
 
 vi.mock("@/lib/require-user", () => ({ getSessionUserId: vi.fn() }));
+vi.mock("@/lib/domain/recurring/ownerFacts", () => ({ createOwnerSubscription: vi.fn() }));
+vi.mock("@/lib/domain/notifications/eventNotificationScheduler", () => ({ scheduleRecurringObligationRenewalSoon: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     recurringObligation: { findMany: vi.fn() },
@@ -54,7 +58,7 @@ describe("GET /api/recurring", () => {
   });
 
   it("scopes the review query to the requesting owner", async () => {
-    await GET();
+    await GET(new Request("http://localhost/api/recurring?view=review") as never);
 
     expect(prisma.recurringObligation.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {
@@ -62,6 +66,14 @@ describe("GET /api/recurring", () => {
         origin: { in: ["DETECTED", "EMAIL_STATED"] },
         needsReview: true,
       },
+    }));
+  });
+
+  it("lists every canonical obligation by default instead of hiding owner-created rows", async () => {
+    await GET();
+
+    expect(prisma.recurringObligation.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: "user-1" },
     }));
   });
 
@@ -92,5 +104,34 @@ describe("GET /api/recurring", () => {
         expect.objectContaining({ id: "heroku-3" }),
       ]),
     })]);
+  });
+
+  it("creates an owner obligation through the canonical writer", async () => {
+    vi.mocked(createOwnerSubscription).mockResolvedValue({
+      id: "owner-obligation-1",
+      displayName: "Owner plan",
+      merchantCanonicalId: null,
+      currency: "CAD",
+      cadence: { type: "MONTHLY", dayOfMonth: 1 },
+      schedule: [{ from: "2026-09-01", amountMinor: 1_500 }],
+      status: "ACTIVE",
+      nextExpectedDate: new Date("2026-09-01T00:00:00.000Z"),
+      lastObservedAt: new Date("2026-08-30T00:00:00.000Z"),
+      notes: null,
+      cancellationUrl: null,
+      cancelInstructions: null,
+    } as never);
+    const response = await POST(new Request("http://localhost/api/recurring", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        displayName: "Owner plan", amountMinor: 1_500, currency: "CAD",
+        cadence: "MONTHLY", nextBillingAt: "2026-09-01T00:00:00.000Z",
+      }),
+    }) as never);
+
+    expect(response.status).toBe(201);
+    expect(createOwnerSubscription).toHaveBeenCalledWith(prisma, expect.objectContaining({ userId: "user-1" }));
+    expect(scheduleRecurringObligationRenewalSoon).toHaveBeenCalledWith(expect.objectContaining({ obligationId: "owner-obligation-1" }));
   });
 });

@@ -81,12 +81,16 @@ export function deriveObligationStatus(
     }
     return "CANCELLED";
   }
-  if (!state.lastCharge) {
-    if (state.hasTrial) return "TRIALING";
-    return state.activeAssertion ? "ACTIVE" : null;
-  }
+  if (!state.lastCharge && state.hasTrial) return "TRIALING";
 
-  const ageDays = (asOf.getTime() - state.lastCharge.getTime()) / DAY_MS;
+  const lastActivity = state.lastCharge && state.activeAssertion
+    ? (state.lastCharge > state.activeAssertion ? state.lastCharge : state.activeAssertion)
+    : state.lastCharge ?? state.activeAssertion;
+  if (!lastActivity) return null;
+
+  // Activation and resumption are timeline evidence, not immortal overrides.
+  // They clear an older cancellation, then age just like any other evidence.
+  const ageDays = (asOf.getTime() - lastActivity.getTime()) / DAY_MS;
   const periodDays = PERIOD_DAYS[cadence.type];
   if (ageDays <= periodDays * 1.5) return "ACTIVE";
   if (ageDays > periodDays * 2) return "LAPSED";

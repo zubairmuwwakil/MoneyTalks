@@ -26,10 +26,9 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
 
-  const { id, action, subscriptionId } = body as {
+  const { id, action } = body as {
     id?: string;
     action?: "KEEP" | "CANCEL" | "SNOOZE" | "DOWNGRADE" | "SWITCH_ANNUAL";
-    subscriptionId?: string;
   };
 
   if (!id || !action) return NextResponse.json({ error: "Missing id/action" }, { status: 400 });
@@ -43,7 +42,6 @@ export async function POST(req: NextRequest) {
     where: { id },
     data: {
       status,
-      subscriptionId: subscriptionId ?? null,
     },
   });
 

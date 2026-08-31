@@ -21,7 +21,7 @@ export type EventType =
   | "CARD_FEE_POSTS"
   | "CARD_FEE_CANCEL_BY";
 
-export type EventSourceKind = "subscription" | "return" | "bill" | "card";
+export type EventSourceKind = "subscription" | "recurring-obligation" | "return" | "bill" | "card";
 
 export type CalendarEvent = {
   id: string;
