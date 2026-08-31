@@ -24,6 +24,9 @@ export async function GET() {
     valueEvents,
     bills,
     emailObligationFacts,
+    recurringObligations,
+    recurringObligationOwnerFacts,
+    legacySubscriptionMappings,
   ] = await Promise.all([
     prisma.emailConnection.findMany({
       where: { userId },
@@ -73,6 +76,9 @@ export async function GET() {
     // text is their own message, and an export that withheld the reasoning
     // would hand back conclusions with no way to check them.
     prisma.emailObligationFact.findMany({ where: { userId }, orderBy: { occurredAt: "desc" } }),
+    prisma.recurringObligation.findMany({ where: { userId }, include: { evidence: true }, orderBy: { updatedAt: "desc" } }),
+    prisma.recurringObligationOwnerFact.findMany({ where: { userId }, orderBy: { occurredAt: "desc" } }),
+    prisma.legacySubscriptionMapping.findMany({ where: { userId }, orderBy: { migratedAt: "desc" } }),
   ]);
 
   const payload = {
@@ -92,6 +98,9 @@ export async function GET() {
     valueEvents,
     bills,
     emailObligationFacts,
+    recurringObligations,
+    recurringObligationOwnerFacts,
+    legacySubscriptionMappings,
   };
 
   const json = JSON.stringify(payload, null, 2);

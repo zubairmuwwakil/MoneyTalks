@@ -18,10 +18,29 @@ type SubscriptionRow = {
 export default async function SubscriptionsPage() {
   const userId = await requireUserId();
 
-  const subscriptions: SubscriptionRow[] = await prisma.subscription.findMany({
-    where: { userId },
-    orderBy: { renewalDate: "asc" },
-    select: { id: true, name: true, amountCents: true, currency: true, renewalDate: true, cadence: true, status: true, notes: true },
+  const rows = await prisma.recurringObligation.findMany({
+    where: { userId, kind: "SUBSCRIPTION" },
+    include: { legacySubscription: { select: { legacySubscriptionId: true } } },
+    orderBy: { nextExpectedDate: "asc" },
+  });
+  const subscriptions: SubscriptionRow[] = rows.map((row) => {
+    const cadenceType = typeof row.cadence === "object" && row.cadence !== null && "type" in row.cadence
+      ? (row.cadence as { type?: unknown }).type
+      : null;
+    const lastSchedule = Array.isArray(row.schedule) ? row.schedule.at(-1) : null;
+    const amountCents = typeof lastSchedule === "object" && lastSchedule !== null && typeof (lastSchedule as { amountMinor?: unknown }).amountMinor === "number"
+      ? (lastSchedule as { amountMinor: number }).amountMinor
+      : 0;
+    return {
+      id: row.legacySubscription?.legacySubscriptionId ?? row.id,
+      name: row.displayName ?? row.merchantCanonicalId ?? "Subscription",
+      amountCents,
+      currency: row.currency ?? "",
+      renewalDate: row.nextExpectedDate ?? row.lastObservedAt,
+      cadence: cadenceType === "MONTHLY" ? "MONTHLY" : cadenceType === "ANNUAL" ? "YEARLY" : "CUSTOM",
+      status: row.status === "CANCELLED" ? "CANCELLED" : "ACTIVE",
+      notes: row.notes,
+    };
   });
 
   const active = subscriptions.filter(s => s.status === "ACTIVE");

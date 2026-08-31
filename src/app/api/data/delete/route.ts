@@ -38,6 +38,7 @@ async function wipeUserOwnedData(userId: string) {
     await tx.purchaseCorrection.deleteMany({ where: { userId } });
     await tx.subscriptionPayment.deleteMany({ where: { userId } });
     await tx.subscription.deleteMany({ where: { userId } });
+    await tx.recurringObligation.deleteMany({ where: { userId } });
     await tx.purchase.deleteMany({ where: { userId } });
     await tx.emailTransaction.deleteMany({ where: { userId } });
     await tx.receiptUpload.deleteMany({ where: { userId } });

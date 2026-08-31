@@ -22,6 +22,9 @@ vi.mock("@/lib/prisma", () => ({
     valueEvent: { findMany: vi.fn() },
     bill: { findMany: vi.fn() },
     emailObligationFact: { findMany: vi.fn() },
+    recurringObligation: { findMany: vi.fn() },
+    recurringObligationOwnerFact: { findMany: vi.fn() },
+    legacySubscriptionMapping: { findMany: vi.fn() },
   },
 }));
 
@@ -43,6 +46,9 @@ describe("GET /api/data/export", () => {
       prisma.valueEvent,
       prisma.bill,
       prisma.emailObligationFact,
+      prisma.recurringObligation,
+      prisma.recurringObligationOwnerFact,
+      prisma.legacySubscriptionMapping,
     ]) {
       vi.mocked(model.findMany).mockResolvedValue([] as never);
     }

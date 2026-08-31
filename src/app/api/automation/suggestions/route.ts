@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
-import { scheduleBillDueSoon, scheduleReturnDeadlineSoon, scheduleReturnDelivered, scheduleSubscriptionRenewalSoon } from "@/lib/domain/notifications/eventNotificationScheduler";
+import { scheduleBillDueSoon, scheduleReturnDeadlineSoon, scheduleReturnDelivered, scheduleRecurringObligationRenewalSoon } from "@/lib/domain/notifications/eventNotificationScheduler";
+import { createOwnerSubscription } from "@/lib/domain/recurring/ownerFacts";
 import { refreshShipmentTimeline, syncRefundExpectation } from "@/lib/domain/shipping/tracking";
 import { canTransition, type ReturnStatus } from "@/engine/returns/transitions";
 import type { Prisma } from "@prisma/client";
@@ -248,29 +249,29 @@ export async function POST(req: NextRequest) {
       trialEndAt = te;
     }
 
-    const createdSub = await prisma.subscription.create({
-      data: {
-        userId,
-        name: merchant,
-        amountCents: amountCents ?? 0,
+    const createdSub = await createOwnerSubscription(prisma, {
+      userId,
+      input: {
+        displayName: merchant,
+        amountMinor: amountCents ?? 0,
         currency,
-        renewalDate,
-        cadence,
-        status: "ACTIVE",
+        nextBillingAt: renewalDate,
+        cadence: cadence === "YEARLY" ? "ANNUAL" : "MONTHLY",
         trialEndAt,
-        cancelUrl: typeof mergedDraft.cancelUrl === "string" ? mergedDraft.cancelUrl : null,
+        cancellationUrl: typeof mergedDraft.cancelUrl === "string" ? mergedDraft.cancelUrl : null,
         cancelInstructions: typeof mergedDraft.cancelInstructions === "string" ? mergedDraft.cancelInstructions : null,
         merchantCanonicalId: typeof mergedDraft.merchantCanonicalId === "string" ? mergedDraft.merchantCanonicalId : null,
+        needsReview: cadence === "CUSTOM",
       },
     });
 
-    await scheduleSubscriptionRenewalSoon({
+    await scheduleRecurringObligationRenewalSoon({
       userId,
-      subscriptionId: createdSub.id,
-      name: createdSub.name,
-      renewalDate: createdSub.renewalDate,
-      amountCents: createdSub.amountCents,
-      currency: createdSub.currency,
+      obligationId: createdSub.id,
+      name: createdSub.displayName ?? merchant,
+      renewalDate,
+      amountCents: amountCents ?? 0,
+      currency,
     });
   }
 
