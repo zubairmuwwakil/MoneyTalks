@@ -114,8 +114,15 @@ async function main() {
   const { values } = parseArgs({ options: { apply: { type: "boolean", default: false }, user: { type: "string" }, limit: { type: "string" } } });
   const limit = Math.min(Number(values.limit ?? BATCH_SIZE), BATCH_SIZE);
   if (!Number.isInteger(limit) || limit < 1) throw new RangeError("limit must be 1 through 100");
-  const rows = await db.subscription.findMany({
+  const mappings = await db.legacySubscriptionMapping.findMany({
     where: values.user ? { userId: values.user } : undefined,
+    select: { legacySubscriptionId: true },
+  });
+  const rows = await db.subscription.findMany({
+    where: {
+      ...(values.user ? { userId: values.user } : {}),
+      id: { notIn: mappings.map(({ legacySubscriptionId }) => legacySubscriptionId) },
+    },
     take: limit,
     orderBy: { id: "asc" },
   }) as LegacySubscription[];
