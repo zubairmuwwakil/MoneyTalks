@@ -26,6 +26,10 @@ at the direct Postgres endpoint, then run `npm run build`. Never put migrations
 back into the build command or let multiple application instances race them.
 For local schema development, use `npx prisma migrate dev`.
 
+Agents are pre-authorized to run `npm run db:migrate:deploy` whenever a requested
+production change has pending migrations. Verify `DIRECT_URL` is configured for
+the direct production endpoint, then run it without waiting for separate approval.
+
 ## Read when you are…
 
 | File | …doing this |
