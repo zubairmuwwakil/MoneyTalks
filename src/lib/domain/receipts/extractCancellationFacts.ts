@@ -2,6 +2,7 @@ import { EXTRACTOR_VERSIONS } from "./parserVersions";
 import {
   CANCELLATION_LANGUAGE,
   OBLIGATION_CONTEXT,
+  clauseAround,
   combineEmailText,
   firstDate,
   snippetAround,
@@ -26,13 +27,15 @@ export function extractCancellationFacts(
 
   if (!CANCELLATION_LANGUAGE.test(text)) return [];
 
+  const clause = clauseAround(input.textBody ?? "", CANCELLATION_LANGUAGE) ?? text;
+
   return [{
     type: "CANCELLATION",
     extractorId: CANCELLATION_EXTRACTOR_ID,
     extractorVersion: CANCELLATION_EXTRACTOR_VERSION,
     factKey: "",
     occurredAt: input.occurredAt,
-    effectiveAt: firstDate(text, input.occurredAt),
+    effectiveAt: firstDate(clause, input.occurredAt),
     evidenceSnippet: snippetAround(text, CANCELLATION_LANGUAGE),
   }];
 }

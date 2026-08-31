@@ -2,6 +2,7 @@ import { EXTRACTOR_VERSIONS } from "./parserVersions";
 import {
   NEXT_BILLING_LANGUAGE,
   OBLIGATION_CONTEXT,
+  clauseAround,
   combineEmailText,
   firstDate,
   snippetAround,
@@ -27,7 +28,9 @@ export function extractNextBillingFacts(
 
   if (!NEXT_BILLING_LANGUAGE.test(text)) return [];
 
-  const billingAt = firstDate(text, input.occurredAt);
+  const clause = clauseAround(input.textBody ?? "", NEXT_BILLING_LANGUAGE) ?? text;
+
+  const billingAt = firstDate(clause, input.occurredAt);
   if (!billingAt) return [];
 
   return [{

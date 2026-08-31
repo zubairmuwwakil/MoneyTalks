@@ -105,6 +105,52 @@ export function snippetAround(text: string, pattern: RegExp): string {
   return clean.slice(Math.max(0, start), Math.max(0, start) + SNIPPET_MAX_CHARS);
 }
 
+/**
+ * A period that ends a sentence, rather than one inside "$29.99" or "Sep. 2".
+ */
+const MONTH_ABBREVIATION = /(?:^|\s)(?:jan|feb|mar|apr|jun|jul|aug|sept?|oct|nov|dec)$/i;
+
+function isTerminator(text: string, at: number): boolean {
+  const character = text[at];
+  if (character === "\n") return true;
+  if (character !== "." && character !== "!" && character !== "?") return false;
+  if (character === ".") {
+    const before = text[at - 1];
+    const after = text[at + 1];
+    if (before >= "0" && before <= "9" && after >= "0" && after <= "9") return false;
+    if (MONTH_ABBREVIATION.test(text.slice(Math.max(0, at - 6), at))) return false;
+  }
+  return true;
+}
+
+/**
+ * The sentence that states the fact, not the whole message.
+ *
+ * A fact is asserted in a clause: "your price will increase to $29.99 on
+ * October 1" is one claim, and a "$9.99" two sentences earlier is a different
+ * one. Searching the entire body for an amount or a date finds the wrong one
+ * on any email that mentions two — and a price-change notice mentions two by
+ * definition, because it quotes what you pay now.
+ *
+ * Returns undefined when `text` does not state the fact at all, so a caller can
+ * fall back. Callers pass the BODY: a subject is a headline, and narrowing to it
+ * would discard the date the body goes on to give.
+ */
+export function clauseAround(text: string, pattern: RegExp): string | undefined {
+  const match = text.match(pattern);
+  if (!match || match.index === undefined) return undefined;
+
+  let start = 0;
+  for (let at = match.index - 1; at >= 0; at -= 1) {
+    if (isTerminator(text, at)) { start = at + 1; break; }
+  }
+  let end = text.length;
+  for (let at = match.index + match[0].length; at < text.length; at += 1) {
+    if (isTerminator(text, at)) { end = at; break; }
+  }
+  return text.slice(start, end).trim();
+}
+
 export function firstDate(text: string, relativeTo: Date): Date | undefined {
   const match = text.match(DATE_PATTERN);
   if (!match) return undefined;

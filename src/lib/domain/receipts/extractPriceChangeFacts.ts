@@ -2,6 +2,7 @@ import { EXTRACTOR_VERSIONS } from "./parserVersions";
 import {
   OBLIGATION_CONTEXT,
   PRICE_CHANGE_LANGUAGE,
+  clauseAround,
   combineEmailText,
   firstDate,
   snippetAround,
@@ -28,14 +29,16 @@ export function extractPriceChangeFacts(
 
   if (!PRICE_CHANGE_LANGUAGE.test(text)) return [];
 
+  const clause = clauseAround(input.textBody ?? "", PRICE_CHANGE_LANGUAGE) ?? text;
+
   return [{
     type: "PRICE_CHANGE",
     extractorId: PRICE_CHANGE_EXTRACTOR_ID,
     extractorVersion: PRICE_CHANGE_EXTRACTOR_VERSION,
     factKey: "",
     occurredAt: input.occurredAt,
-    effectiveAt: firstDate(text, input.occurredAt),
-    amountMinor: statedAmountMinor(text),
+    effectiveAt: firstDate(clause, input.occurredAt),
+    amountMinor: statedAmountMinor(clause),
     evidenceSnippet: snippetAround(text, PRICE_CHANGE_LANGUAGE),
   }];
 }

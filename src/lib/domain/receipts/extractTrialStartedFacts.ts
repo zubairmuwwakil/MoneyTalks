@@ -2,6 +2,7 @@ import { EXTRACTOR_VERSIONS } from "./parserVersions";
 import {
   OBLIGATION_CONTEXT,
   TRIAL_STARTED_LANGUAGE,
+  clauseAround,
   combineEmailText,
   firstDate,
   snippetAround,
@@ -26,13 +27,15 @@ export function extractTrialStartedFacts(
 
   if (!TRIAL_STARTED_LANGUAGE.test(text)) return [];
 
+  const clause = clauseAround(input.textBody ?? "", TRIAL_STARTED_LANGUAGE) ?? text;
+
   return [{
     type: "TRIAL_STARTED",
     extractorId: TRIAL_STARTED_EXTRACTOR_ID,
     extractorVersion: TRIAL_STARTED_EXTRACTOR_VERSION,
     factKey: "",
     occurredAt: input.occurredAt,
-    effectiveAt: firstDate(text, input.occurredAt),
+    effectiveAt: firstDate(clause, input.occurredAt),
     evidenceSnippet: snippetAround(text, TRIAL_STARTED_LANGUAGE),
   }];
 }

@@ -53,3 +53,22 @@ describe("extractPriceChangeFacts", () => {
     expect(facts).toEqual([]);
   });
 });
+
+describe("price change scoped to the clause that states it", () => {
+  const occurredAt = new Date("2026-08-30T12:00:00.000Z");
+
+  it("takes the new price, not an earlier quoted current price", () => {
+    const facts = extractPriceChangeFacts({
+      subject: "Your plan price is changing",
+      textBody:
+        "Invoice date: September 2, 2026. Your plan renews monthly. "
+        + "Your current price is $9.99. "
+        + "From October 1, 2026 your price will increase to $29.99.",
+      occurredAt,
+    });
+
+    expect(facts).toHaveLength(1);
+    expect(facts[0].amountMinor).toBe(2999);
+    expect(facts[0].effectiveAt).toEqual(new Date("2026-10-01T12:00:00.000Z"));
+  });
+});
