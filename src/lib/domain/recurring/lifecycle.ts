@@ -20,6 +20,7 @@ interface LifecycleState {
   cancellation?: Extract<ObligationFact, { type: "CANCELLATION" }>;
   hasTrial: boolean;
   lastCharge?: Date;
+  activeAssertion?: Date;
 }
 
 const SOURCE_PRECEDENCE: Readonly<Record<ObligationFactSource, number>> = Object.freeze({
@@ -61,7 +62,7 @@ export function deriveObligationStatus(
         return { ...current, cancellation: undefined, hasTrial: false, lastCharge: fact.occurredAt };
       case "ACTIVATION":
       case "RESUMPTION":
-        return { ...current, cancellation: undefined, hasTrial: false };
+        return { ...current, cancellation: undefined, hasTrial: false, activeAssertion: fact.occurredAt };
       case "CANCELLATION":
         return { ...current, cancellation: fact };
       case "TRIAL_STARTED":
@@ -80,7 +81,10 @@ export function deriveObligationStatus(
     }
     return "CANCELLED";
   }
-  if (!state.lastCharge) return state.hasTrial ? "TRIALING" : null;
+  if (!state.lastCharge) {
+    if (state.hasTrial) return "TRIALING";
+    return state.activeAssertion ? "ACTIVE" : null;
+  }
 
   const ageDays = (asOf.getTime() - state.lastCharge.getTime()) / DAY_MS;
   const periodDays = PERIOD_DAYS[cadence.type];
