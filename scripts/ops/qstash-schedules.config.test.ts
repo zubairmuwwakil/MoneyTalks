@@ -68,6 +68,16 @@ describe("QStash schedule contract", () => {
     expect(backfill.timeout).toBe("2m");
   });
 
+  it("reprocesses email facts before the recurring obligation sweep", () => {
+    const reprocess = bySlug("email-fact-reprocess");
+    const recurring = bySlug("recurring-sweep");
+
+    expect(reprocess.path).toBe("/api/cron/email-fact-reprocess");
+    expect(reprocess.cron).toBe("0 3 * * *");
+    expect(reprocess.timeout).toBe("2m");
+    expect(minutesUtc(reprocess.cron)).toBeLessThan(minutesUtc(recurring.cron));
+  });
+
   it("reconciles personal inventory frequently enough to repair missed webhooks", () => {
     const inventory = bySlug("personal-inventory");
     expect(inventory.path).toBe("/api/cron/personal-inventory");
@@ -80,6 +90,7 @@ describe("QStash schedule contract", () => {
       digest: "moneytalks-digest",
       notify: "moneytalks-notify",
       "purchase-merge": "moneytalks-purchase-merge",
+      "email-fact-reprocess": "moneytalks-email-fact-reprocess",
       "recurring-sweep": "moneytalks-recurring-sweep",
       "gmail-backfill": "moneytalks-gmail-backfill",
       "personal-inventory": "moneytalks-personal-inventory",

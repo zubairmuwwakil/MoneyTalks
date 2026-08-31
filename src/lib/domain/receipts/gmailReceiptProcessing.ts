@@ -777,6 +777,43 @@ export async function processRawGmailMessage(
     parsedPurchase = failedParse(params.message);
   }
 
+  // Unattended replay deliberately owns only the fact projection. Keep this
+  // branch ahead of merchant resolution: resolving a new raw merchant may
+  // create a MerchantAlias, and learned merchant currency is not needed to
+  // decide which obligation statements the message contains.
+  if (params.mode === "facts-reprocess") {
+    return db.$transaction(async (transactionDb) => {
+      const existing = await transactionDb.emailTransaction.findUnique({
+        where: {
+          userId_provider_messageId: {
+            userId: params.userId,
+            provider: "GMAIL",
+            messageId: params.message.messageId,
+          },
+        },
+      });
+      if (!existing) throw new Error("Stored Gmail transaction not found");
+
+      // A parse failure is not evidence that persisted facts became invalid.
+      if (!parserError) {
+        await persistObligationFacts(transactionDb, {
+          userId: params.userId,
+          emailTransactionId: existing.id,
+          parsed: parsedPurchase,
+          fallbackOccurredAt: params.message.internalDate ?? new Date(),
+          pruneStaleFacts: true,
+        });
+      }
+      return {
+        transaction: existing,
+        parsedPurchase,
+        parserError,
+        transactionAction: "skipped",
+        purchaseAction: "none",
+      };
+    });
+  }
+
   const merchantResolution = parserError
     ? {
         merchant: parsedPurchase.merchant,
@@ -812,30 +849,6 @@ export async function processRawGmailMessage(
         },
       },
     });
-
-    // Unattended replay deliberately owns only the fact projection. Purchase
-    // reconciliation can delete, unlink, or rewrite real charges, so it remains
-    // behind the owner-triggered `reprocess` mode. A parse failure is likewise
-    // not evidence that previously persisted facts became invalid.
-    if (params.mode === "facts-reprocess") {
-      if (!existing) throw new Error("Stored Gmail transaction not found");
-      if (!parserError) {
-        await persistObligationFacts(transactionDb, {
-          userId: params.userId,
-          emailTransactionId: existing.id,
-          parsed: parsedPurchase,
-          fallbackOccurredAt: params.message.internalDate ?? new Date(),
-          pruneStaleFacts: true,
-        });
-      }
-      return {
-        transaction: existing,
-        parsedPurchase,
-        parserError,
-        transactionAction: "skipped",
-        purchaseAction: "none",
-      };
-    }
 
     // A parser exception is not evidence that the old parse became invalid.
     // Record the failure, but preserve the prior projection for safe retries.

@@ -1769,6 +1769,8 @@ describe("processRawGmailMessage", () => {
     });
     expect(tx.emailTransaction.upsert).not.toHaveBeenCalled();
     expect(tx.emailTransaction.update).not.toHaveBeenCalled();
+    expect(resolveEmailMerchantIdentity).not.toHaveBeenCalled();
+    expect(tx.merchantCurrencyConfirmation.findUnique).not.toHaveBeenCalled();
     expect(tx.purchase.create).not.toHaveBeenCalled();
     expect(tx.purchase.update).not.toHaveBeenCalled();
     expect(tx.purchase.delete).not.toHaveBeenCalled();

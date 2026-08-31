@@ -15,6 +15,7 @@ Optional env:
   QSTASH_DIGEST_CRON   default: */15 * * * *
   QSTASH_NOTIFY_CRON   default: 0 * * * *
   QSTASH_PURCHASE_MERGE_CRON default: 30 3 * * *
+  QSTASH_EMAIL_FACT_REPROCESS_CRON default: 0 3 * * *
   QSTASH_RECURRING_SWEEP_CRON default: 45 3 * * *
   QSTASH_GMAIL_BACKFILL_CRON default: */5 * * * *
   QSTASH_PERSONAL_INVENTORY_CRON default: */15 * * * *

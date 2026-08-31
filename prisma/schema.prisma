@@ -29,6 +29,7 @@ model User {
   dataDeletionJobs              DataDeletionJob[]
   detectedItems                 DetectedItem[]
   emailConnections              EmailConnection[]
+  emailFactReprocessJob         EmailFactReprocessJob?
   emailTransactions             EmailTransaction[]
   emailObligationFacts          EmailObligationFact[]
   financialAccounts             FinancialAccount[]
@@ -731,6 +732,32 @@ model RecurringSweepJob {
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
   user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, runAt])
+}
+
+/// Durable, version-triggered fact replay state for one Gmail owner.
+///
+/// A completed row stays parked until the extractor-version vector changes.
+/// The cursor makes a full mailbox replay resumable, while the recoverable
+/// lease prevents overlapping QStash deliveries from replaying one owner at
+/// the same time.
+model EmailFactReprocessJob {
+  userId           String                      @id
+  status           EmailFactReprocessJobStatus @default(PENDING)
+  targetVersion    String
+  completedVersion String?
+  runAt            DateTime                    @default(now())
+  attempts         Int                         @default(0)
+  lastError        String?
+  lockedAt         DateTime?
+  lockId           String?
+  cursorCreatedAt  DateTime?
+  cursorId         String?
+  completedAt      DateTime?
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
+  user             User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([status, runAt])
 }
@@ -1491,6 +1518,12 @@ enum EvidenceRole {
 enum RecurringSweepJobStatus {
   PENDING
   RUNNING
+}
+
+enum EmailFactReprocessJobStatus {
+  PENDING
+  RUNNING
+  COMPLETE
 }
 
 enum EmailFactType {

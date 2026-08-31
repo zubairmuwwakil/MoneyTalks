@@ -65,6 +65,7 @@ export const schedules = [
   { name: "digest",         scheduleId: "moneytalks-digest",         path: "/api/cron/digest",         cronEnv: "QSTASH_DIGEST_CRON",         cronDefault: "*/15 * * * *" },
   { name: "notify",         scheduleId: "moneytalks-notify",         path: "/api/cron/notify",         cronEnv: "QSTASH_NOTIFY_CRON",         cronDefault: "0 * * * *" },
   { name: "purchase-merge", scheduleId: "moneytalks-purchase-merge", path: "/api/cron/purchase-merge", cronEnv: "QSTASH_PURCHASE_MERGE_CRON", cronDefault: "30 3 * * *" },
+  { name: "email-fact-reprocess", scheduleId: "moneytalks-email-fact-reprocess", path: "/api/cron/email-fact-reprocess", cronEnv: "QSTASH_EMAIL_FACT_REPROCESS_CRON", cronDefault: "0 3 * * *" },
   { name: "recurring-sweep", scheduleId: "moneytalks-recurring-sweep", path: "/api/cron/recurring-sweep", cronEnv: "QSTASH_RECURRING_SWEEP_CRON", cronDefault: "45 3 * * *" },
   { name: "gmail-backfill", scheduleId: "moneytalks-gmail-backfill", path: "/api/cron/gmail-backfill", cronEnv: "QSTASH_GMAIL_BACKFILL_CRON", cronDefault: "*/5 * * * *" },
   { name: "personal-inventory", scheduleId: "moneytalks-personal-inventory", path: "/api/cron/personal-inventory", cronEnv: "QSTASH_PERSONAL_INVENTORY_CRON", cronDefault: "*/15 * * * *" },
