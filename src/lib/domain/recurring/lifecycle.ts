@@ -1,5 +1,5 @@
 import type { Cadence } from "@/engine/recurrence";
-import type { ObligationFact, ObligationStatus } from "./types";
+import type { ObligationFact, ObligationFactSource, ObligationStatus } from "./types";
 
 const DAY_MS = 86_400_000;
 
@@ -22,6 +22,18 @@ interface LifecycleState {
   lastCharge?: Date;
 }
 
+const SOURCE_PRECEDENCE: Readonly<Record<ObligationFactSource, number>> = Object.freeze({
+  PURCHASE: 0,
+  EMAIL: 1,
+  OWNER: 2,
+});
+
+function sourcePrecedence(fact: ObligationFact): number {
+  // Untagged historical call-sites are purchase observations. This preserves
+  // their old behaviour while canonical readers tag the source explicitly.
+  return SOURCE_PRECEDENCE[fact.source ?? "PURCHASE"];
+}
+
 /**
  * Fold evidence in temporal order. A later charge clears an older cancellation
  * naturally, which is why resubscription needs no precedence exception.
@@ -37,12 +49,19 @@ export function deriveObligationStatus(
     if ("effectiveAt" in fact && fact.effectiveAt) requireValidDate(fact.effectiveAt, "fact effective timestamp");
     if (fact.type === "NEXT_BILLING_DATE") requireValidDate(fact.billingAt, "next billing timestamp");
     return { fact, index };
-  }).sort((a, b) => a.fact.occurredAt.getTime() - b.fact.occurredAt.getTime() || a.index - b.index);
+  }).sort((a, b) => (
+    a.fact.occurredAt.getTime() - b.fact.occurredAt.getTime()
+    || sourcePrecedence(a.fact) - sourcePrecedence(b.fact)
+    || a.index - b.index
+  ));
 
   const state = ordered.reduce<LifecycleState>((current, { fact }) => {
     switch (fact.type) {
       case "CHARGE":
         return { ...current, cancellation: undefined, hasTrial: false, lastCharge: fact.occurredAt };
+      case "ACTIVATION":
+      case "RESUMPTION":
+        return { ...current, cancellation: undefined, hasTrial: false };
       case "CANCELLATION":
         return { ...current, cancellation: fact };
       case "TRIAL_STARTED":

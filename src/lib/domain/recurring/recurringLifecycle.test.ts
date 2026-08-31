@@ -57,6 +57,27 @@ describe("P4c recurring lifecycle", () => {
     expect(deriveObligationStatus(facts, monthlyCadence, date("2026-02-20"))).toBe("ACTIVE");
   });
 
+  it("uses owner, then email, then purchase precedence for equal-time facts", () => {
+    const occurredAt = date("2026-02-01");
+    const facts: ObligationFact[] = [
+      { type: "CANCELLATION", occurredAt, source: "PURCHASE" },
+      { type: "CHARGE", occurredAt, source: "EMAIL" },
+      { type: "CANCELLATION", occurredAt, source: "OWNER" },
+    ];
+
+    expect(deriveObligationStatus(facts, monthlyCadence, date("2026-02-02"))).toBe("CANCELLING");
+  });
+
+  it("clears an earlier cancellation when the owner explicitly resumes", () => {
+    const facts: ObligationFact[] = [
+      { type: "CANCELLATION", occurredAt: date("2026-01-01"), source: "OWNER" },
+      { type: "RESUMPTION", occurredAt: date("2026-01-02"), source: "OWNER" },
+      { type: "CHARGE", occurredAt: date("2026-01-03"), source: "PURCHASE" },
+    ];
+
+    expect(deriveObligationStatus(facts, monthlyCadence, date("2026-01-04"))).toBe("ACTIVE");
+  });
+
   it("trial-conversion: is TRIALING before the first charge and ACTIVE after it", () => {
     const trial: ObligationFact = { type: "TRIAL_STARTED", occurredAt: date("2026-01-01") };
     expect(deriveObligationStatus([trial], monthlyCadence, date("2026-01-10"))).toBe("TRIALING");

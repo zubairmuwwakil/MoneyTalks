@@ -29,16 +29,21 @@ export interface AmountPatternResult {
   schedule: ScheduleEntry[];
 }
 
+/** The evidence lane that supplied a fact. Used only to break equal-time ties. */
+export type ObligationFactSource = "OWNER" | "EMAIL" | "PURCHASE";
+
 /** A fact supplied by the purchase spine or a receipt; it is never derived state. */
 export type ObligationFact =
-  | { type: "CHARGE"; occurredAt: Date }
-  | { type: "EXPLICIT_CADENCE"; occurredAt: Date; cadence: Cadence["type"] }
-  | { type: "EXPLICIT_RECURRING"; occurredAt: Date }
-  | { type: "CANCELLATION"; occurredAt: Date; effectiveAt?: Date }
-  | { type: "TRIAL_STARTED"; occurredAt: Date; effectiveAt?: Date }
-  | { type: "TRIAL_ENDED"; occurredAt: Date; effectiveAt?: Date }
-  | { type: "PRICE_CHANGE"; occurredAt: Date; effectiveAt?: Date; amountMinor?: number }
-  | { type: "NEXT_BILLING_DATE"; occurredAt: Date; billingAt: Date };
+  | { type: "CHARGE"; occurredAt: Date; source?: ObligationFactSource }
+  | { type: "EXPLICIT_CADENCE"; occurredAt: Date; cadence: Cadence["type"]; source?: ObligationFactSource }
+  | { type: "EXPLICIT_RECURRING"; occurredAt: Date; source?: ObligationFactSource }
+  | { type: "CANCELLATION"; occurredAt: Date; effectiveAt?: Date; source?: ObligationFactSource }
+  | { type: "RESUMPTION"; occurredAt: Date; source?: ObligationFactSource }
+  | { type: "ACTIVATION"; occurredAt: Date; source?: ObligationFactSource }
+  | { type: "TRIAL_STARTED"; occurredAt: Date; effectiveAt?: Date; source?: ObligationFactSource }
+  | { type: "TRIAL_ENDED"; occurredAt: Date; effectiveAt?: Date; source?: ObligationFactSource }
+  | { type: "PRICE_CHANGE"; occurredAt: Date; effectiveAt?: Date; amountMinor?: number; source?: ObligationFactSource }
+  | { type: "NEXT_BILLING_DATE"; occurredAt: Date; billingAt: Date; source?: ObligationFactSource };
 
 /** Derived at sweep time from facts; it must never become a mutable column. */
 export type ObligationStatus = "TRIALING" | "ACTIVE" | "CANCELLING" | "CANCELLED" | "LAPSED";
