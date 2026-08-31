@@ -79,10 +79,10 @@ const CATEGORY_PRESENTATION = {
   insurance: { icon: "🛡️", scorable: false, badgeClass: "bg-blue-600/10 text-blue-800 dark:text-blue-200 border-blue-600/20" },
   homeImprovement: { icon: "🔨", scorable: false, badgeClass: "bg-amber-700/10 text-amber-800 dark:text-amber-200 border-amber-700/20" },
   furniture: { icon: "🛋️", scorable: false, badgeClass: "bg-orange-700/10 text-orange-800 dark:text-orange-200 border-orange-700/20" },
-  eGames: { icon: "🎮", scorable: false, badgeClass: "bg-violet-600/10 text-violet-800 dark:text-violet-200 border-violet-600/20" },
+  eGames: { icon: "🎮", scorable: true, badgeClass: "bg-violet-600/10 text-violet-800 dark:text-violet-200 border-violet-600/20" },
   ctFamily: { icon: "🔧", scorable: true, badgeClass: "bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/20" },
   retailShopping: { icon: "🛍️", scorable: true, badgeClass: "bg-pink-500/10 text-pink-700 dark:text-pink-300 border-pink-500/20" },
-  wholesaleClub: { icon: "📦", scorable: false, badgeClass: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20" },
+  wholesaleClub: { icon: "📦", scorable: true, badgeClass: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20" },
   other: { icon: "🏷️", scorable: false, badgeClass: "bg-muted text-muted-foreground border-border/60" },
 } as const satisfies Readonly<Record<string, CategoryPresentation>>;
 

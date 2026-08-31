@@ -292,7 +292,10 @@
           "items": {
             "$ref": "#/$defs/cardCredit"
           },
-          "description": "Optional. Absent for most cards; absence means no credits, never unknown."
+          "description": "Optional recurring monetary credits. Absence is only a trustworthy claim of no credits when creditCoverage.status is complete; otherwise it means the card has not been fully reviewed."
+        },
+        "creditCoverage": {
+          "$ref": "#/$defs/creditCoverage"
         },
         "lifecycleStatus": {
           "enum": [
@@ -857,6 +860,144 @@
         }
       }
     },
+    "creditCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "lastReviewedAt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "unknown"
+          ],
+          "description": "Whether issuer material was reviewed comprehensively for standard recurring monetary credits."
+        },
+        "lastReviewedAt": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "creditSchedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "basis"
+      ],
+      "properties": {
+        "basis": {
+          "enum": [
+            "calendar",
+            "accountAnniversary",
+            "rolling"
+          ]
+        },
+        "unit": {
+          "enum": [
+            "month",
+            "quarter",
+            "halfYear",
+            "year"
+          ],
+          "description": "Required for calendar schedules. A halfYear is Jan-Jun or Jul-Dec."
+        },
+        "interval": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "intervalMonths": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Required for accountAnniversary and rolling schedules; supports 48- and 54-month reimbursements."
+        },
+        "resetTimeZone": {
+          "type": "string",
+      "description": "IANA time-zone identifier when issuer terms establish one. Absence means date-level cadence only; consumers use the owner's local day and must not claim an exact cutoff hour."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "basis": {
+                "const": "calendar"
+              }
+            }
+          },
+          "then": {
+            "required": [
+          "unit"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "basis": {
+                "enum": [
+                  "accountAnniversary",
+                  "rolling"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "intervalMonths"
+            ]
+          }
+        }
+      ]
+    },
+    "creditEnrollment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required"
+      ],
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "channel": {
+          "enum": [
+            "issuerPortal",
+            "issuerApp",
+            "partnerAccount",
+            "phone"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "instructions": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "creditEligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cardholderRoles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["primary", "additional"] }
+        },
+        "accountLevelLimit": { "type": "boolean" },
+        "accountStandingRequired": { "type": "boolean" },
+        "claimRequired": { "type": "boolean" },
+        "claimDeadlineDays": { "type": "integer", "minimum": 1 }
+      }
+    },
     "cardCredit": {
       "type": "object",
       "description": "A recurring statement credit granted for holding the card. NOT an earn rule: a credit does not depend on what the purchase was, so it never enters the checkout pick \u2014 it is keep/cancel and net-value input only. `value` is the issuer's stated maximum, not a forecast of use; whether it was redeemed is owner activity and lives with the consumer.",
@@ -868,7 +1009,6 @@
         "creditId",
         "label",
         "value",
-        "period",
         "sourceType",
         "lastVerifiedAt"
       ],
@@ -903,13 +1043,52 @@
             "calendarYear",
             "accountYear"
           ],
-          "description": "Same vocabulary as cap.period; decoded into Swift's CapPeriod."
+          "deprecated": true,
+          "description": "Legacy cadence retained for compatibility. New and corrected credits use schedule."
+        },
+        "schedule": {
+          "$ref": "#/$defs/creditSchedule"
+        },
+        "redemptionMethod": {
+          "enum": [
+            "statementCredit",
+            "portalCredit",
+            "accountCredit",
+            "reimbursement"
+          ]
+        },
+        "purchasePredicate": {
+          "$ref": "#/$defs/predicate"
+        },
+        "minimumTransaction": {
+          "$ref": "#/$defs/money"
+        },
+        "allowsPartialUse": {
+          "type": "boolean"
+        },
+        "enrollment": {
+          "$ref": "#/$defs/creditEnrollment"
+        },
+        "effectiveFrom": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "effectiveTo": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
         },
         "sourceType": {
           "$ref": "#/$defs/sourceType"
         },
         "lastVerifiedAt": {
-          "type": "string"
+          "type": "string",
+          "format": "date"
         },
         "sources": {
           "type": "array",
@@ -920,6 +1099,20 @@
         }
       },
       "allOf": [
+        {
+          "anyOf": [
+            {
+              "required": [
+                "period"
+              ]
+            },
+            {
+              "required": [
+                "schedule"
+              ]
+            }
+          ]
+        },
         {
           "if": {
             "properties": {

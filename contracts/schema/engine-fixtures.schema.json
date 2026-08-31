@@ -5,6 +5,7 @@
   "description": "Documents the shape of engine-fixtures.json exactly as decoded by the private FixtureFile/FixtureCase types in Engine/Tests/CardCopilotEngineTests/FixtureHarnessTests.swift (spec §4/§5). As with card-catalogue.schema.json, \"x-status\": \"documentation-only\" marks fields present in the JSON with no matching Swift property — silently dropped on decode, human-facing only. There are more of these here than in the catalogue: the fixture format leans on prose (description, notes) that the test harness never reads back, because the assertions are the spec, not the prose. Fixtures 1.1 added four expectation fields plus per-case `asOf` and `unsetFields`, because three of spec §5's rule families — effective-dating boundaries, the announced-FX record, and the valuation-disclosure gate — could not be expressed at all in 1.0.",
   "type": "object",
   "required": [
+    "creditCases",
     "cases"
   ],
   "additionalProperties": false,
@@ -23,6 +24,12 @@
     "pinnedValuations": {
       "$ref": "#/$defs/pinnedValuations"
     },
+    "creditCases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/creditFixtureCase"
+      }
+    },
     "cases": {
       "type": "array",
       "items": {
@@ -31,6 +38,137 @@
     }
   },
   "$defs": {
+    "creditFixtureCase": {
+      "type": "object",
+      "required": ["caseId", "asOf", "cardId", "credit", "cardState", "expected"],
+      "additionalProperties": false,
+      "properties": {
+        "caseId": { "type": "string" },
+        "asOf": { "type": "string", "format": "date" },
+        "cardId": { "type": "string" },
+        "credit": { "$ref": "#/$defs/fixtureCardCredit" },
+        "cardState": { "$ref": "#/$defs/creditCardState" },
+        "purchase": { "$ref": "#/$defs/purchaseContext" },
+        "expected": { "$ref": "#/$defs/creditExpected" }
+      }
+    },
+    "fixtureCardCredit": {
+      "type": "object",
+      "required": ["creditId", "label", "value", "schedule", "sourceType", "lastVerifiedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "creditId": { "type": "string" },
+        "label": { "type": "string" },
+        "value": {
+          "type": "object",
+          "required": ["amount", "currency"],
+          "additionalProperties": false,
+          "properties": {
+            "amount": { "type": "number", "minimum": 0 },
+            "currency": { "type": "string" }
+          }
+        },
+        "schedule": {
+          "type": "object",
+          "required": ["basis"],
+          "additionalProperties": false,
+          "properties": {
+            "basis": { "enum": ["calendar", "accountAnniversary", "rolling"] },
+            "unit": { "enum": ["month", "quarter", "halfYear", "year"] },
+            "interval": { "type": "integer", "minimum": 1 },
+            "intervalMonths": { "type": "integer", "minimum": 1 },
+            "resetTimeZone": { "type": "string" }
+          }
+        },
+        "redemptionMethod": {
+          "enum": ["statementCredit", "portalCredit", "accountCredit", "reimbursement"]
+        },
+        "purchasePredicate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "categories": { "type": "array", "items": { "type": "string" } },
+            "mccInclude": { "type": "array", "items": { "type": "integer" } },
+            "mccExclude": { "type": "array", "items": { "type": "integer" } },
+            "merchantInclude": { "type": "array", "items": { "type": "string" } },
+            "merchantExclude": { "type": "array", "items": { "type": "string" } },
+            "country": { "type": "string" },
+            "currency": { "type": "string" },
+            "channels": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "allowsPartialUse": { "type": "boolean" },
+        "enrollment": {
+          "type": "object",
+          "required": ["required"],
+          "additionalProperties": false,
+          "properties": {
+            "required": { "type": "boolean" },
+            "channel": { "enum": ["issuerPortal", "issuerApp", "partnerAccount", "phone"] },
+            "url": { "type": "string", "format": "uri" }
+          }
+        },
+        "effectiveFrom": { "type": "string", "format": "date" },
+        "effectiveTo": { "type": "string", "format": "date" },
+        "sourceType": { "enum": ["issuerConfirmed", "inferred"] },
+        "lastVerifiedAt": { "type": "string", "format": "date" },
+        "sources": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" }
+        }
+      }
+    },
+    "creditCardState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accountOpenedAt": { "type": "string", "format": "date" },
+        "creditStates": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enrollmentStatus": {
+                "enum": ["unknown", "enrolled", "notEnrolled", "notRequired"]
+              },
+              "windows": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "required": ["updatedAt"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "consumedAmount": { "type": "number", "minimum": 0 },
+                    "realizedAmount": { "type": "number", "minimum": 0 },
+                    "updatedAt": { "type": "string", "format": "date" }
+                  }
+                }
+              },
+              "lastRedemptionAt": { "type": "string", "format": "date" }
+            }
+          }
+        }
+      }
+    },
+    "creditExpected": {
+      "type": "object",
+      "required": ["windowId", "remainingAmount", "realizedAmount", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "windowId": { "type": "string" },
+        "expiresOn": { "type": "string", "format": "date" },
+        "nextEligibleOn": { "type": "string", "format": "date" },
+        "remainingAmount": { "type": "number", "minimum": 0 },
+        "realizedAmount": { "type": "number", "minimum": 0 },
+        "status": {
+          "enum": ["available", "used", "needsEnrollment", "notYetEligible", "scheduleUnresolved"]
+        },
+        "daysRemaining": { "type": "integer", "minimum": 0 },
+        "checkoutCreditId": { "type": "string" },
+        "checkoutCreditValueCad": { "type": "number", "minimum": 0 }
+      }
+    },
     "pinnedValuations": {
       "type": "object",
       "required": [

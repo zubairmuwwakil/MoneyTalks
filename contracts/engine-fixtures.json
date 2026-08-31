@@ -1,10 +1,137 @@
 {
-  "fixturesVersion": "1.7",
+  "fixturesVersion": "1.8",
   "_note": "Executable spec for RecommendationEngine. Amounts CAD unless stated. Expected values are exact engine outputs (unrounded beyond 4dp); UI rounds to cents at display. Valuations: MR pinned to 1.8¢ by pinnedValuations below (owner-state.json now ranks at the 1.0¢ floor), MBNA 1.0¢, Bonvoy 0.8¢, cash 1:1, CT ×0.95, CRO ×1.0 auto-sold / ×0.8 held. Default card wealthsimple-vip; threshold both(0.5pp, $0.25). Base owner state per owner-state.json: rogersEligibleServiceLinked=false, cryptoLevelUpProActive=false, Tangerine treatAsAllSelected (2% hypothetical everywhere — can only tie WS, never clears threshold), Scotia 4% cap progress $12,500. Ties rank the default card first. Every case is evaluated at asOf 2026-08-20 unless it declares its own \"asOf\" — effective-dating is the one rule family that cannot be exercised at a single fixed date.",
   "pinnedValuations": {
     "amexMembershipRewards": 1.8,
     "_why": "These 27 cases document ENGINE BEHAVIOUR and are pinned to an above-floor MR value so they exercise points-vs-cash ranking. They deliberately do NOT track owner-state.json, whose live setting is the 1.0¢ cash floor — otherwise every valuation change would re-baseline the whole spec and the temptation would be to accept engine output rather than re-derive the arithmetic."
   },
+  "creditCases": [
+    {
+      "caseId": "credit-monthly-partially-consumed",
+      "asOf": "2026-08-25",
+      "cardId": "fixture-monthly-card",
+      "credit": {
+        "creditId": "monthly-dining",
+        "label": "Monthly dining credit",
+        "value": { "amount": 10, "currency": "CAD" },
+        "schedule": { "basis": "calendar", "unit": "month", "resetTimeZone": "America/Toronto" },
+        "redemptionMethod": "statementCredit",
+        "purchasePredicate": {
+          "categories": ["dining"],
+          "merchantInclude": ["fixture-restaurant"]
+        },
+        "allowsPartialUse": true,
+        "enrollment": { "required": false },
+        "sourceType": "issuerConfirmed",
+        "lastVerifiedAt": "2026-08-24"
+      },
+      "cardState": {
+        "creditStates": {
+          "monthly-dining": {
+            "enrollmentStatus": "notRequired",
+            "windows": {
+              "2026-08-01/2026-08-31": {
+                "consumedAmount": 4,
+                "realizedAmount": 0,
+                "updatedAt": "2026-08-20"
+              }
+            }
+          }
+        }
+      },
+      "purchase": {
+        "amountCad": 8,
+        "currency": "CAD",
+        "category": "dining",
+        "merchantBrand": "fixture-restaurant"
+      },
+      "expected": {
+        "windowId": "2026-08-01/2026-08-31",
+        "expiresOn": "2026-08-31",
+        "remainingAmount": 6,
+        "realizedAmount": 0,
+        "status": "available",
+        "daysRemaining": 6,
+        "checkoutCreditId": "monthly-dining",
+        "checkoutCreditValueCad": 6
+      }
+    },
+    {
+      "caseId": "credit-half-year-needs-enrollment",
+      "asOf": "2026-06-25",
+      "cardId": "fixture-half-year-card",
+      "credit": {
+        "creditId": "semiannual-retail",
+        "label": "Semi-annual retail credit",
+        "value": { "amount": 50, "currency": "USD" },
+        "schedule": { "basis": "calendar", "unit": "halfYear", "resetTimeZone": "America/New_York" },
+        "redemptionMethod": "statementCredit",
+        "enrollment": { "required": true, "channel": "issuerPortal" },
+        "sourceType": "issuerConfirmed",
+        "lastVerifiedAt": "2026-08-24"
+      },
+      "cardState": {},
+      "expected": {
+        "windowId": "2026-01-01/2026-06-30",
+        "expiresOn": "2026-06-30",
+        "remainingAmount": 50,
+        "realizedAmount": 0,
+        "status": "needsEnrollment",
+        "daysRemaining": 5
+      }
+    },
+    {
+      "caseId": "credit-rolling-not-yet-eligible",
+      "asOf": "2026-12-01",
+      "cardId": "fixture-rolling-card",
+      "credit": {
+        "creditId": "rolling-nexus",
+        "label": "NEXUS fee rebate",
+        "value": { "amount": 100, "currency": "CAD" },
+        "schedule": { "basis": "rolling", "intervalMonths": 48 },
+        "redemptionMethod": "statementCredit",
+        "sourceType": "issuerConfirmed",
+        "lastVerifiedAt": "2026-08-24"
+      },
+      "cardState": {
+        "creditStates": {
+          "rolling-nexus": {
+            "enrollmentStatus": "unknown",
+            "windows": {},
+            "lastRedemptionAt": "2023-01-15"
+          }
+        }
+      },
+      "expected": {
+        "windowId": "rolling:2023-01-15",
+        "nextEligibleOn": "2027-01-15",
+        "remainingAmount": 0,
+        "realizedAmount": 0,
+        "status": "notYetEligible"
+      }
+    },
+    {
+      "caseId": "credit-account-anniversary-needs-anchor",
+      "asOf": "2026-08-25",
+      "cardId": "fixture-anniversary-card",
+      "credit": {
+        "creditId": "annual-travel",
+        "label": "Annual travel credit",
+        "value": { "amount": 200, "currency": "CAD" },
+        "schedule": { "basis": "accountAnniversary", "intervalMonths": 12 },
+        "redemptionMethod": "portalCredit",
+        "sourceType": "issuerConfirmed",
+        "lastVerifiedAt": "2026-08-24"
+      },
+      "cardState": {},
+      "expected": {
+        "windowId": "account-anniversary:unknown",
+        "remainingAmount": 200,
+        "realizedAmount": 0,
+        "status": "scheduleUnresolved"
+      }
+    }
+  ],
   "cases": [
     {
       "caseId": "grocery-standalone-100",

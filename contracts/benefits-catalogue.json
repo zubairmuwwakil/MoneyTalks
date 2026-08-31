@@ -1,6 +1,6 @@
 {
   "benefitsCatalogueVersion": "1.3",
-  "_provenance": "Official issuer and underwriter document research refreshed 2026-08-29 for all 27 current wallet cards. Each card now has a document index; public issuer sources remain issuerPage evidence and certificateVerified is reserved for matching the owner’s own issued documents. Crypto.com Royal Indigo now has its official prepaid-card agreement, but no public insurance certificate was located, so its benefits remain stubbed.",
+  "_provenance": "Official issuer and underwriter document research refreshed 2026-08-29 for all 27 current wallet cards. Each card now has a document index; public issuer sources remain issuerPage evidence and certificateVerified is reserved for matching the owner\u2019s own issued documents. Crypto.com Royal Indigo now has its official prepaid-card agreement, but no public insurance certificate was located, so its benefits remain stubbed.",
   "triggers": {
     "bigTicketThresholdCad": 150,
     "consumableCategories": [
@@ -53,7 +53,7 @@
           ],
           "exclusions": [],
           "certificateQuote": null,
-          "notes": "Buyer’s Assurance extends an eligible original warranty by up to one additional year."
+          "notes": "Buyer\u2019s Assurance extends an eligible original warranty by up to one additional year."
         },
         {
           "benefitId": "platinum-flight-delay",
@@ -168,13 +168,13 @@
         {
           "documentId": "amex-platinum-issuer-card-page",
           "kind": "productPage",
-          "title": "The Platinum Card from American Express — issuer page",
+          "title": "The Platinum Card from American Express \u2014 issuer page",
           "url": "https://www.americanexpress.com/en-ca/charge-cards/the-platinum-card/",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "amex-platinum-certificate-source",
@@ -338,13 +338,13 @@
         {
           "documentId": "amex-cobalt-issuer-card-page",
           "kind": "productPage",
-          "title": "American Express Cobalt Card — issuer page",
+          "title": "American Express Cobalt Card \u2014 issuer page",
           "url": "https://www.americanexpress.com/en-ca/credit-cards/cobalt-card/",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "amex-cobalt-certificate-source",
@@ -475,13 +475,13 @@
         {
           "documentId": "amex-bonvoy-issuer-card-page",
           "kind": "productPage",
-          "title": "Marriott Bonvoy American Express Card — issuer page",
+          "title": "Marriott Bonvoy American Express Card \u2014 issuer page",
           "url": "https://www.americanexpress.com/en-ca/credit-cards/marriott-bonvoy-card/",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "amex-bonvoy-certificate-source",
@@ -648,13 +648,13 @@
         {
           "documentId": "mbna-rewards-we-issuer-card-page",
           "kind": "productPage",
-          "title": "MBNA Rewards World Elite Mastercard — issuer page",
+          "title": "MBNA Rewards World Elite Mastercard \u2014 issuer page",
           "url": "https://www.mbna.ca/en/credit-cards/rewards/mbna-rewards-world-elite-mastercard",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "mbna-rewards-we-certificate-source",
@@ -849,13 +849,13 @@
         {
           "documentId": "scotia-momentum-vi-plus-issuer-card-page",
           "kind": "productPage",
-          "title": "Scotia Momentum Visa Infinite + Card — issuer page",
+          "title": "Scotia Momentum Visa Infinite + Card \u2014 issuer page",
           "url": "https://www.scotiabank.com/ca/en/personal/credit-cards/visa/momentum-infinite-card/welcome-kit/terms-conditions-momentum-infinite.html",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "scotia-momentum-vi-plus-certificate-source",
@@ -958,13 +958,13 @@
         {
           "documentId": "tangerine-moneyback-world-issuer-card-page",
           "kind": "productPage",
-          "title": "Tangerine Money-Back World Mastercard — issuer page",
+          "title": "Tangerine Money-Back World Mastercard \u2014 issuer page",
           "url": "https://www.tangerine.ca/en/personal/spend/credit-cards/merchant-category-codes",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "tangerine-moneyback-world-certificate-source",
@@ -1092,20 +1092,20 @@
             "Coverage ends when the insured person reaches age 76."
           ],
           "certificateQuote": null,
-          "notes": "Maximum $1,000,000. Age 64 or younger: first 10 days; ages 65–75: first 3 days. maxTripLengthDays is null because a single value would misrepresent the tiered rule."
+          "notes": "Maximum $1,000,000. Age 64 or younger: first 10 days; ages 65\u201375: first 3 days. maxTripLengthDays is null because a single value would misrepresent the tiered rule."
         }
       ],
       "documents": [
         {
           "documentId": "rogers-red-we-issuer-card-page",
           "kind": "productPage",
-          "title": "Rogers Red World Elite Mastercard — issuer page",
+          "title": "Rogers Red World Elite Mastercard \u2014 issuer page",
           "url": "https://www.rogersbank.com/en/rogers_red_worldelite_mastercard_details",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "rogers-red-we-certificate-source",
@@ -1193,13 +1193,13 @@
         {
           "documentId": "triangle-we-issuer-card-page",
           "kind": "productPage",
-          "title": "Triangle World Elite Mastercard — issuer page",
+          "title": "Triangle World Elite Mastercard \u2014 issuer page",
           "url": "https://triangle.canadiantire.ca/en/credit-cards/triangle-world-elite-mastercard.html",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "triangle-we-certificate-source",
@@ -1402,13 +1402,13 @@
         {
           "documentId": "wealthsimple-vip-issuer-card-page",
           "kind": "productPage",
-          "title": "Wealthsimple Visa Infinite Privilege Credit Card — issuer page",
+          "title": "Wealthsimple Visa Infinite Privilege Credit Card \u2014 issuer page",
           "url": "https://www.wealthsimple.com/en-ca/credit-card",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "wealthsimple-vip-certificate-source",
@@ -1455,13 +1455,13 @@
         {
           "documentId": "cryptocom-royal-indigo-issuer-card-page",
           "kind": "productPage",
-          "title": "Crypto.com Prepaid Visa Card (Royal Indigo) — issuer page",
+          "title": "Crypto.com Prepaid Visa Card (Royal Indigo) \u2014 issuer page",
           "url": "https://crypto.com/ca/cards/",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "cryptocom-royal-indigo-cardholder-agreement",
@@ -1646,13 +1646,13 @@
         {
           "documentId": "scotia-gold-amex-issuer-card-page",
           "kind": "productPage",
-          "title": "Scotiabank Gold American Express Card — issuer page",
+          "title": "Scotiabank Gold American Express Card \u2014 issuer page",
           "url": "https://www.scotiabank.com/ca/en/personal/credit-cards/american-express/gold-card.html",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "scotia-gold-amex-certificate-source",
@@ -1845,13 +1845,13 @@
         {
           "documentId": "td-aeroplan-visa-infinite-issuer-card-page",
           "kind": "productPage",
-          "title": "TD Aeroplan Visa Infinite Card — issuer page",
+          "title": "TD Aeroplan Visa Infinite Card \u2014 issuer page",
           "url": "https://www.td.com/ca/en/personal-banking/products/credit-cards/aeroplan/aeroplan-visa-infinite-card",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "td-aeroplan-visa-infinite-certificate-source",
@@ -2053,13 +2053,13 @@
         {
           "documentId": "rbc-avion-visa-infinite-issuer-card-page",
           "kind": "productPage",
-          "title": "RBC Avion Visa Infinite — issuer page",
+          "title": "RBC Avion Visa Infinite \u2014 issuer page",
           "url": "https://www.rbcroyalbank.com/credit-cards/travel/rbc-avion-visa-infinite.html",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "rbc-avion-visa-infinite-certificate-source",
@@ -2189,13 +2189,13 @@
         {
           "documentId": "cibc-dividend-visa-infinite-issuer-card-page",
           "kind": "productPage",
-          "title": "CIBC Dividend Visa Infinite Card — issuer page",
+          "title": "CIBC Dividend Visa Infinite Card \u2014 issuer page",
           "url": "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/dividend-visa-infinite-card.html",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "cibc-dividend-visa-infinite-certificate-source",
@@ -2375,13 +2375,13 @@
         {
           "documentId": "scotia-passport-visa-infinite-plus-issuer-card-page",
           "kind": "productPage",
-          "title": "Scotiabank Passport Visa Infinite + Card — issuer page",
+          "title": "Scotiabank Passport Visa Infinite + Card \u2014 issuer page",
           "url": "https://www.scotiabank.com/ca/en/personal/credit-cards/visa/passport-infinite-card.html",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "scotia-passport-visa-infinite-plus-certificate-source",
@@ -2559,13 +2559,13 @@
         {
           "documentId": "td-first-class-travel-visa-infinite-issuer-card-page",
           "kind": "productPage",
-          "title": "TD First Class Travel Visa Infinite Card — issuer page",
+          "title": "TD First Class Travel Visa Infinite Card \u2014 issuer page",
           "url": "https://www.td.com/ca/en/personal-banking/products/credit-cards/travel-rewards/first-class-travel-visa-infinite-card",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "td-first-class-travel-visa-infinite-certificate-source",
@@ -2686,13 +2686,13 @@
         {
           "documentId": "bmo-eclipse-visa-infinite-issuer-card-page",
           "kind": "productPage",
-          "title": "BMO eclipse Visa Infinite Card — issuer page",
+          "title": "BMO eclipse Visa Infinite Card \u2014 issuer page",
           "url": "https://www.bmo.com/main/personal/credit-cards/bmo-eclipse-visa-infinite/",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "bmo-eclipse-visa-infinite-certificate-source",
@@ -2885,13 +2885,13 @@
         {
           "documentId": "cibc-aventura-visa-infinite-issuer-card-page",
           "kind": "productPage",
-          "title": "CIBC Aventura Visa Infinite Card — issuer page",
+          "title": "CIBC Aventura Visa Infinite Card \u2014 issuer page",
           "url": "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/aventura-visa-infinite-card.html",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "cibc-aventura-visa-infinite-certificate-source",
@@ -3084,13 +3084,13 @@
         {
           "documentId": "national-bank-world-elite-issuer-card-page",
           "kind": "productPage",
-          "title": "National Bank World Elite Mastercard credit card — issuer page",
+          "title": "National Bank World Elite Mastercard credit card \u2014 issuer page",
           "url": "https://www.nbc.ca/personal/mastercard-credit-cards/world-elite.html",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "national-bank-world-elite-certificate-source",
@@ -3196,13 +3196,13 @@
         {
           "documentId": "pc-insiders-world-elite-issuer-card-page",
           "kind": "productPage",
-          "title": "PC Insiders World Elite Mastercard — issuer page",
+          "title": "PC Insiders World Elite Mastercard \u2014 issuer page",
           "url": "https://www.pcfinancial.ca/en/credit-cards/insiders-world-elite/",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "pc-insiders-world-elite-certificate-source",
@@ -3287,13 +3287,13 @@
         {
           "documentId": "rbc-ion-plus-visa-issuer-card-page",
           "kind": "productPage",
-          "title": "RBC ION+ Visa — issuer page",
+          "title": "RBC ION+ Visa \u2014 issuer page",
           "url": "https://www.rbcroyalbank.com/credit-cards/rewards/rbc-ion-plus-visa.html",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "rbc-ion-plus-visa-certificate-source",
@@ -3452,13 +3452,13 @@
         {
           "documentId": "td-cash-back-visa-infinite-issuer-card-page",
           "kind": "productPage",
-          "title": "TD Cash Back Visa Infinite Card — issuer page",
+          "title": "TD Cash Back Visa Infinite Card \u2014 issuer page",
           "url": "https://www.td.com/ca/en/personal-banking/products/credit-cards/cash-back/cash-back-visa-infinite-card",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "td-cash-back-visa-infinite-certificate-source",
@@ -3636,13 +3636,13 @@
         {
           "documentId": "bmo-ascend-world-elite-issuer-card-page",
           "kind": "productPage",
-          "title": "BMO Ascend World Elite Mastercard — issuer page",
+          "title": "BMO Ascend World Elite Mastercard \u2014 issuer page",
           "url": "https://www.bmo.com/en-ca/main/personal/credit-cards/bmo-ascend-world-elite-mastercard/",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "bmo-ascend-world-elite-certificate-source",
@@ -3835,13 +3835,13 @@
         {
           "documentId": "westjet-rbc-world-elite-issuer-card-page",
           "kind": "productPage",
-          "title": "WestJet RBC World Elite Mastercard — issuer page",
+          "title": "WestJet RBC World Elite Mastercard \u2014 issuer page",
           "url": "https://www.rbcroyalbank.com/credit-cards/travel/westjet-rbc-world-elite-mastercard.html",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "westjet-rbc-world-elite-certificate-source",
@@ -3938,13 +3938,13 @@
         {
           "documentId": "amazon-ca-rewards-mastercard-issuer-card-page",
           "kind": "productPage",
-          "title": "Amazon.ca Rewards Mastercard — issuer page",
+          "title": "Amazon.ca Rewards Mastercard \u2014 issuer page",
           "url": "https://www.mbna.ca/en/credit-cards/retail-store/amazon-rewards-mastercard",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "amazon-ca-rewards-mastercard-certificate-source",
@@ -4014,13 +4014,13 @@
         {
           "documentId": "cibc-aventura-visa-issuer-card-page",
           "kind": "productPage",
-          "title": "CIBC Aventura Visa Card — issuer page",
+          "title": "CIBC Aventura Visa Card \u2014 issuer page",
           "url": "https://www.cibc.com/en/personal-banking/credit-cards/no-annual-fee.html",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "cibc-aventura-visa-certificate-source",
@@ -4090,13 +4090,13 @@
         {
           "documentId": "amex-simplycash-issuer-card-page",
           "kind": "productPage",
-          "title": "SimplyCash Card from American Express — issuer page",
+          "title": "SimplyCash Card from American Express \u2014 issuer page",
           "url": "https://www.americanexpress.com/en-ca/benefits/simplycash-card/",
           "effectiveDate": null,
           "jurisdiction": "Canada",
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-29",
-          "notes": "Official issuer or program page used for current product context; it is not the cardholder’s personal agreement."
+          "notes": "Official issuer or program page used for current product context; it is not the cardholder\u2019s personal agreement."
         },
         {
           "documentId": "amex-simplycash-certificate-source",
@@ -4361,7 +4361,7 @@
         {
           "documentId": "walmart-world-certificate-source",
           "kind": "certificateOfInsurance",
-          "title": "Certificate of Insurance — Purchase Assurance & Extended Warranty — Walmart Rewards World Mastercard",
+          "title": "Certificate of Insurance \u2014 Purchase Assurance & Extended Warranty \u2014 Walmart Rewards World Mastercard",
           "url": "https://www.walmartrewards.ca/content/dam/wr/legal-documents-footer/insurance-purchase-assurance/PAEW_Certificate_Sep22_EN.pdf",
           "effectiveDate": "2022-09",
           "jurisdiction": "Canada",
@@ -4614,7 +4614,7 @@
           "conditions": [
             "Up to $1,500 per person, maximum $3,000 per trip.",
             "Eligible ticket fare charged to Card.",
-            "Loss must result from a covered cause under §8 chart."
+            "Loss must result from a covered cause under \u00a78 chart."
           ],
           "exclusions": [],
           "certificateQuote": null,
@@ -5086,7 +5086,7 @@
         {
           "documentId": "pc-world-elite-certificate-source",
           "kind": "productPage",
-          "title": "PC Financial World Elite Mastercard — Benefits Summary",
+          "title": "PC Financial World Elite Mastercard \u2014 Benefits Summary",
           "url": "https://www.pcfinancial.ca/en/credit-cards/world-elite/",
           "effectiveDate": null,
           "jurisdiction": "Canada",
@@ -5132,7 +5132,7 @@
           },
           "conditions": [
             "Maximum $2,500 per person per trip before departure.",
-            "Loss must result from 18 recognized covered causes in §4.1."
+            "Loss must result from 18 recognized covered causes in \u00a74.1."
           ],
           "exclusions": [],
           "certificateQuote": null,
@@ -6212,6 +6212,654 @@
           "verificationStatus": "issuerPage",
           "lastVerifiedAt": "2026-08-30",
           "notes": "Group Policy PCF0817."
+        }
+      ]
+    },
+    {
+      "cardId": "scotiabank-amex",
+      "certificate": {
+        "underwriter": "First North American Insurance Company",
+        "sourceUrl": "https://www.scotiabank.com/content/dam/scotiabank/canada/common/documents/pdf/credit_card/Scotiabank_American_Express_Certificate_of_Insurance-EN.pdf",
+        "certificateDate": "2022-07",
+        "lastVerifiedAt": "2026-08-31",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "scotiabank-amex-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "Eligible new personal property must be purchased with the card and/or eligible Scene+ points.",
+            "Coverage applies to eligible loss, theft or damage during the first 90 days after purchase.",
+            "Coverage is excess of other applicable insurance."
+          ],
+          "exclusions": [
+            "Cash, travellers cheques, tickets, negotiable instruments and similar documents.",
+            "Bullion and rare or precious coins.",
+            "Art objects.",
+            "Used, pre-owned, antique or demonstration-model property.",
+            "Animals, living plants and perishable goods.",
+            "Aircraft, automobiles, motorboats, motorcycles and other motorized vehicles and their parts.",
+            "Consumable goods.",
+            "Services and ancillary costs outside the item's purchase price.",
+            "Property purchased for business or commercial use.",
+            "Mail-order purchases before receipt.",
+            "Jewellery carried in unsupervised baggage."
+          ],
+          "certificateQuote": null,
+          "notes": "Purchase Security and Extended Warranty share a maximum lifetime liability of CAD 60,000. The shopping certificate is effective July 1, 2021."
+        },
+        {
+          "benefitId": "scotiabank-amex-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": null
+          },
+          "conditions": [
+            "The eligible item's full purchase price must be charged to the card and/or paid with eligible Scene+ points.",
+            "The original manufacturer's warranty must be valid in Canada or the United States.",
+            "The manufacturer's warranty is doubled for up to one additional year.",
+            "The certificate requires registration within the first year for manufacturer warranties of five years or more."
+          ],
+          "exclusions": [
+            "Used or pre-owned property.",
+            "Motorized vehicles and their parts.",
+            "Living plants and animals.",
+            "Services.",
+            "Business or commercial property."
+          ],
+          "certificateQuote": null,
+          "notes": "The five-year threshold is a registration requirement, not a five-year maximum eligible manufacturer warranty. Combined Purchase Security and Extended Warranty lifetime liability is CAD 60,000."
+        },
+        {
+          "benefitId": "scotiabank-amex-mobile-device-insurance",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 500,
+            "deductibleCad": null
+          },
+          "conditions": [
+            "The mobile device must be new.",
+            "The purchase price must be charged to the card, or the qualifying financing-plan requirements in the certificate must be met.",
+            "Where required by the financing arrangement, all monthly wireless-plan payments must continue to be charged to the card.",
+            "Coverage begins on the later of 30 days after purchase or the date the first required monthly wireless bill is charged.",
+            "Covers eligible loss, theft, accidental damage and mechanical breakdown for up to 2 years.",
+            "Depreciation is 2% for each completed month. Deductible ranges from CAD 25 to CAD 100 based on the device's pre-tax purchase price.",
+            "Maximum one claim in any 12 consecutive months and two claims in any 48 consecutive months across applicable Scotiabank accounts."
+          ],
+          "exclusions": [
+            "Accessories.",
+            "Batteries.",
+            "Devices purchased for resale, professional or commercial use.",
+            "Used or pre-owned devices.",
+            "Unauthorized modified devices.",
+            "Devices lost or stolen while in unsupervised checked baggage.",
+            "Mysterious disappearance.",
+            "Cosmetic damage that does not impair functionality.",
+            "Software or network-related problems.",
+            "Intentional damage."
+          ],
+          "certificateQuote": null,
+          "notes": "Mobile-device certificate effective July 1, 2022. Underwritten by First North American Insurance Company."
+        }
+      ]
+    },
+    {
+      "cardId": "bmo-cashback",
+      "certificate": {
+        "underwriter": "CUMIS General Insurance Company",
+        "sourceUrl": "https://www.bmo.com/pccgprefix/pdf/EW_PP_en.pdf",
+        "certificateDate": "2023-04",
+        "lastVerifiedAt": "2026-08-31",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "bmo-cashback-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "The full purchase price of eligible personal property or gifts must be charged to the card.",
+            "Coverage applies to eligible theft or damage anywhere in the world during the first 90 days after purchase."
+          ],
+          "exclusions": [
+            "Cash, travellers cheques, tickets and negotiable instruments.",
+            "Animals and living plants.",
+            "Consumable and perishable goods.",
+            "Mail-order or online purchases before delivery.",
+            "Used, pre-owned, rebuilt, refurbished or previously owned property.",
+            "Many motorized vehicles and their parts.",
+            "Jewellery, gems, watches and furs in unsupervised baggage.",
+            "Property purchased for business or commercial use."
+          ],
+          "certificateQuote": null,
+          "notes": "Combined Purchase Protection and Extended Warranty maximum lifetime liability is CAD 60,000 per Account."
+        },
+        {
+          "benefitId": "bmo-cashback-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": null
+          },
+          "conditions": [
+            "The full purchase price must be charged to the card.",
+            "The original manufacturer's warranty must be valid in Canada.",
+            "The original warranty is extended by up to one additional year.",
+            "Manufacturer warranties longer than five years require registration within one year after purchase."
+          ],
+          "exclusions": [
+            "Business or commercial property.",
+            "Used or pre-owned property.",
+            "Motorized vehicles and their parts where excluded by the certificate.",
+            "Items not covered by a valid original manufacturer warranty."
+          ],
+          "certificateQuote": null,
+          "notes": "The five-year threshold determines registration requirements; it is not a maximum original warranty duration. Combined lifetime liability with Purchase Protection is CAD 60,000 per Account."
+        }
+      ]
+    },
+    {
+      "cardId": "mbna-rewards-platinum",
+      "certificate": {
+        "underwriter": "TD Home and Auto Insurance Company; American Bankers Insurance Company of Florida",
+        "sourceUrl": "https://www.mbna.ca/content/dam/mbna/document/pdf/credit-cards/mbna-rewards-platinum-plus-guide-to-coverage-en.pdf",
+        "certificateDate": "2026-01",
+        "lastVerifiedAt": "2026-08-31",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "mbna-rewards-platinum-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "The full cost of the eligible item must be charged to the account.",
+            "Eligible new personal property is protected against covered loss, theft or damage for 90 days after purchase."
+          ],
+          "exclusions": [
+            "Cash and negotiable instruments.",
+            "Used or pre-owned property.",
+            "Motorized vehicles and excluded vehicle parts.",
+            "Property purchased for business or commercial purposes.",
+            "Loss arising from fraud, abuse or illegal acts.",
+            "Normal wear and tear.",
+            "Flood or earthquake where excluded by the certificate.",
+            "Mysterious disappearance.",
+            "Inherent product defects."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company under Group Master Policy TGV012. Aggregate lifetime Purchase Assurance and Extended Warranty coverage is CAD 60,000 per Account. Computers, software, parts and accessories collectively have a CAD 1,000 limit per loss; jewellery and fine art have a CAD 500 limit per item per loss."
+        },
+        {
+          "benefitId": "mbna-rewards-platinum-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": null
+          },
+          "conditions": [
+            "The full cost of the eligible item must be charged to the account.",
+            "The manufacturer's warranty must be valid in Canada.",
+            "The original warranty period is doubled for up to one additional year.",
+            "Warranty coverage is automatic where the original manufacturer warranty does not exceed five years.",
+            "Original manufacturer warranties longer than five years require registration within the first year."
+          ],
+          "exclusions": [
+            "Used or pre-owned property.",
+            "Motorized vehicles and excluded vehicle parts.",
+            "Items without an eligible original manufacturer warranty.",
+            "Business or commercial property where excluded."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company under Group Master Policy TGV012. Combined lifetime limit with Purchase Assurance is CAD 60,000 per Account."
+        },
+        {
+          "benefitId": "mbna-rewards-platinum-mobile-device-insurance",
+          "family": "shopping",
+          "kind": "mobileDeviceInsurance",
+          "coverage": {
+            "maxCad": 1000,
+            "deductibleCad": null
+          },
+          "conditions": [
+            "For an outright purchase, at least 75% of the device's total cost must be charged to the account.",
+            "Qualifying installment-plan purchases must meet the payment conditions specified in the certificate.",
+            "Where required, all monthly wireless-plan payments must continue to be charged to the account.",
+            "Coverage begins on the later of 30 days after purchase or the date the first required wireless bill is charged.",
+            "Covers eligible loss, theft, accidental damage and mechanical breakdown for up to 2 years.",
+            "Depreciation is 2% per completed month and the deductible ranges from CAD 25 to CAD 100.",
+            "Maximum one claim during any 12 consecutive months and two claims during any 48 consecutive months across applicable accounts."
+          ],
+          "exclusions": [
+            "Accessories.",
+            "Batteries.",
+            "Devices intended for resale, professional or commercial use.",
+            "Used or pre-owned devices.",
+            "Unauthorized modified devices.",
+            "Devices lost or stolen while in unsupervised baggage.",
+            "Mysterious disappearance.",
+            "Intentional loss or damage.",
+            "Cosmetic damage that does not impair functionality."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by American Bankers Insurance Company of Florida under Group Policy MBNA-0620. Mobile certificate effective June 24, 2021."
+        }
+      ]
+    },
+    {
+      "cardId": "td-cashback-visa",
+      "certificate": {
+        "underwriter": "TD Home and Auto Insurance Company",
+        "sourceUrl": "https://www.td.com/content/dam/tdct/document/pdf/personal-banking/12281-6a-cashback-roc-e-04-3-5x8-a1-en.pdf",
+        "certificateDate": "2026-01",
+        "lastVerifiedAt": "2026-08-31",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "td-cashback-visa-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": null,
+            "maxAnnualCad": null
+          },
+          "conditions": [
+            "Eligible new personal-use property must have its full purchase price charged to the account.",
+            "Coverage applies for 90 days from the date of purchase for eligible direct physical loss or damage.",
+            "Coverage is excess of other applicable insurance."
+          ],
+          "exclusions": [
+            "Cash and negotiable instruments.",
+            "Fine art where excluded by the certificate.",
+            "Perishable property.",
+            "Jewellery in unsupervised baggage.",
+            "Automobiles, motorboats, aircraft, motorcycles, drones and other excluded motorized vehicles and their parts.",
+            "Used or previously owned property where excluded.",
+            "Losses arising from excluded fraud, intentional acts or illegal activity.",
+            "Normal wear and tear."
+          ],
+          "certificateQuote": null,
+          "notes": "Aggregate lifetime insurance benefit is CAD 60,000 per Account Holder across all TD Credit Cards held by that Account Holder, rather than CAD 60,000 independently per card account."
+        },
+        {
+          "benefitId": "td-cashback-visa-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": null
+          },
+          "conditions": [
+            "The eligible item's full purchase price must be charged to the account.",
+            "The original manufacturer's warranty must be valid in Canada.",
+            "Coverage extends the original manufacturer warranty by the same duration, to a maximum of one additional year.",
+            "Manufacturer warranties of five years or less receive automatic coverage.",
+            "Manufacturer warranties longer than five years require registration within the first year after purchase."
+          ],
+          "exclusions": [
+            "Used or previously owned property where excluded.",
+            "Motorized vehicles and excluded vehicle parts.",
+            "Items without a qualifying manufacturer's warranty.",
+            "Losses or failures excluded by the original manufacturer warranty or the certificate."
+          ],
+          "certificateQuote": null,
+          "notes": "Underwritten by TD Home and Auto Insurance Company under Group Policy TDVP112008. The CAD 60,000 lifetime aggregate applies per Account Holder across all TD Credit Cards."
+        }
+      ]
+    },
+    {
+      "cardId": "citi-double-cash-card",
+      "certificate": {
+        "underwriter": "New Hampshire Insurance Company, an AIG company",
+        "sourceUrl": "https://www.cardbenefits.citi.com/-/media/CPP/Files/LegalDocs/SOAPI/PID142_Double_Cash_CRE387_GTPB_1124_tagged.ashx",
+        "certificateDate": "2024-11",
+        "lastVerifiedAt": "2026-08-31",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "citi-dc-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 2,
+            "maxOriginalWarrantyYears": 2,
+            "maxPerOccurrenceCad": 13500
+          },
+          "conditions": [
+            "Must be charged to the eligible Citi Card.",
+            "Original manufacturer or store warranty must be 24 months or less."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Extends eligible warranty by up to 24 additional months, up to $10,000 USD per claim."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "citi-dc-guide-to-protection-benefits",
+          "kind": "certificateOfInsurance",
+          "title": "Mastercard Guide to Protection Benefits - Citi Double Cash",
+          "url": "https://www.cardbenefits.citi.com/-/media/CPP/Files/LegalDocs/SOAPI/PID142_Double_Cash_CRE387_GTPB_1124_tagged.ashx",
+          "effectiveDate": "2024-11",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-31",
+          "notes": "Official AIG / New Hampshire Insurance Company Guide to Protection Benefits."
+        }
+      ]
+    },
+    {
+      "cardId": "elan-financial-services-fidelity-rewards-visa",
+      "certificate": {
+        "underwriter": "Indemnity Insurance Company of North America; Federal Insurance Company",
+        "sourceUrl": "https://www.fidelity.com/bin-public/060_www_fidelity_com/documents/fidelity/Fidelity-Visa-Signature-Card-Guide-to-Benefits.pdf",
+        "certificateDate": "2026-07-01",
+        "lastVerifiedAt": "2026-08-31",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "fidelity-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxCad": 100000
+          },
+          "conditions": [
+            "Rental must be initiated and paid in full with the eligible Visa Signature card.",
+            "Decline the rental agency's collision damage waiver.",
+            "Covered rentals up to 31 consecutive days."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Secondary coverage in country of residence ($75,000 USD limit), primary when no other insurance applies or outside country of residence."
+        },
+        {
+          "benefitId": "fidelity-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 675,
+            "maxAnnualCad": 67500
+          },
+          "conditions": [
+            "Eligible item must be charged to the card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Purchase Security covers theft and damage up to $500 USD per claim, $50,000 USD per cardholder. Note: Guide states benefit sunsets Jan 1, 2027."
+        },
+        {
+          "benefitId": "fidelity-baggage-loss",
+          "family": "travelDisruption",
+          "kind": "baggageLoss",
+          "coverage": {
+            "maxCad": 4000
+          },
+          "conditions": [
+            "Entire common carrier fare must be charged to the card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Covers lost luggage up to $3,000 USD."
+        },
+        {
+          "benefitId": "fidelity-travel-medical",
+          "family": "travelMedical",
+          "kind": "travelMedical",
+          "coverage": {
+            "maxCad": 3375,
+            "deductibleCad": 67.5
+          },
+          "conditions": [
+            "Covers emergency medical and dental expenses during covered trips of 3 to 60 days outside home area.",
+            "Subject to $50 USD deductible."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Emergency medical and dental coverage up to $2,500 USD on covered trips; includes up to $75/day hotel convalescence up to 5 days."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "fidelity-visa-signature-guide-to-benefits",
+          "kind": "certificateOfInsurance",
+          "title": "Fidelity Rewards Visa Signature Card Guide to Benefits",
+          "url": "https://www.fidelity.com/bin-public/060_www_fidelity_com/documents/fidelity/Fidelity-Visa-Signature-Card-Guide-to-Benefits.pdf",
+          "effectiveDate": "2026-07-01",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-31",
+          "notes": "Official Guide to Benefits effective July 1, 2026."
+        }
+      ]
+    },
+    {
+      "cardId": "citi-custom-cash-card",
+      "certificate": {
+        "underwriter": "New Hampshire Insurance Company, an AIG company",
+        "sourceUrl": "https://www.citi.com/credit-cards/citi-custom-cash-credit-card/",
+        "certificateDate": null,
+        "lastVerifiedAt": "2026-08-31",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "citi-custom-cash-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 2,
+            "maxOriginalWarrantyYears": 2,
+            "maxPerOccurrenceCad": 13500
+          },
+          "conditions": [
+            "Must be charged to the eligible Citi Card.",
+            "Original manufacturer or store warranty must be 24 months or less."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Extends eligible warranty up to an additional 24 months under New Hampshire Insurance Company (AIG)."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "citi-custom-cash-product-page",
+          "kind": "productPage",
+          "title": "Citi Custom Cash Credit Card Benefits & Protection",
+          "url": "https://www.citi.com/credit-cards/citi-custom-cash-credit-card/",
+          "effectiveDate": null,
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-31",
+          "notes": "Official Citi product page confirming AIG Extended Warranty."
+        }
+      ]
+    },
+    {
+      "cardId": "capital-one-savor-cash-rewards",
+      "certificate": {
+        "underwriter": "Indemnity Insurance Company of North America; Federal Insurance Company (Chubb)",
+        "sourceUrl": "https://ecm.capitalone.com/WCM/card/benefits-guide/discover-benefits-guides/discover-english.pdf",
+        "certificateDate": "2026-02-01",
+        "lastVerifiedAt": "2026-08-31",
+        "verificationStatus": "issuerPage"
+      },
+      "benefits": [
+        {
+          "benefitId": "capital-one-savor-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxCad": 67500
+          },
+          "conditions": [
+            "Must pay for the entire rental transaction with the eligible Capital One card.",
+            "Decline the rental company's collision damage waiver.",
+            "Covered rentals up to 31 consecutive days."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Up to actual cash value for covered theft/collision. Secondary in country of residence, primary outside country of residence."
+        },
+        {
+          "benefitId": "capital-one-savor-purchase-protection",
+          "family": "shopping",
+          "kind": "purchaseProtection",
+          "coverage": {
+            "windowDays": 90,
+            "maxPerOccurrenceCad": 1350,
+            "maxAnnualCad": 33750
+          },
+          "conditions": [
+            "Eligible item must be charged to the card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Purchase Security covers covered theft or damage up to $1,000 USD per claim, $25,000 USD per cardholder per 12-month period."
+        },
+        {
+          "benefitId": "capital-one-savor-extended-warranty",
+          "family": "shopping",
+          "kind": "extendedWarranty",
+          "coverage": {
+            "extraYears": 1,
+            "maxOriginalWarrantyYears": 2,
+            "maxPerOccurrenceCad": 13500,
+            "maxAnnualCad": 67500
+          },
+          "conditions": [
+            "Eligible item must be charged to the card.",
+            "Original manufacturer warranty must be two years or less."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Doubles original manufacturer warranty up to one additional year, max $10,000 USD per claim, $50,000 USD per cardholder."
+        },
+        {
+          "benefitId": "capital-one-savor-baggage-delay",
+          "family": "travelDisruption",
+          "kind": "baggageDelay",
+          "coverage": {
+            "delayHours": 4,
+            "maxCad": 405
+          },
+          "conditions": [
+            "Entire common carrier fare must be charged to the card.",
+            "Baggage delay must exceed 4 hours."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Covers emergency personal purchases up to $100 USD per day for up to 3 days ($300 USD maximum)."
+        },
+        {
+          "benefitId": "capital-one-savor-trip-cancellation",
+          "family": "travelDisruption",
+          "kind": "tripCancellation",
+          "coverage": {
+            "maxCad": 2025
+          },
+          "conditions": [
+            "Qualifying common carrier ticket must be charged to the card."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Covers non-refundable ticket costs up to $1,500 USD per insured person for covered cancellation causes."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "capital-one-savor-discover-network-guide",
+          "kind": "certificateOfInsurance",
+          "title": "Capital One Guide to Card Benefits (Discover Network)",
+          "url": "https://ecm.capitalone.com/WCM/card/benefits-guide/discover-benefits-guides/discover-english.pdf",
+          "effectiveDate": "2026-02-01",
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-31",
+          "notes": "Official Guide to Card Benefits effective February 1, 2026."
+        },
+        {
+          "documentId": "capital-one-savor-rental-help-page",
+          "kind": "productPage",
+          "title": "Capital One Rental Car Insurance Guide",
+          "url": "https://www.capitalone.com/help-center/credit-cards/rental-car-insurance/",
+          "effectiveDate": null,
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-31",
+          "notes": "Official Capital One Help Center page."
+        }
+      ]
+    },
+    {
+      "cardId": "comenity-aaa-daily-advantage-visa-signature",
+      "certificate": {
+        "underwriter": null,
+        "sourceUrl": "https://card.creditcard.acg.aaa.com/credit/benefits.do",
+        "certificateDate": null,
+        "lastVerifiedAt": "2026-08-31",
+        "verificationStatus": "stub"
+      },
+      "benefits": [
+        {
+          "benefitId": "aaa-daily-cdw",
+          "family": "rentalCdw",
+          "kind": "rentalCdw",
+          "coverage": {
+            "maxCad": 67500
+          },
+          "conditions": [
+            "Auto Rental Collision Damage Waiver confirmed on official AAA cardholder perks page.",
+            "Entire rental transaction must be charged to the card and agency CDW declined.",
+            "Request Guide to Benefits from Cardmember Service for full coverage certificate."
+          ],
+          "exclusions": [],
+          "certificateQuote": null,
+          "notes": "Confirmed on AAA cardholder benefits portal."
+        }
+      ],
+      "documents": [
+        {
+          "documentId": "aaa-daily-benefits-page",
+          "kind": "productPage",
+          "title": "AAA Visa Signature Benefits",
+          "url": "https://card.creditcard.acg.aaa.com/credit/benefits.do",
+          "effectiveDate": null,
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-31",
+          "notes": "Official AAA card benefits page."
+        },
+        {
+          "documentId": "aaa-daily-schumer-box",
+          "kind": "feeSchedule",
+          "title": "AAA Visa Signature Credit Card Agreement / Rate and Fee Summary",
+          "url": "https://d.comenity.net/legaldocs/advantage/legal-documents/schumerbox",
+          "effectiveDate": null,
+          "verificationStatus": "issuerPage",
+          "lastVerifiedAt": "2026-08-31",
+          "notes": "Official rate and fee summary."
         }
       ]
     }

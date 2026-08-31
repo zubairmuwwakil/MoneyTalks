@@ -1,7 +1,7 @@
 {
-  "catalogueVersion": "2.16",
+  "catalogueVersion": "2.17",
   "currency": "CAD",
-  "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md — all rules verified 2026-08-15 against issuer pages cited there.",
+  "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md \u2014 all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
     {
       "cardId": "amex-platinum",
@@ -583,7 +583,7 @@
         "https://www.mbna.ca/en/credit-cards/rewards/mbna-rewards-world-elite-mastercard"
       ],
       "lastVerifiedAt": "2026-08-15",
-      "_note": "FIVE SEPARATE $50k calendar-year spend caps, one per category — not one shared cap. Birthday bonus (10% of trailing-12-month points, max 15,000) intentionally excluded from checkout scoring."
+      "_note": "FIVE SEPARATE $50k calendar-year spend caps, one per category \u2014 not one shared cap. Birthday bonus (10% of trailing-12-month points, max 15,000) intentionally excluded from checkout scoring."
     },
     {
       "cardId": "scotia-momentum-vi-plus",
@@ -653,7 +653,7 @@
             "recurringViaNetworkIndicator": true
           },
           "capId": "momentum-4pct-accountYear",
-          "_note": "Grocery = terminal submitted as MCC 5411. Costco is NOT grocery for this rule. Walmart: never hard-code either way — only a location/terminal actually submitting 5411 qualifies (learned per-terminal). Recurring = network recurring-payment indicator, not merchant frequency."
+          "_note": "Grocery = terminal submitted as MCC 5411. Costco is NOT grocery for this rule. Walmart: never hard-code either way \u2014 only a location/terminal actually submitting 5411 qualifies (learned per-terminal). Recurring = network recurring-payment indicator, not merchant frequency."
         },
         {
           "ruleId": "momentum-gas-ev-transit-2pct",
@@ -810,8 +810,8 @@
           5411,
           5462
         ],
-        "_others": "entertainment, furniture, homeImprovement, hotelMotel, transitParking, recurringBills, fitness, eGames, foreignCurrency — full MCC set on issuer page",
-        "_foreignCurrencyGotcha": "Foreign Currency 2% still pays 2.5% FX → net ≈ −0.5% vs converted CAD. Not a no-FX substitute."
+        "_others": "entertainment, furniture, homeImprovement, hotelMotel, transitParking, recurringBills, fitness, eGames, foreignCurrency \u2014 full MCC set on issuer page",
+        "_foreignCurrencyGotcha": "Foreign Currency 2% still pays 2.5% FX \u2192 net \u2248 \u22120.5% vs converted CAD. Not a no-FX substitute."
       },
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
@@ -895,7 +895,7 @@
             "currency": "USD"
           },
           "capId": "rogers-enhanced-accountYear",
-          "_note": "Calculated after CAD conversion; 2.5% FX still applies → net ≈ +0.5% before spread. Wealthsimple 2%/no-FX usually beats this; Rogers matters where Mastercard is required (Costco)."
+          "_note": "Calculated after CAD conversion; 2.5% FX still applies \u2192 net \u2248 +0.5% before spread. Wealthsimple 2%/no-FX usually beats this; Rogers matters where Mastercard is required (Costco)."
         }
       ],
       "caps": [
@@ -993,7 +993,7 @@
             ]
           },
           "capId": null,
-          "_note": "Pre-tax qualifying amount at participating banners: Canadian Tire, Sport Chek, Mark's/L'Équipeur, Party City, Atmosphere, Pro Hockey Life, Sports Rousseau, Hockey Experts, participating Sports Experts. Gift cards and certain products excluded."
+          "_note": "Pre-tax qualifying amount at participating banners: Canadian Tire, Sport Chek, Mark's/L'\u00c9quipeur, Party City, Atmosphere, Pro Hockey Life, Sports Rousseau, Hockey Experts, participating Sports Experts. Gift cards and certain products excluded."
         },
         {
           "ruleId": "triangle-grocery-3pct",
@@ -1045,7 +1045,7 @@
             ]
           },
           "capId": null,
-          "_note": "Cents-per-litre at participating Gas+/Essence+/Petro-Canada; needs litres to value — shown as informational note in v1, not scored.",
+          "_note": "Cents-per-litre at participating Gas+/Essence+/Petro-Canada; needs litres to value \u2014 shown as informational note in v1, not scored.",
           "requires": [
             "earn.perLitre"
           ]
@@ -1091,7 +1091,7 @@
           "amount": 20,
           "currency": "CAD"
         },
-        "waiver": "≥$100k qualifying Wealthsimple assets or $4,000/month direct deposit"
+        "waiver": "\u2265$100k qualifying Wealthsimple assets or $4,000/month direct deposit"
       },
       "program": {
         "programId": "cashback",
@@ -1214,7 +1214,7 @@
             "cryptoLevelUpProActive"
           ],
           "capId": "crypto-monthly-usd",
-          "_note": "3% in CRO only while Level Up Pro is active. Card art does not establish the rate. No active plan → no rewards → engine excludes card entirely."
+          "_note": "3% in CRO only while Level Up Pro is active. Card art does not establish the rate. No active plan \u2192 no rewards \u2192 engine excludes card entirely."
         }
       ],
       "caps": [
@@ -1229,7 +1229,7 @@
             "rate": 0
           },
           "proration": true,
-          "_note": "US$2,500-equivalent eligible spend per calendar month, resets 00:00 UTC day 1. Marketing page's '$75' cap label has a currency ambiguity — spend cap + source currency stored explicitly; flagged for issuer review."
+          "_note": "US$2,500-equivalent eligible spend per calendar month, resets 00:00 UTC day 1. Marketing page's '$75' cap label has a currency ambiguity \u2014 spend cap + source currency stored explicitly; flagged for issuer review."
         }
       ],
       "perTransactionRewardVisibility": "issuerConfirmed",
@@ -1385,7 +1385,7 @@
           },
           "capId": "scotia-gold-accelerated-calendarYear",
           "scoredInV1": false,
-          "_note": "Blocker unconfirmed; may be enableable — plain category predicate on a supported calendarYear cap. Verify against Scotia terms."
+          "_note": "Blocker unconfirmed; may be enableable \u2014 plain category predicate on a supported calendarYear cap. Verify against Scotia terms."
         },
         {
           "ruleId": "scotia-gold-streaming-3x",
@@ -4167,7 +4167,7 @@
           },
           "capId": null,
           "_note": "2x points on eligible dining and food delivery purchases in Canada.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [],
@@ -4266,7 +4266,7 @@
           },
           "capId": "td-aeroplan-vip-accelerated-annual",
           "_note": "1.5x points on eligible gas, grocery, travel, and dining purchases.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [
@@ -4395,7 +4395,7 @@
           },
           "capId": "cibc-aeroplan-vip-accelerated-annual",
           "_note": "1.5x points on eligible gas, grocery, travel, and dining purchases.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [
@@ -4498,7 +4498,7 @@
           },
           "capId": null,
           "_note": "2x points on eligible flights, hotels, car rentals, and tour operators.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "gold-rewards-gas-grocery-drug-2x",
@@ -4521,7 +4521,7 @@
           },
           "capId": null,
           "_note": "2x points on eligible standalone gas stations, grocery stores, and drugstores in Canada.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "gold-rewards-amex-travel-bonus",
@@ -4545,7 +4545,7 @@
           },
           "capId": null,
           "_note": "+1 bonus point per dollar on eligible hotel and car rental bookings through Amex Travel.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [],
@@ -4743,7 +4743,7 @@
     {
       "cardId": "desjardins-odyssey-world-elite",
       "officialName": "Desjardins Odyssey World Elite Mastercard",
-      "issuer": "Fédération des caisses Desjardins du Québec",
+      "issuer": "F\u00e9d\u00e9ration des caisses Desjardins du Qu\u00e9bec",
       "market": "CA",
       "billingCurrency": "CAD",
       "network": "mastercard",
@@ -4783,7 +4783,7 @@
           "predicate": {},
           "capId": null,
           "_note": "1.5% in BONUSDOLLARS on all other eligible purchases.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "desjardins-odyssey-we-grocery-3pct",
@@ -4803,7 +4803,7 @@
           },
           "capId": null,
           "_note": "3% in BONUSDOLLARS on eligible grocery store purchases.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "desjardins-odyssey-we-dining-3pct",
@@ -4824,7 +4824,7 @@
           },
           "capId": null,
           "_note": "3% in BONUSDOLLARS on restaurants and dining purchases.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "desjardins-odyssey-we-entertainment-3pct",
@@ -4844,7 +4844,7 @@
           },
           "capId": null,
           "_note": "3% in BONUSDOLLARS on entertainment purchases and show tickets.",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         },
         {
           "ruleId": "desjardins-odyssey-we-green-transit-3pct",
@@ -4865,7 +4865,7 @@
           },
           "capId": null,
           "_note": "3% in BONUSDOLLARS on alternative transportation (public transit, EV charging, train, bike share).",
-          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks — no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn — so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
+          "_migrationNote": "Migrated 2026-08-24 off the retired scoredInV1 vocabulary. Verified to need no engine capability the build lacks \u2014 no cap outside calendarMonth/calendarYear/accountYear, no MCC or merchant-list predicate, plain points/cashback earn \u2014 so there was no blocker to declare and the rule simply scores. A bare scoredInV1:false carried no reason and could never turn itself back on, which is the coupling requires/outOfScope replaced."
         }
       ],
       "caps": [],
@@ -5212,7 +5212,7 @@
     },
     {
       "cardId": "cibc-dividend-visa",
-      "officialName": "CIBC Dividend® Visa* Card",
+      "officialName": "CIBC Dividend\u00ae Visa* Card",
       "issuer": "CIBC",
       "market": "CA",
       "billingCurrency": "CAD",
@@ -5548,7 +5548,7 @@
     },
     {
       "cardId": "walmart-rewards-mastercard",
-      "officialName": "Walmart Rewards™ Mastercard®",
+      "officialName": "Walmart Rewards\u2122 Mastercard\u00ae",
       "issuer": "Fairstone Bank of Canada",
       "market": "CA",
       "billingCurrency": "CAD",
@@ -5620,7 +5620,7 @@
     },
     {
       "cardId": "walmart-rewards-world-mastercard",
-      "officialName": "Walmart Rewards™ World Mastercard®",
+      "officialName": "Walmart Rewards\u2122 World Mastercard\u00ae",
       "issuer": "Fairstone Bank of Canada",
       "market": "CA",
       "billingCurrency": "CAD",
@@ -5692,7 +5692,7 @@
     },
     {
       "cardId": "alliant-credit-union-alliant-cashback-visa",
-      "officialName": "Alliant Cashback Visa® Signature Credit Card",
+      "officialName": "Alliant Cashback Visa\u00ae Signature Credit Card",
       "issuer": "Alliant Credit Union",
       "market": "US",
       "billingCurrency": "USD",
@@ -5717,7 +5717,7 @@
     },
     {
       "cardId": "american-express-blue-business-plus",
-      "officialName": "The Blue Business® Plus Credit Card from American Express",
+      "officialName": "The Blue Business\u00ae Plus Credit Card from American Express",
       "issuer": "American Express",
       "market": "US",
       "billingCurrency": "USD",
@@ -5796,7 +5796,7 @@
     },
     {
       "cardId": "american-express-blue-from-american-express",
-      "officialName": "Blue from American Express®",
+      "officialName": "Blue from American Express\u00ae",
       "issuer": "American Express",
       "market": "US",
       "billingCurrency": "USD",
@@ -5896,7 +5896,7 @@
     },
     {
       "cardId": "american-express-everyday-card",
-      "officialName": "American Express EveryDay® Card",
+      "officialName": "American Express EveryDay\u00ae Card",
       "issuer": "American Express",
       "market": "US",
       "billingCurrency": "USD",
@@ -5946,7 +5946,7 @@
     },
     {
       "cardId": "american-express-gold-card",
-      "officialName": "American Express® Gold Card",
+      "officialName": "American Express\u00ae Gold Card",
       "issuer": "American Express",
       "market": "US",
       "billingCurrency": "USD",
@@ -6120,7 +6120,7 @@
     },
     {
       "cardId": "american-express-green-card",
-      "officialName": "American Express® Green Card",
+      "officialName": "American Express\u00ae Green Card",
       "issuer": "American Express",
       "market": "US",
       "billingCurrency": "USD",
@@ -6145,7 +6145,7 @@
     },
     {
       "cardId": "american-express-the-business-platinum-card",
-      "officialName": "The Business Platinum Card® from American Express",
+      "officialName": "The Business Platinum Card\u00ae from American Express",
       "issuer": "American Express",
       "market": "US",
       "billingCurrency": "USD",
@@ -6170,7 +6170,7 @@
     },
     {
       "cardId": "american-express-the-platinum-card",
-      "officialName": "The Platinum Card® from American Express",
+      "officialName": "The Platinum Card\u00ae from American Express",
       "issuer": "American Express",
       "market": "US",
       "billingCurrency": "USD",
@@ -6270,7 +6270,7 @@
     },
     {
       "cardId": "bank-of-america-business-advantage-customized",
-      "officialName": "Bank of America® Business Advantage Customized Cash Rewards Mastercard®",
+      "officialName": "Bank of America\u00ae Business Advantage Customized Cash Rewards Mastercard\u00ae",
       "issuer": "Bank of America",
       "market": "US",
       "billingCurrency": "USD",
@@ -6295,7 +6295,7 @@
     },
     {
       "cardId": "citi-secured-mastercard",
-      "officialName": "Citi® Secured Mastercard®",
+      "officialName": "Citi\u00ae Secured Mastercard\u00ae",
       "issuer": "Citi",
       "market": "US",
       "billingCurrency": "USD",
@@ -6320,7 +6320,7 @@
     },
     {
       "cardId": "comenity-bread-cashback-american-express",
-      "officialName": "Bread Cashback® American Express® Credit Card",
+      "officialName": "Bread Cashback\u00ae American Express\u00ae Credit Card",
       "issuer": "Comenity",
       "market": "US",
       "billingCurrency": "USD",
@@ -6345,7 +6345,7 @@
     },
     {
       "cardId": "discover-it-cash-back",
-      "officialName": "Discover it® Cash Back",
+      "officialName": "Discover it\u00ae Cash Back",
       "issuer": "Discover",
       "market": "US",
       "billingCurrency": "USD",
@@ -6370,7 +6370,7 @@
     },
     {
       "cardId": "discover-it-chrome",
-      "officialName": "Discover it® Chrome",
+      "officialName": "Discover it\u00ae Chrome",
       "issuer": "Discover",
       "market": "US",
       "billingCurrency": "USD",
@@ -6420,7 +6420,7 @@
     },
     {
       "cardId": "discover-it-miles",
-      "officialName": "Discover it® Miles",
+      "officialName": "Discover it\u00ae Miles",
       "issuer": "Discover",
       "market": "US",
       "billingCurrency": "USD",
@@ -6445,7 +6445,7 @@
     },
     {
       "cardId": "discover-it-secured-credit-card",
-      "officialName": "Discover it® Secured Credit Card",
+      "officialName": "Discover it\u00ae Secured Credit Card",
       "issuer": "Discover",
       "market": "US",
       "billingCurrency": "USD",
@@ -6470,7 +6470,7 @@
     },
     {
       "cardId": "penfed-credit-union-penfed-power-cash-rewards",
-      "officialName": "PenFed Power Cash Rewards® Visa Signature® Card",
+      "officialName": "PenFed Power Cash Rewards\u00ae Visa Signature\u00ae Card",
       "issuer": "PenFed Credit Union",
       "market": "US",
       "billingCurrency": "USD",
@@ -6495,7 +6495,7 @@
     },
     {
       "cardId": "pnc-bank-pnc-cash-rewards-visa-credit-card",
-      "officialName": "PNC Cash Rewards® Visa® Credit Card",
+      "officialName": "PNC Cash Rewards\u00ae Visa\u00ae Credit Card",
       "issuer": "PNC Bank",
       "market": "US",
       "billingCurrency": "USD",
@@ -6520,7 +6520,7 @@
     },
     {
       "cardId": "u-s-bank-shopper-cash-rewards-visa-signature",
-      "officialName": "U.S. Bank Shopper Cash Rewards® Visa Signature® Card",
+      "officialName": "U.S. Bank Shopper Cash Rewards\u00ae Visa Signature\u00ae Card",
       "issuer": "U.S. Bank",
       "market": "US",
       "billingCurrency": "USD",
@@ -6545,7 +6545,7 @@
     },
     {
       "cardId": "u-s-bank-triple-cash-rewards-visa-business",
-      "officialName": "U.S. Bank Triple Cash Rewards Visa® Business Card",
+      "officialName": "U.S. Bank Triple Cash Rewards Visa\u00ae Business Card",
       "issuer": "U.S. Bank",
       "market": "US",
       "billingCurrency": "USD",
@@ -7002,7 +7002,7 @@
     },
     {
       "cardId": "bank-of-america-free-spirit-travel-more-world",
-      "officialName": "Free Spirit® Travel More World Elite Mastercard®",
+      "officialName": "Free Spirit\u00ae Travel More World Elite Mastercard\u00ae",
       "issuer": "Bank of America",
       "market": "US",
       "billingCurrency": "USD",
@@ -7027,7 +7027,7 @@
     },
     {
       "cardId": "barclays-hawaiian-airlines-world-elite",
-      "officialName": "Hawaiian Airlines World Elite Mastercard®",
+      "officialName": "Hawaiian Airlines World Elite Mastercard\u00ae",
       "issuer": "Barclays",
       "market": "US",
       "billingCurrency": "USD",
@@ -7052,7 +7052,7 @@
     },
     {
       "cardId": "chase-aer-lingus-visa-signature-card",
-      "officialName": "Aer Lingus Visa Signature® Card",
+      "officialName": "Aer Lingus Visa Signature\u00ae Card",
       "issuer": "Chase",
       "market": "US",
       "billingCurrency": "USD",
@@ -7077,7 +7077,7 @@
     },
     {
       "cardId": "chase-british-airways-visa-signature-card",
-      "officialName": "British Airways Visa Signature® Card",
+      "officialName": "British Airways Visa Signature\u00ae Card",
       "issuer": "Chase",
       "market": "US",
       "billingCurrency": "USD",
@@ -7177,7 +7177,7 @@
     },
     {
       "cardId": "chase-iberia-visa-signature-card",
-      "officialName": "Iberia Visa Signature® Card",
+      "officialName": "Iberia Visa Signature\u00ae Card",
       "issuer": "Chase",
       "market": "US",
       "billingCurrency": "USD",
@@ -7227,7 +7227,7 @@
     },
     {
       "cardId": "citi-aadvantage-executive-world-elite",
-      "officialName": "Citi® / AAdvantage® Executive World Elite Mastercard®",
+      "officialName": "Citi\u00ae / AAdvantage\u00ae Executive World Elite Mastercard\u00ae",
       "issuer": "Citi",
       "market": "US",
       "billingCurrency": "USD",
@@ -7252,7 +7252,7 @@
     },
     {
       "cardId": "citi-aadvantage-globe-mastercard",
-      "officialName": "Citi® / AAdvantage® Globe™ Mastercard®",
+      "officialName": "Citi\u00ae / AAdvantage\u00ae Globe\u2122 Mastercard\u00ae",
       "issuer": "Citi",
       "market": "US",
       "billingCurrency": "USD",
@@ -7400,7 +7400,7 @@
     },
     {
       "cardId": "american-express-delta-skymiles-gold-business",
-      "officialName": "Delta SkyMiles® Gold Business American Express Card",
+      "officialName": "Delta SkyMiles\u00ae Gold Business American Express Card",
       "issuer": "American Express",
       "market": "US",
       "billingCurrency": "USD",
@@ -7425,7 +7425,7 @@
     },
     {
       "cardId": "american-express-delta-skymiles-platinum",
-      "officialName": "Delta SkyMiles® Platinum American Express Card",
+      "officialName": "Delta SkyMiles\u00ae Platinum American Express Card",
       "issuer": "American Express",
       "market": "US",
       "billingCurrency": "USD",
@@ -7475,7 +7475,7 @@
     },
     {
       "cardId": "bank-of-america-alaska-airlines-atmos-ascent",
-      "officialName": "Alaska Airlines Atmos™ Ascent Visa Signature® Card",
+      "officialName": "Alaska Airlines Atmos\u2122 Ascent Visa Signature\u00ae Card",
       "issuer": "Bank of America",
       "market": "US",
       "billingCurrency": "USD",
@@ -7500,7 +7500,7 @@
     },
     {
       "cardId": "bank-of-america-atmos-rewards-visa-signature",
-      "officialName": "Atmos™ Rewards Visa Signature® Business Credit Card",
+      "officialName": "Atmos\u2122 Rewards Visa Signature\u00ae Business Credit Card",
       "issuer": "Bank of America",
       "market": "US",
       "billingCurrency": "USD",
@@ -7525,7 +7525,7 @@
     },
     {
       "cardId": "bank-of-america-bankamericard-credit-card",
-      "officialName": "BankAmericard® Credit Card",
+      "officialName": "BankAmericard\u00ae Credit Card",
       "issuer": "Bank of America",
       "market": "US",
       "billingCurrency": "USD",
@@ -7550,7 +7550,7 @@
     },
     {
       "cardId": "bank-of-america-bankamericard-credit-card-2",
-      "officialName": "BankAmericard® Credit Card for Students",
+      "officialName": "BankAmericard\u00ae Credit Card for Students",
       "issuer": "Bank of America",
       "market": "US",
       "billingCurrency": "USD",
@@ -7575,7 +7575,7 @@
     },
     {
       "cardId": "bank-of-america-bankamericard-secured",
-      "officialName": "BankAmericard® Secured Credit Card",
+      "officialName": "BankAmericard\u00ae Secured Credit Card",
       "issuer": "Bank of America",
       "market": "US",
       "billingCurrency": "USD",
@@ -7600,7 +7600,7 @@
     },
     {
       "cardId": "barclays-emirates-skywards-premium-world",
-      "officialName": "Emirates Skywards Premium World Elite Mastercard®",
+      "officialName": "Emirates Skywards Premium World Elite Mastercard\u00ae",
       "issuer": "Barclays",
       "market": "US",
       "billingCurrency": "USD",
@@ -7625,7 +7625,7 @@
     },
     {
       "cardId": "barclays-frontier-airlines-world-mastercard",
-      "officialName": "Frontier Airlines World Mastercard®",
+      "officialName": "Frontier Airlines World Mastercard\u00ae",
       "issuer": "Barclays",
       "market": "US",
       "billingCurrency": "USD",
@@ -7749,17 +7749,17 @@
       "lastVerifiedAt": "2026-08-27"
     },
     {
-      "cardId": "capital-one-savorone-rewards-from-capital-one",
-      "officialName": "SavorOne Rewards from Capital One",
+      "cardId": "capital-one-savor-cash-rewards",
+      "officialName": "Capital One Savor Cash Rewards Credit Card",
       "issuer": "Capital One",
       "market": "US",
       "billingCurrency": "USD",
-      "status": "draft",
+      "status": "published",
       "network": "mastercard",
       "kind": "credit",
       "fee": {
         "annual": {
-          "amount": 39,
+          "amount": 0,
           "currency": "USD"
         }
       },
@@ -7767,11 +7767,154 @@
         "programId": "cashback",
         "unit": "usd"
       },
-      "fxRules": [],
-      "earnRules": [],
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.0,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "cap-one-savor-dining-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "categories": [
+              "dining"
+            ]
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "cap-one-savor-grocery-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "categories": [
+              "grocery"
+            ]
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "cap-one-savor-entertainment-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "categories": [
+              "entertainment"
+            ]
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "cap-one-savor-streaming-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "categories": [
+              "streaming"
+            ]
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "cap-one-savor-travel-5pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.05
+          },
+          "predicate": {
+            "categories": [
+              "lodging",
+              "carRental"
+            ]
+          },
+          "outOfScope": {
+            "reason": "Capital One Travel portal booking channel; not eligible at standard POS checkout."
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "cap-one-savor-entertainment-portal-8pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.08
+          },
+          "predicate": {
+            "categories": [
+              "entertainment"
+            ]
+          },
+          "outOfScope": {
+            "reason": "Capital One Entertainment ticketing portal booking channel."
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "cap-one-savor-base-1pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {},
+          "capId": null
+        }
+      ],
       "caps": [],
-      "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "lastVerifiedAt": "2026-08-31",
+      "sources": [
+        "https://www.capitalone.com/credit-cards/savor/",
+        "https://www.capitalone.com/credit-cards/lp/credit-card-agreements/"
+      ]
     },
     {
       "cardId": "chase-aeroplan-card",
@@ -7800,7 +7943,7 @@
     },
     {
       "cardId": "chase-freedom-flex",
-      "officialName": "Chase Freedom Flex® Credit Card",
+      "officialName": "Chase Freedom Flex\u00ae Credit Card",
       "issuer": "JPMorgan Chase Bank, N.A.",
       "market": "US",
       "billingCurrency": "USD",
@@ -7889,7 +8032,7 @@
     },
     {
       "cardId": "chase-freedom-rise-credit-card",
-      "officialName": "Chase Freedom Rise® Credit Card",
+      "officialName": "Chase Freedom Rise\u00ae Credit Card",
       "issuer": "Chase",
       "market": "US",
       "billingCurrency": "USD",
@@ -7914,7 +8057,7 @@
     },
     {
       "cardId": "chase-freedom-unlimited",
-      "officialName": "Chase Freedom Unlimited® Credit Card",
+      "officialName": "Chase Freedom Unlimited\u00ae Credit Card",
       "issuer": "JPMorgan Chase Bank, N.A.",
       "market": "US",
       "billingCurrency": "USD",
@@ -8003,7 +8146,7 @@
     },
     {
       "cardId": "chase-sapphire-preferred-card",
-      "officialName": "Chase Sapphire Preferred® Credit Card",
+      "officialName": "Chase Sapphire Preferred\u00ae Credit Card",
       "issuer": "JPMorgan Chase Bank, N.A.",
       "market": "US",
       "billingCurrency": "USD",
@@ -8151,7 +8294,7 @@
     },
     {
       "cardId": "chase-sapphire-reserve",
-      "officialName": "Chase Sapphire Reserve® Credit Card",
+      "officialName": "Chase Sapphire Reserve\u00ae Credit Card",
       "issuer": "JPMorgan Chase Bank, N.A.",
       "market": "US",
       "billingCurrency": "USD",
@@ -8260,7 +8403,7 @@
     },
     {
       "cardId": "chase-sapphire-reserve-for-business",
-      "officialName": "Sapphire Reserve for Business℠ Credit Card",
+      "officialName": "Sapphire Reserve for Business\u2120 Credit Card",
       "issuer": "Chase",
       "market": "US",
       "billingCurrency": "USD",
@@ -8285,7 +8428,7 @@
     },
     {
       "cardId": "citi-double-cash-card",
-      "officialName": "Citi Double Cash® Card",
+      "officialName": "Citi Double Cash\u00ae Card",
       "issuer": "Citibank, N.A.",
       "market": "US",
       "billingCurrency": "USD",
@@ -8309,17 +8452,40 @@
           "effectiveTo": null,
           "rate": 0.03,
           "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-27"
+          "lastVerifiedAt": "2026-08-31"
         }
       ],
       "earnRules": [
+        {
+          "ruleId": "citi-dc-citi-travel-5x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 5
+          },
+          "predicate": {
+            "categories": [
+              "lodging",
+              "carRental",
+              "entertainment"
+            ]
+          },
+          "outOfScope": {
+            "reason": "Citi Travel portal booking channel; not eligible at standard POS checkout."
+          },
+          "capId": null
+        },
         {
           "ruleId": "citi-dc-base",
           "status": "current",
           "effectiveFrom": null,
           "effectiveTo": null,
           "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-27",
+          "lastVerifiedAt": "2026-08-31",
           "earn": {
             "type": "points",
             "pointsPerUnit": 2
@@ -8330,9 +8496,10 @@
       ],
       "caps": [],
       "perTransactionRewardVisibility": "issuerConfirmed",
-      "lastVerifiedAt": "2026-08-27",
+      "lastVerifiedAt": "2026-08-31",
       "sources": [
-        "https://www.citi.com/credit-cards/citi-double-cash-credit-card"
+        "https://www.citi.com/credit-cards/citi-double-cash-credit-card",
+        "https://www.citi.com/CRD/PDF/DoubleCashThankyouTC.pdf"
       ]
     },
     {
@@ -8387,7 +8554,7 @@
     },
     {
       "cardId": "chase-ink-business-cash-credit-card",
-      "officialName": "Ink Business Unlimited® Credit Card",
+      "officialName": "Ink Business Unlimited\u00ae Credit Card",
       "issuer": "Chase",
       "market": "US",
       "billingCurrency": "USD",
@@ -8412,7 +8579,7 @@
     },
     {
       "cardId": "chase-slate-credit-card",
-      "officialName": "Slate® Credit Card",
+      "officialName": "Slate\u00ae Credit Card",
       "issuer": "Chase",
       "market": "US",
       "billingCurrency": "USD",
@@ -8437,7 +8604,7 @@
     },
     {
       "cardId": "chase-slate-edge-credit-card",
-      "officialName": "Slate Edge® Credit Card",
+      "officialName": "Slate Edge\u00ae Credit Card",
       "issuer": "Chase",
       "market": "US",
       "billingCurrency": "USD",
@@ -8487,7 +8654,7 @@
     },
     {
       "cardId": "citi-diamond-preferred-credit-card",
-      "officialName": "Citi® Diamond Preferred® Credit Card",
+      "officialName": "Citi\u00ae Diamond Preferred\u00ae Credit Card",
       "issuer": "Citi",
       "market": "US",
       "billingCurrency": "USD",
@@ -8512,7 +8679,7 @@
     },
     {
       "cardId": "citi-simplicity-credit-card",
-      "officialName": "Citi Simplicity® Credit Card",
+      "officialName": "Citi Simplicity\u00ae Credit Card",
       "issuer": "Citi",
       "market": "US",
       "billingCurrency": "USD",
@@ -8612,7 +8779,7 @@
     },
     {
       "cardId": "fnbo-evergreen-credit-card",
-      "officialName": "Evergreen® Credit Card",
+      "officialName": "Evergreen\u00ae Credit Card",
       "issuer": "FNBO",
       "market": "US",
       "billingCurrency": "USD",
@@ -8637,7 +8804,7 @@
     },
     {
       "cardId": "fnbo-getaway-credit-card",
-      "officialName": "Getaway℠ Credit Card",
+      "officialName": "Getaway\u2120 Credit Card",
       "issuer": "FNBO",
       "market": "US",
       "billingCurrency": "USD",
@@ -8662,7 +8829,7 @@
     },
     {
       "cardId": "fnbo-greenselect-credit-card",
-      "officialName": "GreenSelect℠ Credit Card",
+      "officialName": "GreenSelect\u2120 Credit Card",
       "issuer": "FNBO",
       "market": "US",
       "billingCurrency": "USD",
@@ -9117,6 +9284,969 @@
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
       "lastVerifiedAt": "2026-08-27"
+    },
+    {
+      "cardId": "scotiabank-amex",
+      "officialName": "Scotiabank American Express\u00ae Card",
+      "issuer": "Scotiabank",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "network": "amex",
+      "kind": "credit",
+      "lastVerifiedAt": "2026-08-31",
+      "perTransactionRewardVisibility": "unknown",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
+      },
+      "program": {
+        "programId": "scenePlus",
+        "unit": "point"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31"
+        }
+      ],
+      "caps": [],
+      "earnRules": [
+        {
+          "ruleId": "scotiabank-amex-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "scotiabank-amex-sceneplus-grocery-partners",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 3
+          },
+          "predicate": {
+            "merchantInclude": [
+              "sobeys",
+              "safeway",
+              "freshco",
+              "chalo-freshco",
+              "thrifty-foods",
+              "iga",
+              "les-marches-tradition",
+              "rachelle-bery",
+              "voila"
+            ],
+            "currency": "CAD"
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "scotiabank-amex-accelerated",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 2
+          },
+          "predicate": {
+            "categories": [
+              "dining",
+              "entertainment",
+              "gasStation",
+              "transit",
+              "streaming",
+              "grocery"
+            ],
+            "currency": "CAD"
+          },
+          "capId": null
+        }
+      ]
+    },
+    {
+      "cardId": "bmo-cashback",
+      "officialName": "BMO CashBack\u00ae Mastercard\u00ae",
+      "issuer": "Bank of Montreal",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "network": "mastercard",
+      "kind": "credit",
+      "lastVerifiedAt": "2026-08-31",
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "cad"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31"
+        }
+      ],
+      "caps": [
+        {
+          "capId": "bmo-cashback-grocery-monthly",
+          "measure": "spendNative",
+          "limit": 500,
+          "period": "calendarMonth",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "proration": true
+        },
+        {
+          "capId": "bmo-cashback-recurring-monthly",
+          "measure": "spendNative",
+          "limit": 500,
+          "period": "calendarMonth",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "proration": true
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "bmo-cashback-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "bmo-cashback-grocery",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "categories": [
+              "grocery"
+            ],
+            "mccInclude": [
+              5411
+            ],
+            "country": "CA"
+          },
+          "capId": "bmo-cashback-grocery-monthly"
+        },
+        {
+          "ruleId": "bmo-cashback-recurring",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {
+            "categories": [
+              "recurring"
+            ],
+            "country": "CA"
+          },
+          "capId": "bmo-cashback-recurring-monthly"
+        }
+      ]
+    },
+    {
+      "cardId": "mbna-rewards-platinum",
+      "officialName": "MBNA Rewards Platinum Plus\u00ae Mastercard\u00ae",
+      "issuer": "MBNA",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "network": "mastercard",
+      "kind": "credit",
+      "lastVerifiedAt": "2026-08-31",
+      "perTransactionRewardVisibility": "unknown",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
+      },
+      "program": {
+        "programId": "mbnaRewards",
+        "unit": "point"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31"
+        }
+      ],
+      "caps": [
+        {
+          "capId": "mbna-rewards-platinum-dining-annual",
+          "measure": "spendNative",
+          "limit": 10000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "proration": true
+        },
+        {
+          "capId": "mbna-rewards-platinum-grocery-annual",
+          "measure": "spendNative",
+          "limit": 10000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "proration": true
+        },
+        {
+          "capId": "mbna-rewards-platinum-digital-annual",
+          "measure": "spendNative",
+          "limit": 10000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "proration": true
+        },
+        {
+          "capId": "mbna-rewards-platinum-memberships-annual",
+          "measure": "spendNative",
+          "limit": 10000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "proration": true
+        },
+        {
+          "capId": "mbna-rewards-platinum-utilities-annual",
+          "measure": "spendNative",
+          "limit": 10000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "proration": true
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "mbna-rewards-platinum-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "mbna-rewards-platinum-dining",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 2
+          },
+          "predicate": {
+            "categories": [
+              "dining"
+            ],
+            "mccInclude": [
+              5812,
+              5814
+            ]
+          },
+          "capId": "mbna-rewards-platinum-dining-annual"
+        },
+        {
+          "ruleId": "mbna-rewards-platinum-grocery",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 2
+          },
+          "predicate": {
+            "categories": [
+              "grocery"
+            ],
+            "mccInclude": [
+              5411,
+              5462,
+              5499
+            ]
+          },
+          "capId": "mbna-rewards-platinum-grocery-annual"
+        },
+        {
+          "ruleId": "mbna-rewards-platinum-digital",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 2
+          },
+          "predicate": {
+            "categories": [
+              "digitalMedia",
+              "streaming"
+            ],
+            "mccInclude": [
+              5968,
+              5815,
+              5816
+            ]
+          },
+          "capId": "mbna-rewards-platinum-digital-annual"
+        },
+        {
+          "ruleId": "mbna-rewards-platinum-memberships",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 2
+          },
+          "predicate": {
+            "categories": [
+              "memberships"
+            ],
+            "mccInclude": [
+              7997,
+              8699
+            ]
+          },
+          "capId": "mbna-rewards-platinum-memberships-annual"
+        },
+        {
+          "ruleId": "mbna-rewards-platinum-utilities",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 2
+          },
+          "predicate": {
+            "categories": [
+              "householdUtilities"
+            ],
+            "mccInclude": [
+              4814,
+              4899,
+              4900
+            ]
+          },
+          "capId": "mbna-rewards-platinum-utilities-annual"
+        }
+      ]
+    },
+    {
+      "cardId": "td-cashback-visa",
+      "officialName": "TD Cash Back Visa Card",
+      "issuer": "TD Canada Trust",
+      "market": "CA",
+      "billingCurrency": "CAD",
+      "network": "visa",
+      "kind": "credit",
+      "lastVerifiedAt": "2026-08-31",
+      "perTransactionRewardVisibility": "unknown",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "CAD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "cad"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.025,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31"
+        }
+      ],
+      "caps": [
+        {
+          "capId": "td-cashback-visa-grocery-annual",
+          "measure": "spendNative",
+          "limit": 5000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "proration": true
+        },
+        {
+          "capId": "td-cashback-visa-gas-ev-annual",
+          "measure": "spendNative",
+          "limit": 5000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "proration": true
+        },
+        {
+          "capId": "td-cashback-visa-transit-annual",
+          "measure": "spendNative",
+          "limit": 5000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "proration": true
+        },
+        {
+          "capId": "td-cashback-visa-recurring-media-annual",
+          "measure": "spendNative",
+          "limit": 5000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/Toronto",
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "proration": true
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "td-cashback-visa-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.005
+          },
+          "predicate": {},
+          "capId": null
+        },
+        {
+          "ruleId": "td-cashback-visa-grocery",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {
+            "categories": [
+              "grocery"
+            ],
+            "mccInclude": [
+              5411
+            ]
+          },
+          "capId": "td-cashback-visa-grocery-annual"
+        },
+        {
+          "ruleId": "td-cashback-visa-gas-ev",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {
+            "categories": [
+              "gasStation",
+              "evCharging"
+            ],
+            "mccInclude": [
+              5541,
+              5542,
+              5552
+            ]
+          },
+          "capId": "td-cashback-visa-gas-ev-annual"
+        },
+        {
+          "ruleId": "td-cashback-visa-transit",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {
+            "categories": [
+              "transit"
+            ],
+            "mccInclude": [
+              4111
+            ]
+          },
+          "capId": "td-cashback-visa-transit-annual"
+        },
+        {
+          "ruleId": "td-cashback-visa-recurring-media",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {
+            "categories": [
+              "recurring",
+              "streaming",
+              "digitalMedia",
+              "eGames"
+            ],
+            "mccInclude": [
+              5815,
+              5816,
+              5817,
+              5818,
+              4899
+            ]
+          },
+          "capId": "td-cashback-visa-recurring-media-annual"
+        }
+      ]
+    },
+    {
+      "cardId": "comenity-aaa-daily-advantage-visa-signature",
+      "officialName": "AAA Daily Advantage Visa Signature\u00ae Credit Card",
+      "issuer": "Comenity Capital Bank",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "published",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.0,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "aaa-daily-grocery-5pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.05
+          },
+          "predicate": {
+            "categories": [
+              "grocery"
+            ]
+          },
+          "capId": "aaa-daily-grocery-cap"
+        },
+        {
+          "ruleId": "aaa-daily-gas-ev-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "categories": [
+              "gasStation",
+              "evCharging"
+            ]
+          },
+          "capId": "aaa-daily-gas-wholesale-cap"
+        },
+        {
+          "ruleId": "aaa-daily-wholesale-club-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "categories": [
+              "wholesaleClub"
+            ]
+          },
+          "capId": "aaa-daily-gas-wholesale-cap"
+        },
+        {
+          "ruleId": "aaa-daily-streaming-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "categories": [
+              "streaming"
+            ]
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "aaa-daily-pharmacy-3pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.03
+          },
+          "predicate": {
+            "categories": [
+              "drugStore"
+            ]
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "aaa-daily-base-1pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.01
+          },
+          "predicate": {},
+          "capId": null
+        }
+      ],
+      "caps": [
+        {
+          "capId": "aaa-daily-grocery-cap",
+          "measure": "spendNative",
+          "limit": 10000,
+          "period": "calendarYear",
+          "resetTimeZone": "America/New_York",
+          "proration": true,
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.01
+          }
+        },
+        {
+          "capId": "aaa-daily-gas-wholesale-cap",
+          "measure": "spendNative",
+          "limit": 16666.67,
+          "period": "calendarYear",
+          "resetTimeZone": "America/New_York",
+          "proration": true,
+          "postCapEarn": {
+            "type": "cashback",
+            "rate": 0.01
+          }
+        }
+      ],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "lastVerifiedAt": "2026-08-31",
+      "sources": [
+        "https://d.comenity.net/legaldocs/advantage/legal-documents/schumerbox",
+        "https://d.comenity.net/advantage/common/Legal/RewardsTermsAndConditionsDisclosure1.xhtml"
+      ]
+    },
+    {
+      "cardId": "citi-custom-cash-card",
+      "officialName": "Citi Custom Cash\u00ae Card",
+      "issuer": "Citibank, N.A.",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "published",
+      "lifecycleStatus": "withdrawn",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "citiThankYou",
+        "unit": "point"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.03,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "citi-custom-cash-top-category-5x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 5
+          },
+          "predicate": {
+            "categories": [
+              "ownerSelectedCategory"
+            ]
+          },
+          "capId": "citi-custom-cash-monthly-cap",
+          "requires": [
+            "predicate.ownerSelectedCategory",
+            "cap.calendarMonth"
+          ]
+        },
+        {
+          "ruleId": "citi-custom-cash-citi-travel-5x",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 5
+          },
+          "predicate": {
+            "categories": [
+              "lodging",
+              "carRental",
+              "entertainment"
+            ]
+          },
+          "outOfScope": {
+            "reason": "Citi Travel portal booking channel; not eligible at standard POS checkout."
+          },
+          "capId": null
+        },
+        {
+          "ruleId": "citi-custom-cash-base",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          },
+          "predicate": {},
+          "capId": null
+        }
+      ],
+      "caps": [
+        {
+          "capId": "citi-custom-cash-monthly-cap",
+          "measure": "spendNative",
+          "limit": 500,
+          "period": "calendarMonth",
+          "resetTimeZone": "America/New_York",
+          "proration": true,
+          "postCapEarn": {
+            "type": "points",
+            "pointsPerUnit": 1
+          }
+        }
+      ],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "lastVerifiedAt": "2026-08-31",
+      "sources": [
+        "https://www.citi.com/credit-cards/citi-custom-cash-credit-card",
+        "https://www.citi.com/usc/Multi/Featured/default.htm"
+      ],
+      "effectiveTo": "2026-08-31"
+    },
+    {
+      "cardId": "elan-financial-services-fidelity-rewards-visa",
+      "officialName": "Fidelity\u00ae Rewards Visa Signature\u00ae Credit Card",
+      "issuer": "Elan Financial Services",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "published",
+      "network": "visa",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 0,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [
+        {
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "rate": 0.0,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31"
+        }
+      ],
+      "earnRules": [
+        {
+          "ruleId": "fidelity-rewards-base-2pct",
+          "status": "current",
+          "effectiveFrom": null,
+          "effectiveTo": null,
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "earn": {
+            "type": "cashback",
+            "rate": 0.02
+          },
+          "predicate": {},
+          "capId": null
+        }
+      ],
+      "caps": [],
+      "perTransactionRewardVisibility": "issuerConfirmed",
+      "lastVerifiedAt": "2026-08-31",
+      "sources": [
+        "https://www.fidelity.com/spend-save/visa-signature-card",
+        "https://www.fidelity.com/spend-save/faqs-rewards-credit-cards",
+        "https://www.fidelity.com/bin-public/060_www_fidelity_com/documents/visa-signature-foreign-transaction-fees-removed.pdf"
+      ]
     }
   ]
 }
