@@ -15,7 +15,7 @@ describe("extractPriceChangeFacts", () => {
     expect(facts[0]).toMatchObject({
       type: "PRICE_CHANGE",
       extractorId: "price-change",
-      extractorVersion: 1,
+      extractorVersion: 2,
       factKey: "",
       occurredAt,
       effectiveAt: new Date("2026-10-01T12:00:00.000Z"),
@@ -35,7 +35,7 @@ describe("extractPriceChangeFacts", () => {
     expect(facts[0]).toMatchObject({
       type: "PRICE_CHANGE",
       extractorId: "price-change",
-      extractorVersion: 1,
+      extractorVersion: 2,
       factKey: "",
       occurredAt,
       amountMinor: undefined,

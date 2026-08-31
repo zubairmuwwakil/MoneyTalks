@@ -24,6 +24,58 @@ describe("extractEmailObligationFacts", () => {
     expect(cancellation!.effectiveAt).toEqual(new Date("2026-09-15T12:00:00.000Z"));
   });
 
+  test("only treats subscription or membership lifecycle language as cancellation", () => {
+    const genuine = [
+      {
+        subject: "Subscription update",
+        textBody: "Your subscription has been cancelled.",
+      },
+      {
+        subject: "Membership update",
+        textBody: "Membership cancelled effective today.",
+      },
+      {
+        subject: "Cancellation confirmed",
+        textBody: "Cancellation confirmed. Your subscription remains available through September.",
+      },
+      {
+        subject: "Subscription update",
+        textBody: "Your subscription will end on 2026-09-15.",
+      },
+    ];
+    const commerceNoise = [
+      {
+        subject: "Reservation confirmed",
+        textBody: "Your booking includes free cancellation until Friday. Payment is due on arrival.",
+      },
+      {
+        subject: "Travel plan details",
+        textBody: "Flexible cancellation is included with this payment plan.",
+      },
+      {
+        subject: "Plan features",
+        textBody: "You can cancel anytime from your monthly plan settings.",
+      },
+      {
+        subject: "Plan help",
+        textBody: "To cancel your plan, visit the billing settings page.",
+      },
+      {
+        subject: "Order cancelled",
+        textBody: "Your order has been cancelled. Your payment will be refunded.",
+      },
+    ];
+
+    for (const input of genuine) {
+      expect(extractEmailObligationFacts({ ...input, occurredAt }))
+        .toEqual(expect.arrayContaining([expect.objectContaining({ type: "CANCELLATION" })]));
+    }
+    for (const input of commerceNoise) {
+      expect(extractEmailObligationFacts({ ...input, occurredAt }))
+        .not.toEqual(expect.arrayContaining([expect.objectContaining({ type: "CANCELLATION" })]));
+    }
+  });
+
   test("drops URLs from the snippet and bounds its length", () => {
     const filler = "Account activity notice. ".repeat(40);
     const facts = extractEmailObligationFacts({
@@ -70,6 +122,18 @@ describe("extractEmailObligationFacts", () => {
       extractorId: "next-billing",
       billingAt: new Date("2026-10-01T12:00:00.000Z"),
     });
+  });
+
+  test("does not turn an order price update into a subscription price change", () => {
+    const facts = extractEmailObligationFacts({
+      subject: "Order update",
+      textBody: "Your order price has changed. Your payment method has not been charged.",
+      occurredAt,
+    });
+
+    expect(facts).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: "PRICE_CHANGE" })]),
+    );
   });
 
   test("registers all seven pure extractors", () => {

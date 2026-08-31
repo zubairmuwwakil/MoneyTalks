@@ -5,19 +5,30 @@ import { runBackfillChunk } from "@/lib/domain/receipts/gmailBackfill";
 import { prisma } from "@/lib/prisma";
 import { isAuthorizedCronRequest } from "@/lib/security/cronAuth";
 import { sendServiceFailureAlert } from "@/lib/services/alerting";
+import { enqueueCronContinuation } from "@/lib/services/qstashContinuation";
 
 vi.mock("@/lib/security/cronAuth", () => ({ isAuthorizedCronRequest: vi.fn() }));
 vi.mock("@/lib/domain/receipts/gmailBackfill", () => ({ runBackfillChunk: vi.fn() }));
+vi.mock("@/lib/services/qstashContinuation", () => ({
+  enqueueCronContinuation: vi.fn().mockResolvedValue({ queued: true, messageId: "cont-1" }),
+}));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $queryRaw: vi.fn(),
-    emailConnection: { updateMany: vi.fn() },
+    emailConnection: {
+      updateMany: vi.fn(),
+      count: vi.fn(),
+    },
   },
 }));
 vi.mock("@/lib/services/alerting", () => ({ sendServiceFailureAlert: vi.fn() }));
 
-function request() {
-  return new Request("http://localhost/api/cron/gmail-backfill");
+function request(body?: unknown) {
+  return new Request("http://localhost/api/cron/gmail-backfill", {
+    method: body ? "POST" : "GET",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
 }
 
 function queueClaims(...connectionIds: string[]) {
@@ -32,6 +43,8 @@ describe("/api/cron/gmail-backfill", () => {
     vi.resetAllMocks();
     vi.mocked(isAuthorizedCronRequest).mockResolvedValue(true);
     vi.mocked(prisma.emailConnection.updateMany).mockResolvedValue({ count: 1 });
+    vi.mocked(prisma.emailConnection.count).mockResolvedValue(0);
+    vi.mocked(enqueueCronContinuation).mockResolvedValue({ queued: true, messageId: "cont-1" });
     vi.mocked(runBackfillChunk).mockResolvedValue({
       processed: 3,
       imported: 2,
@@ -132,5 +145,50 @@ describe("/api/cron/gmail-backfill", () => {
     expect(body).toMatchObject({ claimed: 1, advanced: 1 });
     expect(runBackfillChunk).toHaveBeenCalledOnce();
     clock.mockRestore();
+  });
+
+  it("enqueues a continuation when unfinished backfill work remains", async () => {
+    queueClaims("conn-1");
+    vi.mocked(prisma.emailConnection.count).mockResolvedValueOnce(2);
+
+    const response = await POST(request() as never);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      ok: true,
+      advanced: 1,
+      remaining: 2,
+      continuation: { queued: true, messageId: "cont-1" },
+    });
+    expect(enqueueCronContinuation).toHaveBeenCalledWith({
+      path: "/api/cron/gmail-backfill",
+      body: { source: "qstash", job: "gmail-backfill" },
+      deduplicationId: expect.stringContaining("gmail-backfill-cont:"),
+    });
+  });
+
+  it("does not enqueue continuation when zero unfinished backfills remain", async () => {
+    queueClaims("conn-1");
+    vi.mocked(prisma.emailConnection.count).mockResolvedValueOnce(0);
+
+    const response = await POST(request() as never);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.continuation).toBeUndefined();
+    expect(enqueueCronContinuation).not.toHaveBeenCalled();
+  });
+
+  it("prioritizes a connection specified in the payload", async () => {
+    vi.mocked(prisma.$queryRaw)
+      .mockResolvedValueOnce([{ id: "conn-preferred" }] as never)
+      .mockResolvedValueOnce([] as never);
+
+    const response = await POST(request({ connectionId: "conn-preferred" }) as never);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.connections[0]).toMatchObject({ connectionId: "conn-preferred" });
   });
 });

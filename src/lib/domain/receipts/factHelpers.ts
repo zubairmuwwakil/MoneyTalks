@@ -77,10 +77,12 @@ export const CADENCE_BY_WORD: Readonly<Record<string, Cadence["type"]>> = Object
 
 export const CADENCE_WORD = /\b(weekly|biweekly|fortnightly|monthly|quarterly|semi-?annual|yearly|annually)\b/i;
 export const OBLIGATION_CONTEXT = /\b(subscription|membership|plan|renew(?:al|s|ing)?|billing|bill(?:ed|ing)?|payment|invoice|statement|trial)\b/i;
+export const SUBSCRIPTION_CONTEXT = /\b(subscription|membership)\b/i;
 export const RECURRING_LANGUAGE = /\b(auto-?renew(?:al|s|ing)?|recurring|renews? automatically)\b/i;
-export const CANCELLATION_LANGUAGE = /\b(cancel(?:led|ed)|cancellation (?:is )?(?:confirmed|complete)|subscription (?:has |will )?end(?:ed|s)?)\b/i;
+export const CANCELLATION_LANGUAGE = /\b(?:(?:subscription|membership)(?: (?:has|is|was))?(?: been)? cancel(?:led|ed)|(?:subscription|membership) cancellation (?:is )?(?:confirmed|complete)|cancellation (?:is )?(?:confirmed|complete)|(?:subscription|membership) (?:has |will )?end(?:ed|s)?)\b/i;
 export const TRIAL_STARTED_LANGUAGE = /\btrial (?:has )?(?:started|begun|begins|starts)\b/i;
 export const TRIAL_ENDED_LANGUAGE = /\btrial (?:has )?(?:ended|expires?|is ending)\b/i;
+export const PRICE_CHANGE_CONTEXT = /\b(subscription|membership|plan|renew(?:al|s|ing)?|billing)\b/i;
 export const PRICE_CHANGE_LANGUAGE = /\b(?:price|rate) (?:has |will )?(?:increase|increased|change|changed)|\b(?:new|updated) (?:price|rate)\b/i;
 export const NEXT_BILLING_LANGUAGE = /\b(?:next (?:billing date|bill|payment|charge|renewal)|will be (?:billed|charged)|next (?:payment|charge) (?:is )?due)\b/i;
 

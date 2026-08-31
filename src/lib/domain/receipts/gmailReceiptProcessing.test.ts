@@ -132,7 +132,11 @@ function setupDb() {
     // The real TransactionClient has this; promotePurchase reads it to find
     // any curated category before falling back to the merchant pack.
     merchantAlias: { findUnique: vi.fn() },
-    emailObligationFact: { upsert: vi.fn() },
+    emailObligationFact: {
+      upsert: vi.fn(),
+      findMany: vi.fn(),
+      deleteMany: vi.fn(),
+    },
   };
   const db = {
     merchantAlias: { findUnique: vi.fn(), create: vi.fn() },
@@ -146,6 +150,7 @@ function setupDb() {
   tx.purchaseItem.findFirst.mockResolvedValue(null);
   tx.merchantAlias.findUnique.mockResolvedValue(null);
   tx.merchantCurrencyConfirmation.findUnique.mockResolvedValue(null);
+  tx.emailObligationFact.findMany.mockResolvedValue([]);
   vi.mocked(resolveEmailMerchantIdentity).mockImplementation(async (_db, merchant) => ({
     merchant,
     identity: "RESOLVED",
@@ -1675,6 +1680,52 @@ describe("processRawGmailMessage", () => {
     expect(cancellation.create.userId).toBe("user-1");
     expect(cancellation.create.evidenceSnippet).toContain("has been cancelled");
     expect(cancellation.create.effectiveAt).toEqual(new Date("2026-09-15T12:00:00.000Z"));
+  });
+
+  it("prunes only stale unreferenced obligation facts during reprocessing", async () => {
+    const { db, tx } = setupDb();
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue({
+      messageId: message.messageId,
+      merchant: "Example Store",
+      rawSource: "text",
+      subject: "Order cancelled",
+      textBody: "Your order has been cancelled. Your payment will be refunded.",
+      purchasedAt: message.internalDate,
+      orderId: undefined,
+      totalCents: undefined,
+    });
+    tx.emailTransaction.findUnique.mockResolvedValue(existingTransaction);
+    tx.emailTransaction.upsert.mockResolvedValue(existingTransaction);
+    tx.emailObligationFact.findMany.mockResolvedValue([
+      {
+        id: "stale-unreferenced",
+        extractorId: "cancellation",
+        type: "CANCELLATION",
+        factKey: "",
+        recurringEvidence: [],
+      },
+      {
+        id: "stale-referenced",
+        extractorId: "price-change",
+        type: "PRICE_CHANGE",
+        factKey: "",
+        recurringEvidence: [{ id: "evidence-1" }],
+      },
+    ]);
+
+    await processRawGmailMessage(db as never, {
+      userId: "user-1",
+      message,
+      mode: "reprocess",
+    });
+
+    expect(tx.emailObligationFact.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ["stale-unreferenced"] },
+        emailTransactionId: existingTransaction.id,
+        recurringEvidence: { none: {} },
+      },
+    });
   });
 
 

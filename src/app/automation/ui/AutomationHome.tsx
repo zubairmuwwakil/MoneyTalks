@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 type ScanMode = "ALL" | "RECEIPTS_ONLY" | "SHIPPING_ONLY" | "SUBSCRIPTIONS_ONLY";
 
@@ -216,31 +217,49 @@ export default function AutomationHome() {
                 ) : connection.backfillRequestedAt ? (
                   <div className="mt-3 max-w-sm" aria-live="polite">
                     <div className="flex items-center justify-between text-xs">
-                      <span>Scanning history…</span>
-                      <span>{connection.monthsCovered} / {connection.monthsTarget} months</span>
+                      <span className="flex items-center gap-1.5 font-medium text-cyan-900">
+                        <Loader2 className="size-3.5 animate-spin text-cyan-600" />
+                        Scanning history…
+                      </span>
+                      <span className="text-slate-600">
+                        {connection.monthsCovered} / {connection.monthsTarget} months
+                      </span>
                     </div>
                     <div
-                      className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-200"
+                      className="relative mt-1.5 h-2 w-full overflow-hidden rounded-full bg-slate-200"
                       role="progressbar"
                       aria-valuemin={0}
                       aria-valuemax={connection.monthsTarget}
                       aria-valuenow={connection.monthsCovered}
                     >
-                      <div
-                        className="h-full rounded-full bg-cyan-600 transition-[width]"
-                        style={{
-                          width: `${Math.min(100, (connection.monthsCovered / connection.monthsTarget) * 100)}%`,
-                        }}
-                      />
+                      {connection.monthsCovered === 0 ? (
+                        <div className="h-full w-full rounded-full bg-cyan-600/30 animate-pulse" />
+                      ) : (
+                        <div
+                          className="relative h-full rounded-full bg-cyan-600 transition-all duration-500 overflow-hidden"
+                          style={{
+                            width: `${Math.min(100, (connection.monthsCovered / connection.monthsTarget) * 100)}%`,
+                          }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-pulse" />
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
                   <button
-                    className="mt-3 rounded-lg border border-cyan-700/30 bg-cyan-700 px-3 py-2 text-xs font-medium text-white hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-cyan-700/30 bg-cyan-700 px-3 py-2 text-xs font-medium text-white hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={() => requestBackfill(connection.id)}
                     disabled={connection.needsReauth || requestingBackfill === connection.id}
                   >
-                    {requestingBackfill === connection.id ? "Starting…" : "Scan two years of receipts"}
+                    {requestingBackfill === connection.id ? (
+                      <>
+                        <Loader2 className="size-3.5 animate-spin" />
+                        <span>Starting…</span>
+                      </>
+                    ) : (
+                      "Scan two years of receipts"
+                    )}
                   </button>
                 )}
               </div>
@@ -265,11 +284,18 @@ export default function AutomationHome() {
 
         <div className="mt-3 flex items-center gap-3">
           <button
-            className="rounded-xl border px-4 py-2 text-sm hover:bg-neutral-50 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm hover:bg-neutral-50 disabled:opacity-60"
             onClick={scanNow}
             disabled={!connected || scanning}
           >
-            {scanning ? "Scanning…" : "Scan now"}
+            {scanning ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                <span>Scanning…</span>
+              </>
+            ) : (
+              "Scan now"
+            )}
           </button>
 
           {result ? <div className="text-sm opacity-70">{result}</div> : null}

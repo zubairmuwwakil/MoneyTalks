@@ -146,7 +146,9 @@ function usableOrderNumber(value: string | null): string | null {
  * later. The recurring sweep reads `EmailTransaction`, which retains no body,
  * so a fact not captured now is not recoverable without re-fetching the message
  * from Gmail. Upserts are idempotent, so an ordinary re-scan of an already
- * ingested message backfills facts onto rows that predate this table.
+ * ingested message backfills facts onto rows that predate this table. A
+ * successful explicit reprocess also removes stale projections, except when
+ * recurring evidence already cites one and therefore makes it an audit row.
  */
 async function persistObligationFacts(
   db: ReceiptTransaction,
@@ -155,6 +157,7 @@ async function persistObligationFacts(
     emailTransactionId: string;
     parsed: ParsedPurchase;
     fallbackOccurredAt: Date;
+    pruneStaleFacts: boolean;
   },
 ): Promise<void> {
   const evaluation = evaluateEmailObligationFactExtraction({
@@ -212,6 +215,37 @@ async function persistObligationFacts(
       update: payload,
     });
   }
+
+  if (!params.pruneStaleFacts) return;
+
+  const factIdentity = (fact: { extractorId: string; type: string; factKey: string }) =>
+    JSON.stringify([fact.extractorId, fact.type, fact.factKey]);
+  const currentIdentities = new Set(facts.map(factIdentity));
+  const persistedFacts = await db.emailObligationFact.findMany({
+    where: { emailTransactionId: params.emailTransactionId },
+    select: {
+      id: true,
+      extractorId: true,
+      type: true,
+      factKey: true,
+      recurringEvidence: { select: { id: true }, take: 1 },
+    },
+  });
+  const staleUnreferencedIds = persistedFacts
+    .filter((fact) =>
+      !currentIdentities.has(factIdentity(fact)) && fact.recurringEvidence.length === 0)
+    .map(({ id }) => id);
+
+  if (staleUnreferencedIds.length === 0) return;
+  await db.emailObligationFact.deleteMany({
+    where: {
+      id: { in: staleUnreferencedIds },
+      emailTransactionId: params.emailTransactionId,
+      // Recheck at deletion time so a concurrent recurring sweep cannot add
+      // an evidence link in the gap between the read above and this delete.
+      recurringEvidence: { none: {} },
+    },
+  });
 }
 
 async function promotePurchase(
@@ -787,6 +821,7 @@ export async function processRawGmailMessage(
         emailTransactionId: existing.id,
         parsed: parsedPurchase,
         fallbackOccurredAt: params.message.internalDate ?? new Date(),
+        pruneStaleFacts: false,
       });
       return {
         transaction: existing,
@@ -848,6 +883,7 @@ export async function processRawGmailMessage(
       emailTransactionId: transaction.id,
       parsed: parsedPurchase,
       fallbackOccurredAt: params.message.internalDate ?? new Date(),
+      pruneStaleFacts: params.mode === "reprocess",
     });
 
     if (qualifies) {

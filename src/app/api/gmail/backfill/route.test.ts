@@ -3,8 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET, POST } from "./route";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
+import { enqueueCronContinuation } from "@/lib/services/qstashContinuation";
 
 vi.mock("@/lib/require-user", () => ({ getSessionUserId: vi.fn() }));
+vi.mock("@/lib/services/qstashContinuation", () => ({
+  enqueueCronContinuation: vi.fn().mockResolvedValue({ queued: true, messageId: "msg-1" }),
+}));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     emailConnection: {
@@ -55,6 +59,11 @@ describe("/api/gmail/backfill", () => {
       ok: true,
       connectionId: "conn-a",
       requestedAt: "2026-08-30T15:00:00.000Z",
+    });
+    expect(enqueueCronContinuation).toHaveBeenCalledWith({
+      path: "/api/cron/gmail-backfill",
+      body: { source: "qstash", job: "gmail-backfill", connectionId: "conn-a" },
+      deduplicationId: expect.stringContaining("gmail-backfill-req:conn-a:"),
     });
   });
 

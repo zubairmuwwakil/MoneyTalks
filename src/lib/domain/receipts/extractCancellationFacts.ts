@@ -2,6 +2,7 @@ import { EXTRACTOR_VERSIONS } from "./parserVersions";
 import {
   CANCELLATION_LANGUAGE,
   OBLIGATION_CONTEXT,
+  SUBSCRIPTION_CONTEXT,
   clauseAround,
   combineEmailText,
   firstDate,
@@ -25,6 +26,11 @@ export function extractCancellationFacts(
   const text = combineEmailText(input);
   if (!text || !OBLIGATION_CONTEXT.test(text)) return [];
 
+  // Generic commerce messages also say "cancelled" and "cancellation
+  // confirmed". A lifecycle fact requires the message to identify the thing
+  // ending as a subscription or membership, not merely mention a payment,
+  // plan, or billing footer elsewhere.
+  if (!SUBSCRIPTION_CONTEXT.test(text)) return [];
   if (!CANCELLATION_LANGUAGE.test(text)) return [];
 
   const clause = clauseAround(input.textBody ?? "", CANCELLATION_LANGUAGE) ?? text;

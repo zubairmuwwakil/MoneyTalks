@@ -15,7 +15,7 @@ describe("extractCancellationFacts", () => {
     expect(facts[0]).toMatchObject({
       type: "CANCELLATION",
       extractorId: "cancellation",
-      extractorVersion: 1,
+      extractorVersion: 2,
       factKey: "",
       occurredAt,
       effectiveAt: new Date("2026-09-15T12:00:00.000Z"),
@@ -34,7 +34,7 @@ describe("extractCancellationFacts", () => {
     expect(facts[0]).toMatchObject({
       type: "CANCELLATION",
       extractorId: "cancellation",
-      extractorVersion: 1,
+      extractorVersion: 2,
       factKey: "",
       occurredAt,
       effectiveAt: undefined,

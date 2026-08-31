@@ -5,6 +5,7 @@ import { runBackfillChunk, type BackfillChunkResult } from "@/lib/domain/receipt
 import { prisma } from "@/lib/prisma";
 import { isAuthorizedCronRequest } from "@/lib/security/cronAuth";
 import { sendServiceFailureAlert } from "@/lib/services/alerting";
+import { enqueueCronContinuation } from "@/lib/services/qstashContinuation";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -20,7 +21,52 @@ type ConnectionResult = ({ connectionId: string } & BackfillChunkResult) | {
   error: string;
 };
 
-async function claimNextConnection(lockId: string): Promise<ClaimedConnection | null> {
+type BackfillPayload = {
+  connectionId?: string;
+};
+
+async function readPayload(req: NextRequest): Promise<BackfillPayload> {
+  try {
+    const body = await req.json();
+    if (!body || typeof body !== "object") return {};
+    const payload = body as Record<string, unknown>;
+    return {
+      connectionId: typeof payload.connectionId === "string" ? payload.connectionId : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+async function claimNextConnection(
+  lockId: string,
+  preferredConnectionId?: string | null,
+): Promise<ClaimedConnection | null> {
+  if (preferredConnectionId) {
+    const preferredClaimed = await prisma.$queryRaw<ClaimedConnection[]>`
+      WITH picked AS (
+        SELECT id
+        FROM "EmailConnection"
+        WHERE id = ${preferredConnectionId}
+          AND "backfillRequestedAt" IS NOT NULL
+          AND "backfillCompletedAt" IS NULL
+          AND (
+            "backfillLockedAt" IS NULL
+            OR "backfillLockedAt" < NOW() - INTERVAL '5 minutes'
+          )
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+      )
+      UPDATE "EmailConnection" AS connection
+      SET "backfillLockedAt" = NOW(),
+          "backfillLockId" = ${lockId}
+      FROM picked
+      WHERE connection.id = picked.id
+      RETURNING connection.id;
+    `;
+    if (preferredClaimed[0]) return preferredClaimed[0];
+  }
+
   const claimed = await prisma.$queryRaw<ClaimedConnection[]>`
     WITH picked AS (
       SELECT id
@@ -67,6 +113,9 @@ async function runGmailBackfillCron(req: NextRequest) {
 
   const startedAt = Date.now();
   const lockId = randomUUID();
+  const payload = await readPayload(req);
+  let preferredConnectionId: string | null = payload.connectionId ?? null;
+
   const connections: ConnectionResult[] = [];
   const errors: Array<{ connectionId: string; error: string }> = [];
   let claimed = 0;
@@ -78,7 +127,8 @@ async function runGmailBackfillCron(req: NextRequest) {
 
   try {
     while (claimed < CONNECTION_LIMIT && Date.now() - startedAt < STOP_CLAIMING_AFTER_MS) {
-      const connection = await claimNextConnection(lockId);
+      const connection = await claimNextConnection(lockId, preferredConnectionId);
+      preferredConnectionId = null;
       if (!connection) break;
       claimed += 1;
 
@@ -118,6 +168,25 @@ async function runGmailBackfillCron(req: NextRequest) {
       });
     }
 
+    const remaining = await prisma.emailConnection.count({
+      where: {
+        backfillRequestedAt: { not: null },
+        backfillCompletedAt: null,
+      },
+    });
+
+    let continuation: { queued: true; messageId: string } | undefined;
+    if (advanced > 0 && remaining > 0) {
+      const next = await enqueueCronContinuation({
+        path: "/api/cron/gmail-backfill",
+        body: { source: "qstash", job: "gmail-backfill" },
+        deduplicationId: `gmail-backfill-cont:${Date.now()}`,
+      });
+      if (next.queued) {
+        continuation = next;
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       claimed,
@@ -126,7 +195,9 @@ async function runGmailBackfillCron(req: NextRequest) {
       processed,
       imported,
       completed,
+      remaining,
       connections,
+      ...(continuation ? { continuation } : {}),
     });
   } catch (error) {
     await sendServiceFailureAlert({

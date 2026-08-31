@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
+import { enqueueCronContinuation } from "@/lib/services/qstashContinuation";
 
 export const runtime = "nodejs";
 
@@ -84,9 +85,16 @@ export async function POST(req: NextRequest) {
   });
   if (updated.count === 0) return new NextResponse("Not found", { status: 404 });
 
+  await enqueueCronContinuation({
+    path: "/api/cron/gmail-backfill",
+    body: { source: "qstash", job: "gmail-backfill", connectionId },
+    deduplicationId: `gmail-backfill-req:${connectionId}:${requestedAt.getTime()}`,
+  });
+
   return NextResponse.json({
     ok: true,
     connectionId,
     requestedAt: requestedAt.toISOString(),
   });
 }
+

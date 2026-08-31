@@ -1,6 +1,7 @@
 import { EXTRACTOR_VERSIONS } from "./parserVersions";
 import {
   OBLIGATION_CONTEXT,
+  PRICE_CHANGE_CONTEXT,
   PRICE_CHANGE_LANGUAGE,
   clauseAround,
   combineEmailText,
@@ -30,6 +31,11 @@ export function extractPriceChangeFacts(
   if (!PRICE_CHANGE_LANGUAGE.test(text)) return [];
 
   const clause = clauseAround(input.textBody ?? "", PRICE_CHANGE_LANGUAGE) ?? text;
+  // A payment or invoice elsewhere in an ordinary order email must not lend
+  // lifecycle meaning to an unrelated price sentence. The matched clause (or
+  // its headline) must identify a subscription-shaped relationship.
+  const factContext = `${input.subject ?? ""}\n${clause}`;
+  if (!PRICE_CHANGE_CONTEXT.test(factContext)) return [];
 
   return [{
     type: "PRICE_CHANGE",
