@@ -28,6 +28,20 @@ export type OwnerFactInput = {
   sourceKey?: string;
 };
 
+export type OwnerSubscriptionInput = {
+  displayName: string;
+  amountMinor: number;
+  currency: string;
+  nextBillingAt: Date;
+  cadence: Cadence["type"];
+  merchantCanonicalId?: string | null;
+  notes?: string | null;
+  cancellationUrl?: string | null;
+  cancelInstructions?: string | null;
+  trialEndAt?: Date | null;
+  needsReview?: boolean;
+};
+
 type StoredOwnerFact = Omit<OwnerFactInput, "sourceKey" | "supersedesId"> & {
   sourceKey: string;
   supersedesId: string | null;
@@ -97,6 +111,80 @@ function asCadence(value: Prisma.JsonValue): Cadence {
     throw new RangeError("Obligation cadence type is invalid");
   }
   return value as unknown as Cadence;
+}
+
+function cadenceForOwner(type: Cadence["type"], anchor: Date): Cadence {
+  const iso = anchor.toISOString().slice(0, 10);
+  return type === "MONTHLY" ? { type, dayOfMonth: anchor.getUTCDate(), startsFrom: iso } : { type, anchor: iso };
+}
+
+/** Create a canonical subscription and its initial owner assertions atomically. */
+export async function createOwnerSubscription(
+  db: PrismaClient,
+  args: { userId: string; input: OwnerSubscriptionInput },
+) {
+  const name = args.input.displayName.trim();
+  const currency = args.input.currency.trim().toUpperCase();
+  if (!name) throw new RangeError("displayName is required");
+  if (!Number.isSafeInteger(args.input.amountMinor)) throw new RangeError("amountMinor must be a safe integer");
+  if (!validCurrency(currency)) throw new RangeError("currency must be a three-letter code");
+  if (!validDate(args.input.nextBillingAt)) throw new RangeError("nextBillingAt must be a valid date");
+  if (!CADENCE_TYPES.has(args.input.cadence)) throw new RangeError("cadence is unsupported");
+  if (args.input.trialEndAt && !validDate(args.input.trialEndAt)) throw new RangeError("trialEndAt must be a valid date");
+
+  const occurredAt = new Date();
+  const cadence = cadenceForOwner(args.input.cadence, args.input.nextBillingAt);
+  const sourcePrefix = `owner:create:${randomUUID()}`;
+  return db.$transaction(async (tx) => {
+    const obligation = await tx.recurringObligation.create({
+      data: {
+        userId: args.userId,
+        kind: "SUBSCRIPTION",
+        displayName: name,
+        merchantCanonicalId: args.input.merchantCanonicalId?.trim() || null,
+        notes: args.input.notes?.trim() || null,
+        cancellationUrl: args.input.cancellationUrl?.trim() || null,
+        cancelInstructions: args.input.cancelInstructions?.trim() || null,
+        currency,
+        discriminator: "",
+        seriesKey: `owner:${randomUUID()}`,
+        cadence: cadence as unknown as Prisma.InputJsonValue,
+        schedule: [{ amountMinor: args.input.amountMinor, from: args.input.nextBillingAt.toISOString().slice(0, 10) }] as unknown as Prisma.InputJsonValue,
+        amountPattern: "FIXED",
+        status: "ACTIVE",
+        nextExpectedDate: args.input.nextBillingAt,
+        confidence: 1,
+        confidenceReasons: [] as Prisma.InputJsonValue,
+        lastObservedAt: occurredAt,
+        algorithmVersion: 1,
+        origin: "USER",
+        needsReview: args.input.needsReview ?? false,
+      },
+    });
+    const facts = [
+      { type: "ACTIVATION" as const, sourceKey: `${sourcePrefix}:activation`, occurredAt },
+      { type: "PRICE_CHANGE" as const, sourceKey: `${sourcePrefix}:price`, occurredAt, amountMinor: args.input.amountMinor, currency },
+      { type: "EXPLICIT_CADENCE" as const, sourceKey: `${sourcePrefix}:cadence`, occurredAt, cadence: args.input.cadence },
+      { type: "NEXT_BILLING_DATE" as const, sourceKey: `${sourcePrefix}:next`, occurredAt, billingAt: args.input.nextBillingAt },
+      ...(args.input.trialEndAt ? [{ type: "TRIAL_ENDED" as const, sourceKey: `${sourcePrefix}:trial-end`, occurredAt, effectiveAt: args.input.trialEndAt }] : []),
+    ];
+    await tx.recurringObligationOwnerFact.createMany({
+      data: facts.map((fact) => ({
+        userId: args.userId,
+        obligationId: obligation.id,
+        type: fact.type,
+        source: "OWNER_ACTION" as const,
+        sourceKey: fact.sourceKey,
+        occurredAt: fact.occurredAt,
+        effectiveAt: "effectiveAt" in fact ? fact.effectiveAt ?? null : null,
+        billingAt: "billingAt" in fact ? fact.billingAt ?? null : null,
+        amountMinor: "amountMinor" in fact ? fact.amountMinor ?? null : null,
+        currency: "currency" in fact ? fact.currency ?? null : null,
+        cadence: "cadence" in fact ? fact.cadence ?? null : null,
+      })),
+    });
+    return obligation;
+  });
 }
 
 /** Translate stored owner evidence into the domain's lifecycle-fact union. */

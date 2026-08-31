@@ -115,6 +115,42 @@ export async function scheduleSubscriptionRenewalSoon(args: {
   });
 }
 
+/** Canonical recurring-obligation scheduler. New subscription writes use this. */
+export async function scheduleRecurringObligationRenewalSoon(args: {
+  userId: string;
+  obligationId: string;
+  name: string;
+  renewalDate: Date;
+  amountCents?: number | null;
+  currency?: string | null;
+}) {
+  const pref = await prisma.notificationPreference.findUnique({
+    where: { userId: args.userId },
+    select: { subLeadDays: true },
+  });
+  const leadDays = pref?.subLeadDays ?? 3;
+  const today = startOfDayUTC(new Date());
+  const eventDay = startOfDayUTC(args.renewalDate);
+  const eventKey = `obligation:${args.obligationId}:${isoDateOnly(eventDay)}:lead${leadDays}`;
+  await upsertNotification({
+    userId: args.userId,
+    type: "SUBSCRIPTION_RENEWAL_SOON",
+    title: args.name,
+    body: `Renews on ${isoDateOnly(eventDay)}${args.amountCents != null ? ` · ${formatCurrencyCodeAmount(args.amountCents, args.currency)}` : ""} · (${leadDays} days)`,
+    eventDate: eventDay,
+    scheduledFor: computeScheduledFor(today, eventDay, leadDays),
+    sourceKind: "recurring-obligation",
+    sourceId: args.obligationId,
+    eventKey,
+  });
+  await dismissStaleBySource({
+    userId: args.userId,
+    sourceKind: "recurring-obligation",
+    sourceId: args.obligationId,
+    keepEventKeys: [eventKey],
+  });
+}
+
 export async function scheduleReturnDeadlineSoon(args: {
   userId: string;
   returnId: string;
