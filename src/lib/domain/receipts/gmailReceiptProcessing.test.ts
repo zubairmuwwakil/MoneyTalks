@@ -1728,6 +1728,52 @@ describe("processRawGmailMessage", () => {
     });
   });
 
+  it("reprocesses facts without mutating transaction or purchase projections", async () => {
+    const { db, tx } = setupDb();
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue({
+      messageId: message.messageId,
+      merchant: "Example Travel",
+      rawSource: "text",
+      subject: "Your fictional booking",
+      textBody: "This fictional booking includes flexible changes.",
+      purchasedAt: message.internalDate,
+      orderId: undefined,
+      totalCents: undefined,
+    });
+    tx.emailTransaction.findUnique.mockResolvedValue(existingTransaction);
+    tx.emailObligationFact.findMany.mockResolvedValue([{
+      id: "stale-cancellation",
+      extractorId: "cancellation",
+      type: "CANCELLATION",
+      factKey: "",
+      recurringEvidence: [],
+    }]);
+
+    const result = await processRawGmailMessage(db as never, {
+      userId: "user-1",
+      message,
+      mode: "facts-reprocess",
+    });
+
+    expect(result).toMatchObject({
+      transaction: existingTransaction,
+      transactionAction: "skipped",
+      purchaseAction: "none",
+    });
+    expect(tx.emailObligationFact.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ["stale-cancellation"] },
+        emailTransactionId: existingTransaction.id,
+        recurringEvidence: { none: {} },
+      },
+    });
+    expect(tx.emailTransaction.upsert).not.toHaveBeenCalled();
+    expect(tx.emailTransaction.update).not.toHaveBeenCalled();
+    expect(tx.purchase.create).not.toHaveBeenCalled();
+    expect(tx.purchase.update).not.toHaveBeenCalled();
+    expect(tx.purchase.delete).not.toHaveBeenCalled();
+  });
+
 
   it("gives a stated price change the currency the message resolved to", async () => {
     const { db, tx } = setupDb();

@@ -115,7 +115,7 @@ const CATEGORY_MAP = new Map<string, CategoryDefinition>(CATEGORIES.map((cat) =>
 export function categoryParentIDs(category: string): string[] {
   const parents: string[] = [];
   const seen = new Set<string>();
-  let current = normalizePurchaseCategoryId(category);
+  let current: string | null = normalizePurchaseCategoryId(category);
   while (current) {
     const parent = CATEGORY_MAP.get(current)?.parentID;
     if (!parent || seen.has(parent)) break;
@@ -127,7 +127,8 @@ export function categoryParentIDs(category: string): string[] {
 }
 
 export function merchantGroupID(category: string): string | null {
-  return CATEGORY_MAP.get(normalizePurchaseCategoryId(category))?.merchantGroupID ?? null;
+  const normalized = normalizePurchaseCategoryId(category);
+  return normalized ? CATEGORY_MAP.get(normalized)?.merchantGroupID ?? null : null;
 }
 
 /**

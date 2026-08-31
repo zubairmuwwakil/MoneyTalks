@@ -16,7 +16,7 @@ import { refreshShipmentTimeline } from "@/lib/domain/shipping/tracking";
 import { processWalletEvents } from "@/lib/domain/wallet/walletNormalization";
 import { sendServiceFailureAlert } from "@/lib/services/alerting";
 import { enqueueCronContinuation } from "@/lib/services/qstashContinuation";
-import { withSpan } from "@/lib/observability";
+import { recordSubscriptionNotificationOutcome, withSpan } from "@/lib/observability";
 
 export const runtime = "nodejs";
 
@@ -180,18 +180,28 @@ async function runNotifyCron(req: NextRequest) {
 
     let attempted = 0;
     let overdueNotified = 0;
+    // A batch counter makes a genuine zero-row scan observable; adding zero to
+    // an OpenTelemetry counter does not produce retirement evidence.
+    recordSubscriptionNotificationOutcome("scan-batch");
+    recordSubscriptionNotificationOutcome("scanned", subs.length);
 
     for (const s of subs) {
       if (!s.nextExpectedDate) continue;
       attempted++;
-      await scheduleRecurringObligationRenewalSoon({
-        userId: s.userId,
-        obligationId: s.id,
-        name: obligationName(s),
-        renewalDate: s.nextExpectedDate,
-        amountCents: currentAmountMinor(s.schedule),
-        currency: s.currency,
-      });
+      try {
+        await scheduleRecurringObligationRenewalSoon({
+          userId: s.userId,
+          obligationId: s.id,
+          name: obligationName(s),
+          renewalDate: s.nextExpectedDate,
+          amountCents: currentAmountMinor(s.schedule),
+          currency: s.currency,
+        });
+        recordSubscriptionNotificationOutcome("scheduled");
+      } catch (error) {
+        recordSubscriptionNotificationOutcome("failed");
+        throw error;
+      }
     }
 
     for (const c of feeCards) {

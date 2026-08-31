@@ -3,8 +3,10 @@ import { POST } from "./route";
 import { prisma } from "@/lib/prisma";
 import { getSessionAccount } from "@/lib/require-user";
 import { clerkClient } from "@clerk/nextjs/server";
+import { recordSubscriptionDataOperation } from "@/lib/observability";
 
 vi.mock("@/lib/require-user", () => ({ getSessionAccount: vi.fn() }));
+vi.mock("@/lib/observability", () => ({ recordSubscriptionDataOperation: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $transaction: vi.fn(),
@@ -67,6 +69,9 @@ describe("POST /api/data/delete", () => {
     expect(prisma.dataDeletionJob.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: "COMPLETED" }) }),
     );
+    expect(recordSubscriptionDataOperation).toHaveBeenCalledWith({
+      operation: "delete", outcome: "success", scope: "data",
+    });
   });
 
   it("wipes the wallet and spine tables the app syncs into", async () => {
@@ -134,6 +139,9 @@ describe("POST /api/data/delete", () => {
     expect(prisma.dataDeletionJob.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: "FAILED" }) }),
     );
+    expect(recordSubscriptionDataOperation).toHaveBeenCalledWith({
+      operation: "delete", outcome: "failure", scope: "account",
+    });
   });
 
   it("tells the client the data is gone when only the sign-in removal fails", async () => {
@@ -145,6 +153,9 @@ describe("POST /api/data/delete", () => {
 
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({ error: expect.any(String), dataDeleted: true });
+    expect(recordSubscriptionDataOperation).toHaveBeenCalledWith({
+      operation: "delete", outcome: "partial", scope: "account",
+    });
   });
 
   it("rejects an unrecognised scope rather than guessing", async () => {

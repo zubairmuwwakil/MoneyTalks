@@ -28,7 +28,7 @@ import {
   type CurrencySource,
 } from "./resolveCurrency";
 
-export type GmailMessageProcessingMode = "scan" | "reprocess";
+export type GmailMessageProcessingMode = "scan" | "reprocess" | "facts-reprocess";
 export type GmailTransactionAction = "created" | "updated" | "skipped";
 export type GmailPurchaseAction = "none" | "created" | "updated" | "linked" | "deleted" | "unlinked";
 
@@ -812,6 +812,30 @@ export async function processRawGmailMessage(
         },
       },
     });
+
+    // Unattended replay deliberately owns only the fact projection. Purchase
+    // reconciliation can delete, unlink, or rewrite real charges, so it remains
+    // behind the owner-triggered `reprocess` mode. A parse failure is likewise
+    // not evidence that previously persisted facts became invalid.
+    if (params.mode === "facts-reprocess") {
+      if (!existing) throw new Error("Stored Gmail transaction not found");
+      if (!parserError) {
+        await persistObligationFacts(transactionDb, {
+          userId: params.userId,
+          emailTransactionId: existing.id,
+          parsed: parsedPurchase,
+          fallbackOccurredAt: params.message.internalDate ?? new Date(),
+          pruneStaleFacts: true,
+        });
+      }
+      return {
+        transaction: existing,
+        parsedPurchase,
+        parserError,
+        transactionAction: "skipped",
+        purchaseAction: "none",
+      };
+    }
 
     // A parser exception is not evidence that the old parse became invalid.
     // Record the failure, but preserve the prior projection for safe retries.

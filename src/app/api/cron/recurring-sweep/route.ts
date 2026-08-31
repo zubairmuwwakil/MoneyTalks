@@ -8,6 +8,7 @@ import {
   failRecurringSweepJob,
 } from "@/lib/domain/recurring/sweepQueue";
 import { prisma } from "@/lib/prisma";
+import { recordRecurringSweepOutcome } from "@/lib/observability";
 import { isAuthorizedCronRequest } from "@/lib/security/cronAuth";
 import { sendServiceFailureAlert } from "@/lib/services/alerting";
 
@@ -38,14 +39,20 @@ async function runRecurringSweepCron(req: NextRequest) {
           where: { userId: job.userId },
           select: { timezone: true },
         });
-        await sweepRecurringObligations(prisma, {
+        const result = await sweepRecurringObligations(prisma, {
           userId: job.userId,
           timeZone: preference?.timezone || DEFAULT_TIME_ZONE,
           algorithmVersion: ALGORITHM_VERSION,
         });
+        recordRecurringSweepOutcome("completed");
+        recordRecurringSweepOutcome("created", result.created);
+        recordRecurringSweepOutcome("updated", result.updated);
+        recordRecurringSweepOutcome("unchanged", result.unchanged);
+        recordRecurringSweepOutcome("skipped", result.skipped);
         await completeRecurringSweepJob(prisma, { userId: job.userId, lockId });
         swept += 1;
       } catch (error) {
+        recordRecurringSweepOutcome("failed");
         const message = error instanceof Error ? error.message : String(error);
         try {
           await failRecurringSweepJob(prisma, {

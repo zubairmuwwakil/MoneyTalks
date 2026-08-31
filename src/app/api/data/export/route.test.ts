@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET } from "./route";
+import { recordSubscriptionDataOperation } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
 
 vi.mock("@/lib/require-user", () => ({ getSessionUserId: vi.fn() }));
+vi.mock("@/lib/observability", () => ({ recordSubscriptionDataOperation: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     emailConnection: { findMany: vi.fn() },
@@ -69,6 +71,7 @@ describe("GET /api/data/export", () => {
       where: { userId: "user-1" },
       select: expect.not.objectContaining({ accessToken: true, refreshToken: true }),
     }));
+    expect(recordSubscriptionDataOperation).toHaveBeenCalledWith({ operation: "export", outcome: "success" });
   });
 
   it("exports the lifecycle facts derived from the owner's mail", async () => {
@@ -83,6 +86,14 @@ describe("GET /api/data/export", () => {
     expect(prisma.emailObligationFact.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { userId: "user-1" } }),
     );
+  });
+
+  it("records an export failure before preserving the route error", async () => {
+    vi.mocked(prisma.recurringObligation.findMany).mockRejectedValue(new Error("database unavailable"));
+
+    await expect(GET()).rejects.toThrow("database unavailable");
+
+    expect(recordSubscriptionDataOperation).toHaveBeenCalledWith({ operation: "export", outcome: "failure" });
   });
 
 });

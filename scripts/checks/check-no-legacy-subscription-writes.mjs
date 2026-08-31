@@ -5,6 +5,7 @@ import { join } from "node:path";
 const LEGACY_WRITE = /\b(?:prisma|tx)\.subscription(?:Payment)?\.(?:create|createMany|update|updateMany|upsert)\s*\(/;
 const LEGACY_READ = /\b(?:prisma|tx)\.subscription(?:Payment)?\.(?:findMany|findFirst|findUnique|findUniqueOrThrow|findFirstOrThrow|count|aggregate|groupBy)\s*\(/;
 const LOSSY_PROJECTION = /\blegacySubscriptionProjection\b/;
+const LEGACY_ENDPOINT = /["'`]\/api\/subscriptions(?:[/?"'`]|\$\{)/;
 
 function files(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -37,14 +38,22 @@ export function findLossyProjectionConsumers(root = "src") {
     .filter((file) => LOSSY_PROJECTION.test(readFileSync(file, "utf8")));
 }
 
+export function findLegacySubscriptionEndpointConsumers(root = "src") {
+  return files(root)
+    .filter((file) => !file.endsWith(".test.ts") && !file.endsWith(".test.tsx"))
+    .filter((file) => !file.includes("src/app/api/subscriptions/"))
+    .filter((file) => LEGACY_ENDPOINT.test(readFileSync(file, "utf8")));
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   const hits = findLegacySubscriptionWrites();
   const reads = findLegacySubscriptionReads();
   const lossyConsumers = findLossyProjectionConsumers();
-  if (hits.length || reads.length || lossyConsumers.length) {
+  const endpointConsumers = findLegacySubscriptionEndpointConsumers();
+  if (hits.length || reads.length || lossyConsumers.length || endpointConsumers.length) {
     console.error("check-no-legacy-subscription-writes: Subscription is rollback material; canonical code must use RecurringObligation.");
-    for (const hit of [...hits, ...reads, ...lossyConsumers]) console.error(`  ${hit}`);
+    for (const hit of [...hits, ...reads, ...lossyConsumers, ...endpointConsumers]) console.error(`  ${hit}`);
     process.exit(1);
   }
-  console.log("check-no-legacy-subscription-writes: no live legacy writes, reads, or lossy internal projections");
+  console.log("check-no-legacy-subscription-writes: no live legacy writes, reads, endpoints, or lossy internal projections");
 }

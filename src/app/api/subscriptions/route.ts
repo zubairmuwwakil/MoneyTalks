@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { scheduleRecurringObligationRenewalSoon } from "@/lib/domain/notifications/eventNotificationScheduler";
 import { createOwnerSubscription } from "@/lib/domain/recurring/ownerFacts";
 import { legacySubscriptionProjection } from "@/lib/domain/recurring/readModel";
+import { recordLegacySubscriptionAdapterRequest } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
 
@@ -14,7 +15,8 @@ function deprecated(response: NextResponse) {
   return response;
 }
 
-export async function GET() {
+export async function GET(request?: NextRequest) {
+  recordLegacySubscriptionAdapterRequest({ request, route: "collection", method: "GET" });
   const userId = await getSessionUserId();
   if (!userId) return deprecated(new NextResponse("Unauthorized", { status: 401 }));
 
@@ -37,6 +39,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  recordLegacySubscriptionAdapterRequest({ request: req, route: "collection", method: "POST" });
   const userId = await getSessionUserId();
   if (!userId) return deprecated(new NextResponse("Unauthorized", { status: 401 }));
   const body = await req.json().catch(() => null) as Record<string, unknown> | null;

@@ -6,16 +6,16 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
 
 vi.mock("@/lib/require-user", () => ({ getSessionUserId: vi.fn() }));
-vi.mock("@/lib/domain/recurring/ownerFacts", () => ({ createOwnerSubscription: vi.fn() }));
+vi.mock("@/lib/domain/recurring/ownerFacts", () => ({ updateOwnerObligation: vi.fn() }));
 vi.mock("@/lib/domain/notifications/eventNotificationScheduler", () => ({ scheduleRecurringObligationRenewalSoon: vi.fn() }));
 vi.mock("@/lib/observability", () => ({ recordLegacySubscriptionAdapterRequest: vi.fn() }));
-vi.mock("@/lib/prisma", () => ({ prisma: { recurringObligation: { findMany: vi.fn() } } }));
+vi.mock("@/lib/prisma", () => ({ prisma: { recurringObligation: { findFirst: vi.fn() } } }));
 
-describe("GET /api/subscriptions compatibility adapter", () => {
+describe("GET /api/subscriptions/[id] compatibility adapter", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(getSessionUserId).mockResolvedValue("user-1");
-    vi.mocked(prisma.recurringObligation.findMany).mockResolvedValue([{
+    vi.mocked(prisma.recurringObligation.findFirst).mockResolvedValue({
       id: "obligation-1",
       displayName: "Example plan",
       merchantCanonicalId: "example.test",
@@ -30,42 +30,26 @@ describe("GET /api/subscriptions compatibility adapter", () => {
       cancelInstructions: null,
       legacySubscription: null,
       ownerFacts: [],
-    }] as never);
+    } as never);
   });
 
-  it("reads canonical rows directly and carries accurate lifecycle beside the lossy field", async () => {
-    const request = new Request("http://localhost/api/subscriptions", {
-      headers: { "user-agent": "Mozilla/5.0", "sec-fetch-site": "same-origin" },
-    });
-    const response = await GET(request as never);
+  it("returns deprecation headers and the accurate lifecycle status", async () => {
+    const request = new Request("http://localhost/api/subscriptions/obligation-1");
+    const response = await GET(request as never, { params: Promise.resolve({ id: "obligation-1" }) });
     const body = await response.json();
 
     expect(response.headers.get("Deprecation")).toBe("true");
     expect(response.headers.get("Link")).toContain("/api/recurring");
-    expect(body.subscriptions).toEqual([expect.objectContaining({
+    expect(body.subscription).toMatchObject({
       id: "obligation-1",
       canonicalId: "obligation-1",
       status: "ACTIVE",
       lifecycleStatus: "LAPSED",
-    })]);
-    expect(prisma.recurringObligation.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { userId: "user-1", kind: "SUBSCRIPTION" },
-    }));
+    });
     expect(recordLegacySubscriptionAdapterRequest).toHaveBeenCalledWith({
       request,
-      route: "collection",
+      route: "item",
       method: "GET",
     });
-  });
-
-  it("adds deprecation headers to errors too", async () => {
-    vi.mocked(getSessionUserId).mockResolvedValue(null);
-    const response = await GET();
-    expect(response.status).toBe(401);
-    expect(response.headers.get("Deprecation")).toBe("true");
-    expect(recordLegacySubscriptionAdapterRequest).toHaveBeenCalledWith(expect.objectContaining({
-      route: "collection",
-      method: "GET",
-    }));
   });
 });

@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { scheduleRecurringObligationRenewalSoon } from "@/lib/domain/notifications/eventNotificationScheduler";
 import { updateOwnerObligation, type OwnerFactInput, type OwnerMetadataInput } from "@/lib/domain/recurring/ownerFacts";
 import { legacySubscriptionProjection } from "@/lib/domain/recurring/readModel";
+import { recordLegacySubscriptionAdapterRequest } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/require-user";
 
@@ -41,7 +42,8 @@ function date(value: unknown, label: string): Date | null {
   return parsed;
 }
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  recordLegacySubscriptionAdapterRequest({ request: req, route: "item", method: "GET" });
   const userId = await getSessionUserId();
   if (!userId) return deprecated(new NextResponse("Unauthorized", { status: 401 }));
   const { id } = await params;
@@ -51,6 +53,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  recordLegacySubscriptionAdapterRequest({ request: req, route: "item", method: "PATCH" });
   const userId = await getSessionUserId();
   if (!userId) return deprecated(new NextResponse("Unauthorized", { status: 401 }));
   const { id } = await params;

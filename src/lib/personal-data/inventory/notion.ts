@@ -112,7 +112,7 @@ export async function queryNotionDataSource(dataSourceId: string): Promise<Notio
   let startCursor: string | null = null;
 
   do {
-    const response = await notionFetch<NotionListResponse>(
+    const response: NotionListResponse = await notionFetch<NotionListResponse>(
       `/data_sources/${encodeURIComponent(dataSourceId)}/query`,
       {
         method: "POST",
@@ -122,7 +122,7 @@ export async function queryNotionDataSource(dataSourceId: string): Promise<Notio
         }),
       },
     );
-    pages.push(...response.results.filter((result) => result.object === "page"));
+    pages.push(...response.results.filter((result: NotionPage) => result.object === "page"));
     startCursor = response.has_more ? response.next_cursor : null;
   } while (startCursor);
 

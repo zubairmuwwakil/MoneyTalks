@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
+import { recordSubscriptionDataOperation } from "@/lib/observability";
 import { getSessionAccount } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 
@@ -73,9 +74,16 @@ export async function POST(request: Request) {
   const scope = await readScope(request);
   if (!scope) return NextResponse.json({ error: "Unknown deletion scope" }, { status: 400 });
 
-  const job = await prisma.dataDeletionJob.create({
-    data: { userId: account.id, status: "RUNNING" },
-  });
+  let job: { id: string };
+  try {
+    job = await prisma.dataDeletionJob.create({
+      data: { userId: account.id, status: "RUNNING" },
+      select: { id: true },
+    });
+  } catch (error) {
+    recordSubscriptionDataOperation({ operation: "delete", outcome: "failure", scope });
+    throw error;
+  }
 
   try {
     if (scope === "data") {
@@ -90,6 +98,7 @@ export async function POST(request: Request) {
       where: { id: job.id },
       data: { status: "FAILED", error: error instanceof Error ? error.message : String(error) },
     });
+    recordSubscriptionDataOperation({ operation: "delete", outcome: "failure", scope });
     return NextResponse.json({ error: "Failed to delete data" }, { status: 500 });
   }
 
@@ -98,6 +107,7 @@ export async function POST(request: Request) {
       where: { id: job.id },
       data: { status: "COMPLETED", completedAt: new Date() },
     });
+    recordSubscriptionDataOperation({ operation: "delete", outcome: "success", scope });
     return NextResponse.json({ ok: true, jobId: job.id, scope });
   }
 
@@ -109,6 +119,7 @@ export async function POST(request: Request) {
     await clerk.users.deleteUser(account.clerkId);
   } catch (error) {
     if (!isAlreadyDeleted(error)) {
+      recordSubscriptionDataOperation({ operation: "delete", outcome: "partial", scope });
       return NextResponse.json(
         {
           error: "Your data was deleted, but removing the sign-in failed. Sign in and try again.",
@@ -119,5 +130,6 @@ export async function POST(request: Request) {
     }
   }
 
+  recordSubscriptionDataOperation({ operation: "delete", outcome: "success", scope });
   return NextResponse.json({ ok: true, scope });
 }

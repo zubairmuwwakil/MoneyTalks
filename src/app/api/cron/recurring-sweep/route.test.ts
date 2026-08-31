@@ -9,6 +9,7 @@ import {
   failRecurringSweepJob,
 } from "@/lib/domain/recurring/sweepQueue";
 import { prisma } from "@/lib/prisma";
+import { recordRecurringSweepOutcome } from "@/lib/observability";
 import { isAuthorizedCronRequest } from "@/lib/security/cronAuth";
 import { sendServiceFailureAlert } from "@/lib/services/alerting";
 
@@ -24,6 +25,7 @@ vi.mock("@/lib/domain/recurring/sweepQueue", () => ({
   failRecurringSweepJob: vi.fn(),
 }));
 vi.mock("@/lib/services/alerting", () => ({ sendServiceFailureAlert: vi.fn() }));
+vi.mock("@/lib/observability", () => ({ recordRecurringSweepOutcome: vi.fn() }));
 
 function request() {
   return new Request("http://localhost/api/cron/recurring-sweep");
@@ -64,6 +66,18 @@ describe("GET /api/cron/recurring-sweep", () => {
     expect(claimRecurringSweepJobs).toHaveBeenCalledWith(prisma, 8);
   });
 
+  it("records the outcomes that demonstrate a repeat sweep is unchanged", async () => {
+    vi.mocked(sweepRecurringObligations).mockResolvedValue({ created: 1, updated: 2, unchanged: 3, skipped: 4 });
+
+    await GET(request() as never);
+
+    expect(recordRecurringSweepOutcome).toHaveBeenCalledWith("completed");
+    expect(recordRecurringSweepOutcome).toHaveBeenCalledWith("created", 1);
+    expect(recordRecurringSweepOutcome).toHaveBeenCalledWith("updated", 2);
+    expect(recordRecurringSweepOutcome).toHaveBeenCalledWith("unchanged", 3);
+    expect(recordRecurringSweepOutcome).toHaveBeenCalledWith("skipped", 4);
+  });
+
   it("sweeps each owner and keeps going when one fails", async () => {
     vi.mocked(sweepRecurringObligations).mockRejectedValueOnce(new Error("boom"));
 
@@ -81,5 +95,6 @@ describe("GET /api/cron/recurring-sweep", () => {
       lockId: "lease-1",
     });
     expect(sendServiceFailureAlert).toHaveBeenCalledOnce();
+    expect(recordRecurringSweepOutcome).toHaveBeenCalledWith("failed");
   });
 });

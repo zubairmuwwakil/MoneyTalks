@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "./route";
+import { recordSubscriptionNotificationOutcome } from "@/lib/observability";
 import { prisma } from "@/lib/prisma";
 import { enqueueCronContinuation } from "@/lib/services/qstashContinuation";
 
@@ -27,6 +28,11 @@ vi.mock("@/lib/services/alerting", () => ({ sendServiceFailureAlert: vi.fn() }))
 
 vi.mock("@/lib/services/qstashContinuation", () => ({
   enqueueCronContinuation: vi.fn(),
+}));
+
+vi.mock("@/lib/observability", () => ({
+  recordSubscriptionNotificationOutcome: vi.fn(),
+  withSpan: vi.fn(async (_name: string, operation: () => Promise<unknown>) => operation()),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -112,5 +118,24 @@ describe("notification cron pagination", () => {
       polled: 50,
       continuation: { queued: true, messageId: "msg-1" },
     });
+  });
+
+  it("counts canonical subscription notification scans and successful schedules", async () => {
+    vi.mocked(prisma.recurringObligation.findMany).mockResolvedValue([{
+      id: "obligation-1",
+      userId: "user-1",
+      displayName: "Example plan",
+      merchantCanonicalId: "example.test",
+      nextExpectedDate: new Date("2026-09-01T00:00:00.000Z"),
+      schedule: [{ from: "2026-08-01", amountMinor: 2_000 }],
+      currency: "USD",
+    }] as never);
+
+    const response = await GET(request());
+
+    expect(response.status).toBe(200);
+    expect(recordSubscriptionNotificationOutcome).toHaveBeenCalledWith("scan-batch");
+    expect(recordSubscriptionNotificationOutcome).toHaveBeenCalledWith("scanned", 1);
+    expect(recordSubscriptionNotificationOutcome).toHaveBeenCalledWith("scheduled");
   });
 });

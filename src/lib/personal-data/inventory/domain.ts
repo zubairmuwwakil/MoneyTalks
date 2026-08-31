@@ -161,7 +161,6 @@ export async function listInventoryNeeds() {
         aisle: need.aisle,
         active: need.active,
         backupTarget: need.backupTarget,
-        reorderPoint: need.reorderPoint,
         defaultRetailer: need.defaultRetailer,
         ...snapshot,
         products: need.products.map((product) => ({
