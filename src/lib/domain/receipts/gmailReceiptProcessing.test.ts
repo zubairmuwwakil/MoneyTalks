@@ -4,15 +4,22 @@ import { Prisma } from "@prisma/client";
 import { processRawGmailMessage } from "./gmailReceiptProcessing";
 import { parsePurchaseFromRawGmailMessage } from "./gmailPurchaseParser";
 import { resolveEmailMerchantIdentity } from "./emailMerchant";
+import { recordObligationFactEvaluation, withSpan } from "@/lib/observability";
 import { findMatchingPurchase } from "@/lib/domain/spine/purchaseMerge";
 import { removeCapAccrual, reverseCapAccrual } from "@/lib/spine/cap-usage";
 import type { RawGmailMessage } from "@/lib/services/gmailScanSource";
 
 vi.mock("./gmailPurchaseParser", () => ({ parsePurchaseFromRawGmailMessage: vi.fn() }));
-vi.mock("./emailMerchant", () => ({ resolveEmailMerchantIdentity: vi.fn() }));
+vi.mock("./emailMerchant", () => ({ resolveEmailMerchantIdentity: vi.fn(), conduitForSender: vi.fn() }));
 vi.mock("@/lib/domain/spine/purchaseMerge", () => ({ findMatchingPurchase: vi.fn() }));
 vi.mock("@/lib/domain/ownerState", () => ({ ensureOwnerStateRecord: vi.fn() }));
 vi.mock("@/lib/spine/cap-usage", () => ({ applyCapAccrual: vi.fn(), removeCapAccrual: vi.fn(), reverseCapAccrual: vi.fn() }));
+vi.mock("@/lib/observability", () => ({
+  recordObligationFactEvaluation: vi.fn(),
+  withSpan: vi.fn(async (_name: string, operation: (span: { setAttribute: (name: string, value: unknown) => void }) => Promise<void>) =>
+    operation({ setAttribute: vi.fn() }),
+  ),
+}));
 
 // Deliberately a narrow literal rather than a `RawGmailMessage` annotation:
 // several fixtures below pass `message.internalDate` where a plain Date is
@@ -172,6 +179,36 @@ describe("processRawGmailMessage", () => {
     expect(result.transactionAction).toBe("skipped");
     expect(tx.emailTransaction.upsert).not.toHaveBeenCalled();
     expect(tx.purchase.create).not.toHaveBeenCalled();
+  });
+
+  it("emits aggregate-only telemetry for an obligation-context near miss", async () => {
+    const { db, tx } = setupDb();
+    vi.mocked(parsePurchaseFromRawGmailMessage).mockResolvedValue({
+      messageId: message.messageId,
+      merchant: "Example Store",
+      fromEmail: "receipts@example.com",
+      subject: "Your subscription account update",
+      textBody: "Please review your settings.",
+      rawSource: "text",
+    });
+    tx.emailTransaction.findUnique.mockResolvedValue(null);
+    tx.emailTransaction.upsert.mockResolvedValue({ ...existingTransaction, id: "email-tx-new" });
+
+    await processRawGmailMessage(db as never, {
+      userId: "user-1",
+      message,
+      mode: "scan",
+    });
+
+    expect(recordObligationFactEvaluation).toHaveBeenCalledWith(
+      "NEAR_MISS",
+      false,
+      ["NO_SUPPORTED_FACT_LANGUAGE"],
+    );
+    expect(withSpan).toHaveBeenCalledWith(
+      "email.obligation-fact.near-miss",
+      expect.any(Function),
+    );
   });
 
   it("reprocesses stored fields and promotes a row that now has evidence", async () => {

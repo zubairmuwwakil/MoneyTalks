@@ -8,7 +8,7 @@ vi.mock("@/lib/require-user", () => ({ getSessionUserId: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     ownerStateRecord: { findUnique: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
-    creditCard: { findMany: vi.fn() },
+    creditCard: { findMany: vi.fn().mockResolvedValue([]), create: vi.fn(), deleteMany: vi.fn() },
   },
 }));
 

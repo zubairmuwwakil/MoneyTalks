@@ -15,6 +15,15 @@ import type {
   EmailObligationFactInput,
   ExtractedObligationFact,
 } from "./factHelpers";
+import {
+  CADENCE_WORD,
+  NEXT_BILLING_LANGUAGE,
+  OBLIGATION_CONTEXT,
+  combineEmailText,
+  firstDate,
+  validDate,
+} from "./factHelpers";
+import type { ObligationFactNearMissReason } from "@/lib/observability";
 
 export type {
   EmailObligationFactInput,
@@ -35,6 +44,14 @@ export const ALL_FACT_EXTRACTORS = Object.freeze([
   extractNextBillingFacts,
 ] as const);
 
+const CADENCE_OPERATION = /\b(renew(?:al|s|ing)?|bill(?:ed|ing)?|charg(?:e|ed|ing)|payment)\b/i;
+
+export type ObligationFactExtractionEvaluation = {
+  facts: ExtractedObligationFact[];
+  /** Null means the email was outside the narrow, obligation-context sample. */
+  nearMissReasons: readonly ObligationFactNearMissReason[] | null;
+};
+
 /**
  * Run all email obligation fact extractors against the provided input and
  * union the results. Semantics are strictly union-all: no first-match-wins,
@@ -44,6 +61,32 @@ export function extractEmailObligationFacts(
   input: EmailObligationFactInput,
 ): ExtractedObligationFact[] {
   return ALL_FACT_EXTRACTORS.flatMap((extractor) => extractor(input));
+}
+
+/**
+ * Explain the narrow case worth measuring: an obligation-context message that
+ * produced no lifecycle fact. Reasons are closed, aggregate-safe codes only;
+ * text stays at the extraction boundary and never reaches telemetry.
+ */
+export function evaluateEmailObligationFactExtraction(
+  input: EmailObligationFactInput,
+): ObligationFactExtractionEvaluation {
+  const facts = extractEmailObligationFacts(input);
+  const text = combineEmailText(input);
+  if (!validDate(input.occurredAt) || !text || !OBLIGATION_CONTEXT.test(text) || facts.length > 0) {
+    return { facts, nearMissReasons: null };
+  }
+
+  const reasons: ObligationFactNearMissReason[] = [];
+  if (CADENCE_WORD.test(text) && !CADENCE_OPERATION.test(text)) {
+    reasons.push("CADENCE_WITHOUT_BILLING_OPERATION");
+  }
+  if (NEXT_BILLING_LANGUAGE.test(text) && !firstDate(text, input.occurredAt)) {
+    reasons.push("NEXT_BILLING_DATE_UNPARSEABLE");
+  }
+  if (reasons.length === 0) reasons.push("NO_SUPPORTED_FACT_LANGUAGE");
+
+  return { facts, nearMissReasons: reasons };
 }
 
 /**
@@ -67,4 +110,3 @@ export function deriveSubscriptionDetectedItemType(
   }
   return null;
 }
-

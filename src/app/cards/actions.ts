@@ -16,24 +16,12 @@ export type CardFormState = {
   fieldErrors?: Record<string, string>;
 };
 
+import { resolveUniqueNickname } from "@/lib/domain/cards/cardCreation";
+
 async function ownedCard(userId: string, cardId: string) {
   const card = await prisma.creditCard.findFirst({ where: { id: cardId, userId }, include: { state: true } });
   if (!card) throw new Error("Card not found");
   return card;
-}
-
-async function resolveUniqueNickname(userId: string, requested: string): Promise<string> {
-  const existing = await prisma.creditCard.findMany({
-    where: { userId, nickname: { startsWith: requested } },
-    select: { nickname: true },
-  });
-  const names = new Set(existing.map((c) => c.nickname));
-  if (!names.has(requested)) return requested;
-  let counter = 2;
-  while (names.has(`${requested} (${counter})`)) {
-    counter++;
-  }
-  return `${requested} (${counter})`;
 }
 
 export async function createCard(_previousState: CardFormState, formData: FormData): Promise<CardFormState> {
@@ -210,6 +198,47 @@ export async function deleteCard(formData: FormData): Promise<ActionResult> {
     const card = await ownedCard(userId, String(formData.get("cardId") ?? ""));
     cardId = card.id;
     await prisma.creditCard.delete({ where: { id: card.id } });
+
+    if (card.contractCardId) {
+      const record = await prisma.ownerStateRecord.findUnique({ where: { userId } });
+      if (record && record.stateData && typeof record.stateData === "object" && !Array.isArray(record.stateData)) {
+        const stateData = record.stateData as Record<string, unknown>;
+        const owned = Array.isArray(stateData.ownedCardIds) ? (stateData.ownedCardIds as string[]) : [];
+        const deleted = Array.isArray(stateData.deletedCardIds) ? (stateData.deletedCardIds as string[]) : [];
+        
+        const newOwned = owned.filter((id) => id !== card.contractCardId);
+        const newDeleted = Array.from(new Set([...deleted, card.contractCardId]));
+
+        const rawCardStates =
+          stateData.cardStates && typeof stateData.cardStates === "object" && !Array.isArray(stateData.cardStates)
+            ? (stateData.cardStates as Record<string, unknown>)
+            : {};
+        const newCardStates: Record<string, unknown> = {};
+        for (const id of newOwned) {
+          if (rawCardStates[id] !== undefined) {
+            newCardStates[id] = rawCardStates[id];
+          }
+        }
+
+        let newDefault = typeof stateData.defaultCardId === "string" ? stateData.defaultCardId : "";
+        if (newDefault === card.contractCardId) {
+          newDefault = newOwned[0] ?? "";
+        }
+
+        await prisma.ownerStateRecord.update({
+          where: { userId },
+          data: {
+            stateData: {
+              ...stateData,
+              ownedCardIds: newOwned,
+              deletedCardIds: newDeleted,
+              defaultCardId: newDefault,
+              cardStates: newCardStates,
+            } as Prisma.InputJsonValue,
+          },
+        });
+      }
+    }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed" };
   }

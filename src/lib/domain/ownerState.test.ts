@@ -288,6 +288,23 @@ describe("mergeOwnerState", () => {
     ]);
   });
 
+  it("keeps cards in deletedCardIds if they are missing from incoming.ownedCardIds", () => {
+    const stored = { ...base, ownedCardIds: ["amex-cobalt", "td-aeroplan-visa-infinite"], deletedCardIds: ["rogers-red-we"] };
+    // Here rogers-red-we is deleted and NOT in incoming.ownedCardIds, so it stays deleted.
+    const incoming = { ...base, ownedCardIds: ["amex-cobalt"], deletedCardIds: ["td-aeroplan-visa-infinite"] };
+    expect(mergeOwnerState(stored, incoming).ownedCardIds).toEqual(["amex-cobalt"]);
+    expect(mergeOwnerState(stored, incoming).deletedCardIds).toEqual(["rogers-red-we", "td-aeroplan-visa-infinite"]);
+  });
+
+  it("resurrects a card if it is explicitly in incoming.ownedCardIds and the tombstone was removed from incoming.deletedCardIds", () => {
+    const stored = { ...base, ownedCardIds: [], deletedCardIds: ["amex-cobalt"] };
+    const incoming = { ...base, ownedCardIds: ["amex-cobalt"], deletedCardIds: [] };
+    // This allows a card deleted on Web to be re-added on Phone (with the caveat that an unsynced Phone could accidentally resurrect it).
+    const merged = mergeOwnerState(stored, incoming);
+    expect(merged.ownedCardIds).toEqual(["amex-cobalt"]);
+    expect(merged.deletedCardIds).toEqual([]);
+  });
+
   it("keeps a card state the incoming writer never mentioned", () => {
     const stored = {
       ...base,

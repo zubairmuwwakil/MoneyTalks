@@ -61,12 +61,16 @@ async function fetchContractCardIds(db: OwnerStateDb, userId: string): Promise<s
 // here. Anything that fails this check is treated as unusable, the same
 // "absent, not crashing" posture src/lib/security/emailConnectionSecrets.ts
 // takes for an undecryptable credential.
-function extractOwnedIds(stateData: Prisma.JsonValue): { ownedCardIds: string[]; defaultCardId: string } | null {
+function extractOwnedIds(stateData: Prisma.JsonValue): { ownedCardIds: string[]; deletedCardIds?: string[]; defaultCardId: string } | null {
   if (stateData === null || typeof stateData !== "object" || Array.isArray(stateData)) return null;
-  const { ownedCardIds, defaultCardId } = stateData as Record<string, unknown>;
+  const { ownedCardIds, deletedCardIds, defaultCardId } = stateData as Record<string, unknown>;
   if (!Array.isArray(ownedCardIds) || !ownedCardIds.every((id) => typeof id === "string")) return null;
   if (typeof defaultCardId !== "string") return null;
-  return { ownedCardIds: ownedCardIds as string[], defaultCardId };
+  let deleted: string[] | undefined = undefined;
+  if (Array.isArray(deletedCardIds) && deletedCardIds.every((id) => typeof id === "string")) {
+    deleted = deletedCardIds as string[];
+  }
+  return { ownedCardIds: ownedCardIds as string[], deletedCardIds: deleted, defaultCardId };
 }
 
 /**
@@ -119,18 +123,31 @@ async function reconcileOwnedCards(db: OwnerStateDb, record: OwnerStateRecordRow
   // Repoint only if the stored default fell outside the union — never
   // gratuitously move a default that's still valid.
   const defaultCardId = seen.has(parsed.defaultCardId) ? parsed.defaultCardId : ownedCardIds[0];
+  const deletedCardIds = (parsed.deletedCardIds ?? []).filter((id) => !seen.has(id));
 
   const idsUnchanged =
     ownedCardIds.length === parsed.ownedCardIds.length &&
-    ownedCardIds.every((id, i) => id === parsed.ownedCardIds[i]);
+    ownedCardIds.every((id, i) => id === parsed.ownedCardIds[i]) &&
+    (parsed.deletedCardIds ?? []).length === deletedCardIds.length;
   if (idsUnchanged && defaultCardId === parsed.defaultCardId) {
     return record; // Nothing to add, no drift to repair — skip the write.
+  }
+
+  const rawCardStates = extractCardStates(record.stateData);
+  const cardStates: Record<string, unknown> = {};
+  const deletedSet = new Set(deletedCardIds);
+  for (const [id, state] of Object.entries(rawCardStates)) {
+    if (!deletedSet.has(id)) {
+      cardStates[id] = state;
+    }
   }
 
   const nextStateData = {
     ...(record.stateData as Record<string, unknown>),
     ownedCardIds,
+    deletedCardIds,
     defaultCardId,
+    cardStates,
   };
 
   // Optimistic concurrency, not a transaction: `updateMany` filtered on the
@@ -174,34 +191,12 @@ export async function ensureOwnerStateRecord(db: OwnerStateDb, userId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// The two-writer merge (ratified 2026-08-19).
-//
-// PickMe and the web both author owner state. `PUT /api/spine/owner-state`
-// used to `upsert` `stateData` wholesale, which is a last-writer-wins replace
-// with no conflict detection — correct for one writer, silently lossy for
-// two. A card set or a condition answer authored on the web disappeared the
-// next time the phone saved its wallet.
-//
-// The policy below extends reconcileOwnedCards' asymmetry from one field to
-// the whole object, for the same reason it was right there: an addition is
-// provable from data the writer can see, a removal never is.
-//
-//   ownedCardIds  union, stored order first — a writer that cannot see a card
-//                 is not evidence the card was sold.
-//   cardStates    merged per CARD, not per field. A card the incoming writer
-//                 never mentioned keeps its stored answers; a card it did
-//                 mention is replaced entirely, so clearing an answer (the
-//                 user un-ticking "Rogers service linked") still works.
-//   everything    last writer wins. switchThreshold, valuationsCad, carry and
-//   else          ownerStateVersion are whole-object preferences, not a set
-//                 union — averaging two of them would produce a third setting
-//                 neither client asked for.
-//   defaultCardId incoming, if the union can honour it; else the stored one;
-//                 else the first owned id. Never left dangling.
+// 2. State-merging logic (PUT /api/spine/owner-state)
 // ---------------------------------------------------------------------------
 
-type MergeableOwnerState = {
+export type MergeableOwnerState = {
   ownedCardIds: string[];
+  deletedCardIds?: string[];
   defaultCardId: string;
   cardStates: Record<string, unknown>;
 };
@@ -220,9 +215,20 @@ export function mergeOwnerState<T extends MergeableOwnerState>(stored: unknown, 
   // write instead would strand a user behind data they cannot reach to fix.
   if (!prior) return incoming;
 
+  const deletedSet = new Set([...(prior.deletedCardIds || []), ...(incoming.deletedCardIds || [])]);
+  
+  // If the user re-adds a card, they will put it in incoming.ownedCardIds.
+  // We remove it from the tombstone set so it can be resurrected.
+  // Note: this means a stale phone upload could resurrect a web-deleted card, 
+  // but it's the best heuristic without per-card timestamps.
+  for (const id of incoming.ownedCardIds) {
+    deletedSet.delete(id);
+  }
+
   const ownedCardIds: string[] = [];
   const seen = new Set<string>();
   for (const id of [...prior.ownedCardIds, ...incoming.ownedCardIds]) {
+    if (deletedSet.has(id)) continue;
     if (seen.has(id)) continue;
     seen.add(id);
     ownedCardIds.push(id);
@@ -234,10 +240,19 @@ export function mergeOwnerState<T extends MergeableOwnerState>(stored: unknown, 
       ? prior.defaultCardId
       : ownedCardIds[0];
 
+  const rawCardStates = { ...extractCardStates(stored), ...incoming.cardStates };
+  const cardStates: Record<string, unknown> = {};
+  for (const [id, state] of Object.entries(rawCardStates)) {
+    if (!deletedSet.has(id)) {
+      cardStates[id] = state;
+    }
+  }
+
   return {
     ...incoming,
     ownedCardIds,
+    deletedCardIds: Array.from(deletedSet),
     defaultCardId,
-    cardStates: { ...extractCardStates(stored), ...incoming.cardStates },
+    cardStates,
   };
 }

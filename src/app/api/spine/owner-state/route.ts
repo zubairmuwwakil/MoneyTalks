@@ -4,6 +4,52 @@ import { getSessionUserId } from "@/lib/require-user";
 import { prisma } from "@/lib/prisma";
 import { ownerStateForWire, ownerStateInput } from "@/lib/validation/owner-state";
 import { ensureOwnerStateRecord, mergeOwnerState } from "@/lib/domain/ownerState";
+import { catalogueCard } from "@/lib/cards/catalogueCard";
+import { resolveUniqueNickname } from "@/lib/domain/cards/cardCreation";
+
+async function provisionMissingCards(userId: string, stateData: unknown) {
+  if (!stateData || typeof stateData !== "object" || !("ownedCardIds" in stateData) || !Array.isArray(stateData.ownedCardIds)) return;
+  const ownedCardIds = stateData.ownedCardIds as string[];
+  if (ownedCardIds.length === 0) return;
+
+  const currentCards = await prisma.creditCard.findMany({
+    where: { userId, contractCardId: { not: null } },
+    select: { contractCardId: true },
+  });
+  const currentSet = new Set((currentCards || []).map(c => c.contractCardId));
+
+  for (const id of ownedCardIds) {
+    if (currentSet.has(id)) continue;
+    const catCard = catalogueCard(id);
+    if (!catCard) continue;
+
+    const nickname = await resolveUniqueNickname(userId, catCard.officialName);
+    
+    await prisma.creditCard.create({
+      data: {
+        userId,
+        nickname,
+        issuer: catCard.issuer,
+        network: catCard.network.toUpperCase(),
+        annualFeeMinor: catCard.fee.annual ? Math.round(catCard.fee.annual.amount * 100) : 0,
+        contractCardId: id,
+      },
+    });
+  }
+}
+
+async function removeDeletedCards(userId: string, stateData: unknown) {
+  if (!stateData || typeof stateData !== "object" || !("deletedCardIds" in stateData) || !Array.isArray(stateData.deletedCardIds)) return;
+  const deletedCardIds = stateData.deletedCardIds as string[];
+  if (deletedCardIds.length === 0) return;
+
+  await prisma.creditCard.deleteMany({
+    where: {
+      userId,
+      contractCardId: { in: deletedCardIds },
+    },
+  });
+}
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +103,8 @@ export async function PUT(req: NextRequest) {
           data: { userId, stateData: parsed.data as unknown as Prisma.InputJsonValue },
           select: { stateData: true, updatedAt: true },
         });
+        await removeDeletedCards(userId, created.stateData);
+        await provisionMissingCards(userId, created.stateData);
         return NextResponse.json({
           ownerState: ownerStateForWire(created.stateData),
           updatedAt: created.updatedAt.toISOString(),
@@ -82,8 +130,11 @@ export async function PUT(req: NextRequest) {
         where: { userId },
         select: { stateData: true, updatedAt: true },
       });
+      const finalState = latest?.stateData ?? merged;
+      await removeDeletedCards(userId, finalState);
+      await provisionMissingCards(userId, finalState);
       return NextResponse.json({
-        ownerState: ownerStateForWire(latest?.stateData ?? merged),
+        ownerState: ownerStateForWire(finalState),
         updatedAt: (latest?.updatedAt ?? new Date()).toISOString(),
       });
     }

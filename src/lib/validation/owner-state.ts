@@ -249,6 +249,7 @@ const cardState = z.object({
 export const ownerStateInput = z.object({
   ownerStateVersion: z.string().min(1).max(100),
   ownedCardIds: z.array(z.string().min(1)).min(1).max(100).refine((ids) => new Set(ids).size === ids.length, "duplicate card"),
+  deletedCardIds: z.array(z.string().min(1)).max(500).optional(),
   defaultCardId: z.string().min(1),
   switchThreshold: z.object({
     minAdvantagePercentagePoints: finiteNonNegative,
@@ -270,6 +271,13 @@ export const ownerStateInput = z.object({
   for (const cardId of Object.keys(state.cardStates)) {
     if (!state.ownedCardIds.includes(cardId)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["cardStates", cardId], message: "card state must be owned" });
+    }
+  }
+  if (state.deletedCardIds) {
+    for (const cardId of state.deletedCardIds) {
+      if (state.ownedCardIds.includes(cardId)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["deletedCardIds"], message: "card cannot be both owned and deleted" });
+      }
     }
   }
 });

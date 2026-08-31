@@ -14,8 +14,10 @@ import {
   type Purchase as ParsedPurchase,
 } from "./gmailPurchaseParser";
 import { GMAIL_RECEIPT_PARSER_VERSION } from "./parserVersions";
-import { extractEmailObligationFacts } from "./emailObligationFacts";
+import { evaluateEmailObligationFactExtraction } from "./emailObligationFacts";
 import { hasPurchaseEvidence } from "./receiptEvidence";
+import { conduitForSender } from "./emailMerchant";
+import { recordObligationFactEvaluation, withSpan } from "@/lib/observability";
 import { normalizeCurrencyCode } from "@/lib/utils/currency";
 import { resolveCategory, shouldAutoApply } from "@/lib/domain/merchants/resolveCategory";
 import {
@@ -155,11 +157,25 @@ async function persistObligationFacts(
     fallbackOccurredAt: Date;
   },
 ): Promise<void> {
-  const facts = extractEmailObligationFacts({
+  const evaluation = evaluateEmailObligationFactExtraction({
     subject: params.parsed.subject,
     textBody: params.parsed.textBody,
     occurredAt: params.parsed.purchasedAt ?? params.fallbackOccurredAt,
   });
+  const facts = evaluation.facts;
+
+  const nearMissReasons = evaluation.nearMissReasons;
+  if (nearMissReasons) {
+    const knownConduit = Boolean(conduitForSender(params.parsed.fromEmail));
+    recordObligationFactEvaluation("NEAR_MISS", knownConduit, nearMissReasons);
+    await withSpan("email.obligation-fact.near-miss", async (span) => {
+      span.setAttribute("email.obligation_fact.fact_count", 0);
+      span.setAttribute("email.obligation_fact.known_conduit", knownConduit);
+      span.setAttribute("email.obligation_fact.reason_codes", [...nearMissReasons]);
+    });
+  } else if (facts.length > 0) {
+    recordObligationFactEvaluation("EMITTED_FACT", Boolean(conduitForSender(params.parsed.fromEmail)));
+  }
 
   for (const fact of facts) {
     const payload = {

@@ -4,6 +4,7 @@ import {
   ALL_FACT_EXTRACTORS,
   SNIPPET_MAX_CHARS,
   deriveSubscriptionDetectedItemType,
+  evaluateEmailObligationFactExtraction,
   extractEmailObligationFacts,
 } from "./emailObligationFacts";
 
@@ -74,7 +75,57 @@ describe("extractEmailObligationFacts", () => {
   test("registers all seven pure extractors", () => {
     expect(ALL_FACT_EXTRACTORS).toHaveLength(7);
   });
+
+  test("does not classify emails outside obligation context as near misses", () => {
+    const evaluation = evaluateEmailObligationFactExtraction({
+      subject: "Your weekly newsletter",
+      textBody: "A new post is available.",
+      occurredAt,
+    });
+
+    expect(evaluation).toMatchObject({ facts: [], nearMissReasons: null });
+  });
+
+  test("records a closed reason for cadence without an operational billing statement", () => {
+    const evaluation = evaluateEmailObligationFactExtraction({
+      subject: "Your monthly membership update",
+      textBody: "Your membership includes monthly articles and videos.",
+      occurredAt,
+    });
+
+    expect(evaluation).toMatchObject({
+      facts: [],
+      nearMissReasons: ["CADENCE_WITHOUT_BILLING_OPERATION"],
+    });
+  });
+
+  test("records an unparseable stated next billing date", () => {
+    const evaluation = evaluateEmailObligationFactExtraction({
+      subject: "Subscription billing update",
+      textBody: "Your next billing date is shortly after your current period ends.",
+      occurredAt,
+    });
+
+    expect(evaluation).toMatchObject({
+      facts: [],
+      nearMissReasons: ["NEXT_BILLING_DATE_UNPARSEABLE"],
+    });
+  });
+
+  test("uses the generic closed reason when no supported fact language is present", () => {
+    const evaluation = evaluateEmailObligationFactExtraction({
+      subject: "Your subscription account update",
+      textBody: "Please review your settings.",
+      occurredAt,
+    });
+
+    expect(evaluation).toMatchObject({
+      facts: [],
+      nearMissReasons: ["NO_SUPPORTED_FACT_LANGUAGE"],
+    });
+  });
 });
+
 
 describe("deriveSubscriptionDetectedItemType", () => {
   test("returns TRIAL for TRIAL_STARTED or TRIAL_ENDED facts", () => {
@@ -104,4 +155,3 @@ describe("deriveSubscriptionDetectedItemType", () => {
     expect(deriveSubscriptionDetectedItemType([{ type: "CANCELLATION" }])).toBeNull();
   });
 });
-
