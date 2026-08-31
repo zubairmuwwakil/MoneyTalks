@@ -34,25 +34,17 @@ describe("QStash schedule contract", () => {
   });
 
   it("warms MarketLens strictly before the price cron reads it", () => {
-    // The warm sweep is what makes the read cheap and correct. Scheduled after
-    // the read, it warms a cache nobody is going to look at until tomorrow.
     const warmup = bySlug("prices-warmup");
     const prices = bySlug("prices");
-
     expect(minutesUtc(warmup.cron)).toBeLessThan(minutesUtc(prices.cron));
   });
 
   it("leaves the warm-up enough lead time to absorb a cold start and a full fan-out", () => {
     const gap = minutesUtc(bySlug("prices").cron) - minutesUtc(bySlug("prices-warmup").cron);
-
-    // A cold container boot plus a provider fan-out is minutes, not seconds. Five
-    // was not enough margin to also allow a QStash retry to land in time.
     expect(gap).toBeGreaterThanOrEqual(10);
   });
 
   it("gives the two market-data jobs longer than the default QStash timeout", () => {
-    // Both deliberately wait on a cold start. Cut off at the default, they are
-    // retried from scratch rather than allowed to finish the work they started.
     expect(bySlug("prices-warmup").timeout).toBe("5m");
     expect(bySlug("prices").timeout).toBe("5m");
   });
@@ -71,21 +63,26 @@ describe("QStash schedule contract", () => {
 
   it("runs requested Gmail backfills in resumable five-minute increments", () => {
     const backfill = bySlug("gmail-backfill");
-
     expect(backfill.path).toBe("/api/cron/gmail-backfill");
     expect(backfill.cron).toBe("*/5 * * * *");
     expect(backfill.timeout).toBe("2m");
   });
 
+  it("reconciles personal inventory frequently enough to repair missed webhooks", () => {
+    const inventory = bySlug("personal-inventory");
+    expect(inventory.path).toBe("/api/cron/personal-inventory");
+    expect(inventory.cron).toBe("*/15 * * * *");
+    expect(inventory.timeout).toBe("2m");
+  });
+
   it("keeps scheduleIds frozen, because renaming one orphans the old schedule", () => {
-    // QStash keys on scheduleId. A rename does not rename anything: it creates a
-    // second schedule and leaves the first firing forever.
     expect(Object.fromEntries((schedules as unknown as Schedule[]).map((s) => [s.name, s.scheduleId]))).toEqual({
       digest: "moneytalks-digest",
       notify: "moneytalks-notify",
       "purchase-merge": "moneytalks-purchase-merge",
       "recurring-sweep": "moneytalks-recurring-sweep",
       "gmail-backfill": "moneytalks-gmail-backfill",
+      "personal-inventory": "moneytalks-personal-inventory",
       fx: "moneytalks-fx",
       "prices-warmup": "moneytalks-prices-warmup",
       prices: "moneytalks-prices",

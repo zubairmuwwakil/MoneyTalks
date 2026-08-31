@@ -9,7 +9,9 @@ dotenv.config();
 import { defineConfig } from "prisma/config";
 
 export default defineConfig({
-  schema: "prisma/schema.prisma",
+  // Directory mode lets bounded domains add schema files without turning the
+  // already-large canonical schema.prisma into a merge hotspot.
+  schema: "prisma",
   migrations: {
     path: "prisma/migrations",
   },

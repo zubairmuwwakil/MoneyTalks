@@ -15,7 +15,12 @@ import { createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from "
 // the OAuth fields here rather than getting its own crypto path so the (userId,
 // field) GCM binding keeps being constructed in exactly one place — a key lifted
 // from one row still cannot be replayed into another.
-export type SecretField = "accessToken" | "refreshToken" | "providerKey" | "billAccountNumber";
+export type SecretField =
+  | "accessToken"
+  | "refreshToken"
+  | "providerKey"
+  | "billAccountNumber"
+  | "notionWebhookVerificationToken";
 export type SecretContext = { userId: string; field: SecretField; entityRef?: string };
 
 export type SecretCryptoCode =
