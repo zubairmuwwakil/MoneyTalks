@@ -46,6 +46,8 @@ model User {
   receiptUploads                ReceiptUpload[]
   merchantCurrencyConfirmations MerchantCurrencyConfirmation[]
   recurringObligations          RecurringObligation[]
+  recurringObligationOwnerFacts RecurringObligationOwnerFact[]
+  legacySubscriptionMappings    LegacySubscriptionMapping[]
   recurringSweepJob             RecurringSweepJob?
   refundCases                   RefundCase[]
   returnItems                   ReturnItem[]
@@ -583,7 +585,13 @@ model RecurringObligation {
   /// hash of the mutable member set. Owner-authored rows use the empty value.
   seriesKey           String                        @default("")
   kind                String?
-  merchantCanonicalId String
+  /// A subscription can be owner-created before merchant resolution exists.
+  /// Identity uses the opaque series key when this is null.
+  merchantCanonicalId String?
+  displayName         String?
+  notes               String?
+  cancellationUrl     String?
+  cancelInstructions  String?
   /// An entirely unpriced series has no knowable currency; persist null rather
   /// than inventing a unit for its identity.
   currency            String?
@@ -607,12 +615,59 @@ model RecurringObligation {
   updatedAt           DateTime                      @updatedAt
   user                User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
   evidence            RecurringObligationEvidence[]
+  ownerFacts          RecurringObligationOwnerFact[]
+  legacySubscription  LegacySubscriptionMapping?
 
   // The migration supplies partial unique indexes for non-null and null
   // currencies. Prisma cannot express those indexes, and a normal PostgreSQL
   // unique index would permit duplicate null identities.
   @@index([userId, status, nextExpectedDate])
   @@index([algorithmVersion])
+}
+
+/// Append-only owner assertions. The sweep reads these as evidence and is the
+/// only writer of the derived lifecycle projection on RecurringObligation.
+model RecurringObligationOwnerFact {
+  id           String                            @id @default(cuid())
+  userId       String
+  obligationId String
+  type         RecurringObligationOwnerFactType
+  source       RecurringObligationOwnerFactSource
+  sourceKey    String
+  recordedAt   DateTime                          @default(now())
+  occurredAt   DateTime
+  effectiveAt  DateTime?
+  billingAt    DateTime?
+  amountMinor  Int?
+  currency     String?
+  cadence      String?
+  note         String?
+  supersedesId String?                           @unique
+  createdAt    DateTime                          @default(now())
+  obligation   RecurringObligation               @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  supersedes   RecurringObligationOwnerFact?     @relation("OwnerFactSupersession", fields: [supersedesId], references: [id], onDelete: SetNull)
+  supersededBy RecurringObligationOwnerFact?     @relation("OwnerFactSupersession")
+  user         User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([obligationId, sourceKey])
+  @@index([userId, obligationId, occurredAt])
+  @@index([obligationId, type, occurredAt])
+}
+
+/// Rollback and compatibility bridge from a frozen legacy row to its sole
+/// canonical obligation. It is intentionally additive and temporary.
+model LegacySubscriptionMapping {
+  id                   String                       @id @default(cuid())
+  userId               String
+  legacySubscriptionId String                       @unique
+  obligationId         String                       @unique
+  outcome              LegacySubscriptionMapOutcome
+  reasonCode           String
+  migratedAt           DateTime                     @default(now())
+  obligation           RecurringObligation          @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  user                 User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, migratedAt])
 }
 
 /// An owner's durable answer about a merchant's billing currency. It is
@@ -1393,6 +1448,29 @@ enum ObligationOrigin {
   EMAIL_STATED
   USER
   MIGRATED
+}
+
+enum RecurringObligationOwnerFactType {
+  CHARGE
+  EXPLICIT_CADENCE
+  NEXT_BILLING_DATE
+  PRICE_CHANGE
+  TRIAL_STARTED
+  TRIAL_ENDED
+  ACTIVATION
+  CANCELLATION
+  RESUMPTION
+}
+
+enum RecurringObligationOwnerFactSource {
+  OWNER_ACTION
+  MIGRATED_SUBSCRIPTION
+  MIGRATED_SUBSCRIPTION_PAYMENT
+}
+
+enum LegacySubscriptionMapOutcome {
+  MERGED
+  CREATED
 }
 
 enum EvidenceRole {

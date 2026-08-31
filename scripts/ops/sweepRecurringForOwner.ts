@@ -34,7 +34,7 @@ const DEFAULT_TIME_ZONE = "America/Toronto";
 
 type BucketIdentity = {
   userId: string;
-  merchantCanonicalId: string;
+  merchantCanonicalId: string | null;
   currency: string | null;
   discriminator: string;
 };

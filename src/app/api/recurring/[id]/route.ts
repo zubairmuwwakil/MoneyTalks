@@ -53,6 +53,9 @@ export async function PATCH(
       select: { merchantCanonicalId: true },
     });
     if (!obligation) return new NextResponse("Not found", { status: 404 });
+    if (!obligation.merchantCanonicalId) {
+      return NextResponse.json({ error: "A merchant identity is required before setting currency." }, { status: 400 });
+    }
 
     const { affectedPurchases } = await confirmMerchantCurrency(prisma, {
       userId,

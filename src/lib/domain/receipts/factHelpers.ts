@@ -1,7 +1,8 @@
 import type { Cadence } from "@/engine/recurrence";
 import type { ObligationFact } from "@/lib/domain/recurring/types";
 
-export type EmailObligationFactType = Exclude<ObligationFact["type"], "CHARGE">;
+// Owner-only lifecycle facts are deliberately not email extractors.
+export type EmailObligationFactType = Exclude<ObligationFact["type"], "CHARGE" | "ACTIVATION" | "RESUMPTION">;
 
 export interface ExtractedObligationFact {
   type: EmailObligationFactType;

@@ -321,6 +321,8 @@ function evidenceRole(fact: ObligationFact): "CADENCE_FACT" | "CANCELLATION" | "
     case "NEXT_BILLING_DATE":
       return "CADENCE_FACT";
     case "CHARGE":
+    case "ACTIVATION":
+    case "RESUMPTION":
       throw new RangeError("charge facts are linked through purchase evidence");
     default: {
       const exhaustive: never = fact;
@@ -456,7 +458,13 @@ export async function sweepRecurringObligations(
   const result: RecurringSweepResult = { created: 0, updated: 0, unchanged: 0, skipped };
   const asOf = new Date();
 
-  for (const resolution of resolveSeries(candidates, persisted)) {
+  // Detection requires a resolved canonical merchant. Owner-created and
+  // migrated rows without one remain valid canonical obligations, but cannot
+  // be candidates for detector reconciliation until identity is resolved.
+  const resolvablePersisted = persisted.filter((row): row is typeof row & { merchantCanonicalId: string } =>
+    row.merchantCanonicalId !== null,
+  );
+  for (const resolution of resolveSeries(candidates, resolvablePersisted)) {
     const { cluster, identity } = resolution;
     if (resolution.protectedByOwner) {
       result.skipped += 1;
