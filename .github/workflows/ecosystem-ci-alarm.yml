@@ -1,0 +1,35 @@
+name: Ecosystem CI Alarm
+
+on:
+  schedule:
+    # Daily at 12:00 UTC (08:00 EDT)
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit-ecosystem-ci:
+    name: Ecosystem CI Freshness & Health Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout MoneyTalks
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit 6-repo CI status
+        env:
+          # Optional user-supplied token with cross-repo read access (for private repos like pickleball-session-manager)
+          # Falls back to GITHUB_TOKEN for public ecosystem repos.
+          ECOSYSTEM_CI_TOKEN: ${{ secrets.ECOSYSTEM_CI_TOKEN }}
+          GH_TOKEN: ${{ secrets.ECOSYSTEM_CI_TOKEN || secrets.GITHUB_TOKEN }}
+        run: node scripts/ops/check-ecosystem-ci.mjs
