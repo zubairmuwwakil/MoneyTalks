@@ -28,6 +28,8 @@ import purchaseCategoryContractJSON from "../../contracts/purchase-categories.js
 export interface CategoryDefinition {
   id: string;
   label: string;
+  parentID?: string;
+  merchantGroupID?: string;
   icon: string;
   badgeClass: string;
   /**
@@ -42,6 +44,8 @@ export interface CategoryDefinition {
 interface ContractCategory {
   id: string;
   displayName: string;
+  parentID?: string;
+  merchantGroupID?: string;
   aliases: string[];
 }
 
@@ -96,14 +100,35 @@ if (contractCategoryIDs.size !== purchaseCategoryContract.categories.length ||
 }
 
 export const CATEGORIES: readonly CategoryDefinition[] = purchaseCategoryContract.categories.map(
-  ({ id, displayName }) => ({
+  ({ id, displayName, parentID, merchantGroupID }) => ({
     id,
     label: displayName,
+    parentID,
+    merchantGroupID,
     ...CATEGORY_PRESENTATION[id as PurchaseCategoryId],
   }),
 );
 
 const CATEGORY_MAP = new Map<string, CategoryDefinition>(CATEGORIES.map((cat) => [cat.id, cat]));
+
+/** Metadata-only hierarchy helpers; card-rule matching always uses the canonical leaf id. */
+export function categoryParentIDs(category: string): string[] {
+  const parents: string[] = [];
+  const seen = new Set<string>();
+  let current = normalizePurchaseCategoryId(category);
+  while (current) {
+    const parent = CATEGORY_MAP.get(current)?.parentID;
+    if (!parent || seen.has(parent)) break;
+    parents.push(parent);
+    seen.add(parent);
+    current = parent;
+  }
+  return parents;
+}
+
+export function merchantGroupID(category: string): string | null {
+  return CATEGORY_MAP.get(normalizePurchaseCategoryId(category))?.merchantGroupID ?? null;
+}
 
 /**
  * Catalogue tokens that are real stored values but must NOT appear in a
