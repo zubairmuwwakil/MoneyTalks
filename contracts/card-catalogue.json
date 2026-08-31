@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "2.17",
+  "catalogueVersion": "2.18",
   "currency": "CAD",
   "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md \u2014 all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
@@ -102,13 +102,44 @@
             "amount": 200,
             "currency": "CAD"
           },
-          "period": "accountYear",
+          "schedule": {
+            "basis": "accountAnniversary",
+            "intervalMonths": 12
+          },
+          "redemptionMethod": "portalCredit",
+          "allowsPartialUse": false,
+          "purchasePredicate": {
+            "categories": [
+              "travel"
+            ],
+            "merchantInclude": [
+              "american-express-travel"
+            ],
+            "channels": [
+              "amexTravel"
+            ]
+          },
+          "minimumTransaction": {
+            "amount": 200,
+            "currency": "CAD"
+          },
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary"
+            ]
+          },
+          "usageTerms": [
+            "One eligible travel booking of at least C$200 through the eligible Amex Travel channel; Basic Cardmember benefit."
+          ],
           "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-23",
+          "lastVerifiedAt": "2026-08-31",
           "sources": [
             "https://www.americanexpress.com/en-ca/benefits/travel/the-platinum-card/index.shtml"
           ],
-          "_note": "Basic Cardmember: one C$200 credit per Cardmembership anniversary year for one C$200+ travel booking charged to the Platinum Card through American Express Travel Online or Platinum Card Travel Service. Account must be in good standing. Must be used in the anniversary year issued; no carry-forward; cancelling after use does not restore it."
+          "_note": "Basic Cardmember receives one C$200 travel credit per Cardmembership anniversary year for a single qualifying C$200+ booking through eligible American Express Travel channels; unused credit does not carry forward."
         },
         {
           "creditId": "platinum-dining-credit",
@@ -117,15 +148,43 @@
             "amount": 200,
             "currency": "CAD"
           },
-          "period": "calendarYear",
-          "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-23",
-          "sources": [
-            "https://www.americanexpress.com/ca/en/credit-cards/card-types/rewards-cards/index.html"
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": false,
+          "minimumTransaction": {
+            "amount": 200,
+            "currency": "CAD"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "issuerPortal",
+            "url": "https://www.americanexpress.com/en-ca/benefits/the-platinum-card/",
+            "instructions": "Amex Offers"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary"
+            ]
+          },
+          "usageTerms": [
+            "Qualifying purchase must be made directly with a participating restaurant; hotel room-posted or third-party charges may not qualify."
           ],
-          "_note": "Basic Cardmember must enrol through Amex Offers. One C$200 statement credit per calendar-year redemption period follows one C$200+ transaction (tax and gratuity included) at a participating restaurant; charge must be made directly by the restaurant. Supplementary Card spend is ineligible."
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/en-ca/benefits/the-platinum-card/"
+          ],
+          "_note": "After enrollment, the Basic Cardmember can receive one C$200 statement credit per calendar-year redemption period after a single C$200+ direct charge at a participating Canadian restaurant."
         }
-      ]
+      ],
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "amex-cobalt",
@@ -285,7 +344,11 @@
       "sources": [
         "https://www.americanexpress.com/en-ca/credit-cards/cobalt-card/"
       ],
-      "lastVerifiedAt": "2026-08-15"
+      "lastVerifiedAt": "2026-08-15",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "amex-bonvoy",
@@ -355,7 +418,11 @@
       "sources": [
         "https://www.americanexpress.com/en-ca/credit-cards/marriott-bonvoy-card/"
       ],
-      "lastVerifiedAt": "2026-08-15"
+      "lastVerifiedAt": "2026-08-15",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "mbna-rewards-we",
@@ -583,7 +650,11 @@
         "https://www.mbna.ca/en/credit-cards/rewards/mbna-rewards-world-elite-mastercard"
       ],
       "lastVerifiedAt": "2026-08-15",
-      "_note": "FIVE SEPARATE $50k calendar-year spend caps, one per category \u2014 not one shared cap. Birthday bonus (10% of trailing-12-month points, max 15,000) intentionally excluded from checkout scoring."
+      "_note": "FIVE SEPARATE $50k calendar-year spend caps, one per category \u2014 not one shared cap. Birthday bonus (10% of trailing-12-month points, max 15,000) intentionally excluded from checkout scoring.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "scotia-momentum-vi-plus",
@@ -724,7 +795,11 @@
       "sources": [
         "https://www.scotiabank.com/ca/en/personal/credit-cards/visa/momentum-infinite-card/welcome-kit/terms-conditions-momentum-infinite.html"
       ],
-      "lastVerifiedAt": "2026-08-15"
+      "lastVerifiedAt": "2026-08-15",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "tangerine-moneyback-world",
@@ -818,7 +893,11 @@
       "sources": [
         "https://www.tangerine.ca/en/personal/spend/credit-cards/merchant-category-codes"
       ],
-      "lastVerifiedAt": "2026-08-15"
+      "lastVerifiedAt": "2026-08-15",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "rogers-red-we",
@@ -929,7 +1008,11 @@
       "sources": [
         "https://www.rogersbank.com/en/rogers_red_worldelite_mastercard_details"
       ],
-      "lastVerifiedAt": "2026-08-15"
+      "lastVerifiedAt": "2026-08-15",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "triangle-we",
@@ -1071,7 +1154,11 @@
         "https://triangle.canadiantire.ca/en/credit-cards/triangle-world-elite-mastercard.html"
       ],
       "lastVerifiedAt": "2026-08-15",
-      "_note": "CT Money is closed-loop: CT$1 = C$1 only at participating Canadian Tire-family stores. Valuation applies optional usability factor from owner state."
+      "_note": "CT Money is closed-loop: CT$1 = C$1 only at participating Canadian Tire-family stores. Valuation applies optional usability factor from owner state.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "wealthsimple-vip",
@@ -1132,7 +1219,11 @@
       "sources": [
         "https://www.wealthsimple.com/en-ca/credit-card"
       ],
-      "lastVerifiedAt": "2026-08-15"
+      "lastVerifiedAt": "2026-08-15",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "cryptocom-royal-indigo",
@@ -1262,7 +1353,11 @@
           "lastVerifiedAt": "2026-08-19",
           "_note": "Migrated 2026-08-19 from the Inunity hub's hand-authored card presets, which carried no issuer citation. Labelled inferred, NOT issuerConfirmed: it is the only non-issuer-confirmed data in this catalogue and must be verified against the issuer page before launch (D3's sourcing bar). Promote to issuerConfirmed with a real lastVerifiedAt at that point."
         }
-      ]
+      ],
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "scotia-gold-amex",
@@ -1431,7 +1526,11 @@
         "https://www.scotiabank.com/ca/en/personal/credit-cards/american-express/gold-card.html"
       ],
       "lastVerifiedAt": "2026-08-17",
-      "_note": "Scene+ Travel payment-independent points and Shell fuel economics deliberately excluded from checkout scoring."
+      "_note": "Scene+ Travel payment-independent points and Shell fuel economics deliberately excluded from checkout scoring.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "td-aeroplan-visa-infinite",
@@ -1555,7 +1654,45 @@
         "https://www.td.com/ca/en/personal-banking/products/credit-cards/aeroplan/aeroplan-visa-infinite-card"
       ],
       "lastVerifiedAt": "2026-08-17",
-      "_note": "Do not encode an $80,000 cap until its issuer-defined reset period is verified."
+      "_note": "Do not encode an $80,000 cap until its issuer-defined reset period is verified.",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      },
+      "credits": [
+        {
+          "creditId": "td-aeroplan-vi-nexus-credit",
+          "label": "NEXUS application or renewal fee rebate",
+          "value": {
+            "amount": 100,
+            "currency": "CAD"
+          },
+          "schedule": {
+            "basis": "rolling",
+            "intervalMonths": 48
+          },
+          "redemptionMethod": "reimbursement",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Qualifying NEXUS application or renewal fee must be charged to the TD Aeroplan Visa Infinite Card."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.td.com/ca/en/personal-banking/products/credit-cards/aeroplan/aeroplan-visa-infinite-card"
+          ],
+          "_note": "Up to C$100 per qualifying NEXUS application or renewal fee. The available number of credits depends on the number of Cardholders when the first qualifying fee posts, and that first posting starts a 48-month period."
+        }
+      ]
     },
     {
       "cardId": "rbc-avion-visa-infinite",
@@ -1631,7 +1768,11 @@
       "sources": [
         "https://www.rbcroyalbank.com/credit-cards/travel/rbc-avion-visa-infinite.html"
       ],
-      "lastVerifiedAt": "2026-08-17"
+      "lastVerifiedAt": "2026-08-17",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "cibc-dividend-visa-infinite",
@@ -1792,7 +1933,11 @@
         "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/dividend-visa-infinite-card.html"
       ],
       "lastVerifiedAt": "2026-08-17",
-      "_note": "Do not approximate CIBC's dual annual thresholds as a single calendar-year cap."
+      "_note": "Do not approximate CIBC's dual annual thresholds as a single calendar-year cap.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "scotia-passport-visa-infinite-plus",
@@ -1915,7 +2060,11 @@
         "https://www.scotiabank.com/ca/en/personal/credit-cards/visa/passport-infinite-card.html"
       ],
       "lastVerifiedAt": "2026-08-17",
-      "_note": "10,000-point $40k annual milestone and subsequent 2,000-point milestones intentionally omitted from earnRules because current engine cannot represent lump-sum rewards. Scene+ Travel payment-independent points and Shell economics also excluded."
+      "_note": "10,000-point $40k annual milestone and subsequent 2,000-point milestones intentionally omitted from earnRules because current engine cannot represent lump-sum rewards. Scene+ Travel payment-independent points and Shell economics also excluded.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "td-first-class-travel-visa-infinite",
@@ -2086,15 +2235,54 @@
             "amount": 100,
             "currency": "CAD"
           },
-          "period": "calendarYear",
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": false,
+          "purchasePredicate": {
+            "categories": [
+              "lodging",
+              "travel"
+            ],
+            "merchantInclude": [
+              "expedia-for-td"
+            ],
+            "channels": [
+              "expediaForTD"
+            ]
+          },
+          "minimumTransaction": {
+            "amount": 500,
+            "currency": "CAD"
+          },
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ],
+            "accountStandingRequired": true
+          },
+          "usageTerms": [
+            "First eligible C$500+ Expedia For TD purchase posted in the calendar year; qualifying lodging/vacation-package types only."
+          ],
           "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-23",
+          "lastVerifiedAt": "2026-08-31",
           "sources": [
             "https://www.td.com/ca/en/personal-banking/products/credit-cards/travel-rewards/first-class-travel-visa-infinite-card"
           ],
-          "_note": "One C$100 credit on the first eligible C$500+ Expedia For TD purchase posted in a calendar year: a hotel, motel, lodging or vacation-rental purchase, or a vacation package combining lodging with transportation. Account must be open, active and in good standing."
+          "_note": "One C$100 credit per calendar year on the first eligible C$500+ Expedia For TD lodging or qualifying vacation-package purchase that posts to an open, active account in good standing."
         }
-      ]
+      ],
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "bmo-eclipse-visa-infinite",
@@ -2252,16 +2440,42 @@
             "amount": 50,
             "currency": "CAD"
           },
-          "period": "accountYear",
-          "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-23",
-          "sources": [
-            "https://www.bmo.com/pdf/bmo-eclipse-visa-infinite-benefit-guide-en.pdf",
-            "https://www.bmo.com/main/personal/credit-cards/bmo-eclipse-visa-infinite/"
+          "schedule": {
+            "basis": "accountAnniversary",
+            "intervalMonths": 12
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": false,
+          "purchasePredicate": {},
+          "minimumTransaction": {
+            "amount": 50,
+            "currency": "CAD"
+          },
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ],
+            "accountStandingRequired": true
+          },
+          "usageTerms": [
+            "A C$50+ purchase must post during the annual period while the account is open and in good standing."
           ],
-          "_note": "Primary Cardholder: one C$50 statement credit in each annual period starting at the account anniversary/annual-fee renewal, after a C$50+ purchase posts while the account is open and in good standing; paid within two statement cycles. Issuer terms state the cadence but do not state a carry-forward rule, so no carry-forward is modelled."
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.bmo.com/pdf/bmo-eclipse-visa-infinite-benefit-guide-en.pdf"
+          ],
+          "_note": "Primary Cardholder receives one C$50 statement credit in each annual period beginning at account anniversary/annual-fee renewal after a C$50+ purchase posts; issuer says credit can take up to two statement cycles."
         }
-      ]
+      ],
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "cibc-aventura-visa-infinite",
@@ -2360,7 +2574,46 @@
       "sources": [
         "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/aventura-visa-infinite-card.html"
       ],
-      "lastVerifiedAt": "2026-08-17"
+      "lastVerifiedAt": "2026-08-17",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      },
+      "credits": [
+        {
+          "creditId": "cibc-aventura-vi-nexus-credit",
+          "label": "NEXUS application fee rebate",
+          "value": {
+            "amount": 200,
+            "currency": "CAD"
+          },
+          "schedule": {
+            "basis": "rolling",
+            "intervalMonths": 48
+          },
+          "redemptionMethod": "reimbursement",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible NEXUS application or renewal fee must be charged to the eligible CIBC card; account must meet issuer good-standing requirements."
+          ],
+          "effectiveFrom": "2025-07-01",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/aventura-visa-infinite-card.html"
+          ],
+          "_note": "Current issuer page states one statement credit up to C$200 for an eligible NEXUS application/renewal fee, limited to one every four years. CIBC's 2025 pricing notice documents the increase from C$100 to C$200 effective 2025-07-01."
+        }
+      ]
     },
     {
       "cardId": "national-bank-world-elite",
@@ -2509,15 +2762,40 @@
             "amount": 150,
             "currency": "CAD"
           },
-          "period": "calendarYear",
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "reimbursement",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary"
+            ],
+            "accountLevelLimit": true,
+            "accountStandingRequired": true,
+            "claimRequired": true,
+            "claimDeadlineDays": 60
+          },
+          "usageTerms": [
+            "Qualifying expense must be charged to the eligible account; proof must be submitted within 60 days; Primary cardholder benefit; account must be in good standing."
+          ],
           "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-23",
+          "lastVerifiedAt": "2026-08-31",
           "sources": [
             "https://www.nbc.ca/personal/mastercard-credit-cards/world-elite.html"
           ],
-          "_note": "Primary cardholder only, with account in good standing: up to C$150 per account from January 1 to December 31 for charged airport parking, baggage, seat-selection, worldwide airport-lounge-access or airline-ticket-upgrade fees. Submit proof within 60 days; unused amount does not carry forward."
+          "_note": "Primary cardholder may claim up to C$150 per account from January 1 through December 31 for issuer-listed eligible travel expenses. Proof is due within 60 days and unused amounts do not carry forward."
         }
-      ]
+      ],
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "pc-insiders-world-elite",
@@ -2658,7 +2936,11 @@
         "https://www.pcfinancial.ca/en/credit-cards/insiders-world-elite/"
       ],
       "lastVerifiedAt": "2026-08-17",
-      "_note": "PC Express Pass pickup bonus intentionally excluded from card checkout earn because current issuer terms tie it to active Pass/member status rather than clearly requiring payment with this card."
+      "_note": "PC Express Pass pickup bonus intentionally excluded from card checkout earn because current issuer terms tie it to active Pass/member status rather than clearly requiring payment with this card.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "rbc-ion-plus-visa",
@@ -2740,7 +3022,11 @@
         "https://www.rbcroyalbank.com/credit-cards/rewards/rbc-ion-plus-visa.html"
       ],
       "lastVerifiedAt": "2026-08-18",
-      "_note": "Exact current card-specific FX percentage unresolved; foreign scoring must fail closed."
+      "_note": "Exact current card-specific FX percentage unresolved; foreign scoring must fail closed.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "td-cash-back-visa-infinite",
@@ -2883,7 +3169,11 @@
         "https://www.td.com/ca/en/personal-banking/products/credit-cards/cash-back/cash-back-visa-infinite-card"
       ],
       "lastVerifiedAt": "2026-08-18",
-      "_note": "Accelerated rules disabled pending resolution of the exact reset boundary for the $15,000 annual category caps."
+      "_note": "Accelerated rules disabled pending resolution of the exact reset boundary for the $15,000 annual category caps.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "bmo-ascend-world-elite",
@@ -3025,7 +3315,11 @@
         "https://www.bmo.com/en-ca/main/personal/credit-cards/bmo-ascend-world-elite-mastercard/"
       ],
       "lastVerifiedAt": "2026-08-18",
-      "_note": "Card-specific FX percentage unresolved; foreign purchases suppressed until pinned."
+      "_note": "Card-specific FX percentage unresolved; foreign purchases suppressed until pinned.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "westjet-rbc-world-elite",
@@ -3170,7 +3464,11 @@
         "https://www.rbcroyalbank.com/credit-cards/travel/westjet-rbc-world-elite-mastercard.html"
       ],
       "lastVerifiedAt": "2026-08-18",
-      "_note": "Annual companion voucher ($5,000 spend requirement) and Status Lift are annual milestones, intentionally excluded from per-purchase checkout earn."
+      "_note": "Annual companion voucher ($5,000 spend requirement) and Status Lift are annual milestones, intentionally excluded from per-purchase checkout earn.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "amazon-ca-rewards-mastercard",
@@ -3265,7 +3563,11 @@
         "https://www.mbna.ca/en/credit-cards/retail-store/amazon-rewards-mastercard"
       ],
       "lastVerifiedAt": "2026-08-18",
-      "_note": "Closed-loop Amazon.ca Gift Card redemption (100 pts = $1). Foreign purchases earn 2.5x with Prime (net ~0% after 2.5% FX) or 1x without Prime."
+      "_note": "Closed-loop Amazon.ca Gift Card redemption (100 pts = $1). Foreign purchases earn 2.5x with Prime (net ~0% after 2.5% FX) or 1x without Prime.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "cibc-aventura-visa",
@@ -3318,7 +3620,11 @@
         "https://www.cibc.com/en/personal-banking/credit-cards/no-annual-fee.html"
       ],
       "lastVerifiedAt": "2026-08-18",
-      "_note": "Flat 1x Aventura point/$1 across all categories with no annual cap. Foreign purchases suppressed until FX rate is verified."
+      "_note": "Flat 1x Aventura point/$1 across all categories with no annual cap. Foreign purchases suppressed until FX rate is verified.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "amex-simplycash",
@@ -3419,7 +3725,11 @@
       "sources": [
         "https://www.americanexpress.com/en-ca/benefits/simplycash-card/"
       ],
-      "lastVerifiedAt": "2026-08-18"
+      "lastVerifiedAt": "2026-08-18",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "simplii-cashback-visa",
@@ -3548,7 +3858,11 @@
         "https://www.simplii.com/en/credit-cards/cash-back-visa.html",
         "https://www.simplii.com/content/dam/simplii-public-assets/documents/pdf/credit-cards/cash-back-visa-benefits-guide.pdf"
       ],
-      "lastVerifiedAt": "2026-08-16"
+      "lastVerifiedAt": "2026-08-16",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "amex-simplycash-preferred",
@@ -3647,7 +3961,11 @@
         "https://www.americanexpress.com/en-ca/credit-cards/simply-cash-preferred/",
         "https://www.americanexpress.com/en-ca/benefits/simplycashpreferred-card/"
       ],
-      "lastVerifiedAt": "2026-08-16"
+      "lastVerifiedAt": "2026-08-16",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "bmo-cashback-world-elite",
@@ -3841,7 +4159,11 @@
         "https://www.bmo.com/en-ca/main/personal/credit-cards/bmo-cashback-world-elite-mastercard/",
         "https://www.bmo.com/popups/main/personal/credit-cards/terms-and-conditions-en.html"
       ],
-      "lastVerifiedAt": "2026-08-16"
+      "lastVerifiedAt": "2026-08-16",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "mbna-smart-cash-world",
@@ -3929,7 +4251,11 @@
       "sources": [
         "https://www.mbna.ca/en/credit-cards/cash-back/smart-cash-world-mastercard"
       ],
-      "lastVerifiedAt": "2026-08-16"
+      "lastVerifiedAt": "2026-08-16",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "home-trust-preferred-visa",
@@ -3998,7 +4324,11 @@
         "https://www.hometrust.ca/credit-cards/preferred-visa-card/"
       ],
       "lastVerifiedAt": "2026-08-16",
-      "_eligibilityNote": "Not available in Quebec."
+      "_eligibilityNote": "Not available in Quebec.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "rbc-cashback-preferred-we",
@@ -4078,7 +4408,11 @@
         "https://www.rbcroyalbank.com/credit-cards/cash-back/rbc-preferred-world-elite-mastercard.html"
       ],
       "lastVerifiedAt": "2026-08-16",
-      "_eligibilityNote": "Issuer states $80,000 personal or $150,000 household minimum annual income."
+      "_eligibilityNote": "Issuer states $80,000 personal or $150,000 household minimum annual income.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "amex-aeroplan-reserve",
@@ -4176,7 +4510,11 @@
         "https://www.americanexpress.com/en-ca/credit-cards/aeroplan-reserve/"
       ],
       "lastVerifiedAt": "2026-08-24",
-      "_note": "Includes complimentary Air Canada Maple Leaf Lounge access in North America, free first checked bag, and annual worldwide companion pass qualification."
+      "_note": "Includes complimentary Air Canada Maple Leaf Lounge access in North America, free first checked bag, and annual worldwide companion pass qualification.",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "td-aeroplan-visa-infinite-privilege",
@@ -4287,25 +4625,47 @@
       "credits": [
         {
           "creditId": "td-aeroplan-vip-nexus-credit",
-          "label": "NEXUS Application Fee Rebate",
+          "label": "NEXUS application or renewal fee rebate",
           "value": {
             "amount": 100,
             "currency": "CAD"
           },
-          "period": "accountYear",
+          "schedule": {
+            "basis": "rolling",
+            "intervalMonths": 48
+          },
+          "redemptionMethod": "reimbursement",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ],
+            "accountLevelLimit": true
+          },
+          "usageTerms": [
+            "Qualifying NEXUS application or renewal fee must be charged to the eligible card; 48-month period begins when first qualifying fee posts."
+          ],
           "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-24",
+          "lastVerifiedAt": "2026-08-31",
           "sources": [
             "https://www.td.com/ca/en/personal-banking/products/credit-cards/aeroplan/aeroplan-visa-infinite-privilege-card"
           ],
-          "_note": "Up to C$100 statement credit every 48 months for NEXUS application or renewal fees charged to the Card."
+          "_note": "Up to C$100 per qualifying NEXUS fee, with the account's 48-month period beginning when the first qualifying application/renewal fee posts. Primary and Additional Cardholders can generate qualifying charges under the account-level availability rule."
         }
       ],
       "perTransactionRewardVisibility": "issuerConfirmed",
       "sources": [
         "https://www.td.com/ca/en/personal-banking/products/credit-cards/aeroplan/aeroplan-visa-infinite-privilege-card"
       ],
-      "lastVerifiedAt": "2026-08-24"
+      "lastVerifiedAt": "2026-08-24",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "cibc-aeroplan-visa-infinite-privilege",
@@ -4416,25 +4776,47 @@
       "credits": [
         {
           "creditId": "cibc-aeroplan-vip-nexus-credit",
-          "label": "NEXUS Fee Rebate",
+          "label": "NEXUS application or renewal fee rebate",
           "value": {
-            "amount": 100,
+            "amount": 200,
             "currency": "CAD"
           },
-          "period": "accountYear",
+          "schedule": {
+            "basis": "rolling",
+            "intervalMonths": 48
+          },
+          "redemptionMethod": "reimbursement",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible NEXUS fee must be charged to the eligible CIBC Aeroplan Visa Infinite Privilege account and issuer good-standing conditions must be met."
+          ],
+          "effectiveFrom": "2025-07-01",
           "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-24",
+          "lastVerifiedAt": "2026-08-31",
           "sources": [
             "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/aeroplan-visa-infinite-privilege-card.html"
           ],
-          "_note": "One C$100 statement credit every 4 years for NEXUS application or renewal."
+          "_note": "Current issuer materials state one NEXUS statement-credit reimbursement up to C$200 every four years. CIBC's pricing notice documents the increase from C$100 to C$200 effective 2025-07-01."
         }
       ],
       "perTransactionRewardVisibility": "issuerConfirmed",
       "sources": [
         "https://www.cibc.com/en/personal-banking/credit-cards/all-credit-cards/aeroplan-visa-infinite-privilege-card.html"
       ],
-      "lastVerifiedAt": "2026-08-24"
+      "lastVerifiedAt": "2026-08-24",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "amex-gold-rewards",
@@ -4557,13 +4939,44 @@
             "amount": 100,
             "currency": "CAD"
           },
-          "period": "calendarYear",
-          "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-24",
-          "sources": [
-            "https://www.americanexpress.com/en-ca/charge-cards/gold-rewards-card/"
+          "schedule": {
+            "basis": "accountAnniversary",
+            "intervalMonths": 12
+          },
+          "redemptionMethod": "portalCredit",
+          "allowsPartialUse": false,
+          "purchasePredicate": {
+            "categories": [
+              "travel"
+            ],
+            "merchantInclude": [
+              "american-express-travel"
+            ],
+            "channels": [
+              "amexTravel"
+            ]
+          },
+          "minimumTransaction": {
+            "amount": 100,
+            "currency": "CAD"
+          },
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary"
+            ]
+          },
+          "usageTerms": [
+            "One qualifying travel booking of at least C$100 through Amex Travel Online; Basic Cardmember only; no carry-forward."
           ],
-          "_note": "One C$100 statement credit per calendar year for a single travel booking of C$100 or more made through Amex Travel Online."
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/ca/en/benefits/gold-rewards-card/"
+          ],
+          "_note": "Basic Cardmember receives one C$100 travel credit per Cardmembership anniversary year for a qualifying C$100+ booking through Amex Travel Online; unused value does not carry forward."
         }
       ],
       "perTransactionRewardVisibility": "ownerObserved",
@@ -4571,7 +4984,11 @@
         "https://www.americanexpress.com/en-ca/charge-cards/gold-rewards-card/"
       ],
       "lastVerifiedAt": "2026-08-24",
-      "_note": "Includes 4 complimentary Plaza Premium lounge passes per calendar year."
+      "_note": "Includes 4 complimentary Plaza Premium lounge passes per calendar year.",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "pc-financial-world-elite",
@@ -4738,7 +5155,11 @@
       "sources": [
         "https://www.pcfinancial.ca/en/credit-cards/world-elite-mastercard/"
       ],
-      "lastVerifiedAt": "2026-08-24"
+      "lastVerifiedAt": "2026-08-24",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "desjardins-odyssey-world-elite",
@@ -4874,7 +5295,11 @@
         "https://www.desjardins.com/ca/personal/loans-credit/credit-cards/odyssey-world-elite-mastercard/index.jsp"
       ],
       "lastVerifiedAt": "2026-08-24",
-      "_note": "Includes 8 free accesses per year to the Desjardins Odyssey Lounge at Montreal-Trudeau Airport (YUL)."
+      "_note": "Includes 8 free accesses per year to the Desjardins Odyssey Lounge at Montreal-Trudeau Airport (YUL).",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "pc-financial-mastercard",
@@ -5041,7 +5466,11 @@
       "sources": [
         "https://www.pcfinancial.ca/en/credit-cards/mastercard/"
       ],
-      "lastVerifiedAt": "2026-08-24"
+      "lastVerifiedAt": "2026-08-24",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "pc-financial-world-mastercard",
@@ -5208,7 +5637,11 @@
       "sources": [
         "https://www.pcfinancial.ca/en/credit-cards/world-mastercard/"
       ],
-      "lastVerifiedAt": "2026-08-24"
+      "lastVerifiedAt": "2026-08-24",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "cibc-dividend-visa",
@@ -5370,7 +5803,11 @@
         "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/documents/cibc-creditcard-annual-interest-rate-fees-11995-en.pdf"
       ],
       "lastVerifiedAt": "2026-08-30",
-      "_note": "Do not approximate CIBC's dual annual thresholds ($30k all-spend / $20k accelerated) as a single calendar-year cap."
+      "_note": "Do not approximate CIBC's dual annual thresholds ($30k all-spend / $20k accelerated) as a single calendar-year cap.",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "td-business-travel-visa",
@@ -5544,7 +5981,11 @@
         "https://www.td.com/ca/en/business-banking/small-business/credit-cards/business-travel-visa-card/invitetoapply",
         "https://www.td.com/content/dam/tdct/document/pdf/business-banking/11614-528618-cha-td-business-travel-06-en.pdf"
       ],
-      "lastVerifiedAt": "2026-08-30"
+      "lastVerifiedAt": "2026-08-30",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "walmart-rewards-mastercard",
@@ -5616,7 +6057,11 @@
         "https://www.walmartrewards.ca/en/creditcards",
         "https://www.walmartrewards.ca/wrmcprogramterms"
       ],
-      "lastVerifiedAt": "2026-08-30"
+      "lastVerifiedAt": "2026-08-30",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "walmart-rewards-world-mastercard",
@@ -5688,7 +6133,11 @@
         "https://www.walmartrewards.ca/en/creditcards",
         "https://www.walmartrewards.ca/wrmcprogramterms"
       ],
-      "lastVerifiedAt": "2026-08-30"
+      "lastVerifiedAt": "2026-08-30",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "alliant-credit-union-alliant-cashback-visa",
@@ -5792,7 +6241,11 @@
       "lastVerifiedAt": "2026-08-27",
       "sources": [
         "https://www.americanexpress.com/us/credit-cards/business-cards/american-express-blue-business-plus-credit-card/"
-      ]
+      ],
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-blue-from-american-express",
@@ -6077,21 +6530,189 @@
           "creditId": "amex-gold-dining-credit",
           "label": "Dining Credit",
           "value": {
-            "amount": 120,
+            "amount": 10,
             "currency": "USD"
           },
-          "period": "calendarYear",
+          "schedule": {
+            "basis": "calendar",
+            "unit": "month",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "dining",
+              "foodDelivery"
+            ],
+            "merchantInclude": [
+              "buffalo-wild-wings",
+              "five-guys",
+              "grubhub",
+              "seamless",
+              "the-cheesecake-factory",
+              "wonder"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "issuerPortal",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/gold-card/",
+            "instructions": "American Express benefit enrollment"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible purchases only at current issuer-listed partners; third-party/processor exclusions may apply."
+          ],
           "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-27",
+          "lastVerifiedAt": "2026-08-31",
           "sources": [
             "https://www.americanexpress.com/us/credit-cards/card/gold-card/"
           ],
-          "_note": "Up to $10/month statement credit for Grubhub, The Cheesecake Factory, Goldbelly, Wine.com, and Five Guys with enrolment."
+          "_note": "After enrollment, eligible Gold accounts can receive up to $10 in statement credits each calendar month for qualifying purchases with the issuer's current dining partners."
+        },
+        {
+          "creditId": "amex-gold-uber-cash-monthly",
+          "label": "Uber Cash",
+          "value": {
+            "amount": 10,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "month",
+            "interval": 1
+          },
+          "redemptionMethod": "accountCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "foodDelivery",
+              "transit"
+            ],
+            "merchantInclude": [
+              "uber",
+              "uber-eats"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "partnerAccount",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/gold-card/",
+            "instructions": "Add Gold Card to Uber account"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Gold Card must be added to eligible U.S. Uber account; benefit applies to U.S. rides/orders and qualifying payment setup per issuer/Uber terms."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/gold-card/"
+          ],
+          "_note": "$10 in Uber Cash is added monthly for eligible U.S. Uber rides or Uber Eats orders after the Gold Card is added to the Uber account and issuer requirements are met."
+        },
+        {
+          "creditId": "amex-gold-resy-halfyear",
+          "label": "Resy Credit",
+          "value": {
+            "amount": 50,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "halfYear",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": true,
+            "channel": "issuerPortal",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/gold-card/",
+            "instructions": "American Express benefit enrollment"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Qualifying purchases at eligible U.S. Resy restaurants; enrollment required."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/gold-card/"
+          ],
+          "_note": "After enrollment, up to $50 in statement credits January-June and another $50 July-December for qualifying purchases at eligible U.S. Resy restaurants."
+        },
+        {
+          "creditId": "amex-gold-dunkin-monthly",
+          "label": "Dunkin' Credit",
+          "value": {
+            "amount": 7,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "month",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "dining"
+            ],
+            "merchantInclude": [
+              "dunkin"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "issuerPortal",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/gold-card/",
+            "instructions": "American Express benefit enrollment"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Qualifying purchases at U.S. Dunkin' locations/channels under issuer terms; enrollment required."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/gold-card/"
+          ],
+          "_note": "After enrollment, up to $7 in statement credits per calendar month for qualifying purchases at U.S. Dunkin' locations."
         }
       ],
       "sources": [
         "https://www.americanexpress.com/us/credit-cards/card/gold-card/"
-      ]
+      ],
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-graphite-business-cash",
@@ -6179,7 +6800,7 @@
       "kind": "charge",
       "fee": {
         "annual": {
-          "amount": 695,
+          "amount": 895,
           "currency": "USD"
         }
       },
@@ -6255,18 +6876,543 @@
             "amount": 200,
             "currency": "USD"
           },
-          "period": "calendarYear",
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": true,
+            "channel": "issuerPortal",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
+            "instructions": "Select qualifying airline in Amex benefits"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible incidental airline fees on one selected qualifying airline; enrollment/airline selection required."
+          ],
           "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-27",
+          "lastVerifiedAt": "2026-08-31",
           "sources": [
             "https://www.americanexpress.com/us/credit-cards/card/platinum/"
           ],
-          "_note": "Up to $200 per calendar year in statement credits for incidental fees on a selected qualifying airline."
+          "_note": "Up to $200 per calendar year in statement credits for eligible incidental fees on one selected qualifying airline."
+        },
+        {
+          "creditId": "amex-plat-us-hotel-halfyear",
+          "label": "Fine Hotels + Resorts / The Hotel Collection credit",
+          "value": {
+            "amount": 300,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "halfYear",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "lodging"
+            ],
+            "merchantInclude": [
+              "fine-hotels-plus-resorts",
+              "the-hotel-collection"
+            ],
+            "channels": [
+              "amexTravel"
+            ]
+          },
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible prepaid FHR or THC booking through Amex Travel; The Hotel Collection requires at least two nights."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+          ],
+          "_note": "Up to $300 in statement credits January-June and another $300 July-December for eligible prepaid FHR/The Hotel Collection bookings through American Express Travel; THC stays require two nights."
+        },
+        {
+          "creditId": "amex-plat-us-uber-cash-monthly",
+          "label": "Uber Cash monthly base",
+          "value": {
+            "amount": 15,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "month",
+            "interval": 1
+          },
+          "redemptionMethod": "accountCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "foodDelivery",
+              "transit"
+            ],
+            "merchantInclude": [
+              "uber",
+              "uber-eats"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "partnerAccount",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
+            "instructions": "Add Platinum Card to Uber account"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible U.S. rides/orders after Platinum Card is added to the Uber account and issuer/Uber payment requirements are satisfied."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+          ],
+          "_note": "$15 in Uber Cash is available each calendar month for eligible U.S. Uber rides/orders after the Platinum Card is added to the eligible Uber account."
+        },
+        {
+          "creditId": "amex-plat-us-uber-cash-december-bonus",
+          "label": "Uber Cash December bonus",
+          "value": {
+            "amount": 20,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "accountCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "foodDelivery",
+              "transit"
+            ],
+            "merchantInclude": [
+              "uber",
+              "uber-eats"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "partnerAccount",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
+            "instructions": "Add Platinum Card to Uber account"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Additional $20 is deposited for December on top of the ordinary $15 monthly amount; same Uber eligibility rules apply."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+          ],
+          "_note": "In December, eligible Platinum Uber accounts receive an additional $20 in Uber Cash beyond the standard $15 monthly amount."
+        },
+        {
+          "creditId": "amex-plat-us-uber-one-annual",
+          "label": "Uber One membership statement credit",
+          "value": {
+            "amount": 120,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "memberships"
+            ],
+            "merchantInclude": [
+              "uber"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "partnerAccount",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
+            "instructions": "Eligible Uber One enrollment/payment setup"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Qualifying auto-renewing Uber One membership charged according to issuer terms."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+          ],
+          "_note": "Up to $120 per calendar year in statement credits for an eligible auto-renewing Uber One membership."
+        },
+        {
+          "creditId": "amex-plat-us-clear-annual",
+          "label": "CLEAR+ Credit",
+          "value": {
+            "amount": 219,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "travel"
+            ],
+            "merchantInclude": [
+              "clear-plus"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
+            "instructions": "Enroll in Platinum CLEAR+ benefit"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible CLEAR+ membership charge under issuer terms."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+          ],
+          "_note": "Current issuer page advertises up to $219 per calendar year in statement credits for eligible CLEAR+ membership charges."
+        },
+        {
+          "creditId": "amex-plat-us-resy-quarterly",
+          "label": "Resy Credit",
+          "value": {
+            "amount": 100,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "quarter",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": true,
+            "channel": "issuerPortal",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
+            "instructions": "American Express benefit enrollment"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Qualifying eligible U.S. Resy restaurant purchases; enrollment required."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+          ],
+          "_note": "After enrollment, up to $100 in statement credits per calendar quarter for qualifying purchases at eligible U.S. Resy restaurants."
+        },
+        {
+          "creditId": "amex-plat-us-digital-entertainment-monthly",
+          "label": "Digital Entertainment Credit",
+          "value": {
+            "amount": 25,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "month",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "digitalMedia",
+              "streaming"
+            ],
+            "merchantInclude": [
+              "disney-plus",
+              "espn-streaming",
+              "hulu",
+              "paramount-plus",
+              "peacock",
+              "the-new-york-times",
+              "the-wall-street-journal",
+              "youtube-premium",
+              "youtube-tv"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "issuerPortal",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
+            "instructions": "American Express benefit enrollment"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Only current issuer-listed participating digital entertainment providers and eligible subscription charges; enrollment required."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+          ],
+          "_note": "After enrollment, up to $25 in statement credits each month for eligible purchases with the issuer's current participating digital entertainment providers."
+        },
+        {
+          "creditId": "amex-plat-us-lululemon-quarterly",
+          "label": "lululemon Credit",
+          "value": {
+            "amount": 75,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "quarter",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "retailShopping"
+            ],
+            "merchantInclude": [
+              "lululemon"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "issuerPortal",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
+            "instructions": "American Express benefit enrollment"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible U.S. lululemon store purchases excluding outlets, or lululemon.com; enrollment required."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+          ],
+          "_note": "After enrollment, up to $75 in statement credits per calendar quarter at eligible U.S. lululemon stores excluding outlets and at lululemon.com."
+        },
+        {
+          "creditId": "amex-plat-us-walmart-plus-monthly",
+          "label": "Walmart+ monthly membership credit",
+          "value": {
+            "amount": 12.95,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "month",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "memberships"
+            ],
+            "merchantInclude": [
+              "walmart-plus"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "issuerPortal",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
+            "instructions": "American Express benefit enrollment"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "One eligible auto-renewing monthly Walmart+ membership under issuer terms; enrollment required."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+          ],
+          "_note": "After enrollment, issuer provides statement credits covering one $12.95 plus applicable taxes monthly Walmart+ membership charge under the benefit terms."
+        },
+        {
+          "creditId": "amex-plat-us-oura-annual",
+          "label": "Oura Ring Credit",
+          "value": {
+            "amount": 200,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "fitness",
+              "retailShopping"
+            ],
+            "merchantInclude": [
+              "oura"
+            ]
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "issuerPortal",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
+            "instructions": "American Express benefit enrollment"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible purchase at ouraring.com under issuer terms; enrollment required."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+          ],
+          "_note": "After enrollment, up to $200 per calendar year in statement credits for eligible purchases made directly at ouraring.com."
+        },
+        {
+          "creditId": "amex-plat-us-equinox-annual",
+          "label": "Equinox Credit",
+          "value": {
+            "amount": 300,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "fitness",
+              "memberships"
+            ],
+            "merchantInclude": [
+              "equinox",
+              "equinox-plus"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "issuerPortal",
+            "url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
+            "instructions": "American Express benefit enrollment"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible Equinox membership or Equinox+ auto-renewing subscription under issuer terms; enrollment required."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/us/credit-cards/card/platinum/"
+          ],
+          "_note": "After enrollment, up to $300 per calendar year in statement credits for eligible Equinox membership or Equinox+ subscription charges."
         }
       ],
       "sources": [
         "https://www.americanexpress.com/us/credit-cards/card/platinum/"
-      ]
+      ],
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "bank-of-america-business-advantage-customized",
@@ -6644,7 +7790,11 @@
         "https://www.capitalone.ca/credit-cards/compare?filter=build",
         "https://www.capitalone.ca/assets/documents/pdf/Cardholder_Agreement.pdf"
       ],
-      "lastVerifiedAt": "2026-08-30"
+      "lastVerifiedAt": "2026-08-30",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "mbna-true-line-mastercard",
@@ -6697,7 +7847,11 @@
         "https://www.mbna.ca/en/credit-cards/low-interest/true-line-mastercard",
         "https://www.mbna.ca/content/dam/mbna/document/pdf/credit-cards/mbna-acct-agreement-0322-en.pdf"
       ],
-      "lastVerifiedAt": "2026-08-30"
+      "lastVerifiedAt": "2026-08-30",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "neo-financial-neo-world-mastercard",
@@ -6948,7 +8102,11 @@
         "https://legal.neo.cc/neo-credit-disclosures-rates-fees",
         "https://legal.neo.cc/rewards-policy"
       ],
-      "lastVerifiedAt": "2026-08-30"
+      "lastVerifiedAt": "2026-08-30",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-delta-blue",
@@ -7396,7 +8554,11 @@
         "https://www.rbcroyalbank.com/credit-cards/travel/rbc-british-airways-visa-infinite/rbc-british-airways-visa-Infinite-co-application.pdf",
         "https://www.rbcroyalbank.com/credit-cards/cardholders/additional-documents/rbc-royal-bank-credit-card-agreement.pdf"
       ],
-      "lastVerifiedAt": "2026-08-30"
+      "lastVerifiedAt": "2026-08-30",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-delta-skymiles-gold-business",
@@ -7914,7 +9076,11 @@
       "sources": [
         "https://www.capitalone.com/credit-cards/savor/",
         "https://www.capitalone.com/credit-cards/lp/credit-card-agreements/"
-      ]
+      ],
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-aeroplan-card",
@@ -8028,7 +9194,11 @@
       "lastVerifiedAt": "2026-08-27",
       "sources": [
         "https://creditcards.chase.com/cash-back-credit-cards/freedom/flex"
-      ]
+      ],
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-freedom-rise-credit-card",
@@ -8142,7 +9312,11 @@
       "lastVerifiedAt": "2026-08-27",
       "sources": [
         "https://creditcards.chase.com/cash-back-credit-cards/freedom/unlimited"
-      ]
+      ],
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-sapphire-preferred-card",
@@ -8274,23 +9448,134 @@
       "credits": [
         {
           "creditId": "csp-hotel-credit",
-          "label": "Annual Hotel Credit",
+          "label": "Annual Chase Travel hotel credit",
           "value": {
-            "amount": 50,
+            "amount": 100,
             "currency": "USD"
           },
-          "period": "accountYear",
+          "schedule": {
+            "basis": "accountAnniversary",
+            "intervalMonths": 12
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "lodging"
+            ],
+            "merchantInclude": [
+              "chase-travel"
+            ],
+            "channels": [
+              "chaseTravel"
+            ]
+          },
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible hotel accommodation booked through Chase Travel; account-anniversary-year benefit."
+          ],
           "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-27",
+          "lastVerifiedAt": "2026-08-31",
           "sources": [
             "https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred"
           ],
-          "_note": "$50 annual Ultimate Rewards Hotel Credit each account anniversary year for hotel stays booked through Chase Travel."
+          "_note": "Current issuer page provides up to $100 in statement credits each account-anniversary year for qualifying hotel accommodations purchased through Chase Travel."
+        },
+        {
+          "creditId": "csp-trusted-traveler-credit",
+          "label": "Global Entry, TSA PreCheck, or NEXUS application fee credit",
+          "value": {
+            "amount": 120,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "rolling",
+            "intervalMonths": 48
+          },
+          "redemptionMethod": "reimbursement",
+          "allowsPartialUse": false,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ],
+            "accountLevelLimit": true
+          },
+          "usageTerms": [
+            "Eligible application fee must be charged to the card; primary or authorized-user charge can qualify subject to account-level benefit limit."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred"
+          ],
+          "_note": "Up to $120 as a statement-credit reimbursement once every four years for an eligible Global Entry, TSA PreCheck, or NEXUS application fee charged to the account."
+        },
+        {
+          "creditId": "csp-doordash-nonrestaurant-monthly",
+          "label": "DoorDash non-restaurant monthly promo",
+          "value": {
+            "amount": 10,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "month",
+            "interval": 1
+          },
+          "redemptionMethod": "accountCredit",
+          "allowsPartialUse": false,
+          "purchasePredicate": {
+            "categories": [
+              "grocery",
+              "retailShopping"
+            ],
+            "merchantInclude": [
+              "doordash"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "url": "https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred",
+            "instructions": "Activate DashPass"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Requires activated eligible DashPass benefit; applies to qualifying non-restaurant DoorDash orders under issuer terms."
+          ],
+          "effectiveTo": "2027-12-31",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred"
+          ],
+          "_note": "Eligible DashPass members receive a $10 monthly promo for groceries, retail orders and other qualifying non-restaurant DoorDash purchases through 2027-12-31."
         }
       ],
       "sources": [
         "https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred"
-      ]
+      ],
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-sapphire-reserve",
@@ -8303,7 +9588,7 @@
       "kind": "credit",
       "fee": {
         "annual": {
-          "amount": 550,
+          "amount": 795,
           "currency": "USD"
         }
       },
@@ -8383,23 +9668,445 @@
       "credits": [
         {
           "creditId": "csr-travel-credit",
-          "label": "$300 Annual Travel Credit",
+          "label": "Annual Travel Credit",
           "value": {
             "amount": 300,
             "currency": "USD"
           },
-          "period": "accountYear",
+          "schedule": {
+            "basis": "accountAnniversary",
+            "intervalMonths": 12
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "travel"
+            ]
+          },
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Automatic statement credits for purchases coded as eligible travel; credited portion does not earn travel points under issuer terms."
+          ],
           "sourceType": "issuerConfirmed",
-          "lastVerifiedAt": "2026-08-27",
+          "lastVerifiedAt": "2026-08-31",
           "sources": [
             "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
           ],
-          "_note": "Automatically applies as statement credits up to $300 for travel purchases charged each anniversary year."
+          "_note": "Automatic statement credits up to $300 each account-anniversary year for eligible travel purchases charged by the primary or authorized users; credited travel does not earn travel rewards on that amount."
+        },
+        {
+          "creditId": "csr-the-edit-credit",
+          "label": "The Edit hotel credit",
+          "value": {
+            "amount": 500,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "lodging"
+            ],
+            "merchantInclude": [
+              "the-edit-by-chase-travel"
+            ],
+            "channels": [
+              "chaseTravel"
+            ]
+          },
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Prepaid Pay Now booking through The Edit; minimum two nights; per-booking credit capped at $250."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
+          ],
+          "_note": "Up to $250 per qualifying prepaid The Edit booking, up to $500 per calendar year; two-night minimum through Chase Travel."
+        },
+        {
+          "creditId": "csr-select-hotels-2026-credit",
+          "label": "Select Chase Travel hotels credit (2026)",
+          "value": {
+            "amount": 250,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "lodging"
+            ],
+            "merchantInclude": [
+              "ihg-hotels-and-resorts",
+              "minor-hotels",
+              "montage-hotels-and-resorts",
+              "omni-hotels-and-resorts",
+              "pan-pacific-hotels-and-resorts",
+              "pendry-hotels-and-resorts",
+              "virgin-hotels"
+            ],
+            "channels": [
+              "chaseTravel"
+            ]
+          },
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Prepaid Pay Now stay, at least two nights, at an eligible listed brand."
+          ],
+          "effectiveFrom": "2026-01-01",
+          "effectiveTo": "2026-12-31",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
+          ],
+          "_note": "Automatic statement credits up to $250 during calendar 2026 for prepaid Pay Now stays of two nights or more at issuer-listed select hotel brands through Chase Travel."
+        },
+        {
+          "creditId": "csr-trusted-traveler-credit",
+          "label": "Global Entry, TSA PreCheck, or NEXUS application fee credit",
+          "value": {
+            "amount": 120,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "rolling",
+            "intervalMonths": 48
+          },
+          "redemptionMethod": "reimbursement",
+          "allowsPartialUse": false,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible application fee must be charged to the card."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
+          ],
+          "_note": "One statement credit up to $120 every four years as reimbursement for an eligible Global Entry, TSA PreCheck, or NEXUS application fee."
+        },
+        {
+          "creditId": "csr-dining-halfyear",
+          "label": "Sapphire Reserve Exclusive Tables dining credit",
+          "value": {
+            "amount": 150,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "halfYear",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": true,
+            "channel": "partnerAccount",
+            "url": "https://www.opentable.com/",
+            "instructions": "Link eligible Reserve card to OpenTable profile"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible direct restaurant purchase at a participating restaurant; issuer terms govern processor/third-party exclusions."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
+          ],
+          "_note": "Up to $150 January-June and another $150 July-December at restaurants in the Sapphire Reserve Exclusive Tables program on OpenTable."
+        },
+        {
+          "creditId": "csr-stubhub-halfyear",
+          "label": "StubHub and viagogo credit",
+          "value": {
+            "amount": 150,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "halfYear",
+            "interval": 1,
+            "resetTimeZone": "America/New_York"
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "entertainment"
+            ],
+            "merchantInclude": [
+              "stubhub",
+              "viagogo"
+            ]
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "issuerPortal",
+            "url": "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve",
+            "instructions": "Activate in Chase.com or Chase Mobile"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Direct purchases only; gift cards excluded; UK redirected purchases excluded."
+          ],
+          "effectiveTo": "2027-12-31",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
+          ],
+          "_note": "After activation, up to $150 January-June and $150 July-December for direct StubHub and viagogo purchases through 2027-12-31; no minimum purchase. Purchases for UK events redirected to stubhub.co.uk do not qualify."
+        },
+        {
+          "creditId": "csr-lyft-monthly",
+          "label": "Lyft monthly in-app credit",
+          "value": {
+            "amount": 10,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "month",
+            "interval": 1
+          },
+          "redemptionMethod": "accountCredit",
+          "allowsPartialUse": false,
+          "purchasePredicate": {
+            "categories": [
+              "transit"
+            ],
+            "merchantInclude": [
+              "lyft"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "partnerAccount",
+            "url": "https://www.lyft.com/",
+            "instructions": "Add eligible card to Lyft app"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Qualifying Standard, Extra Comfort, XL, Black, or Black SUV rides; membership purchases and certain fees/tips/gift cards excluded."
+          ],
+          "effectiveTo": "2027-09-30",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
+          ],
+          "_note": "The first primary/employee/authorized user who adds an eligible Reserve card to Lyft gets a $10 in-app credit each calendar month for qualifying rides through 2027-09-30."
+        },
+        {
+          "creditId": "csr-peloton-monthly",
+          "label": "Peloton membership credit",
+          "value": {
+            "amount": 10,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "month",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "fitness",
+              "memberships"
+            ],
+            "merchantInclude": [
+              "peloton"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "partnerAccount",
+            "url": "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve",
+            "instructions": "Activate on Chase.com/Chase Mobile and Peloton"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible Peloton membership; sign up/sign in through Peloton with eligible card on file; Apple/Google app-store purchases excluded."
+          ],
+          "effectiveTo": "2027-12-31",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
+          ],
+          "_note": "After one-time activation, up to $10 per month for eligible Peloton memberships through 2027-12-31. Third-party app-store purchases do not qualify."
+        },
+        {
+          "creditId": "csr-doordash-restaurant-monthly",
+          "label": "DoorDash restaurant monthly promo",
+          "value": {
+            "amount": 5,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "month",
+            "interval": 1
+          },
+          "redemptionMethod": "accountCredit",
+          "allowsPartialUse": false,
+          "purchasePredicate": {
+            "categories": [
+              "dining",
+              "foodDelivery"
+            ],
+            "merchantInclude": [
+              "doordash"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "url": "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve",
+            "instructions": "Activate DashPass"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Requires activated eligible DashPass benefit and use within DoorDash."
+          ],
+          "effectiveTo": "2027-12-31",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
+          ],
+          "_note": "DashPass members receive a $5 monthly promo for restaurant orders through 2027-12-31."
+        },
+        {
+          "creditId": "csr-doordash-nonrestaurant-monthly",
+          "label": "DoorDash non-restaurant monthly promos",
+          "value": {
+            "amount": 20,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "month",
+            "interval": 1
+          },
+          "redemptionMethod": "accountCredit",
+          "allowsPartialUse": false,
+          "purchasePredicate": {
+            "categories": [
+              "grocery",
+              "retailShopping"
+            ],
+            "merchantInclude": [
+              "doordash"
+            ],
+            "country": "US"
+          },
+          "enrollment": {
+            "required": true,
+            "url": "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve",
+            "instructions": "Activate DashPass"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Requires activated eligible DashPass benefit; delivered as two separate $10 promos, not one freely splittable $20 balance."
+          ],
+          "effectiveTo": "2027-12-31",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
+          ],
+          "_note": "DashPass members receive two separate $10 promos each month for groceries, retail orders, and more through 2027-12-31."
         }
       ],
       "sources": [
         "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve"
-      ]
+      ],
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-sapphire-reserve-for-business",
@@ -8500,7 +10207,11 @@
       "sources": [
         "https://www.citi.com/credit-cards/citi-double-cash-credit-card",
         "https://www.citi.com/CRD/PDF/DoubleCashThankyouTC.pdf"
-      ]
+      ],
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "wells-fargo-choice-privileges-mastercard",
@@ -9158,7 +10869,11 @@
         "https://www.cibc.com/content/dam/personal_banking/credit_cards/agreements_and_insurance/cardholder-agreement-en.pdf",
         "https://www.cibc.com/content/dam/cibc-public-assets/personal-banking/credit-cards/all-credit-cards/costco/documents/cibc-costco-evc-station-guide-en.pdf"
       ],
-      "lastVerifiedAt": "2026-08-30"
+      "lastVerifiedAt": "2026-08-30",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "capital-one-venture-business",
@@ -9208,7 +10923,87 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      },
+      "credits": [
+        {
+          "creditId": "venture-x-capital-one-travel-credit",
+          "label": "Capital One Travel annual credit",
+          "value": {
+            "amount": 300,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "accountAnniversary",
+            "intervalMonths": 12
+          },
+          "redemptionMethod": "portalCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "travel"
+            ],
+            "merchantInclude": [
+              "capital-one-travel"
+            ],
+            "channels": [
+              "capitalOneTravel"
+            ]
+          },
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary"
+            ]
+          },
+          "usageTerms": [
+            "Must be redeemed through Capital One Travel; subject to portal terms and eligible booking/payment rules."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://travel.capitalone.com/terms/"
+          ],
+          "_note": "Eligible Venture X primary account holders receive $300 in Capital One Travel credit annually; unused credit expires on the next account-open-date anniversary. It may be used in whole or in part across eligible Capital One Travel purchases while valid."
+        },
+        {
+          "creditId": "venture-x-trusted-traveler-credit",
+          "label": "Global Entry or TSA PreCheck application fee credit",
+          "value": {
+            "amount": 120,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "rolling",
+            "intervalMonths": 48
+          },
+          "redemptionMethod": "reimbursement",
+          "allowsPartialUse": false,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible application fee must be charged to the Venture X card."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.capitalone.com/credit-cards/venture-x/"
+          ],
+          "_note": "Issuer product materials advertise up to $120 as a statement-credit reimbursement for an eligible Global Entry or TSA PreCheck application fee, once every four years."
+        }
+      ]
     },
     {
       "cardId": "capital-one-ventureone-business",
@@ -9382,7 +11177,11 @@
           },
           "capId": null
         }
-      ]
+      ],
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "bmo-cashback",
@@ -9496,7 +11295,11 @@
           },
           "capId": "bmo-cashback-recurring-monthly"
         }
-      ]
+      ],
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "mbna-rewards-platinum",
@@ -9719,7 +11522,11 @@
           },
           "capId": "mbna-rewards-platinum-utilities-annual"
         }
-      ]
+      ],
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "td-cashback-visa",
@@ -9910,7 +11717,11 @@
           },
           "capId": "td-cashback-visa-recurring-media-annual"
         }
-      ]
+      ],
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "comenity-aaa-daily-advantage-visa-signature",
@@ -10079,7 +11890,11 @@
       "sources": [
         "https://d.comenity.net/legaldocs/advantage/legal-documents/schumerbox",
         "https://d.comenity.net/advantage/common/Legal/RewardsTermsAndConditionsDisclosure1.xhtml"
-      ]
+      ],
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "citi-custom-cash-card",
@@ -10192,7 +12007,11 @@
         "https://www.citi.com/credit-cards/citi-custom-cash-credit-card",
         "https://www.citi.com/usc/Multi/Featured/default.htm"
       ],
-      "effectiveTo": "2026-08-31"
+      "effectiveTo": "2026-08-31",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "elan-financial-services-fidelity-rewards-visa",
@@ -10246,7 +12065,11 @@
         "https://www.fidelity.com/spend-save/visa-signature-card",
         "https://www.fidelity.com/spend-save/faqs-rewards-credit-cards",
         "https://www.fidelity.com/bin-public/060_www_fidelity_com/documents/visa-signature-foreign-transaction-fees-removed.pdf"
-      ]
+      ],
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     }
   ]
 }
