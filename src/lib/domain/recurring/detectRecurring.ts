@@ -40,6 +40,16 @@ type PersistedSeries = PersistedIdentity & {
   id: string;
   origin: "DETECTED" | "EMAIL_STATED" | "USER" | "MIGRATED";
   evidence: ExcludedEvidence[];
+  ownerFacts: OwnerFactRow[];
+};
+
+type OwnerFactRow = {
+  type: "CHARGE" | "EXPLICIT_CADENCE" | "NEXT_BILLING_DATE" | "PRICE_CHANGE" | "TRIAL_STARTED" | "TRIAL_ENDED" | "ACTIVATION" | "CANCELLATION" | "RESUMPTION";
+  occurredAt: Date;
+  effectiveAt: Date | null;
+  billingAt: Date | null;
+  amountMinor: number | null;
+  cadence: string | null;
 };
 
 type SweepCandidate = {
@@ -54,7 +64,6 @@ type ResolvedCluster = {
   origin: SweepCandidate["origin"];
   identity: PersistedIdentity;
   persisted: PersistedSeries | null;
-  protectedByOwner: boolean;
 };
 
 type SweepEmailFact = {
@@ -114,6 +123,20 @@ function toObligationFact(row: SweepEmailFact): ObligationFact | null {
   }
 }
 
+function ownerFactToObligationFact(row: OwnerFactRow): ObligationFact | null {
+  switch (row.type) {
+    case "CHARGE": return { type: "CHARGE", occurredAt: row.occurredAt, source: "OWNER" };
+    case "EXPLICIT_CADENCE": return row.cadence && CADENCE_TYPES.has(row.cadence)
+      ? { type: "EXPLICIT_CADENCE", occurredAt: row.occurredAt, cadence: row.cadence as Cadence["type"], source: "OWNER" } : null;
+    case "NEXT_BILLING_DATE": return row.billingAt
+      ? { type: "NEXT_BILLING_DATE", occurredAt: row.occurredAt, billingAt: row.billingAt, source: "OWNER" } : null;
+    case "PRICE_CHANGE": return { type: "PRICE_CHANGE", occurredAt: row.occurredAt, effectiveAt: row.effectiveAt ?? undefined, amountMinor: row.amountMinor ?? undefined, source: "OWNER" };
+    case "TRIAL_STARTED": case "TRIAL_ENDED": case "CANCELLATION":
+      return { type: row.type, occurredAt: row.occurredAt, effectiveAt: row.effectiveAt ?? undefined, source: "OWNER" };
+    case "ACTIVATION": case "RESUMPTION": return { type: row.type, occurredAt: row.occurredAt, source: "OWNER" };
+  }
+}
+
 function identityKey(identity: PersistedIdentity): string {
   return JSON.stringify([
     identity.userId,
@@ -152,9 +175,11 @@ function resolveSeries(
     currency: cluster.currency,
     discriminator: cluster.discriminator ?? "",
   }));
-  const ownerBuckets = new Set(persisted
-    .filter(({ origin }) => origin === "USER")
-    .map((row) => bucketKey(row)));
+  const ownerByBucket = new Map<string, PersistedSeries[]>();
+  for (const row of persisted.filter(({ origin }) => origin === "USER")) {
+    const bucket = bucketKey(row);
+    ownerByBucket.set(bucket, [...(ownerByBucket.get(bucket) ?? []), row]);
+  }
   const clusterPurchaseIds = clusters.map((cluster) => new Set(cluster.purchases.map(({ id }) => id)));
   const edges = persisted
     .filter(({ origin }) => origin !== "USER")
@@ -180,15 +205,23 @@ function resolveSeries(
     matchedByCluster.set(edge.clusterIndex, edge.row);
     matchedRowIds.add(edge.row.id);
   }
+  // A single owner-authored row in a bucket is an exact identity match. Two
+  // plans in the same bucket remain deliberately unresolved rather than being
+  // merged by a display name or amount guess.
+  for (const [clusterIndex, bucket] of clusterBuckets.entries()) {
+    const owners = ownerByBucket.get(bucket) ?? [];
+    if (!matchedByCluster.has(clusterIndex) && owners.length === 1 && !matchedRowIds.has(owners[0].id)) {
+      matchedByCluster.set(clusterIndex, owners[0]);
+      matchedRowIds.add(owners[0].id);
+    }
+  }
 
   const resolved = clusters.map((cluster, clusterIndex): ResolvedCluster => {
     const matched = matchedByCluster.get(clusterIndex) ?? null;
-    const protectedByOwner = ownerBuckets.has(clusterBuckets[clusterIndex]);
     return {
       cluster,
       origin: candidates[clusterIndex].origin,
       persisted: matched,
-      protectedByOwner,
       identity: {
         userId: cluster.userId,
         merchantCanonicalId: cluster.canonicalMerchantId,
@@ -201,7 +234,6 @@ function resolveSeries(
 
   const assigned = new Set<string>();
   for (const resolution of resolved) {
-    if (resolution.protectedByOwner) continue;
     const key = identityKey(resolution.identity);
     if (assigned.has(key)) {
       throw new Error(`recurring series identity collision: ${key}`);
@@ -399,6 +431,10 @@ export async function sweepRecurringObligations(
         discriminator: true,
         seriesKey: true,
         origin: true,
+        ownerFacts: {
+          where: { supersededBy: null },
+          select: { type: true, occurredAt: true, effectiveAt: true, billingAt: true, amountMinor: true, cadence: true },
+        },
         evidence: {
           select: { purchaseId: true, emailTransactionId: true, emailFactId: true, excludedByUser: true },
         },
@@ -466,10 +502,6 @@ export async function sweepRecurringObligations(
   );
   for (const resolution of resolveSeries(candidates, resolvablePersisted)) {
     const { cluster, identity } = resolution;
-    if (resolution.protectedByOwner) {
-      result.skipped += 1;
-      continue;
-    }
     const excluded = resolution.persisted?.evidence.filter(({ excludedByUser }) => excludedByUser) ?? [];
     const excludedFactIds = new Set(excluded.flatMap(({ emailFactId }) => emailFactId ? [emailFactId] : []));
     // Evidence created before emailFactId existed excluded the whole source
@@ -490,6 +522,10 @@ export async function sweepRecurringObligations(
     const facts: ObligationFact[] = [
       ...cluster.purchases.map((purchase) => ({ type: "CHARGE" as const, occurredAt: purchase.date })),
       ...emailFacts.map(({ fact }) => fact),
+      ...((resolution.persisted?.ownerFacts ?? []).flatMap((fact) => {
+        const converted = ownerFactToObligationFact(fact);
+        return converted ? [converted] : [];
+      }) ?? []),
     ];
     if (!hasSufficientRecurringEvidence(cluster.purchases.length, facts)) {
       result.skipped += 1;
@@ -539,8 +575,6 @@ export async function sweepRecurringObligations(
       const existing = await tx.recurringObligation.findFirst({
         where: identity,
       });
-      if (existing?.origin === "USER") return "skipped";
-
       let obligationId: string;
       let outcome: SweepOutcome;
       if (!existing) {
@@ -556,6 +590,18 @@ export async function sweepRecurringObligations(
         outcome = "created";
       } else {
         obligationId = existing.id;
+        if (existing.origin === "USER") {
+          // Owner facts retain cadence, price, and next billing authority.
+          // The detector may only refresh the derived lifecycle cache and
+          // attach fresh evidence; a later charge can therefore supersede an
+          // earlier owner cancellation without mutating owner configuration.
+          const updated = await tx.recurringObligation.updateMany({
+            where: { id: existing.id },
+            data: { status, lastObservedAt, algorithmVersion: args.algorithmVersion },
+          });
+          if (updated.count === 0) return "skipped";
+          outcome = "updated";
+        } else {
         const unchanged = (
           jsonEqual(existing.cadence, derived.cadence)
           && jsonEqual(existing.schedule, derived.schedule)
@@ -576,6 +622,7 @@ export async function sweepRecurringObligations(
           });
           if (updated.count === 0) return "skipped";
           outcome = "updated";
+        }
         }
       }
 

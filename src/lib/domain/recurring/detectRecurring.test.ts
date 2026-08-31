@@ -403,14 +403,14 @@ describe("sweepRecurringObligations", () => {
     expect(db.evidence).toHaveLength(13);
   });
 
-  it("never overwrites an owner-created obligation", async () => {
+  it("preserves owner configuration while refreshing lifecycle evidence", async () => {
     const db = new MemoryRecurringDb();
     const owner = await db.recurringObligation.create({ data: ownerObligation("netflix.com") });
     seedPurchases(db, "netflix.com", ["2026-05-11", "2026-06-11", "2026-07-11"], 999);
 
     const result = await sweepRecurringObligations(db as unknown as PrismaClient, sweepArgs);
 
-    expect(result.skipped).toBe(1);
+    expect(result.updated).toBe(1);
     expect(db.obligations).toEqual([owner]);
     expect(owner).toMatchObject({ origin: "USER", confidence: 1, cadence: { type: "ANNUAL" } });
   });
