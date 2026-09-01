@@ -56,12 +56,21 @@ const MONTH_DAY = /^(\d{2})-(\d{2})$/;
  * without it an account-year credit remains intentionally untracked rather
  * than being attributed to an invented calendar window.
  */
+export function resolveCreditPeriod(credit: CardCredit): "calendarMonth" | "calendarQuarter" | "calendarYear" | "accountYear" {
+  if (credit.period) return credit.period;
+  if (credit.schedule?.basis === "accountAnniversary") return "accountYear";
+  if (credit.schedule?.unit === "month") return "calendarMonth";
+  if (credit.schedule?.unit === "quarter") return "calendarQuarter";
+  return "calendarYear";
+}
+
 export function creditPeriodKey(
-  period: CardCredit["period"],
+  period: CardCredit["period"] | "calendarQuarter",
   asOf: string,
   feeMonthDay: string | null | undefined,
 ): string | null {
   if (period === "calendarMonth") return asOf.slice(0, 7);
+  if (period === "calendarQuarter") return `${asOf.slice(0, 4)}-Q${Math.ceil(Number(asOf.slice(5, 7)) / 3)}`;
   if (period === "calendarYear") return asOf.slice(0, 4);
 
   const match = feeMonthDay ? MONTH_DAY.exec(feeMonthDay) : null;
@@ -95,7 +104,8 @@ export function catalogueCreditsRealizedMinor(
   feeMonthDay?: string | null,
 ): number {
   return credits.reduce((sum, credit) => {
-    const key = creditPeriodKey(credit.period, today, feeMonthDay);
+    const period = resolveCreditPeriod(credit);
+    const key = creditPeriodKey(period, today, feeMonthDay);
     if (!key) return sum;
     const wasRedeemed = redeemed.some((r) => r.creditId === credit.creditId && r.periodKey === key);
     // Math.round, not truncation: 14.99 * 100 is 1498.9999... in binary float,
@@ -187,7 +197,7 @@ export function getCardPerksSummary(contractCardId: string | null | undefined): 
     // Converted to the CAD reporting figure — identity for every CAD-billing card today, which
     // is every card in the catalogue as of this writing. See toReporting's doc comment.
     valueCad: toReporting(c.value),
-    period: c.period === "calendarMonth" ? "month" : "year",
+    period: (c.period === "calendarMonth" || c.schedule?.unit === "month") ? "month" : "year",
   }));
 
   const fxRate = card.fxRules[0]?.rate ?? 0.025;

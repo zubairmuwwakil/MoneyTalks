@@ -1,9 +1,9 @@
 {
-  "release": "card-contracts@2.18",
-  "catalogueVersion": "2.18",
-  "digest": "sha256:d1eed263450b4738f07743b9fb760c1fd46f050f870e26ae5995b634262ececa",
+  "release": "card-contracts@2.19",
+  "catalogueVersion": "2.19",
+  "digest": "sha256:d763310bbb4211656447dc44c426f44e1ae6a658fadb27a4b72ef9740b3d9802",
   "files": {
-    "card-catalogue.json": "c33c0a1820c362d492d2d076db00c0420cd6ec40a0ffbbab0ff90c0b36eba2b1",
+    "card-catalogue.json": "14bf0e9c69290919605da3efcba9f72de6a043a527df8a4a7a5ee6d1f04ee1e6",
     "benefits-catalogue.json": "9044e24299e0bb2fd726cffc943c3ac907d44229cd47555178acb1c1756104e0",
     "engine-fixtures.json": "f29ea85c972c0b8d611e18f3c33a5d8e78d36f1579b64c14736eed44a4f0cf67",
     "owner-state.json": "b3338b458d2cb6178a655809b629eb167ad4645726acbb612213ed414c428794",

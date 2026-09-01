@@ -1,4 +1,4 @@
-import { catalogueCard, effectiveAnnualFeeMinor, catalogueCredits, type RedeemedCredit } from "@/lib/cards/catalogueCard";
+import { catalogueCard, effectiveAnnualFeeMinor, catalogueCredits, resolveCreditPeriod, type RedeemedCredit } from "@/lib/cards/catalogueCard";
 import { toReporting } from "@/engine/cards-twin/reportingCurrency";
 import { currentFeeCycle, feeCycleDaysRemaining, type FeeScheduleCard } from "@/lib/cards/feeSchedule";
 import { buildCheatSheetRecommendations } from "@/lib/cards/cardPresentation";
@@ -95,7 +95,7 @@ export default async function CardsPage() {
       credits: catalogueCredits(card.contractCardId).map((c) => ({
         creditId: c.creditId,
         valueCad: toReporting(c.value),
-        period: c.period,
+        period: resolveCreditPeriod(c),
       })),
       redeemed: (card.state?.creditsRedeemed as unknown as RedeemedCredit[]) ?? [],
     })),

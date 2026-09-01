@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
-import { catalogueCredits, creditPeriodKey, type RedeemedCredit } from "@/lib/cards/catalogueCard";
+import { catalogueCredits, creditPeriodKey, resolveCreditPeriod, type RedeemedCredit } from "@/lib/cards/catalogueCard";
 import { parseDollarsToMinor } from "@/engine/money";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/require-user";
@@ -147,7 +147,7 @@ export async function toggleCredit(formData: FormData): Promise<ActionResult> {
     const card = await ownedCard(userId, cardId);
     const credit = catalogueCredits(card.contractCardId).find((c) => c.creditId === creditId);
     if (!credit) return { ok: false, error: "Unknown credit for this card" };
-    const periodKey = creditPeriodKey(credit.period, today(), card.feeMonthDay);
+    const periodKey = creditPeriodKey(resolveCreditPeriod(credit), today(), card.feeMonthDay);
     if (!periodKey) {
       return { ok: false, error: "Add this card's fee anniversary before tracking its account-year credit." };
     }

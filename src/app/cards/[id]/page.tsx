@@ -13,6 +13,7 @@ import {
   creditPeriodKey,
   effectiveAnnualFeeMinor,
   feeWaiverNote,
+  resolveCreditPeriod,
   type RedeemedCredit,
 } from "@/lib/cards/catalogueCard";
 import { currentFeeCycle, type FeeScheduleCard } from "@/lib/cards/feeSchedule";
@@ -300,7 +301,8 @@ export default async function CardDetailPage({
           </p>
           <ul className="mt-4 divide-y divide-border/60 overflow-hidden rounded-lg border border-border/80 bg-background">
             {credits.map((credit) => {
-              const key = creditPeriodKey(credit.period, today, card.feeMonthDay);
+              const period = resolveCreditPeriod(credit);
+              const key = creditPeriodKey(period, today, card.feeMonthDay);
               const done = redeemed.some((r) => r.creditId === credit.creditId && r.periodKey === key);
               const unavailable = key === null;
               return (
@@ -312,7 +314,7 @@ export default async function CardDetailPage({
                     <span className="font-medium text-foreground">{credit.label}</span>{" "}
                     <span className="text-xs text-muted-foreground">
                       ({formatMinorUnits(Math.round(credit.value.amount * 100), credit.value.currency)}/
-                      {credit.period === "calendarMonth" ? "month" : credit.period === "accountYear" ? "anniversary year" : "calendar year"})
+                      {period === "calendarMonth" ? "month" : period === "accountYear" ? "anniversary year" : "calendar year"})
                     </span>
                     {unavailable ? (
                       <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">

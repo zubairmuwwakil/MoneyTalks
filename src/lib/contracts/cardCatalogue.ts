@@ -160,6 +160,34 @@ const earnRuleSchema = annotatedObject({
   outOfScope: annotatedObject({ reason: z.string() }).optional(),
 });
 
+const creditCoverageSchema = annotatedObject({
+  status: z.enum(["complete", "partial", "unknown"]),
+  lastReviewedAt: z.string(),
+});
+
+const creditScheduleSchema = annotatedObject({
+  basis: z.enum(["calendar", "accountAnniversary", "rolling"]),
+  unit: z.enum(["month", "quarter", "halfYear", "year"]).optional(),
+  interval: z.number().optional(),
+  intervalMonths: z.number().optional(),
+  resetTimeZone: z.string().optional(),
+});
+
+const creditEnrollmentSchema = annotatedObject({
+  required: z.boolean(),
+  channel: z.enum(["issuerPortal", "issuerApp", "partnerAccount", "phone"]).optional(),
+  url: z.string().url().optional(),
+  instructions: z.string().optional(),
+});
+
+const creditEligibilitySchema = annotatedObject({
+  cardholderRoles: z.array(z.enum(["primary", "additional"])).optional(),
+  accountLevelLimit: z.boolean().optional(),
+  accountStandingRequired: z.boolean().optional(),
+  claimRequired: z.boolean().optional(),
+  claimDeadlineDays: z.number().optional(),
+});
+
 // Statement credits granted for holding the card. Mirrors `$defs/cardCredit`
 // in PickMe's schema, added 2026-08-19. A credit does not depend on what the
 // purchase was, so it never enters the checkout pick — it is keep/cancel and
@@ -170,7 +198,17 @@ const cardCreditSchema = annotatedObject({
   creditId: z.string(),
   label: z.string(),
   value: moneySchema,
-  period: z.enum(["calendarMonth", "calendarQuarter", "calendarYear", "accountYear"]),
+  period: z.enum(["calendarMonth", "calendarQuarter", "calendarYear", "accountYear"]).optional(),
+  schedule: creditScheduleSchema.optional(),
+  redemptionMethod: z.enum(["statementCredit", "portalCredit", "accountCredit", "reimbursement"]).optional(),
+  purchasePredicate: predicateSchema.optional(),
+  minimumTransaction: moneySchema.optional(),
+  allowsPartialUse: z.boolean().optional(),
+  enrollment: creditEnrollmentSchema.optional(),
+  eligibility: creditEligibilitySchema.optional(),
+  usageTerms: z.array(z.string()).optional(),
+  effectiveFrom: z.string().nullable().optional(),
+  effectiveTo: z.string().nullable().optional(),
   sourceType: sourceTypeSchema,
   lastVerifiedAt: z.string(),
   // Traceability, conditioned on the claim being made. `sources` was briefly
@@ -237,6 +275,7 @@ const cardProductSchema = annotatedObject({
   categoryMccReference: z.record(z.string(), z.unknown()).optional(),
   redemption: z.record(z.string(), z.unknown()).optional(),
   redemptionFactors: z.array(z.unknown()).optional(),
+  creditCoverage: creditCoverageSchema.optional(),
   // Optional: absence means the card grants no credits, never "unknown".
   credits: z.array(cardCreditSchema).optional(),
   imageUrl: z.string().optional(),
