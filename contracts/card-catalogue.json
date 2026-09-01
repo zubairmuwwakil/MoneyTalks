@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "2.19",
+  "catalogueVersion": "2.20",
   "currency": "CAD",
   "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md \u2014 all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
@@ -6014,7 +6014,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-blue-business-plus",
@@ -6122,7 +6126,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-business-gold-card",
@@ -6147,7 +6155,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-business-green-rewards-card",
@@ -6172,7 +6184,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-cash-magnet",
@@ -6197,7 +6213,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-everyday-card",
@@ -6222,7 +6242,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-everyday-preferred",
@@ -6247,7 +6271,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-gold-card",
@@ -6565,7 +6593,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-green-card",
@@ -6590,7 +6622,50 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      },
+      "credits": [
+        {
+          "creditId": "amex-green-clear-plus-credit",
+          "label": "CLEAR+ Credit",
+          "value": {
+            "amount": 219,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": true,
+            "channel": "partnerAccount",
+            "url": "https://www.americanexpress.com/en-us/travel/benefits/clear/"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ],
+            "accountLevelLimit": true
+          },
+          "usageTerms": [
+            "CLEAR+ membership is subject to auto-renewal.",
+            "Electronic-wallet or third-party processing may prevent the purchase from being identified as qualifying."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/en-us/travel/benefits/clear/"
+          ],
+          "_note": "Up to $219 in statement credits per calendar year for CLEAR+ Membership; Basic and Additional Card purchases are eligible but share one $219 account-level annual cap."
+        }
+      ]
     },
     {
       "cardId": "american-express-the-business-platinum-card",
@@ -6615,7 +6690,50 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      },
+      "credits": [
+        {
+          "creditId": "amex-business-platinum-clear-plus-credit",
+          "label": "CLEAR+ Credit",
+          "value": {
+            "amount": 219,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": true,
+            "channel": "partnerAccount",
+            "url": "https://www.americanexpress.com/en-us/travel/benefits/clear/"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ],
+            "accountLevelLimit": true
+          },
+          "usageTerms": [
+            "CLEAR+ membership is subject to auto-renewal; taxes and fees are excluded from the stated membership-credit amount."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/en-us/travel/benefits/clear/",
+            "https://www.americanexpress.com/us/credit-cards/business/business-credit-cards/american-express-business-platinum-credit-card-amex/"
+          ],
+          "_note": "Up to $219 per calendar year for CLEAR+; Basic and Additional Cards can trigger credits subject to one shared account cap."
+        }
+      ]
     },
     {
       "cardId": "american-express-the-platinum-card",
@@ -7113,7 +7231,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "citi-secured-mastercard",
@@ -7138,7 +7260,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "comenity-bread-cashback-american-express",
@@ -7163,7 +7289,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "discover-it-cash-back",
@@ -7188,7 +7318,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "discover-it-chrome",
@@ -7213,7 +7347,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "discover-it-chrome-gas-restaurant-credit-card",
@@ -7238,7 +7376,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "discover-it-miles",
@@ -7263,7 +7405,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "discover-it-secured-credit-card",
@@ -7288,7 +7434,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "penfed-credit-union-penfed-power-cash-rewards",
@@ -7313,7 +7463,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "pnc-bank-pnc-cash-rewards-visa-credit-card",
@@ -7338,7 +7492,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "u-s-bank-shopper-cash-rewards-visa-signature",
@@ -7363,7 +7521,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "u-s-bank-triple-cash-rewards-visa-business",
@@ -7388,7 +7550,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "upgrade-triple-cash-rewards-visa",
@@ -7413,7 +7579,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "capital-one-canada-capital-one-guaranteed",
@@ -7807,7 +7977,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "bank-of-america-atmos-rewards-summit-visa",
@@ -7832,7 +8006,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "bank-of-america-free-spirit-travel-more-world",
@@ -7857,7 +8035,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "barclays-hawaiian-airlines-world-elite",
@@ -7882,7 +8064,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-aer-lingus-visa-signature-card",
@@ -7907,7 +8093,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-british-airways-visa-signature-card",
@@ -7932,7 +8122,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-disney-inspire-visa-card",
@@ -7957,7 +8151,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-disney-premier-visa",
@@ -7982,7 +8180,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-disney-visa-card",
@@ -8007,7 +8209,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-iberia-visa-signature-card",
@@ -8057,7 +8263,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "citi-aadvantage-executive-world-elite",
@@ -8082,7 +8292,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "citi-aadvantage-globe-mastercard",
@@ -8107,7 +8321,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "synchrony-cathay-world-elite-mastercard",
@@ -8132,7 +8350,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "royal-bank-of-canada-rbc-british-airways-visa",
@@ -8259,7 +8481,47 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      },
+      "credits": [
+        {
+          "creditId": "amex-delta-gold-business-delta-stays-credit",
+          "label": "Delta Stays Credit",
+          "value": {
+            "amount": 150,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ],
+            "accountLevelLimit": true
+          },
+          "usageTerms": [
+            "Eligible prepaid hotel or vacation-rental bookings through Delta Stays on delta.com/stays."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://global.americanexpress.com/card-benefits/detail/delta-stays-credit/gold-delta-skymiles"
+          ],
+          "_note": "Up to $150 in statement credits per calendar year for eligible prepaid Delta Stays bookings; Basic and eligible additional/employee Card purchases share the account cap."
+        }
+      ]
     },
     {
       "cardId": "american-express-delta-skymiles-platinum",
@@ -8284,7 +8546,47 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      },
+      "credits": [
+        {
+          "creditId": "amex-delta-platinum-delta-stays-credit",
+          "label": "Delta Stays Credit",
+          "value": {
+            "amount": 150,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ],
+            "accountLevelLimit": true
+          },
+          "usageTerms": [
+            "Eligible prepaid hotel or vacation-rental bookings through Delta Stays on delta.com/stays."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://global.americanexpress.com/card-benefits/detail/delta-stays-credit/delta-platinum"
+          ],
+          "_note": "Up to $150 in statement credits per calendar year for eligible prepaid Delta Stays bookings, shared across eligible Cards on the account."
+        }
+      ]
     },
     {
       "cardId": "american-express-hilton-honors",
@@ -8309,7 +8611,49 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      },
+      "credits": [
+        {
+          "creditId": "amex-hilton-aspire-clear-plus-credit",
+          "label": "CLEAR+ Credit",
+          "value": {
+            "amount": 219,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": true,
+            "channel": "partnerAccount",
+            "url": "https://www.americanexpress.com/en-us/travel/benefits/clear/"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ],
+            "accountLevelLimit": true
+          },
+          "usageTerms": [
+            "CLEAR+ membership is subject to auto-renewal."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.americanexpress.com/en-us/travel/benefits/clear/"
+          ],
+          "_note": "Up to $219 per calendar year for CLEAR+; Basic and Additional Cards can trigger credits subject to one shared account cap."
+        }
+      ]
     },
     {
       "cardId": "bank-of-america-alaska-airlines-atmos-ascent",
@@ -8334,7 +8678,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "bank-of-america-atmos-rewards-visa-signature",
@@ -8359,7 +8707,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "bank-of-america-bankamericard-credit-card",
@@ -8384,7 +8736,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "bank-of-america-bankamericard-credit-card-2",
@@ -8409,7 +8765,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "bank-of-america-bankamericard-secured",
@@ -8434,7 +8794,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "barclays-emirates-skywards-premium-world",
@@ -8459,7 +8823,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "barclays-frontier-airlines-world-mastercard",
@@ -8484,7 +8852,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "bmo-bank-n-a-bmo-cash-back-credit-card",
@@ -8509,7 +8881,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "capital-one-platinum-from-capital-one",
@@ -8534,7 +8910,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "capital-one-platinum-secured-credit-card",
@@ -8559,7 +8939,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "capital-one-savor-rewards-for-students",
@@ -8584,7 +8968,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "capital-one-savor-cash-rewards",
@@ -8781,7 +9169,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-freedom-flex",
@@ -8899,7 +9291,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-freedom-unlimited",
@@ -9595,7 +9991,237 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      },
+      "credits": [
+        {
+          "creditId": "sapphire-reserve-business-travel-credit",
+          "label": "Annual Travel Credit",
+          "value": {
+            "amount": 300,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "accountAnniversary",
+            "intervalMonths": 12
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "travel"
+            ]
+          },
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ],
+            "accountLevelLimit": true
+          },
+          "usageTerms": [
+            "Automatic statement credits on issuer-defined eligible travel during the account anniversary year; account-level cap."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/business-credit-cards/sapphire/reserve"
+          ],
+          "_note": "Up to $300 in automatic travel statement credits each account-anniversary year; qualifying charges by the authorizing officer or authorized users can count."
+        },
+        {
+          "creditId": "sapphire-reserve-business-select-hotels-credit",
+          "label": "Select Chase Travel Hotels Credit",
+          "value": {
+            "amount": 250,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "purchasePredicate": {
+            "categories": [
+              "lodging"
+            ],
+            "channels": [
+              "chaseTravel"
+            ]
+          },
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary"
+            ]
+          },
+          "usageTerms": [
+            "2026-only benefit; prepaid Pay Now stay of at least two nights at issuer-listed select hotel groups through Chase Travel."
+          ],
+          "effectiveFrom": "2026-01-01",
+          "effectiveTo": "2026-12-31",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/business-credit-cards/sapphire/reserve"
+          ],
+          "_note": "Up to $250 during calendar 2026 for qualifying prepaid two-night-or-longer stays at selected hotel groups through Chase Travel; employee/authorized-user Cards are not eligible for this credit."
+        },
+        {
+          "creditId": "sapphire-reserve-business-google-workspace-credit",
+          "label": "Google Workspace Credit",
+          "value": {
+            "amount": 200,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "year",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible direct Google Workspace purchases under Chase terms."
+          ],
+          "effectiveTo": "2027-12-31",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/business-credit-cards/sapphire/reserve"
+          ],
+          "_note": "Up to $200 in statement credits per calendar year for qualifying Google Workspace purchases through 2027-12-31."
+        },
+        {
+          "creditId": "sapphire-reserve-business-ziprecruiter-credit",
+          "label": "ZipRecruiter Credit",
+          "value": {
+            "amount": 200,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "halfYear",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible direct ZipRecruiter purchases; separate $200 January-June and $200 July-December caps."
+          ],
+          "effectiveTo": "2027-12-31",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/business-credit-cards/sapphire/reserve"
+          ],
+          "_note": "Up to $200 in statement credits in each calendar half-year for qualifying direct ZipRecruiter purchases through 2027-12-31."
+        },
+        {
+          "creditId": "sapphire-reserve-business-lyft-credit",
+          "label": "Lyft Monthly Credit",
+          "value": {
+            "amount": 10,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "month",
+            "interval": 1
+          },
+          "redemptionMethod": "accountCredit",
+          "allowsPartialUse": false,
+          "purchasePredicate": {
+            "merchantInclude": [
+              "lyft"
+            ]
+          },
+          "enrollment": {
+            "required": true,
+            "channel": "partnerAccount",
+            "url": "https://www.lyft.com/"
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ],
+            "accountLevelLimit": true
+          },
+          "usageTerms": [
+            "The first eligible account user who adds the card to Lyft receives the account's monthly credit; qualifying ride types and issuer exclusions apply."
+          ],
+          "effectiveTo": "2027-09-30",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/business-credit-cards/sapphire/reserve"
+          ],
+          "_note": "$10 Lyft in-app credit each calendar month through 2027-09-30 after an eligible Reserve for Business card is added to Lyft."
+        },
+        {
+          "creditId": "sapphire-reserve-business-gift-card-credit",
+          "label": "Curated Gift Card Credit",
+          "value": {
+            "amount": 50,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "calendar",
+            "unit": "halfYear",
+            "interval": 1
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary",
+              "additional"
+            ]
+          },
+          "usageTerms": [
+            "Eligible purchases must be made through the issuer-designated curated gift-card storefront."
+          ],
+          "effectiveTo": "2028-10-31",
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://creditcards.chase.com/business-credit-cards/sapphire/reserve"
+          ],
+          "_note": "Up to $50 in statement credits January-June and another $50 July-December for eligible curated gift-card purchases through 2028-10-31."
+        }
+      ]
     },
     {
       "cardId": "citi-double-cash-card",
@@ -9700,7 +10326,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "american-express-marriott-bonvoy-bevy",
@@ -9725,7 +10355,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-ink-business-cash-credit-card",
@@ -9750,7 +10384,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-slate-credit-card",
@@ -9775,7 +10413,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-slate-edge-credit-card",
@@ -9800,7 +10442,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "citi-costco-anywhere-business",
@@ -9825,7 +10471,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "citi-diamond-preferred-credit-card",
@@ -9850,7 +10500,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "citi-simplicity-credit-card",
@@ -9900,7 +10554,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "column-n-a-bilt-obsidian-card",
@@ -9925,7 +10583,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "column-n-a-bilt-palladium-card",
@@ -9950,7 +10612,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "fnbo-evergreen-credit-card",
@@ -9975,7 +10641,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "fnbo-getaway-credit-card",
@@ -10000,7 +10670,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "fnbo-greenselect-credit-card",
@@ -10025,7 +10699,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "goldman-sachs-apple-card",
@@ -10050,7 +10728,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "wells-fargo-active-cash-business",
@@ -10075,7 +10757,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "wells-fargo-autograph-journey",
@@ -10100,7 +10786,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "wells-fargo-reflect",
@@ -10125,7 +10815,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "chase-prime-visa-and-amazon-visa",
@@ -10150,7 +10844,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "unknown",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "cibc-costco-mastercard",
@@ -10362,7 +11060,76 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "partial",
+        "lastReviewedAt": "2026-08-31"
+      },
+      "credits": [
+        {
+          "creditId": "capital-one-venture-business-travel-credit",
+          "label": "Capital One Business Travel Credit",
+          "value": {
+            "amount": 50,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "accountAnniversary",
+            "intervalMonths": 12
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary"
+            ]
+          },
+          "usageTerms": [
+            "Eligible bookings through Capital One Business Travel; unused credit expires at the next account-open anniversary."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.capitalone.com/small-business/credit-cards/venture-business/"
+          ],
+          "_note": "Primary account holder receives up to $50 in annual credit for eligible bookings through Capital One Business Travel, expiring at the next account anniversary."
+        },
+        {
+          "creditId": "capital-one-venture-business-advertising-software-credit",
+          "label": "Advertising or Software Credit",
+          "value": {
+            "amount": 50,
+            "currency": "USD"
+          },
+          "schedule": {
+            "basis": "accountAnniversary",
+            "intervalMonths": 12
+          },
+          "redemptionMethod": "statementCredit",
+          "allowsPartialUse": true,
+          "enrollment": {
+            "required": false
+          },
+          "eligibility": {
+            "cardholderRoles": [
+              "primary"
+            ]
+          },
+          "usageTerms": [
+            "Issuer determines qualifying advertising/software merchants by merchant category; no MCC numbers were published in the reviewed source.",
+            "Unused credit expires at the next account-open anniversary."
+          ],
+          "sourceType": "issuerConfirmed",
+          "lastVerifiedAt": "2026-08-31",
+          "sources": [
+            "https://www.capitalone.com/small-business/credit-cards/venture-business/"
+          ],
+          "_note": "Up to $50 in annual statement credits for qualifying advertising or software merchants, with unused value expiring at the account anniversary."
+        }
+      ]
     },
     {
       "cardId": "capital-one-venture-rewards-credit-card",
@@ -10482,7 +11249,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "capital-one-ventureone-rewards-for-good",
@@ -10507,7 +11278,11 @@
       "earnRules": [],
       "caps": [],
       "perTransactionRewardVisibility": "unknown",
-      "lastVerifiedAt": "2026-08-27"
+      "lastVerifiedAt": "2026-08-27",
+      "creditCoverage": {
+        "status": "complete",
+        "lastReviewedAt": "2026-08-31"
+      }
     },
     {
       "cardId": "scotiabank-amex",
