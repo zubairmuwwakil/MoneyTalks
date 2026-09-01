@@ -234,11 +234,13 @@ export function mergeOwnerState<T extends MergeableOwnerState>(stored: unknown, 
     ownedCardIds.push(id);
   }
 
-  const defaultCardId = seen.has(incoming.defaultCardId)
-    ? incoming.defaultCardId
-    : seen.has(prior.defaultCardId)
-      ? prior.defaultCardId
-      : ownedCardIds[0];
+  const defaultCardId = ownedCardIds.length === 0
+    ? ""
+    : seen.has(incoming.defaultCardId)
+      ? incoming.defaultCardId
+      : seen.has(prior.defaultCardId)
+        ? prior.defaultCardId
+        : ownedCardIds[0];
 
   const rawCardStates = { ...extractCardStates(stored), ...incoming.cardStates };
   const cardStates: Record<string, unknown> = {};

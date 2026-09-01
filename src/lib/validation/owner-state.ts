@@ -219,8 +219,22 @@ export function ownerStateForWire(state: unknown): unknown {
   return { ...ownerState, valuationsCad: { programs: programsFromLegacy(legacy.data) } };
 }
 
+const creditWindowState = z.object({
+  consumedAmount: finiteNonNegative,
+  realizedAmount: finiteNonNegative,
+  updatedAt: z.string().min(1),
+}).passthrough();
+
+const creditState = z.object({
+  enrollmentStatus: z.enum(["unknown", "enrolled", "notEnrolled", "notRequired"]),
+  windows: z.record(z.string().min(1), creditWindowState),
+  lastRedemptionAt: z.string().min(1).nullable().optional(),
+}).passthrough();
+
 const cardState = z.object({
   capProgress: z.record(z.string().min(1), finiteNonNegative).nullable().optional(),
+  accountOpenedAt: z.string().min(1).nullable().optional(),
+  creditStates: z.record(z.string().min(1), creditState).nullable().optional(),
   scotiaAccountYearAnchorMonth: z.number().int().min(1).max(12).nullable().optional(),
   selectedCategories: z.array(z.string().min(1)).nullable().optional(),
   treatAsAllSelected: z.boolean().nullable().optional(),
@@ -244,13 +258,17 @@ const cardState = z.object({
   /// contract must still persist: rejecting it would reproduce the exact outage this field was
   /// added to fix, one release later and with a slower feedback loop.
   flags: z.record(z.string().min(1), z.boolean()).nullable().optional(),
-}).strict();
+// PickMe is the semantic owner of CardState and can ship additive fields before
+// this repository deploys. Preserve fields this server does not consume instead
+// of turning a harmless mobile addition into a permanent wallet-upload outage.
+// Known fields above are still validated whenever they are present.
+}).passthrough();
 
 export const ownerStateInput = z.object({
   ownerStateVersion: z.string().min(1).max(100),
-  ownedCardIds: z.array(z.string().min(1)).min(1).max(100).refine((ids) => new Set(ids).size === ids.length, "duplicate card"),
+  ownedCardIds: z.array(z.string().min(1)).max(100).refine((ids) => new Set(ids).size === ids.length, "duplicate card"),
   deletedCardIds: z.array(z.string().min(1)).max(500).optional(),
-  defaultCardId: z.string().min(1),
+  defaultCardId: z.string(),
   switchThreshold: z.object({
     minAdvantagePercentagePoints: finiteNonNegative,
     minAdvantageCad: finiteNonNegative,
@@ -264,8 +282,12 @@ export const ownerStateInput = z.object({
   /// checkout scoring. Absent means "unresolved", not "Canadian" — the engine applies that
   /// default itself (resolvedMarket), so it is never baked into the stored record.
   market: z.enum(["CA", "US"]).nullable().optional(),
-}).strict().superRefine((state, ctx) => {
-  if (!state.ownedCardIds.includes(state.defaultCardId)) {
+// Top-level additions are also round-tripped for forward compatibility. This
+// endpoint stores PickMe's owner state; it does not get to freeze that format.
+}).passthrough().superRefine((state, ctx) => {
+  if (state.ownedCardIds.length === 0 && state.defaultCardId !== "") {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["defaultCardId"], message: "an empty wallet must have an empty default card" });
+  } else if (state.ownedCardIds.length > 0 && !state.ownedCardIds.includes(state.defaultCardId)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["defaultCardId"], message: "default card must be owned" });
   }
   for (const cardId of Object.keys(state.cardStates)) {

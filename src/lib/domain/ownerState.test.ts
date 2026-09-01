@@ -305,6 +305,21 @@ describe("mergeOwnerState", () => {
     expect(merged.deletedCardIds).toEqual([]);
   });
 
+  it("keeps an empty default when every card is deleted", () => {
+    const stored = { ...base, ownedCardIds: ["amex-cobalt"] };
+    const incoming = {
+      ...base,
+      ownedCardIds: [],
+      deletedCardIds: ["amex-cobalt"],
+      defaultCardId: "",
+    };
+
+    const merged = mergeOwnerState(stored, incoming);
+
+    expect(merged.ownedCardIds).toEqual([]);
+    expect(merged.defaultCardId).toBe("");
+  });
+
   it("keeps a card state the incoming writer never mentioned", () => {
     const stored = {
       ...base,

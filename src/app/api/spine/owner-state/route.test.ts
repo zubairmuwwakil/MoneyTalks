@@ -144,6 +144,59 @@ describe("PUT /api/spine/owner-state", () => {
     expect(response.status).toBe(400);
   });
 
+  it("accepts the account date and aggregate credit state emitted by current PickMe builds", async () => {
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(null);
+    const creditPayload = {
+      ...modernState,
+      cardStates: {
+        "amex-cobalt": {
+          accountOpenedAt: "2024-03-15",
+          creditStates: {
+            "cobalt-streaming-annual": {
+              enrollmentStatus: "enrolled",
+              windows: {
+                "calendar-year:2026": {
+                  consumedAmount: 12.99,
+                  realizedAmount: 12.99,
+                  updatedAt: "2026-09-01",
+                },
+              },
+              lastRedemptionAt: null,
+            },
+          },
+        },
+      },
+    };
+    vi.mocked(prisma.ownerStateRecord.create).mockResolvedValue(stored(creditPayload));
+
+    expect((await put(creditPayload)).status).toBe(200);
+    expect(prisma.ownerStateRecord.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          stateData: expect.objectContaining({ cardStates: creditPayload.cardStates }),
+        }),
+      }),
+    );
+  });
+
+  it("round-trips additive PickMe fields instead of rejecting the next mobile release", async () => {
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(null);
+    const futurePayload = {
+      ...modernState,
+      futureOwnerFact: { source: "PickMe" },
+      cardStates: { "amex-cobalt": { futureCardFact: { enabled: true } } },
+    };
+    vi.mocked(prisma.ownerStateRecord.create).mockResolvedValue(stored(futurePayload));
+
+    expect((await put(futurePayload)).status).toBe(200);
+    const written = vi.mocked(prisma.ownerStateRecord.create).mock.calls[0][0].data.stateData as {
+      futureOwnerFact?: unknown;
+      cardStates: Record<string, { futureCardFact?: unknown }>;
+    };
+    expect(written.futureOwnerFact).toEqual({ source: "PickMe" });
+    expect(written.cardStates["amex-cobalt"].futureCardFact).toEqual({ enabled: true });
+  });
+
   it("accepts PickMe's modern program dictionary without dropping newer programs", async () => {
     vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.ownerStateRecord.create).mockResolvedValue(stored(modernState));
@@ -204,6 +257,30 @@ describe("PUT /api/spine/owner-state", () => {
     };
     expect(createdCall.stateData.valuationsCad.programs).toEqual({});
     expect(createdCall.stateData.valuationsCad.amexMembershipRewards.centsPerPoint).toBe(1);
+  });
+
+  it("accepts removal of the final card as a valid empty wallet", async () => {
+    const emptyWallet = {
+      ...modernState,
+      ownedCardIds: [],
+      deletedCardIds: ["amex-cobalt"],
+      defaultCardId: "",
+      cardStates: {},
+    };
+    vi.mocked(prisma.ownerStateRecord.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.ownerStateRecord.create).mockResolvedValue(stored(emptyWallet));
+
+    expect((await put(emptyWallet)).status).toBe(200);
+    expect(prisma.ownerStateRecord.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ stateData: expect.objectContaining({ ownedCardIds: [], defaultCardId: "" }) }),
+      }),
+    );
+  });
+
+  it("rejects a non-empty default card when the wallet is empty", async () => {
+    const response = await put({ ...modernState, ownedCardIds: [], defaultCardId: "amex-cobalt", cardStates: {} });
+    expect(response.status).toBe(400);
   });
 
   // The regression this endpoint's merge exists for: PickMe saving its wallet

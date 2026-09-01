@@ -3,7 +3,7 @@
     "repo": "https://github.com/zubairmuwwakil/PickMe",
     "ref": "main",
     "release": "card-contracts@2.20",
-    "commit": "2148b5dfafa48de16cf278bb19dd4bedae5dd5dc-dirty",
+    "commit": "639849f69f80b01ace2c32e437b4a278acafe9d3",
     "files": {
       "card-catalogue.json": "f32144d625b35dcd1044753ca248e9b6f57b3e642299f339766eb5c52f5b5a5f",
       "benefits-catalogue.json": "9044e24299e0bb2fd726cffc943c3ac907d44229cd47555178acb1c1756104e0",

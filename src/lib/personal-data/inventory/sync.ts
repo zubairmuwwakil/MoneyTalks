@@ -375,17 +375,20 @@ export async function reconcileNotionInventory() {
 
   for (const page of needPages) {
     const result = await syncNeedPage(page, dataSources.shoppingNeeds);
-    result.kind === "need" ? counts.needs += 1 : counts.ignored += 1;
+    if (result.kind === "need") counts.needs += 1;
+    else counts.ignored += 1;
   }
 
   for (const page of productPages) {
     const result = await syncProductPage(page, dataSources.products);
-    result.kind === "product" ? counts.products += 1 : counts.ignored += 1;
+    if (result.kind === "product") counts.products += 1;
+    else counts.ignored += 1;
   }
 
   for (const page of eventPages) {
     const result = await syncEventPage(page, dataSources.inventoryEvents);
-    result.kind === "event" ? counts.events += 1 : counts.ignored += 1;
+    if (result.kind === "event") counts.events += 1;
+    else counts.ignored += 1;
   }
 
   return counts;
