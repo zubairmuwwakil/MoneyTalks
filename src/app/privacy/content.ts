@@ -10,7 +10,7 @@
 // Voice: plain, specific, and willing to say what the software does not do.
 // Do not make it sound like marketing.
 
-export const EFFECTIVE_DATE = "29 August 2026";
+export const EFFECTIVE_DATE = "2 September 2026";
 export const CONTACT_EMAIL = "zmuwwakil1@gmail.com";
 export const PUBLISHER = "Zubair Muwwakil";
 export const POLICY_URL = "https://moneytalks.zubairmuwwakil.com/privacy";
@@ -30,6 +30,15 @@ export type Section = {
 
 // Inline links are written as [label](href) and parsed by the renderer.
 export const SECTIONS: Section[] = [
+  {
+    id: "connected-agents",
+    title: "Connecting ChatGPT and other agents",
+    blocks: [
+      { kind: "p", text: "If you connect In Unity to ChatGPT and approve read access, the connection can retrieve your recorded purchases, structured receipt facts, recurring payments, saved bills, returns, spending summaries, and upcoming attention items. In Unity checks the connected account and permission on every request. Connecting is optional and does not give the agent permission to change records or make payments." },
+      { kind: "p", text: "The connection returns selected financial facts and links to In Unity. It does not return raw email bodies, receipt files, email or sign-in credentials, complete bill account identifiers, login identifiers, or precise purchase coordinates. It does not grant the agent access to your whole mailbox." },
+      { kind: "p", text: "Clerk manages the sign-in and OAuth authorization. You can pause agent access immediately under Settings → Connected agents; resuming permits existing authorized connections again. The pause preference is stored with your Clerk account. To remove a connection, disconnect In Unity in ChatGPT. Disconnecting or pausing does not erase information already shared in a conversation; that information is governed by the connected provider's retention, privacy policy, and your data settings there." },
+    ],
+  },
   {
     id: "short-version",
     title: "The short version",

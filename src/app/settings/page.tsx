@@ -69,6 +69,7 @@ export default async function SettingsPage({
           <Link href="/settings/providers" className="rounded-full border px-3 py-1 hover:bg-muted">Market data keys</Link>
           <Link href="/settings/automation" className="rounded-full border px-3 py-1 hover:bg-muted">Email automation</Link>
           <Link href="/settings/privacy" className="rounded-full border px-3 py-1 hover:bg-muted">Privacy</Link>
+          <Link href="/settings/connected-agents" className="rounded-full border px-3 py-1 hover:bg-muted">Connected agents</Link>
         </div>
       </div>
 

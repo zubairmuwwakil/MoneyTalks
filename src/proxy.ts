@@ -26,8 +26,12 @@ const isPublicRoute = createRouteMatcher([
 // so Clerk must not intercept these routes before their token checks run.
 const isInstallationTokenRoute = createRouteMatcher([...INSTALLATION_TOKEN_ROUTE_PATTERNS]);
 const isApiRoute = createRouteMatcher(["/api(.*)"]);
+// MCP has its own opaque OAuth bearer verification. A Clerk browser session
+// must neither authorize it nor redirect OAuth clients to a browser login.
+const isMcpRoute = createRouteMatcher(["/mcp", "/.well-known/oauth-protected-resource(.*)"]);
 
 export const proxy = clerkMiddleware(async (auth, req) => {
+  if (isMcpRoute(req)) return;
   if (isPublicRoute(req) || isInstallationTokenRoute(req)) return;
 
   if (isApiRoute(req)) {
