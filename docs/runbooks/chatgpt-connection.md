@@ -64,7 +64,10 @@ current OpenAI requirements. Do not claim audience-claim verification when the
 provider does not expose one, or weaken the client/scope checks to get past setup.
 
 OAuth discovery is served at `/.well-known/oauth-protected-resource/mcp` and the
-root protected-resource alias. Unauthorized requests return a bearer challenge.
+root protected-resource alias. Protocol initialization, ping and `tools/list`
+are public so ChatGPT can discover OAuth-tagged tool descriptors before a user
+connects. Every `tools/call` requires a verified bearer token; unauthorized tool
+calls return a bearer challenge before any handler or user context exists.
 The issuer serves its own OAuth/OIDC authorization metadata, authorization-code,
 refresh, consent, and revocation endpoints. There is no custom token issuer here.
 

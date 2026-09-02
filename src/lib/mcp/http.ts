@@ -5,6 +5,7 @@ import { authChallenge, MCP_SCOPE, mcpConfig, resourceMetadata } from "./config"
 import { createInUnityMcpServer } from "./server";
 
 const oauthSecuritySchemes = [{ type: "oauth2", scopes: [MCP_SCOPE] }];
+const discoveryMethods = new Set(["initialize", "notifications/initialized", "ping", "tools/list"]);
 
 function headers(request: Request) {
   const result = new Headers({ "Cache-Control": "no-store", Vary: "Origin", "X-Content-Type-Options": "nosniff" });
@@ -54,7 +55,6 @@ export async function handleMcp(request: Request) {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: responseHeaders });
   if (!mcpConfig()) return Response.json({ error: "integration_not_configured" }, { status: 503, headers: responseHeaders });
   try {
-    const userId = await authenticateMcp(request);
     if (request.method !== "POST") {
       responseHeaders.set("Allow", "POST, OPTIONS");
       return new Response(null, { status: 405, headers: responseHeaders });
@@ -63,6 +63,14 @@ export async function handleMcp(request: Request) {
       return Response.json({ error: "expected_json" }, { status: 415, headers: responseHeaders });
     }
     const parsedBody = await readBody(request);
+    const method = parsedBody && typeof parsedBody === "object" && !Array.isArray(parsedBody)
+      ? (parsedBody as { method?: unknown }).method : undefined;
+    // ChatGPT must be able to discover OAuth-tagged tool descriptors before a
+    // user connects. Only protocol discovery is public; every tools/call still
+    // verifies an opaque token before a handler and its user context exist.
+    const userId = typeof method === "string" && discoveryMethods.has(method)
+      ? "__mcp_discovery_only__"
+      : await authenticateMcp(request);
     // One server and transport per request: no user state persists between callers.
     const server = createInUnityMcpServer(userId, mcpConfig()!.origin);
     const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });

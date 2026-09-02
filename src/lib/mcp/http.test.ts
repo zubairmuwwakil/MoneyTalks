@@ -79,11 +79,19 @@ describe("MCP over Streamable HTTP", () => {
     const response = await handleMcp(request(rpc("tools/call", { name: "fetch", arguments: { id: "../../users" } })));
     expect((await response.json()).result.isError).toBe(true);
   });
-  it("rejects unauthenticated callers with OAuth discovery, not a login redirect", async () => {
+  it("allows anonymous tool discovery without touching account data", async () => {
     const response = await handleMcp(request(rpc("tools/list"), { Authorization: "" }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).result.tools).toHaveLength(5);
+    expect(mock.verify).not.toHaveBeenCalled();
+    expect(mock.findUser).not.toHaveBeenCalled();
+  });
+  it("rejects unauthenticated tool execution with OAuth discovery, not a login redirect", async () => {
+    const response = await handleMcp(request(rpc("tools/call", { name: "search", arguments: { query: "" } }), { Authorization: "" }));
     expect(response.status).toBe(401);
     expect(response.headers.get("www-authenticate")).toContain("https://inunity.ca/.well-known/oauth-protected-resource/mcp");
     expect(response.headers.get("location")).toBeNull();
+    expect(mock.purchases).not.toHaveBeenCalled();
   });
   it("rejects untrusted browser origins before verification", async () => {
     const response = await handleMcp(request(rpc("tools/list"), { Origin: "https://untrusted.example" }));
