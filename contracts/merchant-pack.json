@@ -1,10 +1,10 @@
 {
   "packVersion": "1.0",
   "_provenance": {
-    "source": "Store/Sources/CardCopilotStore/CanadianMerchantPreIndex.swift",
-    "generator": "scripts/generate-merchant-pack.mjs",
-    "overrides": "scripts/merchant-pack-overrides.json",
-    "note": "Categories and MCCs are editorial research, not observed network data. A consumer must disclose an MCC it did not observe."
+    "source": "this file — hand-authored, validated by scripts/validate-catalogue-schema.py",
+    "note": "Categories and MCCs are editorial research, not observed network data. A consumer must disclose an MCC it did not observe.",
+    "history": "Until 2026-09-01 this pack was GENERATED from CanadianMerchantPreIndex.swift by scripts/generate-merchant-pack.mjs, and no Swift code read the result — so the curated descriptor matchKeys below had no consumer in PickMe. The arrow is now inverted: SeedLoader.merchantPack loads this file and the Swift array is gone.",
+    "curation": "matchKeys are normalized (lowercase, diacritics folded, runs of non-alphanumerics collapsed to one space, trimmed) and matched as whole words, longest match first. Add a key ONLY when it is unambiguous on its own. 'metro' is a grocery chain AND half of 'CAFE METRO'; it earns its place because matching is whole-word and the longest match wins, but a two-letter or generic needle ('go', 'shell' as a substring of 'shellfish') is how a pack starts producing confident nonsense."
   },
   "merchants": [
     {
@@ -197,8 +197,7 @@
       "category": "householdUtilities",
       "matchKeys": [
         "bell mobility",
-        "bell canada",
-        "bell"
+        "bell canada"
       ],
       "mcc": 4814,
       "emailDomains": [
@@ -1214,8 +1213,7 @@
       "category": "transit",
       "matchKeys": [
         "oc transpo ottawa",
-        "oc transpo",
-        "ottawa"
+        "oc transpo"
       ],
       "mcc": 4111,
       "acceptedNetworks": [
@@ -1665,7 +1663,6 @@
       "matchKeys": [
         "societe de transport",
         "stm montreal",
-        "montreal",
         "stm"
       ],
       "mcc": 4111,
