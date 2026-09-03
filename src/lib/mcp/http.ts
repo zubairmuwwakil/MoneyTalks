@@ -5,7 +5,10 @@ import { authChallenge, MCP_SCOPE, mcpConfig, resourceMetadata } from "./config"
 import { createInUnityMcpServer } from "./server";
 
 const oauthSecuritySchemes = [{ type: "oauth2", scopes: [MCP_SCOPE] }];
-const discoveryMethods = new Set(["initialize", "notifications/initialized", "ping", "tools/list"]);
+const discoveryMethods = new Set([
+  "initialize", "notifications/initialized", "ping", "tools/list",
+  "prompts/list", "resources/list", "resources/templates/list",
+]);
 
 function headers(request: Request) {
   const result = new Headers({ "Cache-Control": "no-store", Vary: "Origin", "X-Content-Type-Options": "nosniff" });
@@ -49,6 +52,15 @@ function withChatGptToolAuth(body: ArrayBuffer, parsedRequest: unknown) {
   }
 }
 
+function isDiscoveryRequest(value: unknown) {
+  const requests = Array.isArray(value) ? value : [value];
+  return requests.length > 0 && requests.every(item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return false;
+    return typeof (item as { method?: unknown }).method === "string" &&
+      discoveryMethods.has((item as { method: string }).method);
+  });
+}
+
 export async function handleMcp(request: Request) {
   const responseHeaders = headers(request);
   if (!responseHeaders) return Response.json({ error: "origin_not_allowed" }, { status: 403 });
@@ -59,24 +71,33 @@ export async function handleMcp(request: Request) {
       responseHeaders.set("Allow", "POST, OPTIONS");
       return new Response(null, { status: 405, headers: responseHeaders });
     }
-    if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
-      return Response.json({ error: "expected_json" }, { status: 415, headers: responseHeaders });
-    }
+    // Some ChatGPT discovery probes omit application/json. The bounded body is
+    // still parsed strictly as JSON; Content-Type never weakens tool-call auth.
     const parsedBody = await readBody(request);
-    const method = parsedBody && typeof parsedBody === "object" && !Array.isArray(parsedBody)
-      ? (parsedBody as { method?: unknown }).method : undefined;
     // ChatGPT must be able to discover OAuth-tagged tool descriptors before a
     // user connects. Only protocol discovery is public; every tools/call still
     // verifies an opaque token before a handler and its user context exist.
-    const userId = typeof method === "string" && discoveryMethods.has(method)
+    const userId = isDiscoveryRequest(parsedBody)
       ? "__mcp_discovery_only__"
       : await authenticateMcp(request);
+    let transportRequest = request;
+    if (isDiscoveryRequest(parsedBody) &&
+        !request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
+      const transportHeaders = new Headers(request.headers);
+      transportHeaders.set("Content-Type", "application/json");
+      transportRequest = new Request(request.url, {
+        method: request.method,
+        headers: transportHeaders,
+        body: JSON.stringify(parsedBody),
+        signal: request.signal,
+      });
+    }
     // One server and transport per request: no user state persists between callers.
     const server = createInUnityMcpServer(userId, mcpConfig()!.origin);
     const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     try {
       await server.connect(transport);
-      const response = await transport.handleRequest(request, { parsedBody });
+      const response = await transport.handleRequest(transportRequest, { parsedBody });
       // Consume the JSON body before closing the transport.
       const body = withChatGptToolAuth(await response.arrayBuffer(), parsedBody);
       for (const [key, value] of responseHeaders) response.headers.set(key, value);

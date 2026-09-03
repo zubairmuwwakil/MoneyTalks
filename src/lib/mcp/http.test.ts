@@ -86,6 +86,15 @@ describe("MCP over Streamable HTTP", () => {
     expect(mock.verify).not.toHaveBeenCalled();
     expect(mock.findUser).not.toHaveBeenCalled();
   });
+  it("accepts ChatGPT discovery probes without a JSON content type", async () => {
+    const response = await handleMcp(new Request("https://inunity.ca/mcp", {
+      method: "POST", headers: { Accept: "application/json, text/event-stream" },
+      body: JSON.stringify(rpc("tools/list")),
+    }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).result.tools).toHaveLength(5);
+    expect(mock.verify).not.toHaveBeenCalled();
+  });
   it("rejects unauthenticated tool execution with OAuth discovery, not a login redirect", async () => {
     const response = await handleMcp(request(rpc("tools/call", { name: "search", arguments: { query: "" } }), { Authorization: "" }));
     expect(response.status).toBe(401);
