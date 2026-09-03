@@ -62,6 +62,9 @@ it for another resource. Before public submission, verify Clerk's handling of
 the MCP `resource` parameter in the end-to-end authorization flow against the
 current OpenAI requirements. Do not claim audience-claim verification when the
 provider does not expose one, or weaken the client/scope checks to get past setup.
+Clerk's SDK verifies either JWT or opaque OAuth access tokens and explicitly
+rejects browser-session, API-key, and machine-to-machine credentials. The
+dedicated client ID and `inunity.read` scope are checked after verification.
 
 OAuth discovery is served at `/.well-known/oauth-protected-resource/mcp` and the
 root protected-resource alias. Protocol initialization, ping, and descriptor

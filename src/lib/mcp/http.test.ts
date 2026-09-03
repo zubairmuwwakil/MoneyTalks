@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mock = vi.hoisted(() => ({ verify: vi.fn(), findUser: vi.fn(), getUser: vi.fn(), purchases: vi.fn() }));
-vi.mock("@clerk/nextjs/server", () => ({ clerkClient: async () => ({ idPOAuthAccessToken: { verify: mock.verify }, users: { getUser: mock.getUser } }) }));
+const mock = vi.hoisted(() => ({ authenticateRequest: vi.fn(), findUser: vi.fn(), getUser: vi.fn(), purchases: vi.fn() }));
+vi.mock("@clerk/nextjs/server", () => ({ clerkClient: async () => ({ authenticateRequest: mock.authenticateRequest, users: { getUser: mock.getUser } }) }));
 vi.mock("@/lib/prisma", () => ({ prisma: {
   user: { findUnique: mock.findUser },
   purchase: { findMany: mock.purchases },
@@ -25,7 +25,11 @@ beforeEach(() => {
   vi.stubEnv("INUNITY_MCP_OAUTH_CLIENT_ID", "chatgpt-client");
   vi.stubEnv("INUNITY_MCP_OAUTH_ISSUER", "https://clerk.inunity.ca");
   vi.stubEnv("ALLOWED_EMAILS", "");
-  mock.verify.mockResolvedValue({ clientId: "chatgpt-client", subject: "user_owner", scopes: ["inunity.read"], revoked: false, expired: false, expiration: Date.now() + 60_000 });
+  mock.authenticateRequest.mockImplementation(async request => {
+    const authorization = request.headers.get("authorization") ?? "";
+    const userId = authorization.includes("bbbb") ? "user_b" : "user_owner";
+    return { isAuthenticated: true, tokenType: "oauth_token", toAuth: () => ({ clientId: "chatgpt-client", userId, scopes: ["inunity.read"] }) };
+  });
   mock.findUser.mockResolvedValue({ id: "local-owner", email: "owner@example.test" });
   mock.getUser.mockResolvedValue({ privateMetadata: {} });
   mock.purchases.mockResolvedValue([]);
@@ -57,7 +61,7 @@ describe("MCP over Streamable HTTP", () => {
     expect(JSON.parse(result.content[0].text)).toEqual({ results: [{ id: "purchase:p1", title: "Cafe · 2026-09-01", url: "https://inunity.ca/purchases/p1" }] });
   });
   it("never shares account context between simultaneous callers", async () => {
-    mock.verify.mockImplementation(async token => ({ clientId: "chatgpt-client", subject: token.includes("bbbb") ? "user_b" : "user_a", scopes: ["inunity.read"], revoked: false, expired: false, expiration: Date.now() + 60_000 }));
+    mock.authenticateRequest.mockImplementation(async request => ({ isAuthenticated: true, tokenType: "oauth_token", toAuth: () => ({ clientId: "chatgpt-client", userId: request.headers.get("authorization")?.includes("bbbb") ? "user_b" : "user_a", scopes: ["inunity.read"] }) }));
     mock.findUser.mockImplementation(async ({ where }) => ({ id: where.clerkId, email: "user@example.test" }));
     mock.purchases.mockImplementation(async ({ where }) => [{ id: where.userId, merchant: where.userId, purchasedAt: new Date("2026-09-01"), possibleDuplicateOfId: null }]);
     const call = rpc("tools/call", { name: "search", arguments: { query: "", userId: "attacker-selected" } });
@@ -83,7 +87,7 @@ describe("MCP over Streamable HTTP", () => {
     const response = await handleMcp(request(rpc("tools/list"), { Authorization: "" }));
     expect(response.status).toBe(200);
     expect((await response.json()).result.tools).toHaveLength(5);
-    expect(mock.verify).not.toHaveBeenCalled();
+    expect(mock.authenticateRequest).not.toHaveBeenCalled();
     expect(mock.findUser).not.toHaveBeenCalled();
   });
   it("accepts ChatGPT discovery probes without a JSON content type", async () => {
@@ -93,7 +97,7 @@ describe("MCP over Streamable HTTP", () => {
     }));
     expect(response.status).toBe(200);
     expect((await response.json()).result.tools).toHaveLength(5);
-    expect(mock.verify).not.toHaveBeenCalled();
+    expect(mock.authenticateRequest).not.toHaveBeenCalled();
   });
   it("rejects unauthenticated tool execution with OAuth discovery, not a login redirect", async () => {
     const response = await handleMcp(request(rpc("tools/call", { name: "search", arguments: { query: "" } }), { Authorization: "" }));
@@ -105,7 +109,7 @@ describe("MCP over Streamable HTTP", () => {
   it("rejects untrusted browser origins before verification", async () => {
     const response = await handleMcp(request(rpc("tools/list"), { Origin: "https://untrusted.example" }));
     expect(response.status).toBe(403);
-    expect(mock.verify).not.toHaveBeenCalled();
+    expect(mock.authenticateRequest).not.toHaveBeenCalled();
   });
   it("limits request size even without a Content-Length header", async () => {
     const response = await handleMcp(request({ query: "x".repeat(33000) }));
@@ -113,11 +117,11 @@ describe("MCP over Streamable HTTP", () => {
   });
   it("exposes metadata without touching user data", async () => {
     expect(await handleMetadata().json()).toMatchObject({ resource: "https://inunity.ca/mcp", scopes_supported: ["inunity.read"] });
-    expect(mock.verify).not.toHaveBeenCalled();
+    expect(mock.authenticateRequest).not.toHaveBeenCalled();
   });
   it("fails closed when deployment is not configured", async () => {
     vi.stubEnv("INUNITY_MCP_OAUTH_CLIENT_ID", "");
     expect((await handleMcp(request(rpc("tools/list")))).status).toBe(503);
-    expect(mock.verify).not.toHaveBeenCalled();
+    expect(mock.authenticateRequest).not.toHaveBeenCalled();
   });
 });
