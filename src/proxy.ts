@@ -7,6 +7,9 @@ import { INSTALLATION_TOKEN_ROUTE_PATTERNS } from "@/lib/installationTokenRoutes
 // /privacy must resolve signed out: App Store Connect requires a reachable
 // privacy policy URL, and PickMe links to it from Settings on unauthenticated
 // devices.
+// Community evidence endpoints are intentionally anonymous and are protected
+// by narrow schemas, retention limits, per-store caps, and aggregation rules
+// rather than Clerk identity. PickMe can use them without creating an account.
 const isPublicRoute = createRouteMatcher([
   "/",
   "/login(.*)",
@@ -18,6 +21,8 @@ const isPublicRoute = createRouteMatcher([
   "/marketing(.*)",
   "/api/health(.*)",
   "/api/cron(.*)",
+  "/api/community/gift-card-inventory(.*)",
+  "/api/community/merchant-mcc(.*)",
   "/waitlist",
   "/api/waitlist",
 ]);
