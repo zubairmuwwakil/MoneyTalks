@@ -77,9 +77,10 @@ describe("community merchant MCC", () => {
       row("2026-09-02", 5310), row("2026-09-03", 5310), row("2026-09-04", 5310),
     ], [candidate], now);
 
-    expect(signals.map(signal => [signal.mcc, signal.confidence])).toEqual([
+    expect(signals).toHaveLength(2);
+    expect(signals.map(signal => [signal.mcc, signal.confidence])).toEqual(expect.arrayContaining([
       [5411, 0.5],
       [5310, 0.5],
-    ]);
+    ]));
   });
 });

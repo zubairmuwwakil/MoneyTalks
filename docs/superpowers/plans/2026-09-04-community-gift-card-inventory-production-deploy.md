@@ -7,9 +7,10 @@
 Application and API code are on `main`, Vercel builds successfully, and `npm run check` passes.
 The feature remains off by default in PickMe.
 
-The production database migration is intentionally **not applied from this work session** because
-the connected Neon account exposes only `pickleopsdb` and `llm4life`; neither is the In Unity
-production database. Do not guess or reuse either project.
+The production database migration was applied on 2026-09-04. The target was verified by matching
+the linked Vercel `money-talks` production `DATABASE_URL` with `.env.local`'s direct endpoint,
+following `docs/runbooks/database-migrations.md`; `npm run db:status` reports the schema up to date.
+Do not identify a database from a Neon account display name alone.
 
 ## Migration to apply
 
@@ -22,8 +23,8 @@ It creates only `CommunityGiftCardInventoryObservation` and its three indexes. T
 
 ## Production command
 
-Run this from the MoneyTalks/In Unity deployment environment after resolving the real production
-Neon database and setting its direct, non-pooled migration URL:
+For any future environment, follow `docs/runbooks/database-migrations.md`. Run this from the
+MoneyTalks/In Unity release environment with its verified direct, non-pooled migration URL:
 
 ```bash
 DIRECT_URL='<IN_UNITY_PRODUCTION_DIRECT_URL>' npm run db:migrate:deploy
@@ -46,6 +47,6 @@ After migration:
 
 ## Safety boundary
 
-The connected Neon projects named `pickleopsdb` and `llm4life` are explicitly **not** acceptable
-migration targets for this feature. A production write must wait for the actual In Unity database
-connection or the Vercel deployment environment that owns `DIRECT_URL`.
+The migration target is the endpoint pair configured for the linked In Unity Vercel project, not a
+Neon project selected by display name. A production write must pass the canonical runbook's pooled
+and direct endpoint verification; never guess or reuse an unrelated database.

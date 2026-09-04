@@ -1,10 +1,11 @@
 {
-  "packVersion": "1.0",
+  "packVersion": "1.1",
   "_provenance": {
     "source": "this file — hand-authored, validated by scripts/validate-catalogue-schema.py",
     "note": "Categories and MCCs are editorial research, not observed network data. A consumer must disclose an MCC it did not observe.",
     "history": "Until 2026-09-01 this pack was GENERATED from CanadianMerchantPreIndex.swift by scripts/generate-merchant-pack.mjs, and no Swift code read the result — so the curated descriptor matchKeys below had no consumer in PickMe. The arrow is now inverted: SeedLoader.merchantPack loads this file and the Swift array is gone.",
-    "curation": "matchKeys are normalized (lowercase, diacritics folded, runs of non-alphanumerics collapsed to one space, trimmed) and matched as whole words, longest match first. Add a key ONLY when it is unambiguous on its own. 'metro' is a grocery chain AND half of 'CAFE METRO'; it earns its place because matching is whole-word and the longest match wins, but a two-letter or generic needle ('go', 'shell' as a substring of 'shellfish') is how a pack starts producing confident nonsense."
+    "curation": "matchKeys are normalized (lowercase, diacritics folded, runs of non-alphanumerics collapsed to one space, trimmed) and matched as whole words, longest match first. Add a key ONLY when it is unambiguous on its own. 'metro' is a grocery chain AND half of 'CAFE METRO'; it earns its place because matching is whole-word and the longest match wins, but a two-letter or generic needle ('go', 'shell' as a substring of 'shellfish') is how a pack starts producing confident nonsense.",
+    "acceptance": "acceptedNetworks is asymmetric and the schema enforces it. The open [amex, visa, mastercard] default is a NON-claim: if it is wrong the owner taps a second card at the till, sees it happen, and learns something. Removing a network is an affirmative negative claim the app renders as text (\"does not accept American Express\") and which silently withholds a card the owner may never discover they should have used - there is no till event that contradicts it. So a row narrower than the default MUST carry acceptanceProvenance: the merchant's own published payment-methods page, and the date a human read the claim there. inferred is not a legal sourceType for a narrowing. The same asymmetry governs matchKeys: a needle on a narrowed row that is also an ordinary English word (\"superstore\") or a common surname (\"fortino\", \"zehr\") resolves unrelated businesses into a grocery banner and was removed on 2026-09-04. \"dominion\" and \"no frills\" survive only because a row must also be reachable from its own displayName; narrowing those needs the displayName narrowed, and PreIndexedMerchant.id is derived from displayName and persisted, so it is a migration rather than an edit."
   },
   "merchants": [
     {
@@ -132,6 +133,29 @@
         "mastercard",
         "visa"
       ]
+    },
+    {
+      "id": "atlantic-superstore",
+      "displayName": "Atlantic Superstore",
+      "category": "grocery",
+      "matchKeys": [
+        "atlantic superstore",
+        "atl superstore"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.atlanticsuperstore.ca/en/help/payments/what-are-the-payment-options-available-for-in-store-shopping"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express."
     },
     {
       "id": "atmosphere",
@@ -274,6 +298,27 @@
       ]
     },
     {
+      "id": "bulk-barn",
+      "displayName": "Bulk Barn",
+      "category": "grocery",
+      "matchKeys": [
+        "bulk barn"
+      ],
+      "mcc": 5499,
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.bulkbarn.ca/en/FAQ"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express."
+    },
+    {
       "id": "cactus-club-cafe",
       "displayName": "Cactus Club Cafe",
       "category": "dining",
@@ -401,6 +446,13 @@
       "acceptedNetworks": [
         "mastercard"
       ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://customerservice.costco.ca/app/answers/answer_view/a_id/1017193/"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
       "notes": "Warehouse accepts Mastercard only. Gas pumps accept Mastercard."
     },
     {
@@ -434,6 +486,21 @@
       ]
     },
     {
+      "id": "dairy-queen",
+      "displayName": "Dairy Queen",
+      "category": "dining",
+      "matchKeys": [
+        "dairy queen",
+        "dq"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
       "id": "disney",
       "displayName": "Disney+",
       "category": "streaming",
@@ -446,6 +513,60 @@
       "emailDomains": [
         "disneyplus.com"
       ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "dollarama",
+      "displayName": "Dollarama",
+      "category": "retailShopping",
+      "matchKeys": [
+        "dollarama"
+      ],
+      "mcc": 5331,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "dominion-stores",
+      "displayName": "Dominion",
+      "category": "grocery",
+      "matchKeys": [
+        "dominion stores",
+        "dominion"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.dominionstores.ca/en/help/payments/what-are-the-payment-options-available-for-in-store-shopping"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express."
+    },
+    {
+      "id": "dominos-pizza",
+      "displayName": "Domino's Pizza",
+      "category": "dining",
+      "matchKeys": [
+        "domino s pizza",
+        "dominos pizza",
+        "domino s",
+        "dominos"
+      ],
+      "mcc": 5814,
       "acceptedNetworks": [
         "amex",
         "mastercard",
@@ -658,6 +779,28 @@
       ]
     },
     {
+      "id": "fortinos",
+      "displayName": "Fortinos",
+      "category": "grocery",
+      "matchKeys": [
+        "fortinos"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.fortinos.ca/en/help/payments/what-are-the-payment-options-available-for-in-store-shopping"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express."
+    },
+    {
       "id": "freedom-mobile",
       "displayName": "Freedom Mobile",
       "category": "householdUtilities",
@@ -704,6 +847,27 @@
       ]
     },
     {
+      "id": "giant-tiger",
+      "displayName": "Giant Tiger",
+      "category": "grocery",
+      "matchKeys": [
+        "giant tiger"
+      ],
+      "mcc": 5411,
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://help.gianttiger.com/en-US/online-shopping-108182"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express."
+    },
+    {
       "id": "go-transit",
       "displayName": "GO Transit",
       "category": "transit",
@@ -741,6 +905,21 @@
         "goodlife"
       ],
       "mcc": 7997,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "green-p-parking",
+      "displayName": "Green P Parking",
+      "category": "transit",
+      "matchKeys": [
+        "green p parking",
+        "green p"
+      ],
+      "mcc": 7523,
       "acceptedNetworks": [
         "amex",
         "mastercard",
@@ -794,6 +973,20 @@
       "emailDomains": [
         "homedepot.ca"
       ],
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "homesense",
+      "displayName": "HomeSense",
+      "category": "retailShopping",
+      "matchKeys": [
+        "homesense"
+      ],
+      "mcc": 5719,
       "acceptedNetworks": [
         "amex",
         "mastercard",
@@ -880,6 +1073,37 @@
       ]
     },
     {
+      "id": "indigo",
+      "displayName": "Indigo",
+      "category": "retailShopping",
+      "matchKeys": [
+        "indigo books",
+        "indigo",
+        "chapters"
+      ],
+      "mcc": 5942,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "irving-oil",
+      "displayName": "Irving Oil",
+      "category": "gasStation",
+      "matchKeys": [
+        "irving oil",
+        "irving"
+      ],
+      "mcc": 5541,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
       "id": "jean-coutu",
       "displayName": "Jean Coutu",
       "category": "drugStore",
@@ -956,6 +1180,29 @@
       ]
     },
     {
+      "id": "loblaw-city-market",
+      "displayName": "City Market",
+      "category": "grocery",
+      "matchKeys": [
+        "loblaw city market",
+        "city market"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.citymarket.ca/en/help/payments/what-are-the-payment-options-available-for-in-store-shopping"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express."
+    },
+    {
       "id": "loblaws",
       "displayName": "Loblaws",
       "category": "grocery",
@@ -968,6 +1215,27 @@
       "emailDomains": [
         "loblaws.ca"
       ],
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.loblaws.ca/en/help/payments/what-are-the-payment-options-available-for-in-store-shopping"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express."
+    },
+    {
+      "id": "london-drugs",
+      "displayName": "London Drugs",
+      "category": "drugStore",
+      "matchKeys": [
+        "london drugs"
+      ],
+      "mcc": 5912,
       "acceptedNetworks": [
         "amex",
         "mastercard",
@@ -1049,6 +1317,37 @@
       ]
     },
     {
+      "id": "marshalls",
+      "displayName": "Marshalls",
+      "category": "retailShopping",
+      "matchKeys": [
+        "marshalls"
+      ],
+      "mcc": 5651,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "mary-browns",
+      "displayName": "Mary Brown's",
+      "category": "dining",
+      "matchKeys": [
+        "mary brown s chicken",
+        "mary browns chicken",
+        "mary brown s",
+        "mary browns"
+      ],
+      "mcc": 5814,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
       "id": "maxi",
       "displayName": "Maxi",
       "category": "grocery",
@@ -1061,6 +1360,13 @@
         "mastercard",
         "visa"
       ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.maxi.ca/en/help/payments/what-are-the-payment-options-available-for-in-store-shopping"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
       "notes": "Does not accept American Express."
     },
     {
@@ -1205,6 +1511,13 @@
         "mastercard",
         "visa"
       ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.nofrills.ca/en/help/payments/what-are-the-payment-options-available-for-in-store-shopping"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
       "notes": "Does not accept American Express."
     },
     {
@@ -1266,6 +1579,20 @@
         "pioneer"
       ],
       "mcc": 5541,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
+      "id": "pizza-pizza",
+      "displayName": "Pizza Pizza",
+      "category": "dining",
+      "matchKeys": [
+        "pizza pizza"
+      ],
+      "mcc": 5814,
       "acceptedNetworks": [
         "amex",
         "mastercard",
@@ -1363,10 +1690,17 @@
       "mcc": 5411,
       "merchantBrand": "loblaws",
       "acceptedNetworks": [
-        "amex",
         "mastercard",
         "visa"
-      ]
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.provigo.ca/fr/help/payments/why-dont-you-accept-american-express"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express."
     },
     {
       "id": "real-canadian-superstore",
@@ -1375,16 +1709,22 @@
       "matchKeys": [
         "real canadian superstore",
         "real cdn superstore",
-        "superstore",
         "rcss"
       ],
       "mcc": 5411,
       "merchantBrand": "loblaws",
       "acceptedNetworks": [
-        "amex",
         "mastercard",
         "visa"
-      ]
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.realcanadiansuperstore.ca/en/help/payments/what-are-the-payment-options-available-for-in-store-shopping"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express."
     },
     {
       "id": "rexall",
@@ -1606,6 +1946,21 @@
       ]
     },
     {
+      "id": "sportsnet-plus",
+      "displayName": "Sportsnet+",
+      "category": "streaming",
+      "matchKeys": [
+        "sportsnet plus",
+        "sportsnet"
+      ],
+      "mcc": 4899,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
       "id": "spotify",
       "displayName": "Spotify",
       "category": "streaming",
@@ -1726,10 +2081,17 @@
       "mcc": 5411,
       "merchantBrand": "loblaws",
       "acceptedNetworks": [
-        "amex",
         "mastercard",
         "visa"
-      ]
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.tntsupermarket.com/payment-method/"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express in store."
     },
     {
       "id": "telus",
@@ -1832,6 +2194,21 @@
       ]
     },
     {
+      "id": "tsn-plus",
+      "displayName": "TSN+",
+      "category": "streaming",
+      "matchKeys": [
+        "tsn plus",
+        "tsn"
+      ],
+      "mcc": 4899,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
       "id": "ttc-toronto-transit-commission",
       "displayName": "TTC (Toronto Transit Commission)",
       "category": "transit",
@@ -1899,6 +2276,29 @@
         "mastercard",
         "visa"
       ]
+    },
+    {
+      "id": "valu-mart",
+      "displayName": "Valu-mart",
+      "category": "grocery",
+      "matchKeys": [
+        "valu mart",
+        "valumart"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.valumart.ca/help/payments/why-dont-you-accept-american-express"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express."
     },
     {
       "id": "via-rail-canada",
@@ -2039,6 +2439,42 @@
       ]
     },
     {
+      "id": "wholesale-club",
+      "displayName": "Wholesale Club",
+      "category": "wholesaleClub",
+      "matchKeys": [
+        "wholesale club"
+      ],
+      "mcc": 5300,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.wholesaleclub.ca/en/help/payments/what-are-the-payment-options-available-for-in-store-shopping"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express. Membership not required."
+    },
+    {
+      "id": "winners",
+      "displayName": "Winners",
+      "category": "retailShopping",
+      "matchKeys": [
+        "winners"
+      ],
+      "mcc": 5651,
+      "acceptedNetworks": [
+        "amex",
+        "mastercard",
+        "visa"
+      ]
+    },
+    {
       "id": "xbox-live-microsoft",
       "displayName": "Xbox Live / Microsoft",
       "category": "digitalMedia",
@@ -2071,6 +2507,29 @@
       ]
     },
     {
+      "id": "your-independent-grocer",
+      "displayName": "Your Independent Grocer",
+      "category": "grocery",
+      "matchKeys": [
+        "your independent grocer",
+        "independent grocer"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.yourindependentgrocer.ca/en/help/payments/what-are-the-payment-options-available-for-in-store-shopping"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express."
+    },
+    {
       "id": "youtube-premium",
       "displayName": "YouTube Premium",
       "category": "streaming",
@@ -2084,6 +2543,28 @@
         "mastercard",
         "visa"
       ]
+    },
+    {
+      "id": "zehrs",
+      "displayName": "Zehrs",
+      "category": "grocery",
+      "matchKeys": [
+        "zehrs"
+      ],
+      "mcc": 5411,
+      "merchantBrand": "loblaws",
+      "acceptedNetworks": [
+        "mastercard",
+        "visa"
+      ],
+      "acceptanceProvenance": {
+        "sourceType": "merchantPublished",
+        "sources": [
+          "https://www.zehrs.ca/en/help/payments/what-are-the-payment-options-available-for-in-store-shopping"
+        ],
+        "lastVerifiedAt": "2026-09-04"
+      },
+      "notes": "Does not accept American Express."
     }
   ]
 }

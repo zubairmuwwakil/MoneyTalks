@@ -49,8 +49,50 @@
           "minItems": 1,
           "items": { "type": "string", "enum": ["amex", "visa", "mastercard", "discover", "interac"] }
         },
+        "acceptanceProvenance": {
+          "type": "object",
+          "description": "Where the narrowing of `acceptedNetworks` came from. Required only when the row is narrower than the open [amex, visa, mastercard] default, because the two directions are not the same claim: the open default is a NON-claim that costs a wrong owner one extra tap at the till, which they see and learn from, while removing a network is an affirmative negative claim the app renders as text ('does not accept American Express') and which silently withholds a card the owner may never discover they should have used. An unfalsifiable claim needs a falsifiable source. Same vocabulary as card-catalogue.schema.json's per-rule provenance, and like it, documentation-only: no decoder reads these keys, they gate the curator.",
+          "required": ["sourceType", "sources", "lastVerifiedAt"],
+          "additionalProperties": false,
+          "properties": {
+            "sourceType": {
+              "enum": ["merchantPublished", "issuerPublished", "ownerObserved"],
+              "description": "`inferred` is deliberately absent. It is a legal value for an earn rate, where being wrong is visible in a statement; it is not one here, where the whole point of the gate is that a narrowing must rest on something a reviewer can open."
+            },
+            "sources": {
+              "type": "array",
+              "minItems": 1,
+              "description": "The merchant's or issuer's own published page — a payment-methods, FAQ or help-centre URL. A blog, forum or aggregator is not a source for this claim.",
+              "items": { "type": "string", "format": "uri", "pattern": "^https://" }
+            },
+            "lastVerifiedAt": {
+              "type": "string",
+              "format": "date",
+              "description": "The day a human last opened `sources` and read the claim there. Acceptance changes without announcement (Loblaw's own Amex position has moved), so a date is what makes the row ageable."
+            }
+          }
+        },
         "notes": { "type": "string" }
-      }
+      },
+      "allOf": [
+        {
+          "$comment": "Narrowing below the open default requires provenance. Expressed as if/else rather than a direct 'is narrower' test because JSON Schema cannot compare an array to a default; 'contains all three' is the same predicate from the other side.",
+          "if": {
+            "required": ["acceptedNetworks"],
+            "properties": {
+              "acceptedNetworks": {
+                "allOf": [
+                  { "contains": { "const": "amex" } },
+                  { "contains": { "const": "visa" } },
+                  { "contains": { "const": "mastercard" } }
+                ]
+              }
+            }
+          },
+          "then": true,
+          "else": { "required": ["acceptanceProvenance"] }
+        }
+      ]
     }
   }
 }

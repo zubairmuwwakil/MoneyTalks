@@ -17,17 +17,13 @@ Lint, typecheck, env, guardrails and the unit suite — well under a minute. **I
 the checklist.** There is no other checklist. Also: `npm run dev`, `npm run e2e`
 (needs Postgres + Clerk dev keys), `npx prisma migrate dev`.
 
-### Build and database migrations
+### Database migrations
 
-`npm run build` builds the application only; it deliberately does **not** run
-database migrations. Before a production deploy, run
-`npm run db:migrate:deploy` as a separate release step with `DIRECT_URL` pointed
-at the direct Postgres endpoint, then run `npm run build`. Never put migrations
-back into the build command or let multiple application instances race them.
-For local schema development, use `npx prisma migrate dev`.
-
-Agents are pre-authorized to run `npm run db:migrate:deploy` whenever pending
-migrations exist with `DIRECT_URL` configured for the direct endpoint.
+`npm run build` never migrates. For local and production migration commands,
+target verification, Vercel's pooled URL, and post-deploy checks, follow
+[`database-migrations.md`](docs/runbooks/database-migrations.md). Agents are
+pre-authorized to deploy pending migrations when its checks pass. Never migrate
+inside an application build.
 
 ## Read when you are…
 
@@ -37,6 +33,7 @@ migrations exist with `DIRECT_URL` configured for the direct endpoint.
 | [`card-ownership.md`](docs/policies/card-ownership.md) | touching cards, the catalogue, or the twin |
 | [`marketlens.md`](docs/policies/marketlens.md) | touching prices, holdings, valuation, or FX |
 | [`quote-cache.md`](docs/runbooks/quote-cache.md) | changing a cron or the quote path |
+| [`database-migrations.md`](docs/runbooks/database-migrations.md) | creating, checking, or applying a database migration |
 | [`exceptions.json`](docs/policies/exceptions.json) | a check is wrong for your task — add a dated entry and keep moving |
 | [`LOG.md`](docs/decisions/LOG.md) · [record](docs/decisions/2026-08-16-one-money-app.md) | cross-cutting work — both are ratified, not open |
 | [`ECOSYSTEM.md`](ECOSYSTEM.md) | anything spanning repos, or scoping v1 vs later |
