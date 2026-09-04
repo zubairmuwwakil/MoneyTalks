@@ -6,6 +6,7 @@ import {
   communityMerchantMCCQuerySchema,
   normalizedCommunityMCCCandidate,
 } from "@/lib/community-merchant-mcc";
+import { recordCommunityMerchantMCCQuery } from "@/lib/observability";
 
 const MAX_BODY_BYTES = 16_384;
 
@@ -18,8 +19,10 @@ const MAX_BODY_BYTES = 16_384;
 export async function GET() {
   try {
     await prisma.communityMerchantMCCObservation.count();
+    recordCommunityMerchantMCCQuery({ outcome: "health_success" });
     return NextResponse.json({ ok: true, schemaVersion: 1 });
   } catch (error) {
+    recordCommunityMerchantMCCQuery({ outcome: "health_failed" });
     console.error("community merchant MCC health check failed", error);
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
@@ -28,6 +31,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const length = Number(req.headers.get("content-length") ?? "0");
   if (Number.isFinite(length) && length > MAX_BODY_BYTES) {
+    recordCommunityMerchantMCCQuery({ outcome: "payload_too_large" });
     return NextResponse.json({ error: "payload_too_large" }, { status: 413 });
   }
 
@@ -35,11 +39,13 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
+    recordCommunityMerchantMCCQuery({ outcome: "invalid_json" });
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
   const parsed = communityMerchantMCCQuerySchema.safeParse(body);
   if (!parsed.success) {
+    recordCommunityMerchantMCCQuery({ outcome: "invalid_query" });
     return NextResponse.json({ error: "invalid_query" }, { status: 400 });
   }
 
@@ -79,8 +85,14 @@ export async function POST(req: NextRequest) {
     });
 
     const signals = aggregateCommunityMerchantMCC(rows, parsed.data.candidates);
+    recordCommunityMerchantMCCQuery({
+      outcome: "success",
+      candidates: candidates.length,
+      signals: signals.length,
+    });
     return NextResponse.json({ schemaVersion: 1, signals });
   } catch (error) {
+    recordCommunityMerchantMCCQuery({ outcome: "failed", candidates: candidates.length });
     console.error("community merchant MCC query failed", error);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
