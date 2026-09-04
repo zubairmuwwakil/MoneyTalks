@@ -55,7 +55,16 @@ describe("QStash schedule contract", () => {
     }
   });
 
-  it("sweeps recurring obligations after purchase duplicate identities settle", () => {
+  /**
+   * Start order, not completion order. Nothing here prevents a long purchase-merge
+   * from still running when the sweep begins, and that is deliberate rather than
+   * unhandled: the sweep is queue-driven (`RecurringSweepJob`) and re-derives each
+   * owner's full history against `ALGORITHM_VERSION`, so a night that reads
+   * not-yet-deduplicated purchases is corrected by the next run instead of
+   * persisting a wrong obligation. Do not add a completion barrier to enforce a
+   * dependency the design already converges on.
+   */
+  it("starts the recurring sweep after purchase duplicate identities settle", () => {
     expect(minutesUtc(bySlug("recurring-sweep").cron)).toBeGreaterThan(
       minutesUtc(bySlug("purchase-merge").cron),
     );

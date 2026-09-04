@@ -89,4 +89,17 @@ if (!problems.length) {
 }
 console.error("\n" + problems.map((p) => "  " + p).join("\n"));
 console.error("\nFix with: npx dotenv -e .env.local -- npm run qstash:schedules");
+
+// A MISSING schedule is not always drift. QStash caps active schedules per plan
+// (the free tier allows ten), and a create past that cap fails with
+// "quota maxSchedules exceeded" -- so the fix above cannot work until the plan
+// changes. Two jobs sat dead for weeks in 2026-09 because this line named the
+// command without naming the ceiling.
+if (problems.some((p) => p.startsWith("MISSING"))) {
+  console.error(
+    `\nIf that command reports "quota maxSchedules exceeded", the account is at its\n`
+    + `plan's schedule cap (${live.length} active now), not out of sync. Consolidate a job or\n`
+    + `raise the plan; qstash:schedules reports each failure and keeps going.`,
+  );
+}
 process.exit(1);
