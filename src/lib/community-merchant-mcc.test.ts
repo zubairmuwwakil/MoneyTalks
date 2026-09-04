@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   aggregateCommunityMerchantMCC,
+  communityMerchantMCCCandidateKey,
+  communityMerchantMCCQuerySchema,
   communityMerchantMCCSubmissionSchema,
+  normalizedCommunityMCCCandidate,
 } from "./community-merchant-mcc";
 
 const candidate = {
@@ -24,6 +27,45 @@ function row(day: string, mcc: number, network = "mastercard") {
 }
 
 describe("community merchant MCC", () => {
+  it("accepts the schema-v1 coordinate submission PickMe sends", () => {
+    const parsed = communityMerchantMCCSubmissionSchema.safeParse({
+      schemaVersion: 1,
+      observationId: "037b4c16-a6b0-4bc4-a67e-69199fa82a8e",
+      merchantId: "walmart",
+      latitude: 43.8496,
+      longitude: -79.0196,
+      channel: "inStore",
+      network: "mastercard",
+      mcc: 5411,
+      observedAt: "2026-09-04T16:00:00-04:00",
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
+  it("normalizes PickMe query coordinates to the shared three-decimal privacy bucket", () => {
+    const parsed = communityMerchantMCCQuerySchema.parse({
+      schemaVersion: 1,
+      candidates: [{
+        merchantId: "walmart",
+        latitude: 43.8496,
+        longitude: -79.0196,
+        channel: "inStore",
+      }],
+    });
+    const normalized = normalizedCommunityMCCCandidate(parsed.candidates[0]);
+
+    expect(normalized).toMatchObject({
+      merchantId: "walmart",
+      placeId: null,
+      latitude: 43.85,
+      longitude: -79.02,
+      channel: "inStore",
+    });
+    expect(communityMerchantMCCCandidateKey(normalized))
+      .toBe("c:walmart:43.850:-79.020|ch:inStore");
+  });
+
   it("requires a physical location for in-store submissions", () => {
     const parsed = communityMerchantMCCSubmissionSchema.safeParse({
       schemaVersion: 1,
