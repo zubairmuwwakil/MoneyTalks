@@ -30,6 +30,7 @@ inside an application build.
 | File | …doing this |
 |---|---|
 | [`REPO_MAP.md`](REPO_MAP.md) | creating any file under `docs/` or `scripts/` |
+| [`community-merchant-mcc-backend-design.md`](docs/superpowers/specs/2026-09-04-community-merchant-mcc-backend-design.md) | changing PickMe community MCC endpoints, anonymous MCC storage/aggregation, privacy/retention, abuse controls, telemetry, or scaling |
 | [`card-ownership.md`](docs/policies/card-ownership.md) | touching cards, the catalogue, or the twin |
 | [`marketlens.md`](docs/policies/marketlens.md) | touching prices, holdings, valuation, or FX |
 | [`quote-cache.md`](docs/runbooks/quote-cache.md) | changing a cron or the quote path |
