@@ -1,0 +1,20 @@
+/// Anonymous, opt-in community evidence from PickMe.
+///
+/// Deliberately has no User relation and no contributor/device/account columns. The row describes
+/// a merchant location's gift-card rack, not the person who reported it. PickMe owns the evidence
+/// semantics; In Unity only stores bounded reports and returns capped daily aggregates.
+model CommunityGiftCardInventoryObservation {
+  id            String   @id
+  merchantKey   String   @db.VarChar(160)
+  placeId       String?  @db.VarChar(255)
+  latitude      Decimal? @db.Decimal(8, 4)
+  longitude     Decimal? @db.Decimal(9, 4)
+  instrumentKey String   @db.VarChar(200)
+  availability  String   @db.VarChar(16)
+  observedAt    DateTime @db.Timestamptz(3)
+  receivedAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([instrumentKey, placeId, observedAt], map: "community_gc_place_idx")
+  @@index([instrumentKey, merchantKey, latitude, longitude, observedAt], map: "community_gc_coord_idx")
+  @@index([receivedAt], map: "community_gc_received_idx")
+}
