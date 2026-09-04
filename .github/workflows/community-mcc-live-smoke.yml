@@ -1,0 +1,46 @@
+name: Community MCC production smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/app/api/community/merchant-mcc/**"
+      - "src/lib/community-merchant-mcc.ts"
+      - "prisma/community-merchant-mcc.prisma"
+      - "prisma/migrations/**"
+      - ".github/workflows/community-mcc-live-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify deployed route can query community MCC table
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://inunity.ca/api/community/merchant-mcc/query"
+          for attempt in $(seq 1 30); do
+            response_file="$(mktemp)"
+            status="$(curl --silent --show-error --location \
+              --connect-timeout 5 --max-time 10 \
+              --output "$response_file" --write-out '%{http_code}' \
+              "$url" || true)"
+            body="$(cat "$response_file" 2>/dev/null || true)"
+            rm -f "$response_file"
+
+            if [[ "$status" == "200" ]] && [[ "$body" == *'"ok":true'* ]] && [[ "$body" == *'"schemaVersion":1'* ]]; then
+              echo "Community MCC production health check passed."
+              exit 0
+            fi
+
+            echo "Attempt $attempt: status=$status body=$body"
+            sleep 5
+          done
+
+          echo "Community MCC production health check did not pass."
+          exit 1
