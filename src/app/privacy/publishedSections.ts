@@ -21,15 +21,15 @@ const communitySection: Section = {
     },
     {
       kind: "p",
-      text: "For community MCC learning, PickMe only queues an upload after you explicitly reconcile a purchase with a literal four-digit MCC. The upload contains a random observation UUID, PickMe's canonical merchant identifier, store coordinates rounded to four decimal places, the confirmed MCC, and the observation time. It does not contain the card used, purchase amount, Wallet merchant descriptor, reward amount, account, email, Clerk identity, user identifier, or device identifier.",
+      text: "For community MCC learning, PickMe only queues an upload after you explicitly reconcile a purchase with a literal four-digit MCC. The upload contains a random observation UUID, PickMe's canonical merchant identifier, store coordinates rounded to three decimal places (a coarse roughly 100-metre location bucket), the confirmed MCC, and the observation time. It does not contain the card used, purchase amount, Wallet merchant descriptor, reward amount, account, email, Clerk identity, user identifier, or device identifier.",
     },
     {
       kind: "p",
-      text: "Community MCC queries use the canonical merchant identifier plus store coordinates rounded to four decimal places, matching the upload scope. The server returns only bounded aggregate MCC signals. The anonymous community tables have no user or device relation: raw MCC reports contain no user, account, device, or contributor identifier and have no relation to a User row in the database.",
+      text: "Community MCC queries use the canonical merchant identifier plus the same three-decimal coarse store-location bucket, matching the upload scope while tolerating normal Wallet-versus-MapKit GPS drift. The server returns only bounded aggregate MCC signals. The anonymous community tables have no user or device relation: raw MCC reports contain no user, account, device, or contributor identifier and have no relation to a User row in the database.",
     },
     {
       kind: "p",
-      text: "Community MCC reports older than 180 days are ignored for results and removed opportunistically. A store/network/MCC can contribute at most two aggregate evidence units per UTC day, and PickMe receives no MCC signal until that MCC has support on at least three distinct days. This is a privacy-preserving anti-burst threshold, not proof that three different people submitted the reports. PickMe always treats community MCC results as weaker external evidence; they can never become trusted terminal truth without the owner's own repeated direct MCC observations.",
+      text: "Community MCC reports older than 180 days are ignored for results and removed opportunistically. A store/network/MCC can contribute at most two aggregate evidence units per UTC day, and PickMe receives no MCC signal until that MCC has support on at least three distinct days. Raw storage is also bounded per physical store and day to resist request flooding. This is a privacy-preserving anti-burst threshold, not proof that three different people submitted the reports. PickMe always treats community MCC results as weaker external evidence; they can never become trusted terminal truth without the owner's own repeated direct MCC observations.",
     },
     {
       kind: "p",
