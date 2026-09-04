@@ -178,9 +178,11 @@ A replacement should preserve enough raw or versioned provenance to explain conf
 
 ## Retention
 
-Rows older than the 180-day evidence window no longer contribute. QStash calls the authenticated `POST /api/cron/community-merchant-mcc-retention` job daily at 04:30 UTC; it deletes rows before the cutoff using the `CommunityMerchantMCCObservation_observedAt_idx` index. Retention is therefore off the public submission path.
+Rows older than the 180-day evidence window no longer contribute. QStash calls the authenticated `POST /api/cron/retention-sweep` job daily at 04:15 UTC; it deletes rows before the cutoff using the `CommunityMerchantMCCObservation_observedAt_idx` index. Retention is therefore off the public submission path.
 
-The job returns the deleted row count, returns `500` (and alerts operators) if cleanup fails so QStash retries it, and is declared in `scripts/ops/qstash-schedules.config.mjs`. After deploying this change, apply and verify the declared schedule with `npm run qstash:schedules` and `npm run qstash:check` using the release environment.
+Community MCC does not have its own retention schedule. `retention-sweep` is the single nightly job for every "delete rows past their window" domain, because each is the same indexed `deleteMany` and the QStash account has a hard schedule quota. It sweeps each domain independently, so a failure in one still sweeps the rest; it reports a per-domain deleted count, and returns `500` (alerting operators per failed domain) so QStash retries the whole job. Every sweep is idempotent, so a retry is harmless.
+
+It is declared in `scripts/ops/qstash-schedules.config.mjs` under the frozen `moneytalks-wallet-diagnostics` schedule id — renaming a schedule id orphans the live schedule rather than renaming it. After deploying a change here, apply and verify with `npm run qstash:schedules` and `npm run qstash:check` using the release environment.
 
 ### Future upgrade trigger
 

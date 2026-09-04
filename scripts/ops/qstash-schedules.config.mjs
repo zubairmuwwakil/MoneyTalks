@@ -72,8 +72,11 @@ export const schedules = [
   { name: "fx",             scheduleId: "moneytalks-fx",             path: "/api/cron/fx",             cronEnv: "QSTASH_FX_CRON",             cronDefault: "0 11 * * *" },
   { name: "prices-warmup",  scheduleId: "moneytalks-prices-warmup",  path: "/api/cron/prices-warmup",  cronEnv: "QSTASH_PRICES_WARMUP_CRON",  cronDefault: "45 1 * * *", timeout: COLD_START_TIMEOUT },
   { name: "prices",         scheduleId: "moneytalks-prices",         path: "/api/cron/prices",         cronEnv: "QSTASH_PRICES_CRON",         cronDefault: "0 2 * * *",  timeout: COLD_START_TIMEOUT },
-  { name: "wallet-diagnostics", scheduleId: "moneytalks-wallet-diagnostics", path: "/api/cron/wallet-diagnostics", cronEnv: "QSTASH_WALLET_DIAGNOSTICS_CRON", cronDefault: "15 4 * * *" },
-  { name: "community-merchant-mcc-retention", scheduleId: "moneytalks-community-merchant-mcc-retention", path: "/api/cron/community-merchant-mcc-retention", cronEnv: "QSTASH_COMMUNITY_MERCHANT_MCC_RETENTION_CRON", cronDefault: "30 4 * * *" },
+  // One sweep for every retention domain. Wallet diagnostics and community MCC were
+  // separate schedules running the same indexed deleteMany; the scheduleId stays frozen
+  // at the wallet-diagnostics name because renaming it would orphan the live schedule
+  // rather than rename it.
+  { name: "retention-sweep", scheduleId: "moneytalks-wallet-diagnostics", path: "/api/cron/retention-sweep", cronEnv: "QSTASH_RETENTION_SWEEP_CRON", cronDefault: "15 4 * * *" },
 ];
 
 export function expected(env = process.env) {

@@ -47,19 +47,36 @@ if (!process.env.CRON_BASE_URL?.trim()) {
   console.warn("  CRON_BASE_URL to a hostname you will never rename.\n");
 }
 
+// One schedule failing must not skip the rest. QStash rejects a create once the
+// account's schedule quota is reached, and an uncaught throw here would abandon
+// every later schedule silently -- including destination updates to schedules
+// that already exist. Report each failure and keep going, then exit non-zero.
+const failures = [];
 for (const schedule of expected()) {
   const destination = schedule.destination;
-  const { scheduleId } = await client.schedules.create({
-    destination,
-    scheduleId: schedule.scheduleId,
-    cron: schedule.cron,
-    method: "POST",
-    retries: 3,
-    timeout: schedule.timeout,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ source: "qstash", job: schedule.name }),
-    label: ["moneytalks", schedule.name],
-  });
+  try {
+    const { scheduleId } = await client.schedules.create({
+      destination,
+      scheduleId: schedule.scheduleId,
+      cron: schedule.cron,
+      method: "POST",
+      retries: 3,
+      timeout: schedule.timeout,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source: "qstash", job: schedule.name }),
+      label: ["moneytalks", schedule.name],
+    });
 
-  console.log(`${schedule.name}: ${schedule.cron} (timeout ${schedule.timeout}) -> ${destination} (${scheduleId})`);
+    console.log(`${schedule.name}: ${schedule.cron} (timeout ${schedule.timeout}) -> ${destination} (${scheduleId})`);
+  } catch (error) {
+    const reason = error?.message ?? String(error);
+    failures.push(`${schedule.name}: ${reason}`);
+    console.error(`FAILED ${schedule.name} -> ${destination}: ${reason}`);
+  }
+}
+
+if (failures.length) {
+  console.error(`\n${failures.length} schedule(s) not applied:`);
+  for (const failure of failures) console.error(`  ${failure}`);
+  process.exit(1);
 }

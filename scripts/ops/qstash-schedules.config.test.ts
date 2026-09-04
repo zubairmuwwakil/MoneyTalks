@@ -85,11 +85,20 @@ describe("QStash schedule contract", () => {
     expect(inventory.timeout).toBe("2m");
   });
 
-  it("runs community MCC retention once daily, outside the submission path", () => {
-    const retention = bySlug("community-merchant-mcc-retention");
-    expect(retention.path).toBe("/api/cron/community-merchant-mcc-retention");
-    expect(retention.cron).toBe("30 4 * * *");
-    expect(retention.timeout).toBe("2m");
+  it("sweeps every retention domain in one nightly job, outside the submission path", () => {
+    const sweep = bySlug("retention-sweep");
+    expect(sweep.path).toBe("/api/cron/retention-sweep");
+    expect(sweep.cron).toBe("15 4 * * *");
+    expect(sweep.timeout).toBe("2m");
+  });
+
+  it("sweeps retention after the nightly writers that create the rows it expires", () => {
+    for (const writer of ["purchase-merge", "recurring-sweep"]) {
+      expect(
+        minutesUtc(bySlug("retention-sweep").cron),
+        `retention-sweep must run after ${writer}`,
+      ).toBeGreaterThan(minutesUtc(bySlug(writer).cron));
+    }
   });
 
   it("keeps scheduleIds frozen, because renaming one orphans the old schedule", () => {
@@ -104,8 +113,7 @@ describe("QStash schedule contract", () => {
       fx: "moneytalks-fx",
       "prices-warmup": "moneytalks-prices-warmup",
       prices: "moneytalks-prices",
-      "wallet-diagnostics": "moneytalks-wallet-diagnostics",
-      "community-merchant-mcc-retention": "moneytalks-community-merchant-mcc-retention",
+      "retention-sweep": "moneytalks-wallet-diagnostics",
     });
   });
 });
