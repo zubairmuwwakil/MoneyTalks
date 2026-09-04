@@ -25,11 +25,11 @@ const communitySection: Section = {
     },
     {
       kind: "p",
-      text: "Raw anonymous community reports are retained for at most 90 days. Results returned to PickMe are grouped by physical store and day and capped at three evidence units per store, gift card, and day. PickMe — not the server — applies the freshness and confidence rules used to rank a route.",
+      text: "Community reports older than 90 days are ignored for results and are removed opportunistically when new reports arrive. Results returned to PickMe are grouped by physical store and day and capped at three evidence units per store, gift card, and day. PickMe — not the server — applies the freshness and confidence rules used to rank a route.",
     },
     {
       kind: "p",
-      text: "Turning the setting off stops community queries and submissions and clears the community evidence cache on your iPhone. Because submitted community rows deliberately contain no account or device identity, they cannot later be selected by account for individual deletion; they expire under the 90-day retention rule.",
+      text: "Turning the setting off stops community queries and submissions and clears the community evidence cache on your iPhone. Because submitted community rows deliberately contain no account or device identity, they cannot later be selected by account for individual deletion; after 90 days they stop contributing to results and are eligible for opportunistic cleanup.",
     },
   ],
 };
@@ -56,7 +56,7 @@ function rewriteBlock(sectionId: string, block: Block): Block {
           return [row[0], row[1], "Yes for account data. Anonymous community inventory reports are intentionally not linked to an account or device"];
         }
         if (row[0] === "Erased by") {
-          return [row[0], row[1], "Delete my data or Delete account for account data. Anonymous community inventory expires under its 90-day retention rule"];
+          return [row[0], row[1], "Delete my data or Delete account for account data. Anonymous community inventory stops contributing after 90 days and is removed opportunistically"];
         }
         return row;
       }),
