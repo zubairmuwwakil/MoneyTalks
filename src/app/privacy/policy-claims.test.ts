@@ -8,9 +8,9 @@ import * as path from "node:path";
 // this test pins the corrections so a future edit cannot quietly reintroduce
 // one. Each case cites the §5 item it defends.
 
-// Both files: the prose lives in content.ts, but a stray claim added directly
-// to the page markup would be just as published.
-const source = ["content.ts", "page.tsx"]
+// These files together produce the published policy. `publishedSections.ts`
+// applies bounded rewrites to older long-form blocks when product behaviour changes.
+const source = ["content.ts", "publishedSections.ts", "page.tsx"]
   .map((f) => fs.readFileSync(path.resolve(__dirname, f), "utf-8"))
   .join("\n");
 
@@ -85,6 +85,22 @@ describe("privacy policy page — required disclosures", () => {
   it("discloses that the Shortcut can send retained precise coordinates", () => {
     expect(prose).toMatch(/latitude|coordinates/i);
     expect(prose).toMatch(/Get Current Location/i);
+  });
+
+  it("discloses optional anonymous community gift-card inventory", () => {
+    expect(prose).toMatch(/Optional community gift-card inventory/i);
+    expect(prose).toMatch(/off by default/i);
+    expect(prose).toMatch(/Apple place identifier/i);
+    expect(prose).toMatch(/rounded to four decimal places/i);
+    expect(prose).toMatch(/Found it or Not here/i);
+    expect(prose).toMatch(/do not include your credit card/i);
+    expect(prose).toMatch(/90 days/i);
+    expect(prose).toMatch(/three evidence units/i);
+  });
+
+  it("makes clear community inventory can exist without an account", () => {
+    expect(prose).toMatch(/no account is required|do not need a PickMe account/i);
+    expect(prose).toMatch(/no user or device relation/i);
   });
 
   it("discloses the real Gmail scope rather than implying a narrower one", () => {
