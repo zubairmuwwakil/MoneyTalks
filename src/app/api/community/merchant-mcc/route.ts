@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  COMMUNITY_MCC_RETENTION_DAYS,
+  COMMUNITY_MCC_MAX_STORED_REPORTS_PER_SCOPE_DAY,
   communityMerchantMCCSubmissionSchema,
   normalizeCommunityMerchantId,
   roundedCommunityMCCCoordinate,
@@ -11,7 +11,6 @@ import { recordCommunityMerchantMCCSubmission } from "@/lib/observability";
 
 const MAX_BODY_BYTES = 8_192;
 const MAX_SUBMISSION_AGE_DAYS = 30;
-const MAX_STORED_REPORTS_PER_SCOPE_DAY = 12;
 
 export async function POST(req: NextRequest) {
   const length = Number(req.headers.get("content-length") ?? "0");
@@ -43,6 +42,8 @@ export async function POST(req: NextRequest) {
   }
 
   const merchantId = normalizeCommunityMerchantId(parsed.data.merchantId);
+  // PickMe schema v1 deliberately sends placeId: nil. Keep this scope as forward compatibility
+  // for a future stable location identifier; removing it would require a schema migration.
   const hasPlaceId = Boolean(parsed.data.placeId);
   const placeId = parsed.data.placeId?.trim() || null;
   const latitude = hasPlaceId || parsed.data.latitude === undefined
@@ -54,6 +55,8 @@ export async function POST(req: NextRequest) {
   // enough: random observation UUIDs could otherwise bloat one store's storage/query window.
   // Bound raw retention at the same physical scope. Twelve rows/day preserves room for genuine
   // conflicting reports while making one-day request floods unable to crowd months of history out.
+  // The count/create pair is intentionally not serialized: a small concurrent overage is bounded
+  // and low-risk here, while exact enforcement needs disproportionate database coordination.
   const dayStart = new Date(Date.UTC(
     observedAt.getUTCFullYear(), observedAt.getUTCMonth(), observedAt.getUTCDate()));
   const dayEnd = new Date(dayStart.getTime() + 86_400_000);
@@ -69,7 +72,7 @@ export async function POST(req: NextRequest) {
         ...scopeLocation,
       },
     });
-    if (storedToday >= MAX_STORED_REPORTS_PER_SCOPE_DAY) {
+    if (storedToday >= COMMUNITY_MCC_MAX_STORED_REPORTS_PER_SCOPE_DAY) {
       recordCommunityMerchantMCCSubmission("capped");
       return NextResponse.json({ ok: true, capped: true });
     }
@@ -95,15 +98,6 @@ export async function POST(req: NextRequest) {
     recordCommunityMerchantMCCSubmission("failed");
     console.error("community merchant MCC submit failed", error);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
-  }
-
-  // Retention cleanup is opportunistic. A cleanup failure must not turn an already-persisted,
-  // idempotent observation into a client-visible failure that PickMe retries indefinitely.
-  const cutoff = new Date(now - COMMUNITY_MCC_RETENTION_DAYS * 86_400_000);
-  try {
-    await prisma.communityMerchantMCCObservation.deleteMany({ where: { observedAt: { lt: cutoff } } });
-  } catch (error) {
-    console.error("community merchant MCC retention cleanup failed", error);
   }
 
   recordCommunityMerchantMCCSubmission("accepted");

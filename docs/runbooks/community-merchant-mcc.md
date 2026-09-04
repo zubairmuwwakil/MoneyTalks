@@ -49,7 +49,7 @@ The API may return conflicting MCC candidates. That is intentional; PickMe owns 
 This is a read-only production probe. It performs:
 
 ```ts
-prisma.communityMerchantMCCObservation.count()
+prisma.communityMerchantMCCObservation.findFirst({ select: { id: true } })
 ```
 
 and returns only:
@@ -143,6 +143,10 @@ As of 2026-09-04:
 - future timestamps beyond a small skew are rejected;
 - submissions older than the accepted submission window are rejected.
 
+The raw storage cap is intentionally best-effort: the count-then-insert check can admit a small concurrent overage. Exact cross-request serialization would be disproportionate for this anonymous, low-trust evidence path; the separate daily influence cap and three-day publication threshold remain in force.
+
+Each unique query candidate is read independently, up to 2,172 rows (180 elapsed days can overlap 181 UTC dates). The route reads one extra sentinel row per candidate, emits aggregate-only truncation telemetry when that bound is exceeded, and excludes the sentinel from aggregation. A busy merchant therefore cannot starve another candidate's corroborated signal.
+
 The current design does **not** prove unique humans. `supportDays = 3` means three days, not three users.
 
 Do not rename support days to contributors/users unless the backend actually gains a privacy-reviewed contributor proof.
@@ -169,20 +173,13 @@ A replacement should preserve enough raw or versioned provenance to explain conf
 
 ## Retention
 
-Rows older than the 180-day evidence window no longer contribute. Submission requests opportunistically delete expired rows.
+Rows older than the 180-day evidence window no longer contribute. QStash calls the authenticated `POST /api/cron/community-merchant-mcc-retention` job daily at 04:30 UTC; it deletes rows before the cutoff using the `CommunityMerchantMCCObservation_observedAt_idx` index. Retention is therefore off the public submission path.
 
-This is intentionally simple.
+The job returns the deleted row count, returns `500` (and alerts operators) if cleanup fails so QStash retries it, and is declared in `scripts/ops/qstash-schedules.config.mjs`. After deploying this change, apply and verify the declared schedule with `npm run qstash:schedules` and `npm run qstash:check` using the release environment.
 
 ### Future upgrade trigger
 
-Move cleanup to a scheduled job when any of the following becomes true:
-
-- opportunistic delete materially increases submission latency;
-- traffic is too low to guarantee timely cleanup;
-- row volume makes repeated `deleteMany` work wasteful;
-- compliance needs a tighter deletion SLO.
-
-When that happens, preserve the same policy semantics while changing the mechanism.
+If compliance needs a tighter deletion SLO than daily cleanup, reduce the schedule interval and update the QStash schedule-contract test in the same change. Do not put cleanup back on submissions.
 
 ## Abuse model
 
@@ -224,6 +221,7 @@ Operationally useful aggregate signals include:
 
 - accepted / duplicate / capped / rejected / failed submissions;
 - successful / failed queries;
+- candidate-scope truncation count (a cap overage signal, never merchant-level telemetry);
 - `401`, `4xx`, and `5xx` rates on the two route families;
 - production smoke status;
 - query latency and DB latency when available;

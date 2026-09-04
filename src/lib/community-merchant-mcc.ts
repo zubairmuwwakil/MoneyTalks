@@ -3,6 +3,7 @@ import { z } from "zod";
 export const COMMUNITY_MCC_RETENTION_DAYS = 180;
 export const COMMUNITY_MCC_MIN_SUPPORT_DAYS = 3;
 export const COMMUNITY_MCC_DAILY_EVIDENCE_CAP = 2;
+export const COMMUNITY_MCC_MAX_STORED_REPORTS_PER_SCOPE_DAY = 12;
 
 const merchantId = z.string().trim().regex(/^[a-z0-9][a-z0-9-]{0,119}$/);
 const channel = z.enum(["inStore", "online", "app", "unknown"]);

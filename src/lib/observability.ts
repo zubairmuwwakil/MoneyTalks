@@ -50,7 +50,7 @@ const communityMerchantMCCQueryOutcomes = meter.createCounter(
 );
 const communityMerchantMCCQueryVolume = meter.createCounter(
   "community.merchant_mcc.query_volume",
-  { description: "Aggregate candidate and published-signal counts for community MCC queries" },
+  { description: "Aggregate candidate, published-signal, and truncated-candidate counts for community MCC queries" },
 );
 
 export type ObligationFactNearMissReason =
@@ -207,6 +207,7 @@ export function recordCommunityMerchantMCCQuery(args: {
   outcome: CommunityMerchantMCCQueryOutcome;
   candidates?: number;
   signals?: number;
+  truncatedCandidates?: number;
 }): void {
   communityMerchantMCCQueryOutcomes.add(1, {
     "community.merchant_mcc.query.outcome": args.outcome,
@@ -219,6 +220,11 @@ export function recordCommunityMerchantMCCQuery(args: {
   if ((args.signals ?? 0) > 0) {
     communityMerchantMCCQueryVolume.add(args.signals!, {
       "community.merchant_mcc.query.volume_kind": "signals",
+    });
+  }
+  if ((args.truncatedCandidates ?? 0) > 0) {
+    communityMerchantMCCQueryVolume.add(args.truncatedCandidates!, {
+      "community.merchant_mcc.query.volume_kind": "truncated_candidates",
     });
   }
 }

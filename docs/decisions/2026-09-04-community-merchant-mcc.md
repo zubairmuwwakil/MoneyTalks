@@ -66,10 +66,11 @@ Current protections are therefore bounded rather than identity-based:
 
 - observation UUID is the primary idempotency key;
 - submitted observations must be recent and not materially future-dated;
-- raw storage is capped at 12 observations per merchant/location/channel scope per UTC day;
+- raw storage is capped at 12 observations per merchant/location/channel scope per UTC day (best-effort under concurrent submissions);
 - one MCC contributes at most two evidence units per scope/network/day;
 - an MCC is not published until it has support on at least three distinct UTC days;
-- raw observations stop contributing after 180 days and old rows are opportunistically removed;
+- raw observations stop contributing after 180 days and a daily authenticated job removes expired rows;
+- each unique query candidate is read independently, with an aggregate-only truncation signal if its bounded read encounters a cap overage;
 - PickMe consumes returned data only as weaker `externalLocationReport` evidence.
 
 **Important limitation:** three support days are **not proof of three independent users**. One determined actor could submit across multiple days. The design bounds the impact of bursts and keeps community evidence below direct owner truth, but it is not Sybil-proof.
@@ -107,7 +108,15 @@ Direct owner evidence remains stronger.
 
 **Tradeoff:** two locations of the same brand within the same coarse bucket can collide.
 
-**Future freedom:** H3/geohash, stable MapKit place identity, processor merchant identity, or a hybrid location key may be superior when enough data exists to measure collisions.
+**Future freedom:** H3/geohash, stable MapKit place identity, processor merchant identity, or a hybrid location key may be superior when enough data exists to measure collisions. The server deliberately retains nullable `placeId` support so a future stable location identifier can be adopted without a schema migration; PickMe schema v1 currently sends `nil` for this field.
+
+### Per-candidate bounded reads
+
+**Chosen because:** a global newest-first row cap let a busy candidate suppress another candidate's evidence entirely. Independent candidate reads preserve the three-day support rule for every requested scope.
+
+**Tradeoff:** one request can issue up to 25 bounded reads instead of one OR query. The normal maximum remains about 54,000 rows across 25 candidates, and a one-row sentinel makes a cap overage observable without recording merchant-level telemetry.
+
+**Future freedom:** use a measured Postgres rollup/window-query design when application-side fan-out is a real latency or database-cost issue.
 
 ### Raw-row storage plus query-time bounded aggregation
 
@@ -119,7 +128,7 @@ Direct owner evidence remains stronger.
 
 ### 180-day evidence window
 
-**Chosen because:** MCC coding can change and indefinite raw history is unnecessary for the initial feature.
+**Chosen because:** MCC coding can change and indefinite raw history is unnecessary for the initial feature. The daily cleanup job deletes expired rows by an `observedAt`-leading index, so retention does not add work to a successful public submission.
 
 **Tradeoff:** old but still-correct evidence expires.
 

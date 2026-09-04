@@ -1,7 +1,6 @@
 # In Unity — agent router
 
-The financial command center of a four-product ecosystem. `MoneyTalks` is its
-repo name; the product is **In Unity** (`inunity.ca`).
+`MoneyTalks`: financial command center. Product: **In Unity** (`inunity.ca`).
 
 **This repo must not own** card rates (PickMe owns them, C1/D3) or market-data
 ingestion (MarketLens owns it, E3/E4). It owns email/receipt ingestion, absorbed

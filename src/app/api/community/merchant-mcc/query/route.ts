@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
+  COMMUNITY_MCC_MAX_STORED_REPORTS_PER_SCOPE_DAY,
   COMMUNITY_MCC_RETENTION_DAYS,
   aggregateCommunityMerchantMCC,
+  communityMerchantMCCCandidateKey,
   communityMerchantMCCQuerySchema,
   normalizedCommunityMCCCandidate,
 } from "@/lib/community-merchant-mcc";
 import { recordCommunityMerchantMCCQuery } from "@/lib/observability";
 
 const MAX_BODY_BYTES = 16_384;
+// An elapsed 180-day window can touch 181 UTC dates. Read one extra row per scope
+// as a sentinel so a rare cap overage is observable without silently dropping it.
+const MAX_ROWS_PER_CANDIDATE = (COMMUNITY_MCC_RETENTION_DAYS + 1)
+  * COMMUNITY_MCC_MAX_STORED_REPORTS_PER_SCOPE_DAY;
 
 /**
  * Read-only production health probe for the anonymous MCC evidence table.
@@ -18,7 +24,7 @@ const MAX_BODY_BYTES = 16_384;
  */
 export async function GET() {
   try {
-    await prisma.communityMerchantMCCObservation.count();
+    await prisma.communityMerchantMCCObservation.findFirst({ select: { id: true } });
     recordCommunityMerchantMCCQuery({ outcome: "health_success" });
     return NextResponse.json({ ok: true, schemaVersion: 1 });
   } catch (error) {
@@ -50,45 +56,52 @@ export async function POST(req: NextRequest) {
   }
 
   const candidates = parsed.data.candidates.map(normalizedCommunityMCCCandidate);
-  const conditions = candidates.map(candidate => candidate.placeId
-    ? {
-        merchantId: candidate.merchantId,
-        placeId: candidate.placeId,
-        channel: candidate.channel,
-      }
-    : {
-        merchantId: candidate.merchantId,
-        latitude: candidate.latitude!,
-        longitude: candidate.longitude!,
-        channel: candidate.channel,
-      });
+  // Equivalent candidates must share one read; an OR query naturally deduplicated them, while
+  // concatenating per-candidate reads would otherwise double their evidence during aggregation.
+  const uniqueCandidates = [...new Map(candidates.map(candidate => [
+    communityMerchantMCCCandidateKey(candidate),
+    candidate,
+  ])).values()];
   const cutoff = new Date(Date.now() - COMMUNITY_MCC_RETENTION_DAYS * 86_400_000);
 
   try {
-    const rows = await prisma.communityMerchantMCCObservation.findMany({
-      where: {
-        observedAt: { gte: cutoff },
-        OR: conditions,
-      },
-      select: {
-        merchantId: true,
-        placeId: true,
-        latitude: true,
-        longitude: true,
-        channel: true,
-        network: true,
-        mcc: true,
-        observedAt: true,
-      },
-      take: 5_000,
-      orderBy: { observedAt: "desc" },
-    });
+    const candidateRows = await Promise.all(uniqueCandidates.map(candidate =>
+      prisma.communityMerchantMCCObservation.findMany({
+        where: {
+          observedAt: { gte: cutoff },
+          merchantId: candidate.merchantId,
+          channel: candidate.channel,
+          ...(candidate.placeId
+            ? { placeId: candidate.placeId }
+            : {
+                placeId: null,
+                latitude: candidate.latitude!,
+                longitude: candidate.longitude!,
+              }),
+        },
+        select: {
+          merchantId: true,
+          placeId: true,
+          latitude: true,
+          longitude: true,
+          channel: true,
+          network: true,
+          mcc: true,
+          observedAt: true,
+        },
+        take: MAX_ROWS_PER_CANDIDATE + 1,
+        orderBy: { observedAt: "desc" },
+      }),
+    ));
+    const truncatedCandidates = candidateRows.filter(rows => rows.length > MAX_ROWS_PER_CANDIDATE).length;
+    const rows = candidateRows.flatMap(candidateRows => candidateRows.slice(0, MAX_ROWS_PER_CANDIDATE));
 
     const signals = aggregateCommunityMerchantMCC(rows, parsed.data.candidates);
     recordCommunityMerchantMCCQuery({
       outcome: "success",
       candidates: candidates.length,
       signals: signals.length,
+      truncatedCandidates,
     });
     return NextResponse.json({ schemaVersion: 1, signals });
   } catch (error) {

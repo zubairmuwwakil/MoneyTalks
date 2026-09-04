@@ -73,6 +73,7 @@ export const schedules = [
   { name: "prices-warmup",  scheduleId: "moneytalks-prices-warmup",  path: "/api/cron/prices-warmup",  cronEnv: "QSTASH_PRICES_WARMUP_CRON",  cronDefault: "45 1 * * *", timeout: COLD_START_TIMEOUT },
   { name: "prices",         scheduleId: "moneytalks-prices",         path: "/api/cron/prices",         cronEnv: "QSTASH_PRICES_CRON",         cronDefault: "0 2 * * *",  timeout: COLD_START_TIMEOUT },
   { name: "wallet-diagnostics", scheduleId: "moneytalks-wallet-diagnostics", path: "/api/cron/wallet-diagnostics", cronEnv: "QSTASH_WALLET_DIAGNOSTICS_CRON", cronDefault: "15 4 * * *" },
+  { name: "community-merchant-mcc-retention", scheduleId: "moneytalks-community-merchant-mcc-retention", path: "/api/cron/community-merchant-mcc-retention", cronEnv: "QSTASH_COMMUNITY_MERCHANT_MCC_RETENTION_CRON", cronDefault: "30 4 * * *" },
 ];
 
 export function expected(env = process.env) {

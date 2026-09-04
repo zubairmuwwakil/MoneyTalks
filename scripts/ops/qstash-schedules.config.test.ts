@@ -85,6 +85,13 @@ describe("QStash schedule contract", () => {
     expect(inventory.timeout).toBe("2m");
   });
 
+  it("runs community MCC retention once daily, outside the submission path", () => {
+    const retention = bySlug("community-merchant-mcc-retention");
+    expect(retention.path).toBe("/api/cron/community-merchant-mcc-retention");
+    expect(retention.cron).toBe("30 4 * * *");
+    expect(retention.timeout).toBe("2m");
+  });
+
   it("keeps scheduleIds frozen, because renaming one orphans the old schedule", () => {
     expect(Object.fromEntries((schedules as unknown as Schedule[]).map((s) => [s.name, s.scheduleId]))).toEqual({
       digest: "moneytalks-digest",
@@ -98,6 +105,7 @@ describe("QStash schedule contract", () => {
       "prices-warmup": "moneytalks-prices-warmup",
       prices: "moneytalks-prices",
       "wallet-diagnostics": "moneytalks-wallet-diagnostics",
+      "community-merchant-mcc-retention": "moneytalks-community-merchant-mcc-retention",
     });
   });
 });

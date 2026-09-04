@@ -1,18 +1,19 @@
 /// Anonymous, opt-in PickMe merchant-MCC reports. Deliberately has no User/account/device relation.
 /// The row describes an observed merchant-location MCC only; PickMe owns confidence semantics.
 model CommunityMerchantMCCObservation {
-  id          String   @id @db.VarChar(255)
-  merchantId  String   @db.VarChar(120)
-  placeId     String?  @db.VarChar(255)
-  latitude    Decimal? @db.Decimal(8, 4)
-  longitude   Decimal? @db.Decimal(9, 4)
-  channel     String   @db.VarChar(16)
-  network     String?  @db.VarChar(20)
-  mcc         Int
-  observedAt  DateTime @db.Timestamptz(3)
-  receivedAt  DateTime @default(now()) @db.Timestamptz(3)
+  id         String   @id @db.VarChar(255)
+  merchantId String   @db.VarChar(120)
+  placeId    String?  @db.VarChar(255)
+  latitude   Decimal? @db.Decimal(8, 4)
+  longitude  Decimal? @db.Decimal(9, 4)
+  channel    String   @db.VarChar(16)
+  network    String?  @db.VarChar(20)
+  mcc        Int
+  observedAt DateTime @db.Timestamptz(3)
+  receivedAt DateTime @default(now()) @db.Timestamptz(3)
 
   @@index([merchantId, observedAt])
   @@index([placeId, observedAt])
   @@index([merchantId, latitude, longitude, observedAt], map: "CommunityMerchantMCCObservation_location_idx")
+  @@index([observedAt], map: "CommunityMerchantMCCObservation_observedAt_idx")
 }

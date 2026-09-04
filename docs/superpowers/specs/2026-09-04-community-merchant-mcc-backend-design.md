@@ -86,10 +86,10 @@ Current controls:
 - query: max 25 candidate stores;
 - submitted observation: no more than 30 days old and no more than 10 minutes in the future;
 - coordinates normalized to the shared 3-decimal bucket;
-- raw storage cap: 12 rows per physical merchant scope per UTC day;
+- raw storage cap: 12 rows per physical merchant scope per UTC day (best-effort under concurrent submissions);
 - aggregate influence cap: 2 evidence units per physical scope/network/MCC/day;
 - publication threshold: support on at least 3 distinct days;
-- query read: current implementation is bounded to 5,000 recent rows;
+- query read: each unique candidate scope is independently bounded to 2,172 rows (the 180-day window can touch 181 UTC dates); one extra sentinel row records a cap overage without allowing that scope to starve another candidate;
 - retention: 180 days.
 
 Same-day request volume therefore cannot manufacture the three-day publication threshold. Conflicting MCCs remain separate fractional aggregate signals rather than last-write-wins truth.
@@ -108,7 +108,7 @@ MoneyTalks records only aggregate, low-cardinality OpenTelemetry metrics:
 
 - `community.merchant_mcc.submissions` — accepted / duplicate / capped / validation / failure outcomes;
 - `community.merchant_mcc.queries` — success / health / validation / failure outcomes;
-- `community.merchant_mcc.query_volume` — aggregate candidate and returned-signal counts.
+- `community.merchant_mcc.query_volume` — aggregate candidate, returned-signal, and per-candidate-truncation counts.
 
 Metric attributes must never contain merchant ids, MCCs, coordinates, place ids, observation UUIDs, user/device/account identifiers, IPs, or raw request headers.
 
@@ -120,9 +120,9 @@ A successfully persisted observation remains successful even if opportunistic re
 
 ## Current scaling limit
 
-The query route currently performs one bounded `findMany` across all requested candidates with `take: 5_000`, then aggregates in application code. This is intentionally simple and adequate for the initial community graph, but it is **not the forever architecture**.
+The query route performs one bounded `findMany` per unique candidate scope, then aggregates in application code. Its normal maximum is 2,172 rows per scope, matching the storage cap across an elapsed 180-day window that can span 181 UTC dates. It reads one additional row as a sentinel and emits aggregate-only truncation telemetry before excluding that extra row from aggregation.
 
-At higher volume, busy stores could consume most of that 5,000-row window and crowd quieter candidates out. Do not solve that by repeatedly raising the cap. When production volume/latency shows this becoming material, move aggregation into Postgres, for example with:
+This prevents busy stores from crowding quieter candidates out of the same request. Do not solve a per-scope truncation signal by repeatedly raising the cap. When production volume/latency shows this becoming material, move aggregation into Postgres, for example with:
 
 - date-bucketed grouped queries;
 - per-candidate bounded aggregation;

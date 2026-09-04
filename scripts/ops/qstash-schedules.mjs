@@ -19,6 +19,7 @@ Optional env:
   QSTASH_RECURRING_SWEEP_CRON default: 45 3 * * *
   QSTASH_GMAIL_BACKFILL_CRON default: */5 * * * *
   QSTASH_PERSONAL_INVENTORY_CRON default: */15 * * * *
+  QSTASH_COMMUNITY_MERCHANT_MCC_RETENTION_CRON default: 30 4 * * *
   QSTASH_FX_CRON       default: 0 11 * * *
 
 Run:
