@@ -5,7 +5,7 @@ export const PUBLISHED_POLICY_URL = "https://inunity.ca/privacy";
 
 const communitySection: Section = {
   id: "community-evidence",
-  title: "Optional community evidence",
+  title: "Optional community gift-card inventory and MCC evidence",
   blocks: [
     {
       kind: "note",
@@ -25,7 +25,7 @@ const communitySection: Section = {
     },
     {
       kind: "p",
-      text: "Community MCC queries use the canonical merchant identity plus the Apple place identifier for a nearby store when available, otherwise rounded store coordinates. The server returns only bounded aggregate MCC signals. Raw MCC reports contain no user, account, device, or contributor identifier and have no relation to a User row in the database.",
+      text: "Community MCC queries use the canonical merchant identifier plus store coordinates rounded to four decimal places, matching the upload scope. The server returns only bounded aggregate MCC signals. The anonymous community tables have no user or device relation: raw MCC reports contain no user, account, device, or contributor identifier and have no relation to a User row in the database.",
     },
     {
       kind: "p",
