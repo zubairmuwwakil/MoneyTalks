@@ -6,6 +6,11 @@
 
 This runbook exists so a future agent can operate, debug, replace, or scale the community MCC backend without reconstructing the original conversation.
 
+The decision record is authoritative for privacy, retention, anonymous-network,
+and abuse policy. PickMe's [production architecture handoff](../../../PickMe/docs/superpowers/specs/2026-09-04-merchant-mcc-production-architecture-design.md)
+is authoritative for evidence semantics and the MCC resolver; this document
+records only their operational enforcement.
+
 ## Purpose and ownership
 
 PickMe owns merchant identity, MCC confidence, and card recommendation semantics. In Unity owns only the anonymous API/storage/aggregation boundary.
