@@ -77,8 +77,11 @@ export function normalizeCommunityMerchantId(value: string): string {
   return value.trim().toLowerCase();
 }
 
+/// Community MCC location is deliberately a coarse physical bucket, not a precise visit trace.
+/// Three decimals is roughly 100 m in latitude. The canonical merchant id remains part of the key,
+/// so different brands in the same plaza do not merge while Wallet-vs-MapKit GPS drift does.
 export function roundedCommunityMCCCoordinate(value: number): number {
-  return Math.round(value * 10_000) / 10_000;
+  return Math.round(value * 1_000) / 1_000;
 }
 
 export function normalizedCommunityMCCCandidate(candidate: CommunityMerchantMCCCandidate) {
@@ -101,7 +104,7 @@ export function communityMerchantMCCCandidateKey(candidate: {
   const location = candidate.placeId
     ? `p:${candidate.placeId}`
     : candidate.latitude !== null && candidate.longitude !== null
-      ? `c:${candidate.merchantId}:${candidate.latitude.toFixed(4)}:${candidate.longitude.toFixed(4)}`
+      ? `c:${candidate.merchantId}:${candidate.latitude.toFixed(3)}:${candidate.longitude.toFixed(3)}`
       : `m:${candidate.merchantId}`;
   return `${location}|ch:${candidate.channel}`;
 }
