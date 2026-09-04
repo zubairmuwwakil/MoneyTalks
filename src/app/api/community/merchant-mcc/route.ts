@@ -7,6 +7,7 @@ import {
   normalizeCommunityMerchantId,
   roundedCommunityMCCCoordinate,
 } from "@/lib/community-merchant-mcc";
+import { recordCommunityMerchantMCCSubmission } from "@/lib/observability";
 
 const MAX_BODY_BYTES = 8_192;
 const MAX_SUBMISSION_AGE_DAYS = 30;
@@ -15,6 +16,7 @@ const MAX_STORED_REPORTS_PER_SCOPE_DAY = 12;
 export async function POST(req: NextRequest) {
   const length = Number(req.headers.get("content-length") ?? "0");
   if (Number.isFinite(length) && length > MAX_BODY_BYTES) {
+    recordCommunityMerchantMCCSubmission("payload_too_large");
     return NextResponse.json({ error: "payload_too_large" }, { status: 413 });
   }
 
@@ -22,11 +24,13 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
+    recordCommunityMerchantMCCSubmission("invalid_json");
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
   const parsed = communityMerchantMCCSubmissionSchema.safeParse(body);
   if (!parsed.success) {
+    recordCommunityMerchantMCCSubmission("invalid_observation");
     return NextResponse.json({ error: "invalid_observation" }, { status: 400 });
   }
 
@@ -34,6 +38,7 @@ export async function POST(req: NextRequest) {
   const observedAt = new Date(parsed.data.observedAt);
   if (observedAt.getTime() > now + 10 * 60_000
       || observedAt.getTime() < now - MAX_SUBMISSION_AGE_DAYS * 86_400_000) {
+    recordCommunityMerchantMCCSubmission("observation_time_out_of_range");
     return NextResponse.json({ error: "observation_time_out_of_range" }, { status: 400 });
   }
 
@@ -65,6 +70,7 @@ export async function POST(req: NextRequest) {
       },
     });
     if (storedToday >= MAX_STORED_REPORTS_PER_SCOPE_DAY) {
+      recordCommunityMerchantMCCSubmission("capped");
       return NextResponse.json({ ok: true, capped: true });
     }
 
@@ -83,14 +89,23 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      recordCommunityMerchantMCCSubmission("duplicate");
       return NextResponse.json({ ok: true, duplicate: true });
     }
+    recordCommunityMerchantMCCSubmission("failed");
     console.error("community merchant MCC submit failed", error);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
   }
 
+  // Retention cleanup is opportunistic. A cleanup failure must not turn an already-persisted,
+  // idempotent observation into a client-visible failure that PickMe retries indefinitely.
   const cutoff = new Date(now - COMMUNITY_MCC_RETENTION_DAYS * 86_400_000);
-  await prisma.communityMerchantMCCObservation.deleteMany({ where: { observedAt: { lt: cutoff } } });
+  try {
+    await prisma.communityMerchantMCCObservation.deleteMany({ where: { observedAt: { lt: cutoff } } });
+  } catch (error) {
+    console.error("community merchant MCC retention cleanup failed", error);
+  }
 
+  recordCommunityMerchantMCCSubmission("accepted");
   return NextResponse.json({ ok: true });
 }
