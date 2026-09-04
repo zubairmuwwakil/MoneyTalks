@@ -87,11 +87,9 @@ describe("QStash schedule contract", () => {
     expect(minutesUtc(reprocess.cron)).toBeLessThan(minutesUtc(recurring.cron));
   });
 
-  it("reconciles personal inventory frequently enough to repair missed webhooks", () => {
-    const inventory = bySlug("personal-inventory");
-    expect(inventory.path).toBe("/api/cron/personal-inventory");
-    expect(inventory.cron).toBe("*/15 * * * *");
-    expect(inventory.timeout).toBe("2m");
+  it("never schedules personal inventory, which another repo now owns", () => {
+    expect(all().map((s) => s.name)).not.toContain("personal-inventory");
+    expect(all().map((s) => s.path)).not.toContain("/api/cron/personal-inventory");
   });
 
   it("sweeps every retention domain in one nightly job, outside the submission path", () => {
@@ -118,7 +116,6 @@ describe("QStash schedule contract", () => {
       "email-fact-reprocess": "moneytalks-email-fact-reprocess",
       "recurring-sweep": "moneytalks-recurring-sweep",
       "gmail-backfill": "moneytalks-gmail-backfill",
-      "personal-inventory": "moneytalks-personal-inventory",
       fx: "moneytalks-fx",
       "prices-warmup": "moneytalks-prices-warmup",
       prices: "moneytalks-prices",
