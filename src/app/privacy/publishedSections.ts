@@ -74,7 +74,7 @@ function rewriteBlock(sectionId: string, block: Block): Block {
   if (sectionId === "on-device" && block.kind === "p" && block.text.startsWith("The shopping record described above — merchants, recommendations, purchase entries, and corrections — never leaves your device.")) {
     return {
       kind: "p",
-      text: "The shopping record described above — merchants, recommendations, purchase entries, and corrections — never leaves your device as account data. When you sign in, the separate wallet configuration listed under Your cards and Your card settings does sync so the server can evaluate Wallet Shortcut captures. Optional community evidence is narrower and separate: only the specific gift-card or literal-MCC fields described below can be shared anonymously when you enable those settings.",
+      text: "The shopping record described above — merchants, recommendations, purchase entries, corrections, and local MCC-learning evidence — never leaves your device as account data. If you choose Import issuer MCC CSV, PickMe reads that file locally and keeps only normalized merchant, literal MCC, optional network, and observation-date evidence needed for learning; it does not retain the raw issuer file, imported purchase amount, card/account number, filename, or statement text. When you sign in, the separate wallet configuration listed under Your cards and Your card settings does sync so the server can evaluate Wallet Shortcut captures. Optional community evidence is narrower and separate: only the specific gift-card or literal-MCC fields described below can be shared anonymously when you enable those settings.",
     };
   }
 
@@ -88,7 +88,7 @@ function rewriteBlock(sectionId: string, block: Block): Block {
   if (sectionId === "what-leaves" && block.kind === "p" && block.text.startsWith("That is the entire outbound payload surface of the app.")) {
     return {
       kind: "p",
-      text: "Outside the optional community evidence described below, that is the complete outbound payload surface of the signed-in app. Cap-ledger and feedback sync is otherwise a pull: the app asks the server for figures and receives them. It does not push your prediction log, purchase entries, or saved merchant history as account data.",
+      text: "Outside the optional community evidence described below, that is the complete outbound payload surface of the signed-in app. Cap-ledger and feedback sync is otherwise a pull: the app asks the server for figures and receives them. It does not push your prediction log, purchase entries, saved merchant history, or locally imported MCC-learning evidence as account data.",
     };
   }
 
