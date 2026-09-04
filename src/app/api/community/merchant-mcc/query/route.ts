@@ -9,6 +9,22 @@ import {
 
 const MAX_BODY_BYTES = 16_384;
 
+/**
+ * Read-only production health probe for the anonymous MCC evidence table.
+ * A successful response proves the deployed route can reach the database and
+ * that Prisma can query the migrated table. It deliberately exposes no row
+ * counts or merchant data.
+ */
+export async function GET() {
+  try {
+    await prisma.communityMerchantMCCObservation.count();
+    return NextResponse.json({ ok: true, schemaVersion: 1 });
+  } catch (error) {
+    console.error("community merchant MCC health check failed", error);
+    return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   const length = Number(req.headers.get("content-length") ?? "0");
   if (Number.isFinite(length) && length > MAX_BODY_BYTES) {
