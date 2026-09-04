@@ -40,6 +40,18 @@ const recurringSweepOutcomes = meter.createCounter(
   "subscription.migration.sweep_outcomes",
   { description: "Recurring sweep persistence outcomes used to verify idempotency" },
 );
+const communityMerchantMCCSubmissionOutcomes = meter.createCounter(
+  "community.merchant_mcc.submissions",
+  { description: "Anonymous community merchant-MCC submission outcomes" },
+);
+const communityMerchantMCCQueryOutcomes = meter.createCounter(
+  "community.merchant_mcc.queries",
+  { description: "Anonymous community merchant-MCC query and health outcomes" },
+);
+const communityMerchantMCCQueryVolume = meter.createCounter(
+  "community.merchant_mcc.query_volume",
+  { description: "Aggregate candidate and published-signal counts for community MCC queries" },
+);
 
 export type ObligationFactNearMissReason =
   | "NO_SUPPORTED_FACT_LANGUAGE"
@@ -157,6 +169,58 @@ export type RecurringSweepOutcome = "completed" | "created" | "updated" | "uncha
 export function recordRecurringSweepOutcome(outcome: RecurringSweepOutcome, count = 1): void {
   if (count <= 0) return;
   recurringSweepOutcomes.add(count, { "recurring.sweep.outcome": outcome });
+}
+
+export type CommunityMerchantMCCSubmissionOutcome =
+  | "accepted"
+  | "duplicate"
+  | "capped"
+  | "payload_too_large"
+  | "invalid_json"
+  | "invalid_observation"
+  | "observation_time_out_of_range"
+  | "failed";
+
+/**
+ * Community MCC telemetry is intentionally aggregate-only. Never add merchant ids, MCCs,
+ * coordinates, place ids, observation UUIDs, user/device/account ids, IPs, or raw headers as
+ * attributes here. Those would turn operational metrics into another tracking surface.
+ */
+export function recordCommunityMerchantMCCSubmission(
+  outcome: CommunityMerchantMCCSubmissionOutcome,
+): void {
+  communityMerchantMCCSubmissionOutcomes.add(1, {
+    "community.merchant_mcc.submission.outcome": outcome,
+  });
+}
+
+export type CommunityMerchantMCCQueryOutcome =
+  | "success"
+  | "health_success"
+  | "health_failed"
+  | "payload_too_large"
+  | "invalid_json"
+  | "invalid_query"
+  | "failed";
+
+export function recordCommunityMerchantMCCQuery(args: {
+  outcome: CommunityMerchantMCCQueryOutcome;
+  candidates?: number;
+  signals?: number;
+}): void {
+  communityMerchantMCCQueryOutcomes.add(1, {
+    "community.merchant_mcc.query.outcome": args.outcome,
+  });
+  if ((args.candidates ?? 0) > 0) {
+    communityMerchantMCCQueryVolume.add(args.candidates!, {
+      "community.merchant_mcc.query.volume_kind": "candidates",
+    });
+  }
+  if ((args.signals ?? 0) > 0) {
+    communityMerchantMCCQueryVolume.add(args.signals!, {
+      "community.merchant_mcc.query.volume_kind": "signals",
+    });
+  }
 }
 
 export async function withSpan<T>(
