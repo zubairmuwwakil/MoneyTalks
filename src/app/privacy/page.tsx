@@ -2,22 +2,23 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  SECTIONS,
-  EFFECTIVE_DATE,
   CONTACT_EMAIL,
   PUBLISHER,
-  POLICY_URL,
   type Block,
 } from "./content";
+import {
+  PUBLISHED_EFFECTIVE_DATE,
+  PUBLISHED_POLICY_URL,
+  PUBLISHED_SECTIONS,
+} from "./publishedSections";
 
 // Public by design: App Store Connect requires a privacy policy URL that is
 // reachable without signing in, and a policy nobody can read is not a policy.
-// The route is allowlisted in src/proxy.ts.
 export const metadata: Metadata = {
   title: "Privacy Policy — In Unity",
   description:
     "How In Unity handles your information: what stays on your iPhone, what reaches the server, and how to delete either.",
-  alternates: { canonical: POLICY_URL },
+  alternates: { canonical: PUBLISHED_POLICY_URL },
 };
 
 // Static: nothing here depends on a request, a session, or the database.
@@ -158,7 +159,7 @@ export default function PrivacyPolicyPage() {
 
           <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[auto_1fr]">
             <dt className="font-medium text-foreground">Effective</dt>
-            <dd className="text-muted-foreground">{EFFECTIVE_DATE}</dd>
+            <dd className="text-muted-foreground">{PUBLISHED_EFFECTIVE_DATE}</dd>
             <dt className="font-medium text-foreground">Published by</dt>
             <dd className="text-muted-foreground">{PUBLISHER}</dd>
             <dt className="font-medium text-foreground">Contact</dt>
@@ -178,7 +179,7 @@ export default function PrivacyPolicyPage() {
             Contents
           </h2>
           <ol className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
-            {SECTIONS.map((section, i) => (
+            {PUBLISHED_SECTIONS.map((section, i) => (
               <li key={section.id} className="text-sm">
                 <a
                   href={`#${section.id}`}
@@ -192,7 +193,7 @@ export default function PrivacyPolicyPage() {
         </nav>
 
         <div className="divide-y divide-border">
-          {SECTIONS.map((section, i) => (
+          {PUBLISHED_SECTIONS.map((section, i) => (
             <section key={section.id} id={section.id} className="scroll-mt-20 py-8">
               <h2 className="mb-4 text-xl font-bold tracking-tight">
                 <span className="mr-2 tabular-nums text-muted-foreground">{i + 1}.</span>
