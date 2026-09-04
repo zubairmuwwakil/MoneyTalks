@@ -1,5 +1,5 @@
 {
-  "catalogueVersion": "2.20",
+  "catalogueVersion": "2.21",
   "currency": "CAD",
   "_provenance": "docs/research/canadian-card-copilot-research-2026-08-15.md \u2014 all rules verified 2026-08-15 against issuer pages cited there.",
   "cards": [
@@ -8973,6 +8973,33 @@
         "status": "complete",
         "lastReviewedAt": "2026-08-31"
       }
+    },
+    {
+      "cardId": "capital-one-savorone-rewards-from-capital-one",
+      "officialName": "SavorOne Rewards from Capital One",
+      "issuer": "Capital One",
+      "market": "US",
+      "billingCurrency": "USD",
+      "status": "draft",
+      "lifecycleStatus": "withdrawn",
+      "network": "mastercard",
+      "kind": "credit",
+      "fee": {
+        "annual": {
+          "amount": 39,
+          "currency": "USD"
+        }
+      },
+      "program": {
+        "programId": "cashback",
+        "unit": "usd"
+      },
+      "fxRules": [],
+      "earnRules": [],
+      "caps": [],
+      "perTransactionRewardVisibility": "unknown",
+      "lastVerifiedAt": "2026-08-27",
+      "effectiveTo": "2026-08-31"
     },
     {
       "cardId": "capital-one-savor-cash-rewards",
