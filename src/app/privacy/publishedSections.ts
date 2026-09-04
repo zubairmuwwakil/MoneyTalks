@@ -4,16 +4,16 @@ export const PUBLISHED_EFFECTIVE_DATE = "4 September 2026";
 export const PUBLISHED_POLICY_URL = "https://inunity.ca/privacy";
 
 const communitySection: Section = {
-  id: "community-gift-card-inventory",
-  title: "Optional community gift-card inventory",
+  id: "community-evidence",
+  title: "Optional community evidence",
   blocks: [
     {
       kind: "note",
-      text: "This feature is off by default. You can opt in under iOS Settings → PickMe → Share gift-card inventory, and turn it off again at any time. Local Found it / Not here learning continues even when community sharing is off.",
+      text: "Community features are off by default. You can opt in separately under iOS Settings → PickMe to share gift-card inventory or confirmed merchant category codes (MCCs), and turn either feature off again. PickMe's local learning continues when community sharing is off.",
     },
     {
       kind: "p",
-      text: "When community inventory is enabled, PickMe can ask the In Unity server whether other anonymous reports exist for the nearby stores Apple Maps already returned. That query sends the target gift-card name plus each candidate store's Apple place identifier. If a place identifier is unavailable, it sends the merchant name with store coordinates rounded to four decimal places instead.",
+      text: "For community gift-card inventory, PickMe can ask whether anonymous reports exist for the nearby stores Apple Maps already returned. That query sends the target gift-card name plus each candidate store's Apple place identifier. If a place identifier is unavailable, it sends the merchant name with store coordinates rounded to four decimal places instead.",
     },
     {
       kind: "p",
@@ -21,15 +21,23 @@ const communitySection: Section = {
     },
     {
       kind: "p",
-      text: "Community inventory requests do not include your credit card, purchase amount, transaction or purchase history, PickMe account, email address, Clerk identity, or a device identifier. You do not need a PickMe account to use the feature, and community inventory rows have no user or device relation in the database.",
+      text: "For community MCC learning, PickMe only queues an upload after you explicitly reconcile a purchase with a literal four-digit MCC. The upload contains a random observation UUID, PickMe's canonical merchant identifier, store coordinates rounded to four decimal places, the confirmed MCC, and the observation time. It does not contain the card used, purchase amount, Wallet merchant descriptor, reward amount, account, email, Clerk identity, user identifier, or device identifier.",
     },
     {
       kind: "p",
-      text: "Community reports older than 90 days are ignored for results and are removed opportunistically when new reports arrive. Results returned to PickMe are grouped by physical store and day and capped at three evidence units per store, gift card, and day. PickMe — not the server — applies the freshness and confidence rules used to rank a route.",
+      text: "Community MCC queries use the canonical merchant identity plus the Apple place identifier for a nearby store when available, otherwise rounded store coordinates. The server returns only bounded aggregate MCC signals. Raw MCC reports contain no user, account, device, or contributor identifier and have no relation to a User row in the database.",
     },
     {
       kind: "p",
-      text: "Turning the setting off stops community queries and submissions and clears the community evidence cache on your iPhone. Because submitted community rows deliberately contain no account or device identity, they cannot later be selected by account for individual deletion; after 90 days they stop contributing to results and are eligible for opportunistic cleanup.",
+      text: "Community MCC reports older than 180 days are ignored for results and removed opportunistically. A store/network/MCC can contribute at most two aggregate evidence units per UTC day, and PickMe receives no MCC signal until that MCC has support on at least three distinct days. This is a privacy-preserving anti-burst threshold, not proof that three different people submitted the reports. PickMe always treats community MCC results as weaker external evidence; they can never become trusted terminal truth without the owner's own repeated direct MCC observations.",
+    },
+    {
+      kind: "p",
+      text: "Community gift-card reports older than 90 days are ignored for results and are removed opportunistically. Gift-card results are grouped by physical store and day and capped at three evidence units per store, gift card, and day. PickMe — not the server — applies the freshness and confidence rules used to rank a route.",
+    },
+    {
+      kind: "p",
+      text: "Turning a community setting off stops its future queries and submissions and clears its community evidence cache when PickMe next evaluates that setting. Because submitted community rows deliberately contain no account or device identity, they cannot later be selected by account for individual deletion; they stop contributing after their retention window and are eligible for opportunistic cleanup.",
     },
   ],
 };
@@ -38,7 +46,7 @@ function rewriteBlock(sectionId: string, block: Block): Block {
   if (sectionId === "short-version" && block.kind === "note" && block.text.startsWith("You can use PickMe on your iPhone without ever creating an account.")) {
     return {
       kind: "note",
-      text: "You can use PickMe on your iPhone without ever creating an account. Account sync and Wallet Shortcut records require an account. Separately, if you explicitly enable optional community gift-card inventory, anonymous store-and-gift-card observations can reach the server without an account; that feature is described below and is off by default.",
+      text: "You can use PickMe on your iPhone without ever creating an account. Account sync and Wallet Shortcut records require an account. Separately, if you explicitly enable an optional community feature, narrow anonymous store evidence can reach the server without an account; those features are described below and are off by default.",
     };
   }
 
@@ -47,16 +55,16 @@ function rewriteBlock(sectionId: string, block: Block): Block {
       ...block,
       rows: block.rows.map((row) => {
         if (row[0] === "Exists") {
-          return [row[0], row[1], "Account data only if you create an account; anonymous community gift-card inventory only if you separately opt in"];
+          return [row[0], row[1], "Account data only if you create an account; anonymous community evidence only if you separately opt in"];
         }
         if (row[0] === "Holds") {
-          return [row[0], row[1], "Everything attached to your account, including Wallet Shortcut transactions; plus anonymous community gift-card inventory reports when that optional feature is enabled"];
+          return [row[0], row[1], "Everything attached to your account, including Wallet Shortcut transactions; plus anonymous community gift-card or MCC reports when those optional features are enabled"];
         }
         if (row[0] === "Can I read it") {
-          return [row[0], row[1], "Yes for account data. Anonymous community inventory reports are intentionally not linked to an account or device"];
+          return [row[0], row[1], "Yes for account data. Anonymous community reports are intentionally not linked to an account or device"];
         }
         if (row[0] === "Erased by") {
-          return [row[0], row[1], "Delete my data or Delete account for account data. Anonymous community inventory stops contributing after 90 days and is removed opportunistically"];
+          return [row[0], row[1], "Delete my data or Delete account for account data. Anonymous community reports age out under their separate 90-day or 180-day retention rules"];
         }
         return row;
       }),
@@ -66,21 +74,21 @@ function rewriteBlock(sectionId: string, block: Block): Block {
   if (sectionId === "on-device" && block.kind === "p" && block.text.startsWith("The shopping record described above — merchants, recommendations, purchase entries, and corrections — never leaves your device.")) {
     return {
       kind: "p",
-      text: "The shopping record described above — merchants, recommendations, purchase entries, and corrections — never leaves your device. When you sign in, the separate wallet configuration listed under Your cards and Your card settings does sync so the server can evaluate Wallet Shortcut captures. Gift-card inventory feedback is a separate optional evidence stream: it can be shared anonymously only if you enable community gift-card inventory.",
+      text: "The shopping record described above — merchants, recommendations, purchase entries, and corrections — never leaves your device as account data. When you sign in, the separate wallet configuration listed under Your cards and Your card settings does sync so the server can evaluate Wallet Shortcut captures. Optional community evidence is narrower and separate: only the specific gift-card or literal-MCC fields described below can be shared anonymously when you enable those settings.",
     };
   }
 
   if (sectionId === "what-leaves" && block.kind === "p" && block.text.startsWith("Searching for nearby merchants sends a request to Apple")) {
     return {
       kind: "p",
-      text: "Searching for nearby merchants sends a request to Apple, which answers it. By default, nothing else goes anywhere while you are signed out. If you separately enable optional community gift-card inventory, PickMe can also send the narrow anonymous store-and-gift-card evidence described in the community inventory section below; no account is required for that optional feature.",
+      text: "Searching for nearby merchants sends a request to Apple, which answers it. By default, nothing else goes anywhere while you are signed out. If you separately enable an optional community feature, PickMe can also send the narrow anonymous store evidence described in the community section below; no account is required for those optional features.",
     };
   }
 
   if (sectionId === "what-leaves" && block.kind === "p" && block.text.startsWith("That is the entire outbound payload surface of the app.")) {
     return {
       kind: "p",
-      text: "Outside the optional community gift-card inventory feature described below, that is the complete outbound payload surface of the signed-in app. Cap-ledger and feedback sync is otherwise a pull: the app asks the server for figures and receives them. It does not push your prediction log, purchase entries, or saved merchant history as account data.",
+      text: "Outside the optional community evidence described below, that is the complete outbound payload surface of the signed-in app. Cap-ledger and feedback sync is otherwise a pull: the app asks the server for figures and receives them. It does not push your prediction log, purchase entries, or saved merchant history as account data.",
     };
   }
 
