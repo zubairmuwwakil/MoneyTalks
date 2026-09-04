@@ -17,7 +17,7 @@ const communitySection: Section = {
     },
     {
       kind: "p",
-      text: "When you tap Found it or Not here, a later nearby scan can anonymously submit that observation. The submission contains a random observation UUID, the same store identity described above, the gift-card name, Found it or Not here, and the observation time. If an Apple place identifier exists, PickMe omits the coordinates from the submission.",
+      text: "When you tap Found it or Not here, a later nearby scan can anonymously submit that observation. The submission contains a random observation UUID, the same store identity described above, the gift-card name, Found it or Not here, and the observation time. If an Apple place identifier exists, PickMe omits the coordinates from the submission. These community inventory submissions do not include your credit card, card number, purchase amount, account, email, user identifier, or device identifier.",
     },
     {
       kind: "p",
