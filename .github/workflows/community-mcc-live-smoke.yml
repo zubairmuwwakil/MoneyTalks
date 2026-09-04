@@ -6,6 +6,7 @@ on:
     paths:
       - "src/app/api/community/merchant-mcc/**"
       - "src/lib/community-merchant-mcc.ts"
+      - "src/proxy.ts"
       - "prisma/community-merchant-mcc.prisma"
       - "prisma/migrations/**"
       - ".github/workflows/community-mcc-live-smoke.yml"
