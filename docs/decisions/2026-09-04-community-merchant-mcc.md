@@ -169,6 +169,47 @@ geo-derived purchase identity may teach In Unity's global `MerchantAlias` table.
 Raw Wallet aliases are neither uploaded nor globally learned by this feature;
 the existing review-by-**2026-12-01** remains open.
 
+## Explicit decision — do not invest further in community evidence yet
+
+**Decision:** do not spend further engineering effort on the community MCC
+layer until it has measured multi-user traffic or observed abuse. This is a
+deliberate deferral, not an overlooked backlog.
+
+Publication requires support on at least three distinct UTC days
+(`COMMUNITY_MCC_MIN_SUPPORT_DAYS`), while PickMe consumes a published result
+only as `externalLocationReport`, below direct owner evidence in its trust
+hierarchy. For a single user, that composition has no user-visible payoff: they
+must visit the same store on three separate days before their own contribution
+can be published back to them, and by then they already have stronger direct
+owner evidence for that store. The anti-burst threshold is working as designed;
+community evidence becomes useful only when multiple users contribute.
+
+The privacy model is intentionally already built because it cannot safely be
+retrofitted. Further work is deliberately deferred until real multi-user demand
+exists:
+
+- H3/geohash or other spatial-bucket changes;
+- App Attest, DeviceCheck, or other abuse hardening;
+- support-day and evidence-cap tuning;
+- the optional payment-network dimension;
+- rollups or materialized aggregates; and
+- retention-duration tuning.
+
+Reopen this work only when privacy-safe client telemetry shows **measured
+multi-user community traffic**: multiple opted-in PickMe users are contributing
+to or receiving published evidence in a way that changes or could change
+recommendations, or when an abuse signal is observed (for example cap pressure,
+anomalous submission patterns, or suspicious published evidence). The anonymous
+service still cannot claim that a report has independent-user corroboration. Do
+not reopen it merely because community evidence exists, because a design
+alternative looks interesting, or to tune thresholds before they can affect a
+user.
+
+Meanwhile, do nothing further in the community layer. The scarce, actionable
+signal is exact owner MCC, and the worthwhile investment is acquiring it through
+statement import. PickMe records the client-side consequence in its
+[production architecture handoff](../../../PickMe/docs/superpowers/specs/2026-09-04-merchant-mcc-production-architecture-design.md#community-evidence--deliberate-deferral).
+
 The following are intentionally replaceable when a demonstrably higher-ROI
 solution exists: Vercel/Neon topology; raw versus pre-aggregated storage;
 support-day/evidence caps; retention duration; bucket technology/resolution;
